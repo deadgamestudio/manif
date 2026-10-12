@@ -14,6 +14,7 @@ import {
   STREET_LEVEL,
   ServerMessage,
   TICK_RATE,
+  dodgeDirection,
   levelWorld,
   meleeHits,
   nameOrDefault,
@@ -36,6 +37,7 @@ import {
 import { Bodies, DEBUG_KNOCKBACK_ENABLED, planDebugKnockback } from "../features/physics/index.js";
 import { DEBUG_HEALTH_ENABLED, Healths, parseDebugHealth } from "../features/health/index.js";
 import { MeleeCooldowns } from "../features/melee/index.js";
+import { DodgeCooldowns } from "../features/dodge/index.js";
 import { Player } from "../features/player/index.js";
 import { Props } from "../features/prop/index.js";
 import { CrsSquad } from "../features/crs/index.js";
@@ -65,6 +67,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private bodies = new Bodies(this.props.world, PLAYER_RADIUS, PLAYER_SPEED);
   /** Last swing time per session (#4). Server-only, like moveInputs. */
   private meleeCooldowns = new MeleeCooldowns();
+  /** Last dodge time per session (#9). Server-only; only `dodging` is synced. */
+  private dodgeCooldowns = new DodgeCooldowns();
   /** HP, status and their timers per session (#3). Server-only; hp, status and stateLeft are synced. */
   private healths = new Healths();
   /**
@@ -127,6 +131,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.attack(client);
     },
 
+    // Dodge (#9). No payload: the server uses the held move direction (or the
+    // facing) and owns the cooldown and the state checks.
+    [ClientMessage.Dodge]: (client: Client) => {
+      if (this.state.phase !== Phase.Playing) return;
+      this.dodge(client.sessionId);
+    },
+
     // Game rule: only the host starts, and only from the lobby.
     [ClientMessage.Start]: (client: Client) => {
       if (client.sessionId !== this.state.hostId || this.state.phase !== Phase.Lobby) return;
@@ -182,6 +193,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.state.players.delete(client.sessionId);
     this.moveInputs.delete(client.sessionId);
     this.meleeCooldowns.remove(client.sessionId);
+    this.dodgeCooldowns.remove(client.sessionId);
     this.bodies.remove(client.sessionId);
     // Systems that point at a player (a CRS grab #5, a rescue #10) see unknown ids as no-ops.
     this.healths.remove(client.sessionId);
@@ -204,6 +216,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.props.reset(this.state.props);
     this.crs.worldChanged();
     this.meleeCooldowns.clear();
+    this.dodgeCooldowns.clear();
     // CRS (#5): the first wave on the level's spawn points, and replacements
     // for those taken out. #12 replaces this with waves that grow with progress.
     this.crs.clear();
@@ -309,6 +322,23 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   /**
+   * One dodge (#9): a short burst at DODGE_SPEED_FACTOR times walking speed,
+   * along the held move direction or the facing. Only a protester with control
+   * (free, not knocked down) dodges, at most once per DODGE_COOLDOWN, counted
+   * from the start of the last one. A grabbed protester cannot dodge out of the
+   * grab: only a rescue (#10) frees them. Returns true if the dodge started.
+   */
+  dodge(id: string): boolean {
+    const player = this.state.players.get(id);
+    if (!player || !this.hasControl(id)) return false;
+    if (!this.dodgeCooldowns.ready(id, this.now)) return false;
+    const dir = dodgeDirection(this.moveInputs.get(id) ?? NO_INPUT, player.rotation);
+    if (!this.bodies.dodge(id, player, dir.x, dir.z)) return false;
+    this.dodgeCooldowns.start(id, this.now);
+    return true;
+  }
+
+  /**
    * A prop just broke: it drops PROP_TYPES[kind].paves pavés (#4). Hook for #8,
    * which owns pavés as ground items and their pickup: spawn them here.
    */
@@ -331,10 +361,18 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.state.players.forEach((player, sessionId) => {
       if (this.healths.tick(sessionId, player, this.now) === "respawned") this.placeAtRear(sessionId, player);
       // Only free protesters walk; the others keep their knockback slide (a KO'd body still flies).
-      const input = this.healths.canMove(sessionId) ? (this.moveInputs.get(sessionId) ?? NO_INPUT) : NO_INPUT;
-      // Walk from the held input (ignored while down) plus knockback velocity,
-      // collided against the street (sub-stepped, bounces off walls).
-      this.bodies.step(sessionId, player, input, dt);
+      const free = this.healths.canMove(sessionId);
+      // Grabbed or KO mid-dodge (#9): the burst stops at once.
+      if (!free && player.dodging) this.bodies.endDodge(sessionId, player);
+      const input = free ? (this.moveInputs.get(sessionId) ?? NO_INPUT) : NO_INPUT;
+      // Walk (or dodge) from the held input (ignored while down) plus knockback
+      // velocity, collided against the street (sub-stepped, bounces off walls).
+      const res = this.bodies.step(sessionId, player, input, dt);
+      // A head-on dodge into a wall or prop bonks (#9): tip the avatar backwards like a hit.
+      if (res?.bonk) {
+        const event: ImpulseEvent = { id: sessionId, dirX: res.bonk.x, dirZ: res.bonk.z, strength: res.bonk.speed, down: player.down };
+        this.broadcast(ServerMessage.Impulse, event);
+      }
     });
     this.crs.step(this.now, dt, this.crsHost, () => this.freeProtesterPositions());
   }

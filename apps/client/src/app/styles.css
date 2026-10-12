@@ -456,6 +456,50 @@ body,
   font-weight: 700;
 }
 
+/* Dodge cooldown (#9): empties on a dodge, refills over DODGE_COOLDOWN. */
+.hud-dodge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.hud-dodge-bar {
+  width: 60px;
+  height: 6px;
+  border: 1px solid #141414;
+  border-radius: 3px;
+  background: #3a3a3a;
+  overflow: hidden;
+}
+
+.hud-dodge-fill {
+  width: 100%;
+  height: 100%;
+  background: #4fc3f7;
+  transform-origin: left;
+}
+
+.hud-dodge-fill[data-cooling] {
+  animation-name: hud-dodge-refill;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+@keyframes hud-dodge-refill {
+  from {
+    transform: scaleX(0);
+    background: #607d8b;
+  }
+  99% {
+    background: #607d8b;
+  }
+  to {
+    transform: scaleX(1);
+    background: #4fc3f7;
+  }
+}
+
 /* Dev builds only (#2 debug knockback). */
 .hud-debug {
   color: #ff8a65;

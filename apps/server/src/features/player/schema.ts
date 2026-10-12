@@ -21,6 +21,8 @@ export const Player = schema(
     status: t.uint8().default(PlayerStatus.Free),
     /** Whole seconds left in the current non-free state, for the HUD countdown. 0 while free. */
     stateLeft: t.uint8(),
+    /** In a dodge burst (#9). The cooldown and burst timer stay server-side in the physics and dodge features. */
+    dodging: t.boolean(),
   },
   "Player",
 );

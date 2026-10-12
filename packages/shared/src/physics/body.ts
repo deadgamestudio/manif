@@ -24,6 +24,7 @@ import {
   WALL_BOUNCE_MIN_SPEED,
   WALL_BOUNCE_TANGENT_KEEP,
 } from "./constants.js";
+import { DODGE_BONK_DOWN, DODGE_BONK_FACTOR, DODGE_DURATION, DODGE_SPEED_FACTOR } from "../dodge/constants.js";
 
 /** A physical root body on the ground plane. Server-side only, except `x`, `z` and "down". */
 export interface Body extends Vec2 {
@@ -34,10 +35,39 @@ export interface Body extends Vec2 {
   downTime: number;
   /** Seconds left of get-up immunity: pushes still apply, knock-downs do not. */
   immuneTime: number;
+  /** Seconds left of a dodge burst (#9). > 0 means dodging: the walk is replaced by the burst. */
+  dodgeTime: number;
+  /** Unit direction of the current dodge. */
+  dodgeX: number;
+  dodgeZ: number;
 }
 
 export function createBody(x: number, z: number): Body {
-  return { x, z, vx: 0, vz: 0, downTime: 0, immuneTime: 0 };
+  return { x, z, vx: 0, vz: 0, downTime: 0, immuneTime: 0, dodgeTime: 0, dodgeX: 0, dodgeZ: 0 };
+}
+
+export function isDodging(body: Body): boolean {
+  return body.dodgeTime > 0;
+}
+
+/**
+ * Start a dodge burst (#9): for `duration` seconds the body moves at
+ * DODGE_SPEED_FACTOR times its walking speed along (dirX, dirZ), ignoring the
+ * move input. Refused (false) while down, already dodging, or with no
+ * direction. Cooldown and health state are the caller's rules.
+ */
+export function startDodge(body: Body, dirX: number, dirZ: number, duration = DODGE_DURATION): boolean {
+  const len = Math.hypot(dirX, dirZ);
+  if (isDown(body) || isDodging(body) || !Number.isFinite(len) || len < 1e-6 || !(duration > 0)) return false;
+  body.dodgeX = dirX / len;
+  body.dodgeZ = dirZ / len;
+  body.dodgeTime = duration;
+  return true;
+}
+
+/** Stop a dodge at once (grabbed, KO, dragged, knocked down). */
+export function endDodge(body: Body): void {
+  body.dodgeTime = 0;
 }
 
 export function isDown(body: Body): boolean {
@@ -61,13 +91,14 @@ export function hasControl(body: Body): boolean {
 export function knockDown(body: Body, duration = DOWN_DURATION): boolean {
   if (isDown(body) || isImmune(body) || duration <= 0) return false;
   body.downTime = duration;
+  endDodge(body);
   return true;
 }
 
 /**
  * - `auto`: knock down when `strength >= KNOCKDOWN_THRESHOLD` (hits, pavés).
  * - `always`: knock down whatever the strength (a thrown teammate, #11).
- * - `never`: only push (a dodge burst, #9; a shove).
+ * - `never`: only push (a shove). A dodge (#9) is not an impulse: see `startDodge`.
  * Immunity and "already down" still apply in every mode.
  */
 export type KnockdownMode = "auto" | "always" | "never";
@@ -111,6 +142,12 @@ export function applyImpulse(
   return { dirX: nx, dirZ: nz, strength: s, knockedDown };
 }
 
+/** A dodge that ran head-on into something (#9). */
+export interface DodgeBonk extends Vec2 {
+  /** Bounce-back speed, m/s. */
+  speed: number;
+}
+
 export interface BodyStepResult {
   /** The body got back up during this step (its get-up immunity just started). */
   gotUp: boolean;
@@ -119,14 +156,21 @@ export interface BodyStepResult {
    * react to hard impacts (a dodge into a lamp post knocks down, #9).
    */
   impactSpeed: number;
+  /**
+   * A dodge ran head-on into a wall or a prop this step (#9): the unit
+   * direction it bounced back along and the bounce speed (m/s), else null. The
+   * burst ended; the body was knocked down unless it was in get-up immunity.
+   */
+  bonk: DodgeBonk | null;
 }
 
 /**
  * One fixed step: timers, then movement, collision and bounce, then drag.
  *
- * `input` is the held move direction (unit or zero); it is ignored while down,
- * and used again as soon as the body is up, without a new key press.
- * `walkSpeed` is the walking speed in m/s.
+ * `input` is the held move direction (unit or zero); it is ignored while down
+ * or dodging, and used again as soon as the body is up, without a new key press.
+ * `walkSpeed` is the walking speed in m/s; a dodge goes DODGE_SPEED_FACTOR
+ * times faster, so scaling `walkSpeed` (#14) scales the dodge too.
  */
 export function stepBody(
   world: CollisionWorld,
@@ -139,21 +183,52 @@ export function stepBody(
   const gotUp = tickTimers(body, dt);
 
   const control = hasControl(body);
-  const wx = control ? input.x * walkSpeed : 0;
-  const wz = control ? input.z * walkSpeed : 0;
+  if (!control) endDodge(body);
+  const dodging = isDodging(body);
+  const dodgeSpeed = walkSpeed * DODGE_SPEED_FACTOR;
+  // A dodge replaces the walk for its duration; knockback still adds on top.
+  const wx = dodging ? body.dodgeX * dodgeSpeed : control ? input.x * walkSpeed : 0;
+  const wz = dodging ? body.dodgeZ * dodgeSpeed : control ? input.z * walkSpeed : 0;
   const dx = (wx + body.vx) * dt;
   const dz = (wz + body.vz) * dt;
 
   let impactSpeed = 0;
+  let bonk: DodgeBonk | null = null;
   if (dx !== 0 || dz !== 0) {
+    // moveCircle sub-steps, so a dodge at any speed cannot tunnel through a wall.
     const res = moveCircle(world, body, dx, dz, radius);
     body.x = res.x;
     body.z = res.z;
     impactSpeed = bounce(body, res.pushX, res.pushZ);
+    if (dodging) bonk = dodgeBonk(body, res.pushX, res.pushZ, wx, wz, dodgeSpeed);
   }
 
+  if (isDodging(body)) {
+    body.dodgeTime -= dt;
+    if (body.dodgeTime <= 1e-9) body.dodgeTime = 0;
+  }
   applyDrag(body, dt);
-  return { gotUp, impactSpeed };
+  return { gotUp, impactSpeed, bonk };
+}
+
+/**
+ * A dodge that hit something (push along the contact normal): head-on enough,
+ * it bonks (#9): the burst ends, the body bounces back along the normal and is
+ * knocked down briefly. A slapstick failure rather than a silent stop.
+ * Returns the bounce direction, or null for a glancing hit (it slides on).
+ */
+function dodgeBonk(body: Body, pushX: number, pushZ: number, wx: number, wz: number, dodgeSpeed: number): DodgeBonk | null {
+  const plen = Math.hypot(pushX, pushZ);
+  if (plen < 1e-9) return null;
+  const nx = pushX / plen;
+  const nz = pushZ / plen;
+  const into = -(wx * nx + wz * nz);
+  if (into < dodgeSpeed * DODGE_BONK_FACTOR) return null;
+  endDodge(body);
+  body.vx += nx * into * WALL_BOUNCE;
+  body.vz += nz * into * WALL_BOUNCE;
+  knockDown(body, DODGE_BONK_DOWN);
+  return { x: nx, z: nz, speed: into * WALL_BOUNCE };
 }
 
 /** Count timers down. Returns true when the body gets up during this step. */

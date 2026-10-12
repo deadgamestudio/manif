@@ -7,11 +7,13 @@ import { useMoveInput } from "../movement/index.ts";
 import { useAttackInput } from "../melee/index.ts";
 import { DebugKnockbackKeys } from "../debug/index.ts";
 import { HealthHud } from "../health/index.ts";
+import { DodgeHud, useDodgeInput } from "../dodge/index.ts";
 
 /** The street. Mounted only while playing, so keyboard input never reaches the homepage fields. */
 export function Game({ snap }: { snap: NetSnapshot }) {
   useMoveInput();
   useAttackInput();
+  useDodgeInput();
 
   return (
     <>
@@ -28,7 +30,8 @@ export function Game({ snap }: { snap: NetSnapshot }) {
           manif <b>{snap.roomId}</b> · {snap.players.length}/{MAX_PLAYERS} manifestants
         </div>
         <HealthHud localId={snap.sessionId} />
-        <div>WASD / flèches pour marcher · Espace / clic pour taper</div>
+        <DodgeHud localId={snap.sessionId} />
+        <div>WASD / flèches pour marcher · Espace / clic pour taper · Maj pour plonger</div>
         {import.meta.env.DEV && <DebugKnockbackKeys />}
         <button type="button" className="hud-leave" onClick={() => net.leave()}>
           Rentrer à la maison

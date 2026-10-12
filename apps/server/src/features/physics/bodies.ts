@@ -1,9 +1,12 @@
 import {
   applyImpulse,
   createBody,
+  endDodge,
   hasControl,
+  isDodging,
   isDown,
   moveCircle,
+  startDodge,
   stepBody,
   type Body,
   type BodyStepResult,
@@ -19,6 +22,8 @@ export interface BodyView {
   z: number;
   rotation: number;
   down: boolean;
+  /** In a dodge burst (#9). */
+  dodging: boolean;
 }
 
 /**
@@ -44,6 +49,7 @@ export class Bodies {
     view.x = x;
     view.z = z;
     view.down = false;
+    view.dodging = false;
   }
 
   remove(id: string): void {
@@ -85,6 +91,25 @@ export class Bodies {
   }
 
   /**
+   * Start a dodge burst (#9) along (dirX, dirZ) and face it. Refused while down
+   * or already dodging; the room checks health state and cooldown first.
+   */
+  dodge(id: string, view: BodyView, dirX: number, dirZ: number): boolean {
+    const body = this.bodies.get(id);
+    if (!body || !startDodge(body, dirX, dirZ)) return false;
+    view.dodging = true;
+    view.rotation = Math.atan2(body.dodgeX, body.dodgeZ);
+    return true;
+  }
+
+  /** Stop a dodge at once (grabbed, KO). A no-op if not dodging. */
+  endDodge(id: string, view: BodyView): void {
+    const body = this.bodies.get(id);
+    if (body) endDodge(body);
+    if (view.dodging) view.dodging = false;
+  }
+
+  /**
    * Pull a body to (x, z), collided against the world, and drop its knockback:
    * a CRS dragging a grabbed protester (#5). Mirrors position into `view`.
    */
@@ -96,8 +121,10 @@ export class Bodies {
     body.z = res.z;
     body.vx = 0;
     body.vz = 0;
+    endDodge(body);
     if (view.x !== body.x) view.x = body.x;
     if (view.z !== body.z) view.z = body.z;
+    if (view.dodging) view.dodging = false;
   }
 
   /** One fixed tick for one body, then mirror position and `down` into `view`. */
@@ -110,8 +137,10 @@ export class Bodies {
     if (view.z !== body.z) view.z = body.z;
     const down = isDown(body);
     if (view.down !== down) view.down = down;
-    // Face the walking direction; a body that is down keeps its facing.
-    if (!down && (input.x !== 0 || input.z !== 0)) view.rotation = Math.atan2(input.x, input.z);
+    const dodging = isDodging(body);
+    if (view.dodging !== dodging) view.dodging = dodging;
+    // Face the walking direction; a body that is down or dodging keeps its facing.
+    if (!down && !dodging && (input.x !== 0 || input.z !== 0)) view.rotation = Math.atan2(input.x, input.z);
     return res;
   }
 }
