@@ -10,7 +10,17 @@
 	# strips the /colyseus prefix; reverse_proxy passes WebSocket upgrades
 	# through on its own.
 	handle_path /colyseus/* {
-		reverse_proxy server:2567
+		reverse_proxy server:2567 {
+			# Colyseus answers matchmaking errors with their error code as the
+			# HTTP status: 522 "room not found", 524 "room locked/full", etc.
+			# Cloudflare treats 520-527 as its own origin errors and replaces
+			# the body with "error code: 522", so the client loses the reason.
+			# Re-send them as 409 with the body untouched.
+			@colyseus_err status 520 521 522 523 524 525 526 527
+			handle_response @colyseus_err {
+				copy_response 409
+			}
+		}
 	}
 
 	# Vite's hashed bundles never change under the same name. A missing one is
