@@ -412,6 +412,50 @@ body,
   background: rgb(255 255 255 / 0.15);
 }
 
+/* Local player's health (#3). */
+.hud-health {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 4px 0;
+}
+
+.hud-hp {
+  position: relative;
+  width: 180px;
+  height: 14px;
+  border: 2px solid #141414;
+  border-radius: 4px;
+  background: #3a3a3a;
+  overflow: hidden;
+}
+
+.hud-hp-fill {
+  height: 100%;
+  background: #7cd36b;
+  transition: width 0.2s ease-out;
+}
+
+.hud-hp-fill[data-low] {
+  background: #ff5a4f;
+}
+
+.hud-hp-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #000;
+}
+
+.hud-status {
+  color: #ffd400;
+  font-weight: 700;
+}
+
 /* Dev builds only (#2 debug knockback). */
 .hud-debug {
   color: #ff8a65;

@@ -2,6 +2,7 @@
  * Plain shapes of the synced room state, as seen by the client.
  * The real Schema classes live in the server only.
  */
+import type { PlayerStatus } from "../health/index.js";
 
 /**
  * Room phase, synced as a uint8.
@@ -22,8 +23,14 @@ export interface PlayerShape {
   rotation: number;
   /** Display name, already sanitised by the server. */
   name: string;
-  /** Knocked down (#2): no control until it gets back up. */
+  /** Knocked down (#2): no control until it gets back up. Not a health state. */
   down: boolean;
+  /** Health points, 0..MAX_HP (#3). */
+  hp: number;
+  /** Free, grabbed, KO or arrested (#3). See `PlayerStatus`. */
+  status: PlayerStatus;
+  /** Whole seconds left in the current non-free state, for countdowns (0 while free). */
+  stateLeft: number;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */

@@ -22,14 +22,14 @@ Inside each one, code is grouped by feature:
 ```
 apps/client/src/
   app/        main.tsx, App.tsx, styles.css
-  features/   home/ lobby/ game/ level/ player/ movement/ debug/ (dev-only keys)
+  features/   home/ lobby/ game/ level/ player/ health/ movement/ debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/server/src/
   app/        server bootstrap
-  features/   player/ (Player Schema)  physics/ (knockback bodies)
+  features/   player/ (Player Schema)  physics/ (knockback bodies)  health/ (HP and arrest timers)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -70,6 +70,10 @@ Run the built server with `bun run --cwd apps/server start`.
 | Tune knockback (drag, friction, knockdown threshold, down time, get-up immunity, wall bounce) | `packages/shared/src/physics/constants.ts` |
 | Change knockback kinematics (impulses, integration, bounce, down timer) | `packages/shared/src/physics/body.ts`; the server side is `apps/server/src/features/physics/` |
 | Push a body from a new hit (melee, baton, pavé...) | `StreetRoom.applyImpulse(id, dirX, dirZ, strength, mode?)` in `apps/server/src/rooms/StreetRoom.ts` |
+| Tune HP, KO time, respawn delay, invulnerability, default drag time, respawn margin | `packages/shared/src/health/constants.ts` |
+| Change the health state machine (free, grabbed, KO, arrested) | `packages/shared/src/health/health.ts`; respawn position in `health/respawn.ts` |
+| Hurt, grab or rescue a protester from a new system (melee, baton, gas, rescue...) | `StreetRoom.damagePlayer(id, amount)`, `grabPlayer(id, duration?)`, `rescuePlayer(id)`; check `hasControl(id)` before letting a player act |
+| Change the HP bar and status line | `apps/client/src/features/health/` (HUD and the bar above other players) |
 | Change the knocked-down look | `apps/client/src/features/player/PlayerAvatar.tsx` |
 | Change how the level is drawn | `apps/client/src/features/level/Level.tsx` |
 | Add unit tests | A `*.test.ts` next to the code it tests, e.g. `packages/shared/src/level/level.test.ts` (any package with a `test` script) |
@@ -143,6 +147,13 @@ variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
   gets up with a short immunity. Each hit is broadcast as an `impulse` event so
   clients tip the avatar the right way. In dev builds, K / J / L in the street
   trigger a debug knockback (the server refuses it when `NODE_ENV=production`).
+- Health (#3): each protester has HP (100) and a status: free, grabbed, KO or
+  arrested. 0 HP means KO for 1.5 s, then arrested; after 10 s in the van they
+  come back free with full HP behind the rearmost free protester, briefly
+  immune. Only free protesters move or act. The state machine is pure (shared
+  `health/`); the server keeps its timers in room time and syncs only `hp`,
+  `status` and a whole-second countdown `stateLeft`. In dev builds, H hurts you
+  and G gets you grabbed.
 - The server is authoritative. Clients only send a move direction; the server
   integrates movement at a fixed tick rate (`packages/shared/src/net/constants.ts`),
   pushes players out of obstacles and keeps them inside the street. The client

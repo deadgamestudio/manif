@@ -5,6 +5,7 @@ import { CAMERA_OFFSET } from "../../shared/iso/index.ts";
 import { Scene } from "./Scene.tsx";
 import { useMoveInput } from "../movement/index.ts";
 import { DebugKnockbackKeys } from "../debug/index.ts";
+import { HealthHud } from "../health/index.ts";
 
 /** The street. Mounted only while playing, so keyboard input never reaches the homepage fields. */
 export function Game({ snap }: { snap: NetSnapshot }) {
@@ -24,6 +25,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         <div>
           manif <b>{snap.roomId}</b> · {snap.players.length}/{MAX_PLAYERS} manifestants
         </div>
+        <HealthHud localId={snap.sessionId} />
         <div>WASD / flèches pour marcher</div>
         {import.meta.env.DEV && <DebugKnockbackKeys />}
         <button type="button" className="hud-leave" onClick={() => net.leave()}>
