@@ -6,22 +6,26 @@ import {
   PLAYER_SPEED,
   Phase,
   STREET_LEVEL,
+  ServerMessage,
   TICK_RATE,
   levelWorld,
-  moveCircle,
   nameOrDefault,
   normalizeMove,
   pickHost,
   spawnPoint,
+  type ImpulseEvent,
+  type KnockdownMode,
   type LobbyJoinOptions,
   type MoveInput,
 } from "@manif/shared";
+import { Bodies, DEBUG_KNOCKBACK_ENABLED, planDebugKnockback } from "../features/physics/index.js";
 import { Player } from "../features/player/index.js";
 import { StreetState } from "./state.js";
 
 // The level is static shared data, imported by the client too. It is not synced.
 const LEVEL = STREET_LEVEL;
 const WORLD = levelWorld(LEVEL);
+const NO_INPUT: MoveInput = { x: 0, z: 0 };
 
 /**
  * One lobby, then one street. Created by `client.create()` and joined by code
@@ -31,6 +35,8 @@ const WORLD = levelWorld(LEVEL);
 export class StreetRoom extends Room<{ state: StreetState }> {
   /** Latest move direction per session. Server-only, not synced. */
   private moveInputs = new Map<string, MoveInput>();
+  /** Velocity, down and immunity timers per session (#2). Server-only; only `down` is synced. */
+  private bodies = new Bodies(WORLD, PLAYER_RADIUS, PLAYER_SPEED);
   /** Arrival order per session, for host hand-over. Server-only. */
   private joinOrder = new Map<string, number>();
   private joinCounter = 0;
@@ -41,6 +47,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   override messages = {
     // Input only: the client says where it wants to go, the server moves it.
     // Re-normalize so a tampered client can't move faster than PLAYER_SPEED.
+    // Still recorded while knocked down, so the held direction applies on getting up.
     [ClientMessage.Move]: (client: Client, message: unknown) => {
       if (this.state.phase !== Phase.Playing) return;
       const m = (message ?? {}) as Partial<MoveInput>;
@@ -52,6 +59,17 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (client.sessionId !== this.state.hostId || this.state.phase !== Phase.Lobby) return;
       this.startMarch();
     },
+
+    // DEBUG (#2): dev-only knockback trigger, until melee (#4) exists. Not registered in production.
+    ...(DEBUG_KNOCKBACK_ENABLED && {
+      [ClientMessage.DebugKnockback]: (client: Client, message: unknown) => {
+        if (this.state.phase !== Phase.Playing) return;
+        const self = this.state.players.get(client.sessionId);
+        if (!self) return;
+        const plan = planDebugKnockback(client.sessionId, self, this.state.players.entries(), message);
+        if (plan) this.applyImpulse(plan.targetId, plan.dirX, plan.dirZ, plan.strength);
+      },
+    }),
   };
 
   override onCreate() {
@@ -63,7 +81,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   override onJoin(client: Client, options?: LobbyJoinOptions) {
     const player = new Player();
     player.name = nameOrDefault(options?.name);
-    this.placeAtSpawn(player);
+    this.placeAtSpawn(client.sessionId, player);
     this.state.players.set(client.sessionId, player);
     this.moveInputs.set(client.sessionId, { x: 0, z: 0 });
     this.joinOrder.set(client.sessionId, this.joinCounter++);
@@ -78,6 +96,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   override onLeave(client: Client) {
     this.state.players.delete(client.sessionId);
     this.moveInputs.delete(client.sessionId);
+    this.bodies.remove(client.sessionId);
     this.joinOrder.delete(client.sessionId);
     if (this.state.hostId === client.sessionId) {
       this.state.hostId = pickHost(Array.from(this.joinOrder, ([id, joinedAt]) => ({ id, joinedAt })));
@@ -89,7 +108,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   /** Lobby -> street, everyone at once. #12 replaces this with the round lifecycle. */
   private startMarch() {
     this.state.players.forEach((player, sessionId) => {
-      this.placeAtSpawn(player);
+      this.placeAtSpawn(sessionId, player);
       this.moveInputs.set(sessionId, { x: 0, z: 0 });
     });
     this.state.phase = Phase.Playing;
@@ -97,25 +116,34 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   /** Random point in the start zone, already pushed clear of obstacles, facing the Préfecture. */
-  private placeAtSpawn(player: Player) {
+  private placeAtSpawn(sessionId: string, player: Player) {
     const spawn = spawnPoint(LEVEL, PLAYER_RADIUS);
-    player.x = spawn.x;
-    player.z = spawn.z;
+    this.bodies.place(sessionId, player, spawn.x, spawn.z);
     player.rotation = Math.PI;
+  }
+
+  /**
+   * Push a body (#2): the one call every hit uses (melee #4, batons #5, pavés
+   * #8, thrown teammates #11). Below KNOCKDOWN_THRESHOLD it only pushes; at or
+   * above it also knocks down, unless the body is already down or in get-up
+   * immunity. Announced to every client with ServerMessage.Impulse.
+   */
+  applyImpulse(id: string, dirX: number, dirZ: number, strength: number, mode?: KnockdownMode) {
+    const player = this.state.players.get(id);
+    if (!player) return null;
+    const res = this.bodies.impulse(id, player, dirX, dirZ, strength, mode);
+    if (!res || res.strength === 0) return res;
+    const event: ImpulseEvent = { id, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
+    this.broadcast(ServerMessage.Impulse, event);
+    return res;
   }
 
   private step(dt: number) {
     if (this.state.phase !== Phase.Playing) return;
     this.state.players.forEach((player, sessionId) => {
-      const input = this.moveInputs.get(sessionId);
-      if (!input || (input.x === 0 && input.z === 0)) return;
-      // Move, then push out of obstacles and keep inside the street (slides along walls).
-      const step = PLAYER_SPEED * dt;
-      const next = moveCircle(WORLD, player, input.x * step, input.z * step, PLAYER_RADIUS);
-      player.x = next.x;
-      player.z = next.z;
-      // Face the direction of travel (three.js: rotation.y = 0 looks down +Z).
-      player.rotation = Math.atan2(input.x, input.z);
+      // Walk from the held input (ignored while down) plus knockback velocity,
+      // collided against the street (sub-stepped, bounces off walls).
+      this.bodies.step(sessionId, player, this.moveInputs.get(sessionId) ?? NO_INPUT, dt);
     });
   }
 }
