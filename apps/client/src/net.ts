@@ -3,38 +3,170 @@ import type { IRef } from "@colyseus/schema";
 import {
   ClientMessage,
   DEFAULT_SERVER_PORT,
+  Phase,
   ROOM_NAME,
   normalizeMove,
+  type LobbyJoinOptions,
   type MoveInput,
   type PlayerShape,
   type StreetStateShape,
 } from "@manif/shared";
+import { setInviteUrl } from "./invite.ts";
 
-export type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error";
+/**
+ * - idle: on the homepage, no room.
+ * - connecting: a create/join is in flight.
+ * - connected: in a room (lobby or street, see `phase`).
+ * - error: the last create/join failed or the room was lost; `error` says why.
+ */
+export type ConnectionStatus = "idle" | "connecting" | "connected" | "error";
+
+export interface LobbyPlayer {
+  id: string;
+  name: string;
+}
 
 export interface NetSnapshot {
   status: ConnectionStatus;
   sessionId: string | null;
-  /** Ids of players currently in the room. Changes only on join/leave. */
-  playerIds: readonly string[];
+  /** The lobby code (Colyseus room id) while in a room. */
+  roomId: string | null;
+  /** null until the first state snapshot is decoded. */
+  phase: Phase | null;
+  hostId: string | null;
+  /** Players in join order. Changes only on join/leave, never per frame. */
+  players: readonly LobbyPlayer[];
+  /** Readable message for the homepage. */
   error: string | null;
 }
 
 const SERVER_URL =
   import.meta.env.VITE_SERVER_URL ?? `ws://${location.hostname || "localhost"}:${DEFAULT_SERVER_PORT}`;
 
+/** Colyseus matchmaking error for a missing or locked (full) room id. */
+const MATCHMAKE_INVALID_ROOM_ID = 522;
+
 /** Decoded state: the plain shape from shared, plus the decoder's ref marker. */
 type ClientState = StreetStateShape & IRef;
+type ClientRoom = Room<unknown, ClientState>;
 
-let room: Room<unknown, ClientState> | null = null;
-let snapshot: NetSnapshot = { status: "connecting", sessionId: null, playerIds: [], error: null };
+const IDLE: NetSnapshot = {
+  status: "idle",
+  sessionId: null,
+  roomId: null,
+  phase: null,
+  hostId: null,
+  players: [],
+  error: null,
+};
+
+// The connection is module state, not React state: StrictMode double effects
+// and re-renders can't create a second one. At most one room at a time.
+let room: ClientRoom | null = null;
+let snapshot: NetSnapshot = IDLE;
 const listeners = new Set<() => void>();
 let lastSent: MoveInput = { x: 0, z: 0 };
-let started = false;
+/** The create/join in flight, if any. A second call while it runs gets the same promise. */
+let pending: Promise<void> | null = null;
+/** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
+let generation = 0;
 
 function update(patch: Partial<NetSnapshot>) {
   snapshot = { ...snapshot, ...patch };
   for (const listener of listeners) listener();
+}
+
+/** Turns a matchmaking failure into a message for the homepage. */
+function describeJoinError(err: unknown): string {
+  const code = (err as { code?: unknown } | null)?.code;
+  const message = err instanceof Error ? err.message : String(err);
+  if (code === MATCHMAKE_INVALID_ROOM_ID) {
+    if (/locked/i.test(message)) return "Cette manif est complète (8 manifestants max). Lance la tienne !";
+    return "Code inconnu, ou cette manif s'est déjà dispersée. Vérifie le code ou crée ta propre manif.";
+  }
+  if (err instanceof TypeError || /fetch|network|ECONNREFUSED|websocket/i.test(message)) {
+    return "Impossible de joindre le serveur. Il fait peut-être grève ?";
+  }
+  return `Ça n'a pas marché : ${message}`;
+}
+
+/** Reads the lobby view of the state. Cheap; called only on joins, leaves and phase/host changes. */
+function readRoom(r: ClientRoom): Partial<NetSnapshot> {
+  const state = r.state as ClientState | undefined;
+  // state can be empty until the first full snapshot is decoded
+  if (!state?.players) return { phase: null, hostId: null, players: [] };
+  return {
+    phase: state.phase as Phase,
+    hostId: state.hostId || null,
+    players: Array.from(state.players.entries(), ([id, p]) => ({ id, name: p.name })),
+  };
+}
+
+function attach(joined: ClientRoom, gen: number) {
+  room = joined;
+  lastSent = { x: 0, z: 0 };
+
+  const refresh = () => {
+    if (gen === generation) update(readRoom(joined));
+  };
+  const callbacks = Callbacks.get(joined);
+  callbacks.onAdd("players", (player, _id) => {
+    callbacks.listen(player as PlayerShape & IRef, "name", refresh);
+    refresh();
+  });
+  callbacks.onRemove("players", refresh);
+  callbacks.listen("phase", refresh);
+  callbacks.listen("hostId", refresh);
+
+  joined.onLeave(() => {
+    // Our own leave() already reset everything; only react to an unexpected loss.
+    if (gen !== generation) return;
+    room = null;
+    setInviteUrl(null);
+    update({ ...IDLE, status: "error", error: "Connexion perdue : la manif s'est dispersée sans toi." });
+  });
+  joined.onError((code, message) => {
+    console.warn(`[net] room error ${code}: ${message ?? "unknown"}`);
+  });
+
+  setInviteUrl(joined.roomId);
+  update({ status: "connected", sessionId: joined.sessionId, roomId: joined.roomId, error: null, ...readRoom(joined) });
+}
+
+/**
+ * Runs one create/join. Idempotent while connecting (double clicks and
+ * StrictMode effects share the same attempt), and leaves the current room
+ * first, so a player is never in two lobbies.
+ */
+function connect(action: (client: Client) => Promise<ClientRoom>): Promise<void> {
+  if (pending) return pending;
+  const attempt = (async () => {
+    const previous = room;
+    room = null;
+    const gen = ++generation;
+    update({ ...IDLE, status: "connecting" });
+    if (previous) await previous.leave().catch(() => undefined);
+    if (gen !== generation) return;
+
+    try {
+      const joined = await action(new Client(SERVER_URL));
+      if (gen !== generation) {
+        // leave() was called while we were joining: don't keep a ghost player.
+        void joined.leave().catch(() => undefined);
+        return;
+      }
+      attach(joined, gen);
+    } catch (err) {
+      if (gen !== generation) return;
+      setInviteUrl(null);
+      update({ ...IDLE, status: "error", error: describeJoinError(err) });
+    }
+  })();
+  pending = attempt;
+  void attempt.finally(() => {
+    if (pending === attempt) pending = null;
+  });
+  return attempt;
 }
 
 export const net = {
@@ -63,39 +195,32 @@ export const net = {
     room.send(ClientMessage.Move, dir);
   },
 
-  /** Connect once for the lifetime of the page. */
-  async start() {
-    if (started) return;
-    started = true;
-    update({ status: "connecting" });
+  /** Create a private lobby and join it as host. */
+  createLobby(name: string): Promise<void> {
+    const options: LobbyJoinOptions = { name };
+    return connect((client) => client.create<ClientState>(ROOM_NAME, options));
+  },
 
-    try {
-      const client = new Client(SERVER_URL);
-      const joined = await client.joinOrCreate<ClientState>(ROOM_NAME);
-      room = joined;
-      lastSent = { x: 0, z: 0 };
+  /** Join a lobby by its code. Already in that lobby: nothing to do. */
+  joinLobby(code: string, name: string): Promise<void> {
+    if (room && room.roomId === code && !pending) return Promise.resolve();
+    const options: LobbyJoinOptions = { name };
+    return connect((client) => client.joinById<ClientState>(code, options));
+  },
 
-      const refreshIds = () => {
-        // state can be empty until the first full snapshot is decoded
-        const players = joined.state?.players;
-        update({ playerIds: players ? Array.from(players.entries(), ([id]) => id) : [] });
-      };
-      const callbacks = Callbacks.get(joined);
-      callbacks.onAdd("players", refreshIds);
-      callbacks.onRemove("players", refreshIds);
+  /** Host only (the server checks): lobby -> street for everyone. */
+  start() {
+    room?.send(ClientMessage.Start);
+  },
 
-      joined.onLeave((code) => {
-        room = null;
-        update({ status: "disconnected", playerIds: [], error: `left (code ${code})` });
-      });
-      joined.onError((code, message) => {
-        update({ status: "error", error: `${code}: ${message ?? "unknown error"}` });
-      });
-
-      update({ status: "connected", sessionId: joined.sessionId, error: null });
-      refreshIds();
-    } catch (err) {
-      update({ status: "error", error: err instanceof Error ? err.message : String(err) });
-    }
+  /** Leave the room (or cancel a join in flight) and go back to the homepage. */
+  leave() {
+    generation++;
+    pending = null;
+    const previous = room;
+    room = null;
+    setInviteUrl(null);
+    update(IDLE);
+    void previous?.leave().catch(() => undefined);
   },
 };

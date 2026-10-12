@@ -4,12 +4,13 @@ import type { Group } from "three";
 import { PLAYER_RADIUS } from "@manif/shared";
 import { damp } from "./iso.ts";
 import { net } from "./net.ts";
+import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;
 const HEIGHT = CAPSULE_LENGTH + PLAYER_RADIUS * 2;
 
 /** One player. Its position is interpolated towards the server state each frame. */
-export function PlayerAvatar({ id, isLocal }: { id: string; isLocal: boolean }) {
+export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; isLocal: boolean }) {
   const group = useRef<Group>(null);
   const placed = useRef(false);
 
@@ -46,6 +47,7 @@ export function PlayerAvatar({ id, isLocal }: { id: string; isLocal: boolean }) 
         <boxGeometry args={[0.2, 0.2, 0.3]} />
         <meshStandardMaterial color="#212121" />
       </mesh>
+      <NameTag name={name} isLocal={isLocal} y={HEIGHT + 0.55} />
     </group>
   );
 }
