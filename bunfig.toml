@@ -1,0 +1,6 @@
+[install]
+# Hoisted layout: with bun's isolated linker, the circular peer dependency
+# between @colyseus/core and @colyseus/ws-transport produces two copies of
+# @colyseus/core, so the transport talks to a different matchmaker than the
+# rooms and every join fails with "seat reservation expired".
+linker = "hoisted"

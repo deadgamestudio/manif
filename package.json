@@ -1,0 +1,18 @@
+{
+  "name": "manif",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "oxlint": "1.87.0",
+    "turbo": "2.11.7",
+    "typescript": "7.0.2"
+  }
+}
