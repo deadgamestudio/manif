@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { MIN_OBSTACLE_HALF_THICKNESS, circleOverlaps, moveCircle } from "../physics/index.js";
+import {
+  MAX_KNOCKBACK_SPEED,
+  MIN_OBSTACLE_HALF_THICKNESS,
+  applyImpulse,
+  circleOverlaps,
+  createBody,
+  moveCircle,
+  stepBody,
+} from "../physics/index.js";
 import { TICK_DT } from "../net/index.js";
 import { PLAYER_RADIUS, PLAYER_SPEED } from "../player/index.js";
 import { inRect, levelWorld, progressAt, spawnPoint } from "./level.js";
@@ -141,6 +149,24 @@ describe("walking the street", () => {
       expect(circleOverlaps(world, p.x, p.z, PLAYER_RADIUS)).toBe(false);
     }
     expect(progressAt(L, p.x, p.z)).toBeGreaterThan(0.5);
+  });
+
+  test("max-speed knockback in random directions never ends inside anything or out of the street", () => {
+    const rand = mulberry32(11);
+    const body = createBody(0, 0);
+    const start = spawnPoint(L, PLAYER_RADIUS, rand);
+    body.x = start.x;
+    body.z = start.z;
+    for (let tick = 0; tick < 30 * 300; tick++) {
+      // A max hit every half second, biased down the street to cover it.
+      if (tick % 15 === 0) {
+        const angle = rand() * Math.PI * 2;
+        applyImpulse(body, Math.sin(angle), Math.cos(angle) - 0.5, MAX_KNOCKBACK_SPEED * 2);
+      }
+      stepBody(world, body, { x: 0, z: 0 }, PLAYER_SPEED, PLAYER_RADIUS, TICK_DT);
+      expect(circleOverlaps(world, body.x, body.z, PLAYER_RADIUS)).toBe(false);
+    }
+    expect(progressAt(L, body.x, body.z)).toBeGreaterThan(0.3);
   });
 
   test("the inner corner in the level (works wall + kiosk) holds a player pushing into it", () => {

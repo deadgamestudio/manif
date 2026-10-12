@@ -12,6 +12,8 @@ export const Player = schema(
     rotation: t.float32(),
     /** Sanitised display name, shown on the lobby screen and above the avatar. */
     name: t.string(),
+    /** Knocked down (#2). Velocity and timers stay server-side in the physics feature. */
+    down: t.boolean(),
   },
   "Player",
 );

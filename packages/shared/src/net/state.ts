@@ -22,6 +22,8 @@ export interface PlayerShape {
   rotation: number;
   /** Display name, already sanitised by the server. */
   name: string;
+  /** Knocked down (#2): no control until it gets back up. */
+  down: boolean;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */

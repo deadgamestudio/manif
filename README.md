@@ -22,11 +22,11 @@ Inside each one, code is grouped by feature:
 ```
 apps/client/src/
   app/        main.tsx, App.tsx, styles.css
-  features/   home/ lobby/ game/ level/ player/ movement/
+  features/   home/ lobby/ game/ level/ player/ movement/ debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/server/src/
   app/        server bootstrap
-  features/   player/ (Player Schema)
+  features/   player/ (Player Schema)  physics/ (knockback bodies)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
   net/ player/ lobby/ physics/ level/   (each with an index.ts)
@@ -67,6 +67,10 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change the street layout (walls, obstacles, start, Préfecture, prop slots) | `packages/shared/src/level/street.ts` |
 | Change the level format or level queries (progress, spawns) | `packages/shared/src/level/level.ts` |
 | Change collision (push-out, sliding, sub-steps, minimum wall thickness) | `packages/shared/src/physics/collision.ts` |
+| Tune knockback (drag, friction, knockdown threshold, down time, get-up immunity, wall bounce) | `packages/shared/src/physics/constants.ts` |
+| Change knockback kinematics (impulses, integration, bounce, down timer) | `packages/shared/src/physics/body.ts`; the server side is `apps/server/src/features/physics/` |
+| Push a body from a new hit (melee, baton, pavé...) | `StreetRoom.applyImpulse(id, dirX, dirZ, strength, mode?)` in `apps/server/src/rooms/StreetRoom.ts` |
+| Change the knocked-down look | `apps/client/src/features/player/PlayerAvatar.tsx` |
 | Change how the level is drawn | `apps/client/src/features/level/Level.tsx` |
 | Add unit tests | A `*.test.ts` next to the code it tests, e.g. `packages/shared/src/level/level.test.ts` (any package with a `test` script) |
 | Add a client → server message | `packages/shared/src/net/messages.ts`, then handle it in `apps/server/src/rooms/StreetRoom.ts` |
@@ -104,6 +108,12 @@ older versions, so let agents use the skill rather than their memory.
   Concurrent create/join calls share one attempt, so double clicks and React
   StrictMode can't create ghost players.
 
+- Knockback (#2): a body walks from its input and also carries a server-only
+  knockback velocity that hits add to and drag brings to zero. A hard hit
+  knocks it down (synced `down` flag) for a moment: input is ignored, then it
+  gets up with a short immunity. Each hit is broadcast as an `impulse` event so
+  clients tip the avatar the right way. In dev builds, K / J / L in the street
+  trigger a debug knockback (the server refuses it when `NODE_ENV=production`).
 - The server is authoritative. Clients only send a move direction; the server
   integrates movement at a fixed tick rate (`packages/shared/src/net/constants.ts`),
   pushes players out of obstacles and keeps them inside the street. The client

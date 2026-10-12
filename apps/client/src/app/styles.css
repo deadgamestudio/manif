@@ -412,6 +412,12 @@ body,
   background: rgb(255 255 255 / 0.15);
 }
 
+/* Dev builds only (#2 debug knockback). */
+.hud-debug {
+  color: #ff8a65;
+  font-size: 12px;
+}
+
 @media (max-width: 520px) {
   .field-row {
     flex-wrap: wrap;
