@@ -3,8 +3,8 @@
  * (collision, spawns, progress) and the client (rendering). It is never synced
  * through Schema; if several maps exist one day, send a level id, not geometry.
  */
-import type { BoxShape, CircleShape, CollisionWorld, Rect, Vec2 } from "./collision.js";
-import { circleOverlaps, resolveCircle } from "./collision.js";
+import type { BoxShape, CircleShape, CollisionWorld, Rect, Vec2 } from "../physics/index.js";
+import { circleOverlaps, resolveCircle } from "../physics/index.js";
 
 /** What a box obstacle looks like. The client picks colours and heights from it. */
 export type BoxKind = "building" | "wall" | "kiosk" | "barrier" | "van" | "prefecture";

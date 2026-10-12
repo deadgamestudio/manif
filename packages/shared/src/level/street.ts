@@ -1,4 +1,4 @@
-import type { BoxKind, BoxObstacle, CircleKind, CircleObstacle, Level, PropKind, PropSlot } from "../level.js";
+import type { BoxKind, BoxObstacle, CircleKind, CircleObstacle, Level, PropKind, PropSlot } from "./level.js";
 
 /*
  * The street: about 20 wide between the facades and 200 long, running along Z.

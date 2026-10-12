@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { NAME_MAX_LENGTH } from "../src/constants.js";
+import { NAME_MAX_LENGTH } from "./constants.js";
 import {
   DEFAULT_NAMES,
   nameOrDefault,
@@ -7,7 +7,7 @@ import {
   pickHost,
   randomDefaultName,
   sanitizeName,
-} from "../src/lobby.js";
+} from "./lobby.js";
 
 describe("sanitizeName", () => {
   test("trims and collapses whitespace", () => {

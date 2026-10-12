@@ -7,7 +7,7 @@ import {
   resolveCircle,
   type BoxShape,
   type CollisionWorld,
-} from "../src/collision.js";
+} from "./collision.js";
 
 const R = 0.4;
 const BOX: BoxShape = { x: 0, z: 0, halfX: 1, halfZ: 1 };

@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { MIN_OBSTACLE_HALF_THICKNESS, circleOverlaps, moveCircle } from "../src/collision.js";
-import { PLAYER_RADIUS, PLAYER_SPEED, TICK_DT } from "../src/constants.js";
-import { inRect, levelWorld, progressAt, spawnPoint } from "../src/level.js";
-import { STREET_LEVEL as L } from "../src/levels/street.js";
+import { MIN_OBSTACLE_HALF_THICKNESS, circleOverlaps, moveCircle } from "../physics/index.js";
+import { TICK_DT } from "../net/index.js";
+import { PLAYER_RADIUS, PLAYER_SPEED } from "../player/index.js";
+import { inRect, levelWorld, progressAt, spawnPoint } from "./level.js";
+import { STREET_LEVEL as L } from "./street.js";
 
 const world = levelWorld(L);
 

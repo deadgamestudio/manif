@@ -1,4 +1,4 @@
-import type { MoveInput } from "./messages.js";
+import type { MoveInput } from "../net/index.js";
 
 /** Normalize a ground direction. Returns {0,0} for (near) zero or invalid input. */
 export function normalizeMove(x: number, z: number): MoveInput {
