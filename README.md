@@ -15,7 +15,26 @@ the players walking it, synced through the server.
 | --- | --- |
 | `apps/client` | Vite + React + three.js via @react-three/fiber, Colyseus SDK |
 | `apps/server` | Colyseus 0.18 server (runs on Node) |
-| `packages/shared` | Constants, message names and payload types used by both. No runtime deps. |
+| `packages/shared` | Constants, message names, payload types, level data, collision and lobby rules used by both. No runtime deps. |
+
+Inside each one, code is grouped by feature:
+
+```
+apps/client/src/
+  app/        main.tsx, App.tsx, styles.css
+  features/   home/ lobby/ game/ level/ player/ movement/
+  shared/     net/ (connection, invite link)  iso/ (camera maths)
+apps/server/src/
+  app/        server bootstrap
+  features/   player/ (Player Schema)
+  rooms/      StreetRoom and its root state, which wires the features together
+packages/shared/src/
+  net/ player/ lobby/ physics/ level/   (each with an index.ts)
+```
+
+A feature imports another feature only through its `index.ts`, `shared/` never
+imports from `features/`, and tests sit next to the code they test. See
+`AGENTS.md` ("Code layout").
 
 Tooling: bun (package manager, workspaces), turbo (tasks), TypeScript strict, oxlint.
 
@@ -36,27 +55,29 @@ Open http://localhost:5173, create a lobby, and open the invite link
 share the saved name). The host presses Start. Move with WASD or the arrow keys.
 
 Other tasks: `bun run build`, `bun run typecheck`, `bun run lint`, `bun run test`
-(unit tests with `bun test`, run through turbo; they live in `packages/*/test/`).
+(unit tests with `bun test`, run through turbo; they sit next to the code as `*.test.ts`).
 Run the built server with `bun run --cwd apps/server start`.
 
 ## Where to change things
 
 | To... | Edit |
 | --- | --- |
-| Tune speed, tick rate, player radius | `packages/shared/src/constants.ts` |
-| Change the street layout (walls, obstacles, start, Préfecture, prop slots) | `packages/shared/src/levels/street.ts` |
-| Change the level format or level queries (progress, spawns) | `packages/shared/src/level.ts` |
-| Change collision (push-out, sliding, sub-steps, minimum wall thickness) | `packages/shared/src/collision.ts` |
-| Change how the level is drawn | `apps/client/src/Level.tsx` |
-| Add unit tests | `packages/shared/test/*.test.ts` (or a `test/` folder plus a `test` script in any package) |
-| Add a client → server message | `packages/shared/src/messages.ts`, then handle it in `apps/server/src/rooms/StreetRoom.ts` |
-| Add synced state | `apps/server/src/state.ts` (Schema) and the matching plain type in `packages/shared/src/state.ts` |
-| Change the scene, camera, rendering | `apps/client/src/Scene.tsx`, `PlayerAvatar.tsx`, `iso.ts` |
-| Change the connection or state listeners | `apps/client/src/net.ts` |
-| Change the homepage or the lobby screen | `apps/client/src/Home.tsx`, `Lobby.tsx`, `styles.css` |
-| Change name rules, default funny names, host hand-over order | `packages/shared/src/lobby.ts` |
+| Tune speed, player radius | `packages/shared/src/player/constants.ts` |
+| Tune tick rate, room name, server port | `packages/shared/src/net/constants.ts` |
+| Change the street layout (walls, obstacles, start, Préfecture, prop slots) | `packages/shared/src/level/street.ts` |
+| Change the level format or level queries (progress, spawns) | `packages/shared/src/level/level.ts` |
+| Change collision (push-out, sliding, sub-steps, minimum wall thickness) | `packages/shared/src/physics/collision.ts` |
+| Change how the level is drawn | `apps/client/src/features/level/Level.tsx` |
+| Add unit tests | A `*.test.ts` next to the code it tests, e.g. `packages/shared/src/level/level.test.ts` (any package with a `test` script) |
+| Add a client → server message | `packages/shared/src/net/messages.ts`, then handle it in `apps/server/src/rooms/StreetRoom.ts` |
+| Add synced state | A Schema in the feature (e.g. `apps/server/src/features/player/schema.ts`), composed into the root state in `apps/server/src/rooms/state.ts`, and the matching plain type in `packages/shared/src/net/state.ts` |
+| Change the scene, camera, rendering | `apps/client/src/features/game/Scene.tsx`, `features/player/PlayerAvatar.tsx`, `shared/iso/iso.ts` |
+| Change keyboard movement | `apps/client/src/features/movement/useMoveInput.ts` |
+| Change the connection or state listeners | `apps/client/src/shared/net/net.ts` |
+| Change the homepage or the lobby screen | `apps/client/src/features/home/Home.tsx`, `features/lobby/Lobby.tsx`, `app/styles.css` |
+| Change name rules, default funny names, host hand-over order, max players | `packages/shared/src/lobby/lobby.ts`, `lobby/constants.ts` |
 | Change lobby rules (who is host, who can start, phases) | `apps/server/src/rooms/StreetRoom.ts` |
-| Change the name tags above avatars | `apps/client/src/NameTag.tsx` |
+| Change the name tags above avatars | `apps/client/src/features/player/NameTag.tsx` |
 
 Before pushing, run `bun run build && bun run typecheck && bun run lint && bun run test`.
 
@@ -84,7 +105,7 @@ older versions, so let agents use the skill rather than their memory.
   StrictMode can't create ghost players.
 
 - The server is authoritative. Clients only send a move direction; the server
-  integrates movement at a fixed tick rate (`packages/shared/src/constants.ts`),
+  integrates movement at a fixed tick rate (`packages/shared/src/net/constants.ts`),
   pushes players out of obstacles and keeps them inside the street. The client
   never collides on its own; it only draws server positions.
 - The level is static data in `@manif/shared`, imported by both the server

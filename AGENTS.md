@@ -14,6 +14,16 @@
 - Colyseus is 0.18 and its API differs a lot from older versions: load the `colyseus` skill (`.agents/skills/`) before writing Room, Schema or SDK code.
 - Keep `bunfig.toml`'s `linker = "hoisted"`: without it, joins fail with "seat reservation expired".
 
+### Code layout
+
+Light feature folders (not strict Feature-Sliced Design). Each app's `src/` has `app/` for bootstrap, `features/<name>/` with everything for one feature (components, hooks, schema, handlers, pure logic, tests), and `shared/` for code that belongs to no single feature. The server also has `rooms/`: a room wires features together and owns the root Schema state. `packages/shared/src/` is split into domain folders (`net/`, `player/`, `lobby/`, `physics/`, `level/`). Every feature and domain folder has an `index.ts`. Use the same name for a feature across client, server and shared (`lobby`, `player`, `level`...).
+
+Rules:
+
+1. A feature imports another feature only through its `index.ts`, never its internal files.
+2. `shared/` never imports from `features/`.
+3. Tests live next to the code they test (`foo.test.ts` beside `foo.ts`).
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know
