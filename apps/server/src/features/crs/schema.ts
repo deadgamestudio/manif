@@ -1,0 +1,24 @@
+import { schema, t, type SchemaType } from "@colyseus/schema";
+import { CrsKind, CrsStatus } from "@manif/shared";
+
+/**
+ * One police bot (#5), keyed by a server-made id ("crs-1", ...) in
+ * `StreetState.crs`. Only what clients draw is synced; target, path, timers
+ * and velocity stay in the server's `CrsSquad`.
+ */
+export const Crs = schema(
+  {
+    x: t.float32(),
+    z: t.float32(),
+    rotation: t.float32(),
+    hp: t.uint8(),
+    /** `CrsStatus` from @manif/shared: active, stunned, grabbing or out. */
+    status: t.uint8().default(CrsStatus.Active),
+    /** Knocked down (#2). */
+    down: t.boolean(),
+    /** `CrsKind`: the unit type (#13). Always CRS for now. */
+    kind: t.uint8().default(CrsKind.Crs),
+  },
+  "Crs",
+);
+export type Crs = SchemaType<typeof Crs>;

@@ -7,6 +7,7 @@ import { LevelView } from "../level/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { PlayerAvatar } from "../player/index.ts";
 import { PropsView } from "../prop/index.ts";
+import { CrsView } from "../crs/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
 
 const LEVEL = STREET_LEVEL;
@@ -21,7 +22,15 @@ const SUN_OFFSET = new Vector3(15, 25, 10);
 /** Half size of the shadow box around the followed point. The street is too long to shadow all at once. */
 const SHADOW_HALF = 30;
 
-export function Scene({ players, localId }: { players: readonly LobbyPlayer[]; localId: string | null }) {
+export function Scene({
+  players,
+  crs,
+  localId,
+}: {
+  players: readonly LobbyPlayer[];
+  crs: readonly string[];
+  localId: string | null;
+}) {
   return (
     <>
       <FollowRig localId={localId} />
@@ -34,6 +43,7 @@ export function Scene({ players, localId }: { players: readonly LobbyPlayer[]; l
       {players.map((p) => (
         <PlayerAvatar key={p.id} id={p.id} name={p.name} isLocal={p.id === localId} />
       ))}
+      <CrsView ids={crs} />
     </>
   );
 }

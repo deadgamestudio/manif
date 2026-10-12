@@ -9,6 +9,7 @@ import {
   ROOM_NAME,
   ServerMessage,
   normalizeMove,
+  type CrsShape,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type HitEvent,
@@ -45,6 +46,8 @@ export interface NetSnapshot {
   hostId: string | null;
   /** Players in join order. Changes only on join/leave, never per frame. */
   players: readonly LobbyPlayer[];
+  /** Ids of the police bots on the street (#5). Changes only when one appears or is removed. */
+  crs: readonly string[];
   /** Readable message for the homepage. */
   error: string | null;
 }
@@ -86,6 +89,7 @@ const IDLE: NetSnapshot = {
   phase: null,
   hostId: null,
   players: [],
+  crs: [],
   error: null,
 };
 
@@ -111,6 +115,8 @@ const lastImpulses = new Map<string, ImpulseEvent>();
  */
 const lastSwings = new Map<string, number>();
 const lastPropHits = new Map<string, number>();
+/** When (performance.now(), ms) each CRS was last hit by a protester (#5). */
+const lastCrsHits = new Map<string, number>();
 const propBrokenAt = new Map<string, number>();
 /** Local cosmetic gate so the swing animation is not replayed faster than the server allows. */
 let lastLocalSwing = -Infinity;
@@ -121,6 +127,7 @@ function clearEffects() {
   lastImpulses.clear();
   lastSwings.clear();
   lastPropHits.clear();
+  lastCrsHits.clear();
   propBrokenAt.clear();
   lastLocalSwing = -Infinity;
 }
@@ -148,11 +155,12 @@ function describeJoinError(err: unknown): string {
 function readRoom(r: ClientRoom): Partial<NetSnapshot> {
   const state = r.state as ClientState | undefined;
   // state can be empty until the first full snapshot is decoded
-  if (!state?.players) return { phase: null, hostId: null, players: [] };
+  if (!state?.players) return { phase: null, hostId: null, players: [], crs: [] };
   return {
     phase: state.phase as Phase,
     hostId: state.hostId || null,
     players: Array.from(state.players.entries(), ([id, p]) => ({ id, name: p.name })),
+    crs: state.crs ? Array.from(state.crs.entries(), ([id]) => id) : [],
   };
 }
 
@@ -181,6 +189,13 @@ function attach(joined: ClientRoom, gen: number) {
       if (gen === generation && broken && previous === false) propBrokenAt.set(id, performance.now());
     });
   });
+  callbacks.onAdd("crs", () => refresh());
+  callbacks.onRemove("crs", (_crs, id) => {
+    lastImpulses.delete(id);
+    lastSwings.delete(id);
+    lastCrsHits.delete(id);
+    refresh();
+  });
   callbacks.listen("phase", refresh);
   callbacks.listen("hostId", refresh);
 
@@ -192,7 +207,9 @@ function attach(joined: ClientRoom, gen: number) {
     if (gen === generation) lastSwings.set(event.id, performance.now());
   });
   joined.onMessage(ServerMessage.Hit, (event: HitEvent) => {
-    if (gen === generation && event.kind === "prop") lastPropHits.set(event.target, performance.now());
+    if (gen !== generation) return;
+    if (event.kind === "prop") lastPropHits.set(event.target, performance.now());
+    else if (event.kind === "crs") lastCrsHits.set(event.target, performance.now());
   });
 
   joined.onLeave(() => {
@@ -292,6 +309,16 @@ export const net = {
   /** When (performance.now()) body `id` last swung (#4), if ever. */
   getLastSwing(id: string): number | undefined {
     return lastSwings.get(id);
+  },
+
+  /** Live, decoded state of a police bot (#5). Read from useFrame. */
+  getCrs(id: string): CrsShape | undefined {
+    return room?.state.crs?.get(id);
+  },
+
+  /** When (performance.now()) CRS `id` was last hit by a protester (#5), if ever. */
+  getLastCrsHit(id: string): number | undefined {
+    return lastCrsHits.get(id);
   },
 
   /** When (performance.now()) prop `id` was last hit (#4), if ever. */

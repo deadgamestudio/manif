@@ -56,6 +56,12 @@ export interface Level {
   boxes: readonly BoxObstacle[];
   circles: readonly CircleObstacle[];
   propSlots: readonly PropSlot[];
+  /**
+   * Where CRS bots appear (#5): ahead of the cortège and in the side streets.
+   * Must be clear of obstacles for a CRS and outside the start zone (checked by tests).
+   * #12 picks among them for its waves.
+   */
+  crsSpawns: readonly Vec2[];
 }
 
 /** The static collision world of a level, without its breakable props (`propCollisionWorld` adds them). */

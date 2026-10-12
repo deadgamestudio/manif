@@ -1,7 +1,9 @@
 import { Room, type Client } from "@colyseus/core";
 import {
+  CRS_COUNT,
   ClientMessage,
   DEBUG_DAMAGE,
+  MELEE_CRS_DAMAGE,
   MAX_PLAYERS,
   PROP_TYPES,
   MELEE_PROP_DAMAGE,
@@ -26,6 +28,8 @@ import {
   type LobbyJoinOptions,
   type MoveInput,
   type PropSlot,
+  type CrsHost,
+  type ProtesterView,
   type SwingEvent,
   type Vec2,
 } from "@manif/shared";
@@ -34,6 +38,7 @@ import { DEBUG_HEALTH_ENABLED, Healths, parseDebugHealth } from "../features/hea
 import { MeleeCooldowns } from "../features/melee/index.js";
 import { Player } from "../features/player/index.js";
 import { Props } from "../features/prop/index.js";
+import { CrsSquad } from "../features/crs/index.js";
 import { StreetState } from "./state.js";
 
 // The level is static shared data, imported by the client too. It is not synced.
@@ -67,12 +72,42 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * Every health timer uses it (never Date.now()), so they pause with the sim.
    */
   private now = 0;
-  /** Arrival order per session, for host hand-over. Server-only. */
-  private joinOrder = new Map<string, number>();
-  private joinCounter = 0;
 
   override maxClients = MAX_PLAYERS;
   override state = new StreetState();
+
+  /**
+   * Police bots (#5): full bot state server-side, synced fields in `state.crs`.
+   * They walk the same collision world as the protesters.
+   */
+  private crs = new CrsSquad(LEVEL, this.props.world, this.state.crs);
+  /** What the bots see of each protester, reused across ticks (see `crsHost`). */
+  private protesterViews = new Map<string, ProtesterView>();
+  /** The room as the bots see it: effects on protesters go through the same hooks as every other system. */
+  private crsHost: CrsHost = {
+    protesters: () => this.allProtesterViews(),
+    protester: (id) => this.protesterView(id),
+    canBeHurt: (id) => this.healths.canBeHurt(id, this.now),
+    batonHit: (by, id, dirX, dirZ, amount, impulse) => {
+      const swing: SwingEvent = { id: by };
+      this.broadcast(ServerMessage.Swing, swing);
+      this.damagePlayer(id, amount);
+      this.applyImpulse(id, dirX, dirZ, impulse);
+    },
+    grab: (id, duration) => this.grabPlayer(id, duration),
+    // Same transition as a rescue (#10): the protester is free again.
+    release: (id) => {
+      this.rescuePlayer(id);
+    },
+    drag: (id, x, z) => {
+      const player = this.state.players.get(id);
+      if (player) this.bodies.drag(id, player, x, z);
+    },
+  };
+
+  /** Arrival order per session, for host hand-over. Server-only. */
+  private joinOrder = new Map<string, number>();
+  private joinCounter = 0;
 
   override messages = {
     // Input only: the client says where it wants to go, the server moves it.
@@ -150,6 +185,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.bodies.remove(client.sessionId);
     // Systems that point at a player (a CRS grab #5, a rescue #10) see unknown ids as no-ops.
     this.healths.remove(client.sessionId);
+    this.protesterViews.delete(client.sessionId);
     this.joinOrder.delete(client.sessionId);
     if (this.state.hostId === client.sessionId) {
       this.state.hostId = pickHost(Array.from(this.joinOrder, ([id, joinedAt]) => ({ id, joinedAt })));
@@ -166,7 +202,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.moveInputs.set(sessionId, { x: 0, z: 0 });
     });
     this.props.reset(this.state.props);
+    this.crs.worldChanged();
     this.meleeCooldowns.clear();
+    // CRS (#5): the first wave on the level's spawn points, and replacements
+    // for those taken out. #12 replaces this with waves that grow with progress.
+    this.crs.clear();
+    this.crs.reinforceTo = CRS_COUNT;
+    this.crs.spawnAtStart(CRS_COUNT);
     this.state.phase = Phase.Playing;
     console.log(`[street ${this.roomId}] start (${this.state.players.size} players)`);
   }
@@ -244,11 +286,26 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (!res) continue;
       const event: HitEvent = { by: id, kind: "prop", target: hit.id, x: hit.point.x, z: hit.point.z, broke: res.broke };
       this.broadcast(ServerMessage.Hit, event);
-      if (res.broke) this.dropPaves(res.slot);
+      if (res.broke) {
+        this.dropPaves(res.slot);
+        // The prop's new shape changes where bots can walk.
+        this.crs.worldChanged();
+      }
     }
-    // CRS (#5) and grabbing CRS (#10) join here: build their circle shapes as
-    // MeleeTargets, run meleeHits on them too, then damage + applyImpulse away
-    // from the attacker and broadcast a Hit with their kind.
+    // CRS (#5): pushed away from the swinger, every third quick hit knocks one
+    // over, and at 0 HP it is out. A knocked-down or out CRS lets go of its grab
+    // on its next tick. #10 (rescue) adds its own handling for grabbing CRS here.
+    for (const hit of meleeHits(player, this.crs.meleeTargets(), SWING_OBSTACLES)) {
+      const res = this.crs.hit(hit.id, player.x, player.z, MELEE_CRS_DAMAGE, this.now);
+      if (!res) continue;
+      const event: HitEvent = { by: id, kind: "crs", target: hit.id, x: hit.point.x, z: hit.point.z, broke: res.out };
+      this.broadcast(ServerMessage.Hit, event);
+      const imp = res.impulse;
+      if (imp.strength > 0) {
+        const push: ImpulseEvent = { id: hit.id, dirX: imp.dirX, dirZ: imp.dirZ, strength: imp.strength, down: imp.knockedDown };
+        this.broadcast(ServerMessage.Impulse, push);
+      }
+    }
   }
 
   /**
@@ -260,6 +317,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     console.log(`[street ${this.roomId}] ${slot.id} broke (${count} pavé(s) to drop, #8)`);
   }
 
+  /**
+   * One fixed tick. Order matters and is fixed here:
+   * 1. Rescues (#10) must be applied before step 2, so a rescue landing on the
+   *    last tick of a drag wins over the arrest.
+   * 2. Protesters: health timers (a drag that ends becomes an arrest), then movement.
+   * 3. CRS (#5): think, move, hit, grab, drag. A bot whose protester was just
+   *    arrested, rescued or disconnected goes back to work here.
+   */
   private step(dt: number) {
     if (this.state.phase !== Phase.Playing) return;
     this.now += dt;
@@ -271,6 +336,42 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       // collided against the street (sub-stepped, bounces off walls).
       this.bodies.step(sessionId, player, input, dt);
     });
+    this.crs.step(this.now, dt, this.crsHost, () => this.freeProtesterPositions());
+  }
+
+  /** The bots' view of one protester, refreshed from the synced state (no allocation once seen). */
+  private protesterView(id: string): ProtesterView | undefined {
+    const player = this.state.players.get(id);
+    if (!player) {
+      this.protesterViews.delete(id);
+      return undefined;
+    }
+    let view = this.protesterViews.get(id);
+    if (!view) {
+      view = { id, x: 0, z: 0, status: PlayerStatus.Free, down: false };
+      this.protesterViews.set(id, view);
+    }
+    view.x = player.x;
+    view.z = player.z;
+    view.status = player.status;
+    view.down = player.down;
+    return view;
+  }
+
+  private *allProtesterViews(): Generator<ProtesterView> {
+    for (const id of this.state.players.keys()) {
+      const view = this.protesterView(id);
+      if (view) yield view;
+    }
+  }
+
+  /** Free protesters' positions, so replacement CRS don't spawn on top of anyone. */
+  private freeProtesterPositions(): Vec2[] {
+    const out: Vec2[] = [];
+    this.state.players.forEach((p) => {
+      if (p.status === PlayerStatus.Free) out.push({ x: p.x, z: p.z });
+    });
+    return out;
   }
 
   /** Respawn at the rear of the cortège: behind the rearmost free protester, clear of obstacles (#3). */

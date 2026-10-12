@@ -9,6 +9,8 @@ march, and a long street (start zone at one end, the Préfecture at the other)
 with walls and obstacles the server collides players against, with names above
 the players walking it, synced through the server. Players swing (Space or
 click) to smash breakable props: bins, bus shelters, shop windows and cars.
+CRS riot police bots chase the nearest protester, hit them with batons, grab
+them and drag them to the police vans; protesters can hit them back.
 
 ## Layout
 
@@ -23,15 +25,17 @@ Inside each one, code is grouped by feature:
 ```
 apps/client/src/
   app/        main.tsx, App.tsx, styles.css
-  features/   home/ lobby/ game/ level/ player/ health/ movement/ melee/ (attack input) prop/ (props, debris) debug/ (dev-only keys)
+  features/   home/ lobby/ game/ level/ player/ health/ movement/ melee/ (attack input) prop/ (props, debris)
+              crs/ (police bot avatars) debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/server/src/
   app/        server bootstrap
   features/   player/ (Player Schema)  physics/ (knockback bodies)  health/ (HP and arrest timers)
               melee/ (swing cooldowns)  prop/ (Prop Schema, prop HP, the room's collision world)
+              crs/ (Crs Schema, CrsSquad: the bots, spawning, syncing)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/ prop/ melee/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -78,7 +82,14 @@ Run the built server with `bun run --cwd apps/server start`.
 | Tune melee reach, arc, cooldown, damage to props | `packages/shared/src/melee/constants.ts` |
 | Change the arc check, line of sight or cooldown rule | `packages/shared/src/melee/melee.ts` |
 | Tune a prop type (HP, intact and broken collision shape, pavés dropped) | `packages/shared/src/prop/constants.ts` |
-| Handle a swing on the server (targets, hit events), hit a new kind of target (#5 CRS, #10 rescue) | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
+| Handle a swing on the server (targets, hit events), hit a new kind of target (#10 rescue) | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
+| Tune a police unit (speed, HP, sight, baton, grab, drag, stun, stagger) or add a unit type (#13) | The `CRS_STATS` table in `packages/shared/src/crs/constants.ts` (plus a look in `apps/client/src/features/crs/crsVisuals.tsx`) |
+| Change how many CRS start, the cap, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
+| Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
+| Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |
+| Move or add CRS spawn points | `crsSpawns` in `packages/shared/src/level/street.ts` |
+| Spawn CRS from a new system (#12 waves), stun one (#8 pavés) | `CrsSquad.spawn(x, z, kind)`, `reinforceTo`, `stun(id, now)` in `apps/server/src/features/crs/squad.ts`, owned by `StreetRoom` |
+| Replace the placeholder CRS look | `apps/client/src/features/crs/crsVisuals.tsx` (animation in `CrsAvatar.tsx`) |
 | Spawn pavés from a broken prop (#8) | `StreetRoom.dropPaves(slot)` |
 | Replace a prop's placeholder look or its debris colours | `apps/client/src/features/prop/propVisuals.tsx` (debris simulation in `prop/debris.ts`) |
 | Change the attack keys | `apps/client/src/features/melee/useAttackInput.ts`; the swing animation is in `features/player/PlayerAvatar.tsx` |
@@ -174,6 +185,23 @@ variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
   broken collision shape (none for bins and shop windows) on the next tick.
   `swing` and `hit` are broadcast events, not state. Debris is local to each
   client and never collides. Props reset when the host starts.
+- CRS bots (#5): `state.crs` holds only `x`, `z`, `rotation`, `hp`, `status`
+  (active, stunned, grabbing, out), `down` and `kind`; targets, paths and timers
+  stay on the server. When the host starts, `CRS_COUNT` (6) CRS appear on the
+  level's spawn points. Each picks the nearest free protester within sight (28)
+  and walks to them: straight when the way is clear and close, otherwise along
+  an A* path on a 0.5-unit grid built from the collision world (rebuilt when a
+  prop breaks), re-pathed at most every 0.75 s. No progress for 1 s re-paths;
+  twice in a row, it gives up on that target for 3 s. With nobody in sight it
+  walks back to its post. In reach, a baton hit takes 20 HP and knocks the
+  protester down; touching a downed protester (or with the baton on cooldown)
+  grabs them and drags them towards the nearest van at reduced speed until the
+  health machine arrests them (4 s). Stunned, knocked down or out, it lets go
+  and the protester is free. Protesters' melee pushes CRS back, every third quick
+  hit knocks one over, and at 0 HP (6 hits) it is out: it lies there 3 s, is
+  removed, and is replaced at a spawn point 10 s later until #12 owns spawning.
+  Step order is protesters first (health timers, then movement), then CRS;
+  rescues (#10) go before both, so a last-tick rescue beats the arrest.
 - The server is authoritative. Clients only send inputs (a move direction, an attack); the server
   integrates movement at a fixed tick rate (`packages/shared/src/net/constants.ts`),
   pushes players out of obstacles and keeps them inside the street. The client
