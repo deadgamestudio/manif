@@ -32,7 +32,7 @@ export interface CircleObstacle extends CircleShape {
 /**
  * A place where a breakable prop stands. Only position and type live here;
  * HP, broken state and collision shapes are #4's, keyed by `id`.
- * Not collided against in this version.
+ * Collided as `PROP_TYPES[kind]` shapes, intact or broken (see `propCollisionWorld`).
  */
 export interface PropSlot {
   id: string;
@@ -58,7 +58,7 @@ export interface Level {
   propSlots: readonly PropSlot[];
 }
 
-/** The static collision world of a level (no props yet). */
+/** The static collision world of a level, without its breakable props (`propCollisionWorld` adds them). */
 export function levelWorld(level: Level): CollisionWorld {
   return { bounds: level.bounds, boxes: level.boxes, circles: level.circles };
 }

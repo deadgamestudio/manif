@@ -7,7 +7,8 @@ So far: a monorepo, a homepage where you pick a name and create or join a
 private lobby by code or invite link, a lobby screen where the host starts the
 march, and a long street (start zone at one end, the Préfecture at the other)
 with walls and obstacles the server collides players against, with names above
-the players walking it, synced through the server.
+the players walking it, synced through the server. Players swing (Space or
+click) to smash breakable props: bins, bus shelters, shop windows and cars.
 
 ## Layout
 
@@ -22,14 +23,15 @@ Inside each one, code is grouped by feature:
 ```
 apps/client/src/
   app/        main.tsx, App.tsx, styles.css
-  features/   home/ lobby/ game/ level/ player/ health/ movement/ debug/ (dev-only keys)
+  features/   home/ lobby/ game/ level/ player/ health/ movement/ melee/ (attack input) prop/ (props, debris) debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/server/src/
   app/        server bootstrap
   features/   player/ (Player Schema)  physics/ (knockback bodies)  health/ (HP and arrest timers)
+              melee/ (swing cooldowns)  prop/ (Prop Schema, prop HP, the room's collision world)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -73,6 +75,13 @@ Run the built server with `bun run --cwd apps/server start`.
 | Tune HP, KO time, respawn delay, invulnerability, default drag time, respawn margin | `packages/shared/src/health/constants.ts` |
 | Change the health state machine (free, grabbed, KO, arrested) | `packages/shared/src/health/health.ts`; respawn position in `health/respawn.ts` |
 | Hurt, grab or rescue a protester from a new system (melee, baton, gas, rescue...) | `StreetRoom.damagePlayer(id, amount)`, `grabPlayer(id, duration?)`, `rescuePlayer(id)`; check `hasControl(id)` before letting a player act |
+| Tune melee reach, arc, cooldown, damage to props | `packages/shared/src/melee/constants.ts` |
+| Change the arc check, line of sight or cooldown rule | `packages/shared/src/melee/melee.ts` |
+| Tune a prop type (HP, intact and broken collision shape, pavés dropped) | `packages/shared/src/prop/constants.ts` |
+| Handle a swing on the server (targets, hit events), hit a new kind of target (#5 CRS, #10 rescue) | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
+| Spawn pavés from a broken prop (#8) | `StreetRoom.dropPaves(slot)` |
+| Replace a prop's placeholder look or its debris colours | `apps/client/src/features/prop/propVisuals.tsx` (debris simulation in `prop/debris.ts`) |
+| Change the attack keys | `apps/client/src/features/melee/useAttackInput.ts`; the swing animation is in `features/player/PlayerAvatar.tsx` |
 | Change the HP bar and status line | `apps/client/src/features/health/` (HUD and the bar above other players) |
 | Change the knocked-down look | `apps/client/src/features/player/PlayerAvatar.tsx` |
 | Change how the level is drawn | `apps/client/src/features/level/Level.tsx` |
@@ -154,7 +163,18 @@ variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
   `health/`); the server keeps its timers in room time and syncs only `hp`,
   `status` and a whole-second countdown `stateLeft`. In dev builds, H hurts you
   and G gets you grabbed.
-- The server is authoritative. Clients only send a move direction; the server
+- Melee and props (#4): `attack` has no payload. The server swings from the
+  player's own position and facing (its last walking direction), only for a
+  free protester who is not knocked down, at most once per 0.5 s of room time.
+  It hits every intact prop whose nearest point is within 1.2 and ±45° of the
+  facing (or that the facing line meets within 1.2), unless a static wall or
+  obstacle is in between. Each swing takes 1 HP; at 0 the prop breaks. Only
+  `hp` and `broken` are synced per prop (`state.props`, keyed by level prop
+  id); position and type come from the level. A broken prop switches to its
+  broken collision shape (none for bins and shop windows) on the next tick.
+  `swing` and `hit` are broadcast events, not state. Debris is local to each
+  client and never collides. Props reset when the host starts.
+- The server is authoritative. Clients only send inputs (a move direction, an attack); the server
   integrates movement at a fixed tick rate (`packages/shared/src/net/constants.ts`),
   pushes players out of obstacles and keeps them inside the street. The client
   never collides on its own; it only draws server positions.

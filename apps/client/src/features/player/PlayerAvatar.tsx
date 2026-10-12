@@ -21,6 +21,11 @@ const LOCAL_COLOR = new Color("#ffca28");
 const OTHER_COLOR = new Color("#42a5f5");
 /** Grabbed, KO: the body goes a bit pale. */
 const HURT_COLOR = new Color("#b0bec5");
+/** Melee swing (#4): a quick wind-up and smash of the placeholder arm, in ms and radians. */
+const SWING_MS = 260;
+const ARM_REST = -0.15;
+const ARM_RAISED = 2.6;
+const ARM_SMASH = -1.3;
 
 /**
  * One player. Its position is interpolated towards the server state each frame.
@@ -44,6 +49,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
   const body = useRef<MeshStandardMaterial>(null);
   const lastStatus = useRef<number>(PlayerStatus.Free);
   const flail = useRef(0);
+  const arm = useRef<Group>(null);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -101,6 +107,16 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     const grabbed = p.status === PlayerStatus.Grabbed;
     flail.current = grabbed ? flail.current + dt * FLAIL_SPEED : 0;
     y.rotation.z = grabbed ? Math.sin(flail.current) * FLAIL_ANGLE : 0;
+    // Swing (#4): raise the arm, then smash it down in front. The local one
+    // plays at the click; others' on the server's swing event.
+    const a = arm.current;
+    if (a) {
+      const swungAt = net.getLastSwing(id);
+      const s = swungAt === undefined ? 1 : (performance.now() - swungAt) / SWING_MS;
+      a.rotation.x =
+        s >= 1 ? ARM_REST : s < 0.35 ? ARM_REST + (ARM_RAISED - ARM_REST) * (s / 0.35) : ARM_RAISED + (ARM_SMASH - ARM_RAISED) * ((s - 0.35) / 0.65);
+    }
+
     body.current?.color.copy(grabbed || p.status === PlayerStatus.Ko ? HURT_COLOR : isLocal ? LOCAL_COLOR : OTHER_COLOR);
   });
 
@@ -112,6 +128,13 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
             <capsuleGeometry args={[PLAYER_RADIUS, CAPSULE_LENGTH, 4, 12]} />
             <meshStandardMaterial ref={body} color={isLocal ? LOCAL_COLOR : OTHER_COLOR} />
           </mesh>
+          {/* Placeholder arm (#4), pivoting at the shoulder; it swings on attack. */}
+          <group ref={arm} position={[PLAYER_RADIUS + 0.08, HEIGHT * 0.68, 0]} rotation-x={ARM_REST}>
+            <mesh position-y={-0.35} castShadow>
+              <boxGeometry args={[0.16, 0.7, 0.16]} />
+              <meshStandardMaterial color="#8d6e63" />
+            </mesh>
+          </group>
           {/* Small nose so facing direction is visible. */}
           <mesh position={[0, HEIGHT * 0.7, PLAYER_RADIUS]} castShadow>
             <boxGeometry args={[0.2, 0.2, 0.3]} />

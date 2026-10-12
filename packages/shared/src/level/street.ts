@@ -123,13 +123,13 @@ const circles: CircleObstacle[] = [
   circle("lamp-5", "lamp", 7, -40, 0.5, 5),
 ];
 
-/** Where breakable props go (#4). Not collided with yet. */
+/** Where breakable props go (#4). Their shapes and HP are in `prop/constants.ts`. */
 const propSlots: PropSlot[] = [
   prop("bin-1", "bin", -8, 75),
   prop("bin-2", "bin", 8, 46),
   prop("bin-3", "bin", -8.5, -4),
   prop("bin-4", "bin", 8, -72),
-  prop("shelter-1", "bus_shelter", 8, 58),
+  prop("shelter-1", "bus_shelter", 7.9, 58),
   prop("shelter-2", "bus_shelter", -7.8, -48),
   prop("window-1", "shop_window", -8.6, 45),
   prop("window-2", "shop_window", 9.6, 26),
