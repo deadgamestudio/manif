@@ -1,52 +1,32 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Vector3 } from "three";
-import { MAP_SIZE } from "@manif/shared";
+import { Object3D, Vector3, type DirectionalLight } from "three";
+import { STREET_LEVEL } from "@manif/shared";
 import { CAMERA_OFFSET, damp } from "./iso.ts";
+import { LevelView } from "./Level.tsx";
 import { net } from "./net.ts";
 import { PlayerAvatar } from "./PlayerAvatar.tsx";
 
-// Placeholder scenery: [x, z, width, height, depth, colour]
-const BOXES: ReadonlyArray<readonly [number, number, number, number, number, string]> = [
-  [-8, -6, 4, 3, 2, "#8d6e63"],
-  [7, -9, 2, 1.2, 2, "#546e7a"],
-  [10, 6, 6, 4, 3, "#a1887f"],
-  [-12, 9, 3, 2, 3, "#78909c"],
-  [2, 12, 1, 1, 1, "#ef6c00"],
-  [-3, -14, 5, 1, 1, "#9e9e9e"],
-];
+const LEVEL = STREET_LEVEL;
+/** Where the camera looks before the local player shows up: the start zone. */
+const START_CENTRE = new Vector3(
+  (LEVEL.start.minX + LEVEL.start.maxX) / 2,
+  0,
+  (LEVEL.start.minZ + LEVEL.start.maxZ) / 2,
+);
+/** Sun direction, relative to the followed point. */
+const SUN_OFFSET = new Vector3(15, 25, 10);
+/** Half size of the shadow box around the followed point. The street is too long to shadow all at once. */
+const SHADOW_HALF = 30;
 
 export function Scene({ playerIds, localId }: { playerIds: readonly string[]; localId: string | null }) {
   return (
     <>
-      <CameraRig localId={localId} />
+      <FollowRig localId={localId} />
       <color attach="background" args={["#2a2d34"]} />
       <hemisphereLight args={["#dfe8ff", "#3a3a3a", 0.8]} />
-      <directionalLight
-        castShadow
-        position={[15, 25, 10]}
-        intensity={2}
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-MAP_SIZE * 0.75}
-        shadow-camera-right={MAP_SIZE * 0.75}
-        shadow-camera-top={MAP_SIZE * 0.75}
-        shadow-camera-bottom={-MAP_SIZE * 0.75}
-        shadow-camera-near={1}
-        shadow-camera-far={80}
-      />
 
-      <mesh rotation-x={-Math.PI / 2} receiveShadow>
-        <planeGeometry args={[MAP_SIZE, MAP_SIZE]} />
-        <meshStandardMaterial color="#5b5f66" />
-      </mesh>
-      <gridHelper args={[MAP_SIZE, MAP_SIZE / 2, "#6c7079", "#646870"]} position-y={0.01} />
-
-      {BOXES.map(([x, z, w, h, d, color], i) => (
-        <mesh key={i} position={[x, h / 2, z]} castShadow receiveShadow>
-          <boxGeometry args={[w, h, d]} />
-          <meshStandardMaterial color={color} />
-        </mesh>
-      ))}
+      <LevelView level={LEVEL} />
 
       {playerIds.map((id) => (
         <PlayerAvatar key={id} id={id} isLocal={id === localId} />
@@ -55,10 +35,16 @@ export function Scene({ playerIds, localId }: { playerIds: readonly string[]; lo
   );
 }
 
-/** Keeps the orthographic camera at the isometric offset, smoothly following the local player. */
-function CameraRig({ localId }: { localId: string | null }) {
+/**
+ * Keeps the orthographic camera at the isometric offset, smoothly following the
+ * local player, and moves the sun's shadow box along with it.
+ */
+function FollowRig({ localId }: { localId: string | null }) {
   const camera = useThree((s) => s.camera);
-  const target = useRef(new Vector3());
+  const target = useRef(START_CENTRE.clone());
+  const light = useRef<DirectionalLight>(null);
+  // Created once; the light aims at it and it moves with the camera target.
+  const [lightTarget] = useState(() => new Object3D());
 
   useFrame((_, dt) => {
     const p = localId ? net.getPlayer(localId) : undefined;
@@ -69,7 +55,31 @@ function CameraRig({ localId }: { localId: string | null }) {
     }
     camera.position.copy(target.current).add(CAMERA_OFFSET);
     camera.lookAt(target.current);
+
+    const l = light.current;
+    if (l) {
+      lightTarget.position.copy(target.current);
+      lightTarget.updateMatrixWorld();
+      l.position.copy(target.current).add(SUN_OFFSET);
+    }
   });
 
-  return null;
+  return (
+    <>
+      <primitive object={lightTarget} />
+      <directionalLight
+        ref={light}
+        target={lightTarget}
+        castShadow
+        intensity={2}
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-SHADOW_HALF}
+        shadow-camera-right={SHADOW_HALF}
+        shadow-camera-top={SHADOW_HALF}
+        shadow-camera-bottom={-SHADOW_HALF}
+        shadow-camera-near={1}
+        shadow-camera-far={100}
+      />
+    </>
+  );
 }
