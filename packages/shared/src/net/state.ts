@@ -42,8 +42,20 @@ export interface SyncedMap<V> {
   [Symbol.iterator](): IterableIterator<[string, V]>;
 }
 
+/**
+ * Runtime state of a breakable prop (#4), keyed by its id in the level data.
+ * Position, type and size are not synced: read them from the shared level.
+ */
+export interface PropShapeState {
+  /** 0..PROP_TYPES[kind].maxHp. */
+  hp: number;
+  broken: boolean;
+}
+
 export interface StreetStateShape {
   players: SyncedMap<PlayerShape>;
+  /** Breakable props by level prop id (#4). */
+  props: SyncedMap<PropShapeState>;
   phase: Phase;
   /** Session id of the host (who may start), or "" when the room is empty. */
   hostId: string;

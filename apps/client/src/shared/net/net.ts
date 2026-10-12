@@ -3,17 +3,22 @@ import type { IRef } from "@colyseus/schema";
 import {
   ClientMessage,
   DEFAULT_SERVER_PORT,
+  MELEE_COOLDOWN,
   Phase,
+  PlayerStatus,
   ROOM_NAME,
   ServerMessage,
   normalizeMove,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
+  type HitEvent,
   type ImpulseEvent,
   type LobbyJoinOptions,
   type MoveInput,
   type PlayerShape,
+  type PropShapeState,
   type StreetStateShape,
+  type SwingEvent,
 } from "@manif/shared";
 import { setInviteUrl } from "./invite.ts";
 
@@ -98,8 +103,27 @@ let pending: Promise<void> | null = null;
  * default fall direction.
  */
 const lastImpulses = new Map<string, ImpulseEvent>();
+/**
+ * Melee and props (#4), cosmetic only: when (performance.now(), ms) each body
+ * last swung, each prop was last hit, and each prop broke while we watched.
+ * Read from useFrame. A missed event only skips an effect; the synced
+ * `broken` flag still swaps the model.
+ */
+const lastSwings = new Map<string, number>();
+const lastPropHits = new Map<string, number>();
+const propBrokenAt = new Map<string, number>();
+/** Local cosmetic gate so the swing animation is not replayed faster than the server allows. */
+let lastLocalSwing = -Infinity;
 /** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
 let generation = 0;
+
+function clearEffects() {
+  lastImpulses.clear();
+  lastSwings.clear();
+  lastPropHits.clear();
+  propBrokenAt.clear();
+  lastLocalSwing = -Infinity;
+}
 
 function update(patch: Partial<NetSnapshot>) {
   snapshot = { ...snapshot, ...patch };
@@ -135,7 +159,7 @@ function readRoom(r: ClientRoom): Partial<NetSnapshot> {
 function attach(joined: ClientRoom, gen: number) {
   room = joined;
   lastSent = { x: 0, z: 0 };
-  lastImpulses.clear();
+  clearEffects();
 
   const refresh = () => {
     if (gen === generation) update(readRoom(joined));
@@ -147,13 +171,28 @@ function attach(joined: ClientRoom, gen: number) {
   });
   callbacks.onRemove("players", (_player, id) => {
     lastImpulses.delete(id);
+    lastSwings.delete(id);
     refresh();
+  });
+  callbacks.onAdd("props", (prop, id) => {
+    // `previous` is undefined on the first sync, so a prop that was already
+    // broken when we joined swaps its model without spraying debris.
+    callbacks.listen(prop as PropShapeState & IRef, "broken", (broken, previous) => {
+      if (gen === generation && broken && previous === false) propBrokenAt.set(id, performance.now());
+    });
   });
   callbacks.listen("phase", refresh);
   callbacks.listen("hostId", refresh);
 
   joined.onMessage(ServerMessage.Impulse, (event: ImpulseEvent) => {
     if (gen === generation) lastImpulses.set(event.id, event);
+  });
+
+  joined.onMessage(ServerMessage.Swing, (event: SwingEvent) => {
+    if (gen === generation) lastSwings.set(event.id, performance.now());
+  });
+  joined.onMessage(ServerMessage.Hit, (event: HitEvent) => {
+    if (gen === generation && event.kind === "prop") lastPropHits.set(event.target, performance.now());
   });
 
   joined.onLeave(() => {
@@ -245,6 +284,43 @@ export const net = {
     return lastImpulses.get(id);
   },
 
+  /** Synced state of a breakable prop (#4), by level prop id. Read from useFrame. */
+  getProp(id: string): PropShapeState | undefined {
+    return room?.state.props?.get(id);
+  },
+
+  /** When (performance.now()) body `id` last swung (#4), if ever. */
+  getLastSwing(id: string): number | undefined {
+    return lastSwings.get(id);
+  },
+
+  /** When (performance.now()) prop `id` was last hit (#4), if ever. */
+  getLastPropHit(id: string): number | undefined {
+    return lastPropHits.get(id);
+  },
+
+  /** When (performance.now()) prop `id` broke while we were in the room, if it did. */
+  getPropBrokenAt(id: string): number | undefined {
+    return propBrokenAt.get(id);
+  },
+
+  /**
+   * Swing (#4). Plays the local swing right away (cosmetic; no prediction of
+   * the hit) and asks the server, which decides what it lands on and enforces
+   * the cooldown. Nothing happens while we can't act.
+   */
+  sendAttack() {
+    if (!room || room.state.phase !== Phase.Playing) return;
+    const me = room.state.players.get(room.sessionId);
+    if (!me || me.down || me.status !== PlayerStatus.Free) return;
+    const now = performance.now();
+    if (now - lastLocalSwing >= MELEE_COOLDOWN * 1000) {
+      lastLocalSwing = now;
+      lastSwings.set(room.sessionId, now);
+    }
+    room.send(ClientMessage.Attack);
+  },
+
   /** Send a move direction, only if it differs from the last one sent. */
   sendMove(x: number, z: number) {
     const dir = normalizeMove(x, z);
@@ -288,7 +364,7 @@ export const net = {
     const previous = room;
     room = null;
     setInviteUrl(null);
-    lastImpulses.clear();
+    clearEffects();
     update(IDLE);
     void previous?.leave().catch(() => undefined);
   },

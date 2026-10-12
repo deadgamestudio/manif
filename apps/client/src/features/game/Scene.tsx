@@ -6,6 +6,7 @@ import { CAMERA_OFFSET, damp } from "../../shared/iso/index.ts";
 import { LevelView } from "../level/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { PlayerAvatar } from "../player/index.ts";
+import { PropsView } from "../prop/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
 
 const LEVEL = STREET_LEVEL;
@@ -28,6 +29,7 @@ export function Scene({ players, localId }: { players: readonly LobbyPlayer[]; l
       <hemisphereLight args={["#dfe8ff", "#3a3a3a", 0.8]} />
 
       <LevelView level={LEVEL} />
+      <PropsView level={LEVEL} />
 
       {players.map((p) => (
         <PlayerAvatar key={p.id} id={p.id} name={p.name} isLocal={p.id === localId} />

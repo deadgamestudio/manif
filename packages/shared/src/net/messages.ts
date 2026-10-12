@@ -4,13 +4,18 @@ export const ClientMessage = {
   /** Host only: leave the lobby and start the march. No payload. */
   Start: "start",
   /**
+   * Swing at whatever is in front (#4). No payload: the server uses its own
+   * position and facing, and enforces the cooldown and the player's state.
+   */
+  Attack: "attack",
+  /**
    * DEBUG, dev builds only: knock yourself or the nearest player over.
-   * The server ignores it when NODE_ENV is "production". Remove once real hits exist (#4).
+   * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) give real hits.
    */
   DebugKnockback: "debug:knockback",
   /**
    * DEBUG, dev builds only: hurt or grab yourself to see health and arrest (#3).
-   * The server ignores it when NODE_ENV is "production". Remove once real hitters exist (#4, #5).
+   * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) exist.
    */
   DebugHealth: "debug:health",
 } as const;
@@ -25,6 +30,7 @@ export interface MoveInput {
 export interface ClientMessagePayloads {
   [ClientMessage.Move]: MoveInput;
   [ClientMessage.Start]: undefined;
+  [ClientMessage.Attack]: undefined;
   [ClientMessage.DebugKnockback]: DebugKnockbackPayload;
   [ClientMessage.DebugHealth]: DebugHealthPayload;
 }
@@ -44,6 +50,10 @@ export interface DebugKnockbackPayload {
 export const ServerMessage = {
   /** A body received an impulse. Not stored in Schema; lets clients tip it the right way. */
   Impulse: "impulse",
+  /** A player swung (#4), hit or miss. Sent to everyone but the swinger, who already plays it locally. */
+  Swing: "swing",
+  /** A swing landed on something (#4). Not stored in Schema; lets clients flash the target. */
+  Hit: "hit",
 } as const;
 export type ServerMessage = (typeof ServerMessage)[keyof typeof ServerMessage];
 
@@ -60,8 +70,33 @@ export interface ImpulseEvent {
   down: boolean;
 }
 
+/** Payload of `ServerMessage.Swing`. */
+export interface SwingEvent {
+  /** Session id of the player who swung. */
+  id: string;
+}
+
+/** What a hit landed on. Props now; CRS (#5) and grabbing CRS (#10) add their kind here. */
+export type HitTargetKind = "prop";
+
+/** Payload of `ServerMessage.Hit`. */
+export interface HitEvent {
+  /** Session id of the attacker. */
+  by: string;
+  kind: HitTargetKind;
+  /** Prop id from the level data (or entity id for later kinds). */
+  target: string;
+  /** Where the swing landed, for the hit effect. */
+  x: number;
+  z: number;
+  /** True if this hit broke the prop. The synced `broken` flag is the source of truth. */
+  broke: boolean;
+}
+
 export interface ServerMessagePayloads {
   [ServerMessage.Impulse]: ImpulseEvent;
+  [ServerMessage.Swing]: SwingEvent;
+  [ServerMessage.Hit]: HitEvent;
 }
 
 /** Options sent with `client.create()` / `client.joinById()`. */
