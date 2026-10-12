@@ -1,4 +1,5 @@
 import { schema, t, type SchemaType } from "@colyseus/schema";
+import { MAX_HP, PlayerStatus } from "@manif/shared";
 
 // Schema classes are built with `schema()` rather than `@type()` decorators,
 // so no `experimentalDecorators` / `useDefineForClassFields` settings are needed.
@@ -14,6 +15,12 @@ export const Player = schema(
     name: t.string(),
     /** Knocked down (#2). Velocity and timers stay server-side in the physics feature. */
     down: t.boolean(),
+    /** Health points (#3). Timers stay server-side in the health feature. */
+    hp: t.uint8().default(MAX_HP),
+    /** `PlayerStatus` from @manif/shared: free, grabbed, KO or arrested. */
+    status: t.uint8().default(PlayerStatus.Free),
+    /** Whole seconds left in the current non-free state, for the HUD countdown. 0 while free. */
+    stateLeft: t.uint8(),
   },
   "Player",
 );

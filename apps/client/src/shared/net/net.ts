@@ -7,6 +7,7 @@ import {
   ROOM_NAME,
   ServerMessage,
   normalizeMove,
+  type DebugHealthPayload,
   type DebugKnockbackPayload,
   type ImpulseEvent,
   type LobbyJoinOptions,
@@ -224,6 +225,21 @@ export const net = {
     return room?.state.players.get(id);
   },
 
+  /**
+   * Call `listener` whenever one of the given fields of player `id` changes.
+   * For React HUDs (via useSyncExternalStore) that must not re-render every
+   * frame. Returns an unsubscribe function; a no-op if the player is unknown.
+   */
+  watchPlayer(id: string, fields: readonly (keyof PlayerShape)[], listener: () => void): () => void {
+    const player = room?.state.players.get(id) as (PlayerShape & IRef) | undefined;
+    if (!room || !player) return () => undefined;
+    const callbacks = Callbacks.get(room);
+    const unbinds = fields.map((field) => callbacks.listen(player, field, listener, false));
+    return () => {
+      for (const unbind of unbinds) unbind();
+    };
+  },
+
   /** The last impulse a body received, if any. Read from useFrame. */
   getLastImpulse(id: string): ImpulseEvent | undefined {
     return lastImpulses.get(id);
@@ -258,6 +274,11 @@ export const net = {
   /** DEBUG (#2), dev builds only: ask the server to knock someone over. The server refuses it in production. */
   debugKnockback(payload: DebugKnockbackPayload) {
     if (import.meta.env.DEV) room?.send(ClientMessage.DebugKnockback, payload);
+  },
+
+  /** DEBUG (#3), dev builds only: hurt or grab yourself. The server refuses it in production. */
+  debugHealth(payload: DebugHealthPayload) {
+    if (import.meta.env.DEV) room?.send(ClientMessage.DebugHealth, payload);
   },
 
   /** Leave the room (or cancel a join in flight) and go back to the homepage. */

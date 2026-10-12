@@ -8,6 +8,11 @@ export const ClientMessage = {
    * The server ignores it when NODE_ENV is "production". Remove once real hits exist (#4).
    */
   DebugKnockback: "debug:knockback",
+  /**
+   * DEBUG, dev builds only: hurt or grab yourself to see health and arrest (#3).
+   * The server ignores it when NODE_ENV is "production". Remove once real hitters exist (#4, #5).
+   */
+  DebugHealth: "debug:health",
 } as const;
 export type ClientMessage = (typeof ClientMessage)[keyof typeof ClientMessage];
 
@@ -21,6 +26,12 @@ export interface ClientMessagePayloads {
   [ClientMessage.Move]: MoveInput;
   [ClientMessage.Start]: undefined;
   [ClientMessage.DebugKnockback]: DebugKnockbackPayload;
+  [ClientMessage.DebugHealth]: DebugHealthPayload;
+}
+
+/** DEBUG payload (#3). `damage` takes DEBUG_DAMAGE HP off yourself; `grab` grabs yourself for the default drag time. */
+export interface DebugHealthPayload {
+  action: "damage" | "grab";
 }
 
 /** DEBUG payload. `strength` defaults to HEAVY_IMPULSE and is capped by the server. */
