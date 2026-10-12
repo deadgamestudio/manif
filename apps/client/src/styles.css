@@ -111,6 +111,8 @@ body,
 }
 
 .lobby-code {
+  /* Codes are case-sensitive: show them as they are. */
+  text-transform: none;
   color: var(--ink);
   text-shadow: none;
   font-size: 0.6em;
