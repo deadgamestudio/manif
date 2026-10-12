@@ -5,7 +5,10 @@ import {
   DEFAULT_SERVER_PORT,
   Phase,
   ROOM_NAME,
+  ServerMessage,
   normalizeMove,
+  type DebugKnockbackPayload,
+  type ImpulseEvent,
   type LobbyJoinOptions,
   type MoveInput,
   type PlayerShape,
@@ -68,6 +71,12 @@ const listeners = new Set<() => void>();
 let lastSent: MoveInput = { x: 0, z: 0 };
 /** The create/join in flight, if any. A second call while it runs gets the same promise. */
 let pending: Promise<void> | null = null;
+/**
+ * Last impulse per body (#2), from ServerMessage.Impulse. Only used to tip a
+ * knocked-down avatar the right way; not state, so a missed event only costs a
+ * default fall direction.
+ */
+const lastImpulses = new Map<string, ImpulseEvent>();
 /** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
 let generation = 0;
 
@@ -105,6 +114,7 @@ function readRoom(r: ClientRoom): Partial<NetSnapshot> {
 function attach(joined: ClientRoom, gen: number) {
   room = joined;
   lastSent = { x: 0, z: 0 };
+  lastImpulses.clear();
 
   const refresh = () => {
     if (gen === generation) update(readRoom(joined));
@@ -114,9 +124,16 @@ function attach(joined: ClientRoom, gen: number) {
     callbacks.listen(player as PlayerShape & IRef, "name", refresh);
     refresh();
   });
-  callbacks.onRemove("players", refresh);
+  callbacks.onRemove("players", (_player, id) => {
+    lastImpulses.delete(id);
+    refresh();
+  });
   callbacks.listen("phase", refresh);
   callbacks.listen("hostId", refresh);
+
+  joined.onMessage(ServerMessage.Impulse, (event: ImpulseEvent) => {
+    if (gen === generation) lastImpulses.set(event.id, event);
+  });
 
   joined.onLeave(() => {
     // Our own leave() already reset everything; only react to an unexpected loss.
@@ -187,6 +204,11 @@ export const net = {
     return room?.state.players.get(id);
   },
 
+  /** The last impulse a body received, if any. Read from useFrame. */
+  getLastImpulse(id: string): ImpulseEvent | undefined {
+    return lastImpulses.get(id);
+  },
+
   /** Send a move direction, only if it differs from the last one sent. */
   sendMove(x: number, z: number) {
     const dir = normalizeMove(x, z);
@@ -213,6 +235,11 @@ export const net = {
     room?.send(ClientMessage.Start);
   },
 
+  /** DEBUG (#2), dev builds only: ask the server to knock someone over. The server refuses it in production. */
+  debugKnockback(payload: DebugKnockbackPayload) {
+    if (import.meta.env.DEV) room?.send(ClientMessage.DebugKnockback, payload);
+  },
+
   /** Leave the room (or cancel a join in flight) and go back to the homepage. */
   leave() {
     generation++;
@@ -220,6 +247,7 @@ export const net = {
     const previous = room;
     room = null;
     setInviteUrl(null);
+    lastImpulses.clear();
     update(IDLE);
     void previous?.leave().catch(() => undefined);
   },
