@@ -140,6 +140,20 @@ const propSlots: PropSlot[] = [
   prop("car-3", "car", -6, -70),
 ];
 
+/** CRS spawn points (#5): in the side-street gaps and ahead in the street. The first CRS_COUNT are used at the start. */
+const crsSpawns = [
+  { x: 10.8, z: 77 },
+  { x: -10.8, z: 67 },
+  { x: 0, z: 62 },
+  { x: 10.8, z: 37 },
+  { x: -10.8, z: 27 },
+  { x: 1, z: 45 },
+  { x: 10.8, z: -3 },
+  { x: -10.8, z: -23 },
+  { x: 10.8, z: -53 },
+  { x: -10.8, z: -73 },
+];
+
 export const STREET_LEVEL: Level = {
   id: "street",
   bounds: { minX: -HALF_WIDTH, maxX: HALF_WIDTH, minZ: END_Z, maxZ: START_Z },
@@ -149,4 +163,5 @@ export const STREET_LEVEL: Level = {
   boxes,
   circles,
   propSlots,
+  crsSpawns,
 };

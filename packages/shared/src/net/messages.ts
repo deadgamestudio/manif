@@ -48,9 +48,12 @@ export interface DebugKnockbackPayload {
 
 /** Message type names broadcast from server to clients. */
 export const ServerMessage = {
-  /** A body received an impulse. Not stored in Schema; lets clients tip it the right way. */
+  /** A body (protester or CRS) received an impulse. Not stored in Schema; lets clients tip it the right way. */
   Impulse: "impulse",
-  /** A player swung (#4), hit or miss. Sent to everyone but the swinger, who already plays it locally. */
+  /**
+   * A player swung (#4), hit or miss: sent to everyone but the swinger, who
+   * already plays it locally. Also a CRS baton swing (#5), sent to everyone.
+   */
   Swing: "swing",
   /** A swing landed on something (#4). Not stored in Schema; lets clients flash the target. */
   Hit: "hit",
@@ -59,7 +62,7 @@ export type ServerMessage = (typeof ServerMessage)[keyof typeof ServerMessage];
 
 /** Payload of `ServerMessage.Impulse`. */
 export interface ImpulseEvent {
-  /** Session id of the body that was hit. */
+  /** Session id of the body that was hit, or a CRS id. */
   id: string;
   /** Unit ground direction of the push. */
   dirX: number;
@@ -72,24 +75,24 @@ export interface ImpulseEvent {
 
 /** Payload of `ServerMessage.Swing`. */
 export interface SwingEvent {
-  /** Session id of the player who swung. */
+  /** Session id of the player who swung, or the CRS id. */
   id: string;
 }
 
-/** What a hit landed on. Props now; CRS (#5) and grabbing CRS (#10) add their kind here. */
-export type HitTargetKind = "prop";
+/** What a hit landed on: a prop (#4) or a police bot (#5). #10 (rescue) may add its own kind. */
+export type HitTargetKind = "prop" | "crs";
 
 /** Payload of `ServerMessage.Hit`. */
 export interface HitEvent {
   /** Session id of the attacker. */
   by: string;
   kind: HitTargetKind;
-  /** Prop id from the level data (or entity id for later kinds). */
+  /** Prop id from the level data, or the bot's id in `state.crs`. */
   target: string;
   /** Where the swing landed, for the hit effect. */
   x: number;
   z: number;
-  /** True if this hit broke the prop. The synced `broken` flag is the source of truth. */
+  /** True if this hit broke the prop, or took the CRS out. The synced state is the source of truth. */
   broke: boolean;
 }
 

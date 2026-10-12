@@ -3,6 +3,7 @@
  * The real Schema classes live in the server only.
  */
 import type { PlayerStatus } from "../health/index.js";
+import type { CrsKind, CrsStatus } from "../crs/index.js";
 
 /**
  * Room phase, synced as a uint8.
@@ -52,10 +53,30 @@ export interface PropShapeState {
   broken: boolean;
 }
 
+/**
+ * A police bot (#5), keyed by a server-made id. Target, path and timers stay
+ * on the server; stats are in `CRS_STATS[kind]`.
+ */
+export interface CrsShape {
+  x: number;
+  z: number;
+  /** Facing angle around the Y axis, in radians. */
+  rotation: number;
+  hp: number;
+  /** Active, stunned, grabbing or out. See `CrsStatus`. */
+  status: CrsStatus;
+  /** Knocked down (#2). */
+  down: boolean;
+  /** Unit type (#13). See `CrsKind`. */
+  kind: CrsKind;
+}
+
 export interface StreetStateShape {
   players: SyncedMap<PlayerShape>;
   /** Breakable props by level prop id (#4). */
   props: SyncedMap<PropShapeState>;
+  /** Police bots by id (#5). */
+  crs: SyncedMap<CrsShape>;
   phase: Phase;
   /** Session id of the host (who may start), or "" when the room is empty. */
   hostId: string;

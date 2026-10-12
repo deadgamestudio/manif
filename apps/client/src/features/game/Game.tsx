@@ -21,7 +21,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         dpr={[1, 2]}
         camera={{ position: CAMERA_OFFSET.toArray(), zoom: 40, near: 0.1, far: 200 }}
       >
-        <Scene players={snap.players} localId={snap.sessionId} />
+        <Scene players={snap.players} crs={snap.crs} localId={snap.sessionId} />
       </Canvas>
       <div className="hud">
         <div>

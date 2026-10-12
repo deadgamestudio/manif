@@ -3,6 +3,7 @@ import {
   createBody,
   hasControl,
   isDown,
+  moveCircle,
   stepBody,
   type Body,
   type BodyStepResult,
@@ -12,7 +13,7 @@ import {
   type MoveInput,
 } from "@manif/shared";
 
-/** The synced fields a body writes after each step. `Player` (and CRS later, #5) fit it. */
+/** The synced fields a body writes after each step. `Player` fits it (CRS bodies live in the crs feature, #5). */
 export interface BodyView {
   x: number;
   z: number;
@@ -81,6 +82,22 @@ export class Bodies {
     const res = applyImpulse(body, dirX, dirZ, strength, mode);
     view.down = isDown(body);
     return res;
+  }
+
+  /**
+   * Pull a body to (x, z), collided against the world, and drop its knockback:
+   * a CRS dragging a grabbed protester (#5). Mirrors position into `view`.
+   */
+  drag(id: string, view: BodyView, x: number, z: number): void {
+    const body = this.bodies.get(id);
+    if (!body) return;
+    const res = moveCircle(this.world, body, x - body.x, z - body.z, this.radius);
+    body.x = res.x;
+    body.z = res.z;
+    body.vx = 0;
+    body.vz = 0;
+    if (view.x !== body.x) view.x = body.x;
+    if (view.z !== body.z) view.z = body.z;
   }
 
   /** One fixed tick for one body, then mirror position and `down` into `view`. */
