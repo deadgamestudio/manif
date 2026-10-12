@@ -16,7 +16,8 @@ import {
   type LobbyJoinOptions,
   type MoveInput,
 } from "@manif/shared";
-import { Player, StreetState } from "../state.js";
+import { Player } from "../features/player/index.js";
+import { StreetState } from "./state.js";
 
 // The level is static shared data, imported by the client too. It is not synced.
 const LEVEL = STREET_LEVEL;
