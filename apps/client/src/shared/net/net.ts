@@ -60,8 +60,14 @@ function resolveServerUrl(): string {
 
 const SERVER_URL = resolveServerUrl();
 
-/** Colyseus matchmaking error for a missing or locked (full) room id. */
+/**
+ * Colyseus matchmaking error for a missing or locked (full) room id. In
+ * production the client's Caddy re-sends it as HTTP 409, because Cloudflare
+ * replaces 520-527 responses with its own error page (see apps/client/Caddyfile),
+ * and the SDK takes the HTTP status as the error code.
+ */
 const MATCHMAKE_INVALID_ROOM_ID = 522;
+const MATCHMAKE_ERROR_BEHIND_PROXY = 409;
 
 /** Decoded state: the plain shape from shared, plus the decoder's ref marker. */
 type ClientState = StreetStateShape & IRef;
@@ -103,7 +109,7 @@ function update(patch: Partial<NetSnapshot>) {
 function describeJoinError(err: unknown): string {
   const code = (err as { code?: unknown } | null)?.code;
   const message = err instanceof Error ? err.message : String(err);
-  if (code === MATCHMAKE_INVALID_ROOM_ID) {
+  if (code === MATCHMAKE_INVALID_ROOM_ID || code === MATCHMAKE_ERROR_BEHIND_PROXY) {
     if (/locked/i.test(message)) return "Cette manif est complète (8 manifestants max). Lance la tienne !";
     return "Code inconnu, ou cette manif s'est déjà dispersée. Vérifie le code ou crée ta propre manif.";
   }
