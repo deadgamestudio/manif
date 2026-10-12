@@ -5,6 +5,7 @@ import { PLAYER_RADIUS, PlayerStatus } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { HealthBar } from "../health/index.ts";
+import { RescueBar } from "../rescue/index.ts";
 import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;
@@ -207,6 +208,8 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
       <NameTag name={name} isLocal={isLocal} y={HEIGHT + 0.55} />
       {/* The local player's HP is in the HUD. */}
       {!isLocal && <HealthBar id={id} y={HEIGHT + 0.95} />}
+      {/* Over everyone, the local player included: help is coming (#10). */}
+      <RescueBar id={id} y={HEIGHT + 1.25} />
     </group>
   );
 }

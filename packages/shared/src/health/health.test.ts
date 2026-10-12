@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { GRAB_DURATION, KO_DURATION, MAX_HP, RESCUE_MIN_HP, RESPAWN_DELAY, RESPAWN_INVULNERABILITY } from "./constants.js";
+import { GRAB_DURATION, GRAB_IMMUNITY, KO_DURATION, MAX_HP, RESCUE_MIN_HP, RESPAWN_DELAY, RESPAWN_INVULNERABILITY } from "./constants.js";
 import {
   PlayerStatus,
   canAct,
@@ -145,13 +145,13 @@ describe("grab and rescue", () => {
   });
 
   test("grabbed -> free on rescue, keeping HP", () => {
-    const h = rescue(damage(grab(createHealth(), 0), 30, 0));
+    const h = rescue(damage(grab(createHealth(), 0), 30, 0), 0);
     expect(h.status).toBe(S.Free);
     expect(h.hp).toBe(70);
   });
 
   test("a rescue at 0 HP gives back the minimum HP", () => {
-    const h = rescue(damage(grab(createHealth(), 0), 500, 0));
+    const h = rescue(damage(grab(createHealth(), 0), 500, 0), 0);
     expect(h.status).toBe(S.Free);
     expect(h.hp).toBe(RESCUE_MIN_HP);
   });
@@ -172,6 +172,21 @@ describe("grab and rescue", () => {
     expect(grab(a, KO_DURATION + 1)).toBe(a);
   });
 
+  test("a rescued protester cannot be grabbed again during GRAB_IMMUNITY, but can be hurt", () => {
+    const freed = rescue(grab(createHealth(), 0), 2);
+    expect(freed.status).toBe(S.Free);
+    expect(grab(freed, 2)).toBe(freed);
+    expect(grab(freed, 2 + GRAB_IMMUNITY - 0.01)).toBe(freed);
+    expect(damage(freed, 10, 2.1).hp).toBe(MAX_HP - 10);
+    expect(grab(freed, 2 + GRAB_IMMUNITY).status).toBe(S.Grabbed);
+  });
+
+  test("a respawn clears any leftover grab immunity", () => {
+    const freed = rescue(grab(createHealth(), 0), 0);
+    expect(respawn(0.5).grabImmuneUntil).toBe(0);
+    expect(freed.grabImmuneUntil).toBeCloseTo(GRAB_IMMUNITY);
+  });
+
   test("refuses a grab during respawn invulnerability", () => {
     const h = respawn(0);
     expect(grab(h, 1)).toBe(h);
@@ -180,11 +195,11 @@ describe("grab and rescue", () => {
 
   test("refuses rescuing anyone who is not grabbed", () => {
     const free = createHealth();
-    expect(rescue(free)).toBe(free);
+    expect(rescue(free, 0)).toBe(free);
     const k = ko(0);
-    expect(rescue(k)).toBe(k);
+    expect(rescue(k, 0.5)).toBe(k);
     const a = tickHealth(k, KO_DURATION).health;
-    expect(rescue(a)).toBe(a);
+    expect(rescue(a, KO_DURATION + 1)).toBe(a);
   });
 });
 

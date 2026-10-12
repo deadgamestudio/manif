@@ -1,5 +1,6 @@
 import type { MapSchema } from "@colyseus/schema";
 import {
+  applyImpulse,
   CRS_RESPAWN_DELAY,
   CRS_SPAWN_CLEARANCE,
   CRS_STATS,
@@ -20,6 +21,7 @@ import {
   type CrsContext,
   type CrsHitResult,
   type CrsHost,
+  type ImpulseResult,
   type Level,
   type MeleeTarget,
   type Vec2,
@@ -138,6 +140,28 @@ export class CrsSquad {
     const view = this.views.get(id);
     if (view) this.mirror(bot, view);
     return true;
+  }
+
+  /** The bot holding protester `protesterId`, if any (#10). */
+  holderOf(protesterId: string): string | null {
+    for (const bot of this.bots) {
+      if (bot.status === CrsStatus.Grabbing && bot.grabbedId === protesterId) return bot.id;
+    }
+    return null;
+  }
+
+  /**
+   * Push bot `id` (#10: knocked back when a rescue pulls its protester away).
+   * A heavy push floors it, so it lets go and lies down for a moment. Null for
+   * an unknown or out bot. The room broadcasts the result.
+   */
+  push(id: string, dirX: number, dirZ: number, strength: number): ImpulseResult | null {
+    const bot = this.byId.get(id);
+    if (!bot || bot.status === CrsStatus.Out) return null;
+    const res = applyImpulse(bot.body, dirX, dirZ, strength);
+    const view = this.views.get(id);
+    if (view) this.mirror(bot, view);
+    return res;
   }
 
   /**

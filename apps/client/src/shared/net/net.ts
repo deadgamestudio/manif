@@ -14,6 +14,7 @@ import {
   type DebugKnockbackPayload,
   type HitEvent,
   type ImpulseEvent,
+  type InteractPayload,
   type LobbyJoinOptions,
   type MoveInput,
   type PlayerShape,
@@ -358,6 +359,17 @@ export const net = {
     const me = room.state.players.get(room.sessionId);
     if (!me || me.down || me.status !== PlayerStatus.Free) return;
     room.send(ClientMessage.Dodge);
+  },
+
+  /**
+   * Interact key pressed or released (#10 rescue, #8 pick-up). Always sent,
+   * whatever our state: the server decides what it does, and a release must
+   * never be lost or a rescue would keep going.
+   */
+  sendInteract(held: boolean) {
+    if (!room || room.state.phase !== Phase.Playing) return;
+    const payload: InteractPayload = { held };
+    room.send(ClientMessage.Interact, payload);
   },
 
   /** Send a move direction, only if it differs from the last one sent. */

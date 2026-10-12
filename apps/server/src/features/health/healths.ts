@@ -74,9 +74,9 @@ export class Healths {
     return this.apply(id, view, now, (h) => grab(h, now, duration));
   }
 
-  /** Grabbed -> free (#10). Returns true if the rescue took. */
+  /** Grabbed -> free, with a short grab immunity (#10). Returns true if the rescue took. */
   rescue(id: string, view: HealthView, now: number): boolean {
-    return this.apply(id, view, now, (h) => rescue(h));
+    return this.apply(id, view, now, (h) => rescue(h, now));
   }
 
   /** Advance timers. Returns what happened, so the room can place a respawned body. */

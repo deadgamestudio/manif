@@ -6,6 +6,8 @@ import {
   MELEE_CRS_DAMAGE,
   MAX_PLAYERS,
   PROP_TYPES,
+  RESCUE_CRS_IMPULSE,
+  RESCUE_PROTESTER_IMPULSE,
   MELEE_PROP_DAMAGE,
   PLAYER_RADIUS,
   PLAYER_SPEED,
@@ -25,6 +27,7 @@ import {
   spawnPoint,
   type HitEvent,
   type ImpulseEvent,
+  type InteractPayload,
   type KnockdownMode,
   type LobbyJoinOptions,
   type MoveInput,
@@ -41,6 +44,7 @@ import { DodgeCooldowns } from "../features/dodge/index.js";
 import { Player } from "../features/player/index.js";
 import { Props } from "../features/prop/index.js";
 import { CrsSquad } from "../features/crs/index.js";
+import { Rescues } from "../features/rescue/index.js";
 import { StreetState } from "./state.js";
 
 // The level is static shared data, imported by the client too. It is not synced.
@@ -71,6 +75,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private dodgeCooldowns = new DodgeCooldowns();
   /** HP, status and their timers per session (#3). Server-only; hp, status and stateLeft are synced. */
   private healths = new Healths();
+  /** Who is holding interact and pulling which grabbed teammate (#10). Server-only; progress is synced on the grabbed player. */
+  private rescues = new Rescues();
   /**
    * Room time in seconds: advances by the fixed dt each tick while playing.
    * Every health timer uses it (never Date.now()), so they pause with the sim.
@@ -138,6 +144,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.dodge(client.sessionId);
     },
 
+    // Interact (E), on press and on release. No target: the server picks it (#10 rescue; #8 adds pick-up).
+    [ClientMessage.Interact]: (client: Client, message: unknown) => {
+      if (this.state.phase !== Phase.Playing) return;
+      const held = (message as Partial<InteractPayload> | null)?.held === true;
+      this.interact(client.sessionId, held);
+    },
+
     // Game rule: only the host starts, and only from the lobby.
     [ClientMessage.Start]: (client: Client) => {
       if (client.sessionId !== this.state.hostId || this.state.phase !== Phase.Lobby) return;
@@ -194,8 +207,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.moveInputs.delete(client.sessionId);
     this.meleeCooldowns.remove(client.sessionId);
     this.dodgeCooldowns.remove(client.sessionId);
+    // A rescue aimed at this player ends on the next tick (unknown target).
+    this.rescues.remove(client.sessionId);
     this.bodies.remove(client.sessionId);
-    // Systems that point at a player (a CRS grab #5, a rescue #10) see unknown ids as no-ops.
+    // Systems that point at a player (a CRS grab #5) see unknown ids as no-ops.
     this.healths.remove(client.sessionId);
     this.protesterViews.delete(client.sessionId);
     this.joinOrder.delete(client.sessionId);
@@ -211,8 +226,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.state.players.forEach((player, sessionId) => {
       this.placeAtSpawn(sessionId, player);
       this.healths.reset(sessionId, player);
+      player.rescue = 0;
       this.moveInputs.set(sessionId, { x: 0, z: 0 });
     });
+    this.rescues.clear();
     this.props.reset(this.state.props);
     this.crs.worldChanged();
     this.meleeCooldowns.clear();
@@ -267,7 +284,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     return player ? this.healths.grab(id, player, this.now, duration) : false;
   }
 
-  /** A teammate frees a grabbed protester (#10). */
+  /**
+   * A grabbed protester is free again (#10), with a short grab immunity: pulled
+   * out by a teammate (see `pullFree`), or let go by a CRS that was stunned or
+   * floored. Only the state change; the knockback is the caller's.
+   */
   rescuePlayer(id: string): boolean {
     const player = this.state.players.get(id);
     return player ? this.healths.rescue(id, player, this.now) : false;
@@ -307,7 +328,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     }
     // CRS (#5): pushed away from the swinger, every third quick hit knocks one
     // over, and at 0 HP it is out. A knocked-down or out CRS lets go of its grab
-    // on its next tick. #10 (rescue) adds its own handling for grabbing CRS here.
+    // on its next tick: the other way to free a grabbed teammate (#10), with the
+    // same grab immunity as a rescue (CrsHost.release -> rescuePlayer).
     for (const hit of meleeHits(player, this.crs.meleeTargets(), SWING_OBSTACLES)) {
       const res = this.crs.hit(hit.id, player.x, player.z, MELEE_CRS_DAMAGE, this.now);
       if (!res) continue;
@@ -339,6 +361,46 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   /**
+   * Interact key (E) pressed or released. On a press, a grabbed teammate in
+   * RESCUE_RANGE has priority (#10): the press starts holding, and the rescue
+   * itself runs in `step` for as long as the key stays down. #8 adds pick-up
+   * here: on a press with no grabbed teammate in range (`pickRescueTarget`
+   * returns null), pick up the nearest pavé instead.
+   * Holding is recorded even with nobody in range, so pressing E and then
+   * walking up to a grabbed teammate works too.
+   */
+  interact(id: string, held: boolean) {
+    if (!this.state.players.has(id)) return;
+    this.rescues.hold(id, held);
+  }
+
+  /**
+   * A teammate's rescue finished (#10): the protester is free, the CRS holding
+   * them is knocked over (so it lets go and lies there a moment) and the
+   * protester stumbles away from it. False if they were no longer grabbed.
+   */
+  private pullFree(targetId: string): boolean {
+    const holder = this.crs.holderOf(targetId);
+    if (!this.rescuePlayer(targetId)) return false;
+    const player = this.state.players.get(targetId);
+    const bot = holder === null ? undefined : this.crs.get(holder);
+    if (!player || !bot || holder === null) return true;
+    let dx = bot.body.x - player.x;
+    let dz = bot.body.z - player.z;
+    if (Math.hypot(dx, dz) < 1e-6) {
+      dx = Math.sin(bot.rotation);
+      dz = Math.cos(bot.rotation);
+    }
+    const res = this.crs.push(holder, dx, dz, RESCUE_CRS_IMPULSE);
+    if (res && res.strength > 0) {
+      const push: ImpulseEvent = { id: holder, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
+      this.broadcast(ServerMessage.Impulse, push);
+    }
+    this.applyImpulse(targetId, -dx, -dz, RESCUE_PROTESTER_IMPULSE);
+    return true;
+  }
+
+  /**
    * A prop just broke: it drops PROP_TYPES[kind].paves pavés (#4). Hook for #8,
    * which owns pavés as ground items and their pickup: spawn them here.
    */
@@ -349,8 +411,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
 
   /**
    * One fixed tick. Order matters and is fixed here:
-   * 1. Rescues (#10) must be applied before step 2, so a rescue landing on the
-   *    last tick of a drag wins over the arrest.
+   * 1. Rescues (#10) are applied before step 2, so a rescue landing on the
+   *    last tick of a drag wins over the arrest (locked by the tests in
+   *    packages/shared/src/rescue/rescue.test.ts).
    * 2. Protesters: health timers (a drag that ends becomes an arrest), then movement.
    * 3. CRS (#5): think, move, hit, grab, drag. A bot whose protester was just
    *    arrested, rescued or disconnected goes back to work here.
@@ -358,8 +421,18 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private step(dt: number) {
     if (this.state.phase !== Phase.Playing) return;
     this.now += dt;
+    this.rescues.step(
+      dt,
+      (id) => this.protesterView(id),
+      () => this.allProtesterViews(),
+      (id) => this.hasControl(id),
+      (targetId) => this.pullFree(targetId),
+    );
     this.state.players.forEach((player, sessionId) => {
       if (this.healths.tick(sessionId, player, this.now) === "respawned") this.placeAtRear(sessionId, player);
+      // The ring over a grabbed protester (#10); 0 once free, arrested or gone.
+      const rescue = player.status === PlayerStatus.Grabbed ? this.rescues.percent(sessionId) : 0;
+      if (player.rescue !== rescue) player.rescue = rescue;
       // Only free protesters walk; the others keep their knockback slide (a KO'd body still flies).
       const free = this.healths.canMove(sessionId);
       // Grabbed or KO mid-dodge (#9): the burst stops at once.

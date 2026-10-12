@@ -15,6 +15,14 @@ export const ClientMessage = {
    */
   Dodge: "dodge",
   /**
+   * The interact key (E), sent on press (`held: true`) and on release
+   * (`held: false`). No target: the server picks from its own positions.
+   * On a press, a grabbed teammate in RESCUE_RANGE wins (#10: keep holding to
+   * pull them free); otherwise #8 picks up a pavé. Holding matters only to
+   * the rescue; a release with nothing going on is a no-op.
+   */
+  Interact: "interact",
+  /**
    * DEBUG, dev builds only: knock yourself or the nearest player over.
    * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) give real hits.
    */
@@ -38,8 +46,14 @@ export interface ClientMessagePayloads {
   [ClientMessage.Start]: undefined;
   [ClientMessage.Attack]: undefined;
   [ClientMessage.Dodge]: undefined;
+  [ClientMessage.Interact]: InteractPayload;
   [ClientMessage.DebugKnockback]: DebugKnockbackPayload;
   [ClientMessage.DebugHealth]: DebugHealthPayload;
+}
+
+/** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
+export interface InteractPayload {
+  held: boolean;
 }
 
 /** DEBUG payload (#3). `damage` takes DEBUG_DAMAGE HP off yourself; `grab` grabs yourself for the default drag time. */
@@ -86,7 +100,7 @@ export interface SwingEvent {
   id: string;
 }
 
-/** What a hit landed on: a prop (#4) or a police bot (#5). #10 (rescue) may add its own kind. */
+/** What a hit landed on: a prop (#4) or a police bot (#5). */
 export type HitTargetKind = "prop" | "crs";
 
 /** Payload of `ServerMessage.Hit`. */

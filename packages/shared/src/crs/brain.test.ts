@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { PlayerStatus, createHealth, damage, grab, rescue, tickHealth, type Health } from "../health/index.js";
+import { GRAB_IMMUNITY, PlayerStatus, createHealth, damage, grab, rescue, tickHealth, type Health } from "../health/index.js";
 import { STREET_LEVEL, levelWorld } from "../level/index.js";
 import { TICK_DT } from "../net/index.js";
 import { KNOCKDOWN_THRESHOLD, applyImpulse, circleOverlaps, createBody, isDown, stepBody, type Body, type CollisionWorld } from "../physics/index.js";
@@ -71,7 +71,7 @@ class FakeHost implements CrsHost {
     const p = this.people.get(id);
     if (!p) return;
     this.releases.push(id);
-    p.health = rescue(p.health);
+    p.health = rescue(p.health, this.now);
     this.sync(p);
   }
   drag(id: string, x: number, z: number) {
@@ -295,6 +295,35 @@ describe("grabbing", () => {
     tick();
     expect(p.health.status).toBe(PlayerStatus.Free);
     expect(bot.status).toBe(CrsStatus.Active);
+  });
+
+  test("a rescued protester is not grabbed again during GRAB_IMMUNITY, even by another CRS touching them (#10)", () => {
+    const { host, tick, addBot, ctx } = setup();
+    const holder = addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, touching);
+    p.body.downTime = 1;
+    tick();
+    expect(holder.status).toBe(CrsStatus.Grabbing);
+    // A teammate pulls them free (what the room's rescue does).
+    p.health = rescue(p.health, ctx.now);
+    const freedAt = ctx.now;
+    tick();
+    expect(holder.status).toBe(CrsStatus.Active);
+    // A fresh CRS, ready to grab, keeps touching them while they lie on the floor.
+    const fresh = addBot("crs-2", 15, 0);
+    let grabbedAt = -1;
+    for (let t = 0; t < GRAB_IMMUNITY + 0.5 && grabbedAt < 0; t += TICK_DT) {
+      p.body.x = fresh.body.x - touching;
+      p.body.z = fresh.body.z;
+      p.body.vx = 0;
+      p.body.vz = 0;
+      p.body.downTime = 1;
+      tick();
+      if (p.health.status === PlayerStatus.Grabbed) grabbedAt = ctx.now;
+    }
+    expect(grabbedAt).toBeGreaterThan(0);
+    expect(grabbedAt - freedAt).toBeGreaterThanOrEqual(GRAB_IMMUNITY - 1e-6);
+    expect(grabbedAt - freedAt).toBeLessThan(GRAB_IMMUNITY + 2 * TICK_DT);
   });
 
   test("the grabbed protester disconnects: the CRS is free next tick, no error", () => {
