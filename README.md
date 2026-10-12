@@ -3,8 +3,9 @@
 Multiplayer 3D isometric web game about French street protests. Players are
 protesters; CRS riot police (server bots) chase and arrest them.
 
-This is the foundation only: a monorepo plus a minimal end-to-end "hello world"
-(players walk around a street, synced through the server).
+So far: a monorepo, a long street (start zone at one end, the Préfecture at the
+other) with walls and obstacles the server collides players against, and
+players walking it, synced through the server.
 
 ## Layout
 
@@ -30,20 +31,26 @@ bun run dev        # shared (tsc --watch) + server on :2567 + client on :5173
 
 Open http://localhost:5173 in two tabs. Move with WASD or the arrow keys.
 
-Other tasks: `bun run build`, `bun run typecheck`, `bun run lint`.
+Other tasks: `bun run build`, `bun run typecheck`, `bun run lint`, `bun run test`
+(unit tests with `bun test`, run through turbo; they live in `packages/*/test/`).
 Run the built server with `bun run --cwd apps/server start`.
 
 ## Where to change things
 
 | To... | Edit |
 | --- | --- |
-| Tune speed, tick rate, map size | `packages/shared/src/constants.ts` |
+| Tune speed, tick rate, player radius | `packages/shared/src/constants.ts` |
+| Change the street layout (walls, obstacles, start, Préfecture, prop slots) | `packages/shared/src/levels/street.ts` |
+| Change the level format or level queries (progress, spawns) | `packages/shared/src/level.ts` |
+| Change collision (push-out, sliding, sub-steps, minimum wall thickness) | `packages/shared/src/collision.ts` |
+| Change how the level is drawn | `apps/client/src/Level.tsx` |
+| Add unit tests | `packages/shared/test/*.test.ts` (or a `test/` folder plus a `test` script in any package) |
 | Add a client → server message | `packages/shared/src/messages.ts`, then handle it in `apps/server/src/rooms/StreetRoom.ts` |
 | Add synced state | `apps/server/src/state.ts` (Schema) and the matching plain type in `packages/shared/src/state.ts` |
 | Change the scene, camera, rendering | `apps/client/src/Scene.tsx`, `PlayerAvatar.tsx`, `iso.ts` |
 | Change the connection or state listeners | `apps/client/src/net.ts` |
 
-Before pushing, run `bun run build && bun run typecheck && bun run lint`.
+Before pushing, run `bun run build && bun run typecheck && bun run lint && bun run test`.
 
 ## AI agent skills
 
@@ -60,8 +67,13 @@ older versions, so let agents use the skill rather than their memory.
 ## Notes
 
 - The server is authoritative. Clients only send a move direction; the server
-  integrates movement at a fixed tick rate (`packages/shared/src/constants.ts`)
-  and clamps players to the map.
+  integrates movement at a fixed tick rate (`packages/shared/src/constants.ts`),
+  pushes players out of obstacles and keeps them inside the street. The client
+  never collides on its own; it only draws server positions.
+- The level is static data in `@manif/shared`, imported by both the server
+  (collision, spawns) and the client (rendering). It is not synced through
+  Schema. Collision and level queries are pure functions, so they can be unit
+  tested without a room.
 - Schema classes live in the server only and use the `schema()` builder, so no
   decorator compiler flags are needed. The client reads state through the plain
   types in `@manif/shared`.
