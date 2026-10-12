@@ -16,6 +16,11 @@ This is the foundation only: a monorepo plus a minimal end-to-end "hello world"
 
 Tooling: bun (package manager, workspaces), turbo (tasks), TypeScript strict, oxlint.
 
+## Prerequisites
+
+- [bun](https://bun.sh) 1.4.2 (pinned in `package.json`)
+- Node 24 (runs the server; tested with v24)
+
 ## Run it
 
 ```sh
@@ -27,6 +32,25 @@ Open http://localhost:5173 in two tabs. Move with WASD or the arrow keys.
 
 Other tasks: `bun run build`, `bun run typecheck`, `bun run lint`.
 Run the built server with `bun run --cwd apps/server start`.
+
+## Where to change things
+
+| To... | Edit |
+| --- | --- |
+| Tune speed, tick rate, map size | `packages/shared/src/constants.ts` |
+| Add a client → server message | `packages/shared/src/messages.ts`, then handle it in `apps/server/src/rooms/StreetRoom.ts` |
+| Add synced state | `apps/server/src/state.ts` (Schema) and the matching plain type in `packages/shared/src/state.ts` |
+| Change the scene, camera, rendering | `apps/client/src/Scene.tsx`, `PlayerAvatar.tsx`, `iso.ts` |
+| Change the connection or state listeners | `apps/client/src/net.ts` |
+
+Before pushing, run `bun run build && bun run typecheck && bun run lint`.
+
+## AI agent skills
+
+The repo ships skills for Colyseus 0.18 and three.js in `.agents/skills/`
+(symlinked into `.claude/skills/`, pinned in `skills-lock.json`). Claude Code and
+other agents pick them up automatically. Colyseus 0.18's API differs a lot from
+older versions, so let agents use the skill rather than their memory.
 
 ## Config
 
