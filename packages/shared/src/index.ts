@@ -5,3 +5,4 @@ export * from "./math.js";
 export * from "./collision.js";
 export * from "./level.js";
 export * from "./levels/street.js";
+export * from "./lobby.js";

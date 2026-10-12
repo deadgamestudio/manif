@@ -3,9 +3,11 @@
 Multiplayer 3D isometric web game about French street protests. Players are
 protesters; CRS riot police (server bots) chase and arrest them.
 
-So far: a monorepo, a long street (start zone at one end, the Préfecture at the
-other) with walls and obstacles the server collides players against, and
-players walking it, synced through the server.
+So far: a monorepo, a homepage where you pick a name and create or join a
+private lobby by code or invite link, a lobby screen where the host starts the
+march, and a long street (start zone at one end, the Préfecture at the other)
+with walls and obstacles the server collides players against, with names above
+the players walking it, synced through the server.
 
 ## Layout
 
@@ -29,7 +31,9 @@ bun install
 bun run dev        # shared (tsc --watch) + server on :2567 + client on :5173
 ```
 
-Open http://localhost:5173 in two tabs. Move with WASD or the arrow keys.
+Open http://localhost:5173, create a lobby, and open the invite link
+(`?lobby=<code>`) in a second browser or a private window (tabs of one browser
+share the saved name). The host presses Start. Move with WASD or the arrow keys.
 
 Other tasks: `bun run build`, `bun run typecheck`, `bun run lint`, `bun run test`
 (unit tests with `bun test`, run through turbo; they live in `packages/*/test/`).
@@ -49,6 +53,10 @@ Run the built server with `bun run --cwd apps/server start`.
 | Add synced state | `apps/server/src/state.ts` (Schema) and the matching plain type in `packages/shared/src/state.ts` |
 | Change the scene, camera, rendering | `apps/client/src/Scene.tsx`, `PlayerAvatar.tsx`, `iso.ts` |
 | Change the connection or state listeners | `apps/client/src/net.ts` |
+| Change the homepage or the lobby screen | `apps/client/src/Home.tsx`, `Lobby.tsx`, `styles.css` |
+| Change name rules, default funny names, host hand-over order | `packages/shared/src/lobby.ts` |
+| Change lobby rules (who is host, who can start, phases) | `apps/server/src/rooms/StreetRoom.ts` |
+| Change the name tags above avatars | `apps/client/src/NameTag.tsx` |
 
 Before pushing, run `bun run build && bun run typecheck && bun run lint && bun run test`.
 
@@ -65,6 +73,15 @@ older versions, so let agents use the skill rather than their memory.
 - Server: `PORT` (default `2567`).
 
 ## Notes
+
+- Lobbies are private Colyseus rooms: `client.create()` makes one, and the
+  lobby code is its `roomId`, joined with `client.joinById()`. Nothing uses
+  `joinOrCreate`, so strangers never land in a lobby. An empty room is
+  disposed, so its code stops working.
+- `net.ts` holds at most one room and connects only on Create or Join (or on
+  load when an invite link is opened by someone who already has a saved name).
+  Concurrent create/join calls share one attempt, so double clicks and React
+  StrictMode can't create ghost players.
 
 - The server is authoritative. Clients only send a move direction; the server
   integrates movement at a fixed tick rate (`packages/shared/src/constants.ts`),

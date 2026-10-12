@@ -6,6 +6,7 @@ import { CAMERA_OFFSET, damp } from "./iso.ts";
 import { LevelView } from "./Level.tsx";
 import { net } from "./net.ts";
 import { PlayerAvatar } from "./PlayerAvatar.tsx";
+import type { LobbyPlayer } from "./net.ts";
 
 const LEVEL = STREET_LEVEL;
 /** Where the camera looks before the local player shows up: the start zone. */
@@ -19,7 +20,7 @@ const SUN_OFFSET = new Vector3(15, 25, 10);
 /** Half size of the shadow box around the followed point. The street is too long to shadow all at once. */
 const SHADOW_HALF = 30;
 
-export function Scene({ playerIds, localId }: { playerIds: readonly string[]; localId: string | null }) {
+export function Scene({ players, localId }: { players: readonly LobbyPlayer[]; localId: string | null }) {
   return (
     <>
       <FollowRig localId={localId} />
@@ -28,8 +29,8 @@ export function Scene({ playerIds, localId }: { playerIds: readonly string[]; lo
 
       <LevelView level={LEVEL} />
 
-      {playerIds.map((id) => (
-        <PlayerAvatar key={id} id={id} isLocal={id === localId} />
+      {players.map((p) => (
+        <PlayerAvatar key={p.id} id={p.id} name={p.name} isLocal={p.id === localId} />
       ))}
     </>
   );
