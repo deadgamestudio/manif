@@ -2,11 +2,11 @@ import { useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Object3D, Vector3, type DirectionalLight } from "three";
 import { STREET_LEVEL } from "@manif/shared";
-import { CAMERA_OFFSET, damp } from "./iso.ts";
-import { LevelView } from "./Level.tsx";
-import { net } from "./net.ts";
-import { PlayerAvatar } from "./PlayerAvatar.tsx";
-import type { LobbyPlayer } from "./net.ts";
+import { CAMERA_OFFSET, damp } from "../../shared/iso/index.ts";
+import { LevelView } from "../level/index.ts";
+import { net } from "../../shared/net/index.ts";
+import { PlayerAvatar } from "../player/index.ts";
+import type { LobbyPlayer } from "../../shared/net/index.ts";
 
 const LEVEL = STREET_LEVEL;
 /** Where the camera looks before the local player shows up: the start zone. */

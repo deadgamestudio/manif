@@ -1,11 +1,11 @@
 import { Suspense, lazy, useSyncExternalStore } from "react";
 import { Phase } from "@manif/shared";
-import { net } from "./net.ts";
-import { Home } from "./Home.tsx";
-import { Lobby } from "./Lobby.tsx";
+import { net } from "../shared/net/index.ts";
+import { Home } from "../features/home/index.ts";
+import { Lobby } from "../features/lobby/index.ts";
 
 // three.js and the scene load only when the march starts, so the homepage stays light.
-const Game = lazy(() => import("./Game.tsx").then((m) => ({ default: m.Game })));
+const Game = lazy(() => import("../features/game/index.ts").then((m) => ({ default: m.Game })));
 
 /** Homepage until a room is joined, then the lobby screen, then the street. */
 export function App() {

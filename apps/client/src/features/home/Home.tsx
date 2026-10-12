@@ -1,7 +1,6 @@
 import { useId, useState, type FormEvent } from "react";
 import { NAME_MAX_LENGTH, nameOrDefault, parseLobbyCode, randomDefaultName } from "@manif/shared";
-import { net, type NetSnapshot } from "./net.ts";
-import { readInviteCode } from "./invite.ts";
+import { net, readInviteCode, type NetSnapshot } from "../../shared/net/index.ts";
 import { initialName, saveName } from "./profile.ts";
 
 /** Read once at load: the code from an invite link pre-fills the join field. */

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_PLAYERS } from "@manif/shared";
-import { net, type NetSnapshot } from "./net.ts";
-import { inviteLink } from "./invite.ts";
+import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
 
 /**
  * Before the march: who's here, the invite link, and Start for the host.

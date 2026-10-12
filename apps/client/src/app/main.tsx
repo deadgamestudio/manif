@@ -1,9 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
-import { readInviteCode } from "./invite.ts";
-import { net } from "./net.ts";
-import { loadSavedName } from "./profile.ts";
+import { loadSavedName } from "../features/home/index.ts";
+import { net, readInviteCode } from "../shared/net/index.ts";
 import "./styles.css";
 
 const root = document.getElementById("root");

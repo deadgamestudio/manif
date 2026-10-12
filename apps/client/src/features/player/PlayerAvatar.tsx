@@ -2,8 +2,8 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { PLAYER_RADIUS } from "@manif/shared";
-import { damp } from "./iso.ts";
-import { net } from "./net.ts";
+import { damp } from "../../shared/iso/index.ts";
+import { net } from "../../shared/net/index.ts";
 import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;

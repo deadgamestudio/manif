@@ -1,9 +1,9 @@
 import { Canvas } from "@react-three/fiber";
 import { MAX_PLAYERS } from "@manif/shared";
-import { net, type NetSnapshot } from "./net.ts";
-import { CAMERA_OFFSET } from "./iso.ts";
+import { net, type NetSnapshot } from "../../shared/net/index.ts";
+import { CAMERA_OFFSET } from "../../shared/iso/index.ts";
 import { Scene } from "./Scene.tsx";
-import { useMoveInput } from "./useMoveInput.ts";
+import { useMoveInput } from "../movement/index.ts";
 
 /** The street. Mounted only while playing, so keyboard input never reaches the homepage fields. */
 export function Game({ snap }: { snap: NetSnapshot }) {

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { SCREEN_RIGHT, SCREEN_UP } from "./iso.ts";
-import { net } from "./net.ts";
+import { SCREEN_RIGHT, SCREEN_UP } from "../../shared/iso/index.ts";
+import { net } from "../../shared/net/index.ts";
 
 const KEYS: Record<string, "up" | "down" | "left" | "right"> = {
   KeyW: "up",
