@@ -3,8 +3,10 @@ import { LOBBY_QUERY_PARAM, NAME_MAX_LENGTH } from "./constants.js";
 /**
  * Default names, picked at random until the player types their own.
  * First names cover all of France, like a real cortège. The joke is on the
- * protest cliché attached to them (union, student, retiree, placard, bobo...),
- * never on the name's origin: no ethnic stereotype as the punchline (see #14).
+ * protest cliché attached to them (union, student, retiree, placard, bobo...).
+ * Dark humour is welcome when it punches up: at the State, the police, bosses,
+ * reforms, poverty, and racism itself (racial profiling, paperwork). Never an
+ * ethnic stereotype as the punchline (see #14).
  * Each name must fit NAME_MAX_LENGTH (tested).
  */
 export const DEFAULT_NAMES: readonly string[] = [
@@ -52,6 +54,26 @@ export const DEFAULT_NAMES: readonly string[] = [
   "Inès Fumigène",
   "Samir Banderole",
   "Sylvie de la Poste",
+  // Dark humour, punching up.
+  "Bernard 64 ans (67)",
+  "Josiane 49.3",
+  "Jean-Mi en GAV",
+  "Titouan Gazé",
+  "Michel Matraqué",
+  "Kévin Éborgné",
+  "Dédé Plus de Dents",
+  "Karim Contrôlé 12x",
+  "Moussa Faciès",
+  "Aminata Sans-Papiers",
+  "Hugo Fiché S",
+  "Sandrine au RSA",
+  "Patrick Surendetté",
+  "Mireille Sans Mutu",
+  "Jacqueline Ehpad",
+  "Pierre-Yves Burn-Out",
+  "Linh Stage à 0€",
+  "Capucine Héritière",
+  "Ginette Expulsée",
 ];
 
 /** A random default name. `rand` returns a number in [0, 1), like Math.random. */
