@@ -1,0 +1,52 @@
+# Production: two containers.
+#   client  Caddy on :80, the only service reachable from outside. Serves the
+#           static build and proxies /colyseus/* to the game server.
+#   server  The Colyseus game server (Node), on the internal network only.
+# No database: lobbies live in the server's memory, so a redeploy ends the
+# games in progress.
+#
+# On Coolify (https://manif.bazlab.si): give the `client` service the domain
+# on port 80; Coolify's proxy adds TLS in front. Leave `server` without a
+# domain.
+# Locally: docker compose --env-file .env.production.example \
+#   -f docker-compose.yaml -f docker-compose.local.yaml up --build
+# Every variable is listed in .env.production.example.
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    restart: unless-stopped
+    expose:
+      - "2567"
+    environment:
+      # production also refuses the debug knockback message.
+      NODE_ENV: production
+      PORT: "2567"
+    # node polls GET /health (the image has no shell or wget).
+    healthcheck:
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:2567/health',{signal:AbortSignal.timeout(3000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+      args:
+        VITE_SERVER_URL: ${VITE_SERVER_URL:-/colyseus}
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
