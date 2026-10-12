@@ -13,6 +13,7 @@
 - Read `README.md` for the layout, commands and "Where to change things".
 - Colyseus is 0.18 and its API differs a lot from older versions: load the `colyseus` skill (`.agents/skills/`) before writing Room, Schema or SDK code.
 - Keep `bunfig.toml`'s `linker = "hoisted"`: without it, joins fail with "seat reservation expired".
+- Production runs from `docker-compose.yaml` on Coolify (see README "Deploy"). A new workspace package needs its `package.json` copied in both Dockerfiles' manifest step, and a new server runtime dependency must be a `dependency`, not a `devDependency`.
 
 ### Code layout
 

@@ -94,8 +94,37 @@ older versions, so let agents use the skill rather than their memory.
 
 ## Config
 
-- Client: `VITE_SERVER_URL` (default `ws://<page host>:2567`). See `apps/client/.env.example`.
-- Server: `PORT` (default `2567`).
+- Client: `VITE_SERVER_URL` (default `ws://<page host>:2567`). A path such as
+  `/colyseus` means the same origin as the page (https gives wss). See
+  `apps/client/.env.example`.
+- Server: `PORT` (default `2567`), `NODE_ENV` (`production` turns off the debug
+  knockback message). `GET /health` answers 200 while the server is up.
+
+## Deploy
+
+Production is two containers (`docker-compose.yaml`):
+
+- `client`: the Vite build served by Caddy on :80, the only public service. It
+  proxies `/colyseus/*` (matchmaking and WebSockets) to the server, caches the
+  hashed `/assets/*` forever and serves `index.html` for any other path.
+- `server`: the Colyseus server on Node 24 (distroless, non-root), reachable
+  only from the client. On SIGTERM it closes the rooms and exits at once.
+
+No database: lobbies live in the server's memory, so a redeploy ends the games
+in progress.
+
+Run it locally on http://localhost:8080:
+
+```sh
+docker compose --env-file .env.production.example \
+  -f docker-compose.yaml -f docker-compose.local.yaml up --build
+```
+
+On Coolify (https://manif.bazlab.si): create a Docker Compose resource from this
+repo with `docker-compose.yaml`, give the `client` service the domain on port
+80 (Coolify's proxy adds TLS), and leave `server` without a domain. The only
+variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
+`.env.production.example`.
 
 ## Notes
 
