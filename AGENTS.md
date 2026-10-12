@@ -1,3 +1,19 @@
+# Working on manif
+
+## Git workflow
+
+- `main` is protected by a GitHub ruleset: **no direct pushes**, no force-push, no deletion. Every change lands through a pull request.
+- Work on a branch named after the issue, e.g. `feat/19-home-lobby`, `fix/42-stuck-in-corner`, `chore/...`.
+- Open the PR against `main` with `Closes #<issue>` as the first line of the body.
+- PRs are **squash-merged** (the only merge method enabled); the branch is deleted on merge.
+- Before pushing, run at the root: `bun run build && bun run typecheck && bun run lint && bun run test`. The build is the bar: typecheck and lint can pass while the build fails.
+
+## Project notes
+
+- Read `README.md` for the layout, commands and "Where to change things".
+- Colyseus is 0.18 and its API differs a lot from older versions: load the `colyseus` skill (`.agents/skills/`) before writing Room, Schema or SDK code.
+- Keep `bunfig.toml`'s `linker = "hoisted"`: without it, joins fail with "seat reservation expired".
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know
