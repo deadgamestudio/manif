@@ -1,7 +1,7 @@
 import { defineRoom, defineServer } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { DEFAULT_SERVER_PORT, ROOM_NAME } from "@manif/shared";
-import { StreetRoom } from "./rooms/StreetRoom.js";
+import { StreetRoom } from "../rooms/StreetRoom.js";
 
 const port = Number(process.env.PORT ?? DEFAULT_SERVER_PORT);
 
