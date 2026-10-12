@@ -43,8 +43,22 @@ export interface NetSnapshot {
   error: string | null;
 }
 
-const SERVER_URL =
-  import.meta.env.VITE_SERVER_URL ?? `ws://${location.hostname || "localhost"}:${DEFAULT_SERVER_PORT}`;
+/**
+ * The game server's endpoint. `VITE_SERVER_URL` may be a full URL
+ * (`ws://host:2567`) or a path such as `/colyseus`: in production the
+ * client's own web server (Caddy) proxies that path to the game server, on
+ * the same origin, so it resolves against the page (https gives wss). Unset
+ * (dev): this host on the game server's port.
+ */
+function resolveServerUrl(): string {
+  const configured = import.meta.env.VITE_SERVER_URL;
+  if (configured?.startsWith("/")) {
+    return new URL(configured, location.origin).href.replace(/^http/, "ws").replace(/\/$/, "");
+  }
+  return configured || `ws://${location.hostname || "localhost"}:${DEFAULT_SERVER_PORT}`;
+}
+
+const SERVER_URL = resolveServerUrl();
 
 /** Colyseus matchmaking error for a missing or locked (full) room id. */
 const MATCHMAKE_INVALID_ROOM_ID = 522;
