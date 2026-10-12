@@ -26,6 +26,9 @@
       ],
       "cache": false,
       "persistent": true
+    },
+    "test": {
+      "outputs": []
     }
   }
 }
