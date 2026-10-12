@@ -10,7 +10,8 @@ with walls and obstacles the server collides players against, with names above
 the players walking it, synced through the server. Players swing (Space or
 click) to smash breakable props: bins, bus shelters, shop windows and cars.
 CRS riot police bots chase the nearest protester, hit them with batons, grab
-them and drag them to the police vans; protesters can hit them back.
+them and drag them to the police vans; protesters can hit them back, or dodge
+(Shift) with a short burst of speed that has a 3 s cooldown.
 
 ## Layout
 
@@ -26,16 +27,16 @@ Inside each one, code is grouped by feature:
 apps/client/src/
   app/        main.tsx, App.tsx, styles.css
   features/   home/ lobby/ game/ level/ player/ health/ movement/ melee/ (attack input) prop/ (props, debris)
-              crs/ (police bot avatars) debug/ (dev-only keys)
+              crs/ (police bot avatars) dodge/ (dodge key, cooldown HUD) debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/server/src/
   app/        server bootstrap
   features/   player/ (Player Schema)  physics/ (knockback bodies)  health/ (HP and arrest timers)
               melee/ (swing cooldowns)  prop/ (Prop Schema, prop HP, the room's collision world)
-              crs/ (Crs Schema, CrsSquad: the bots, spawning, syncing)
+              crs/ (Crs Schema, CrsSquad: the bots, spawning, syncing)  dodge/ (dodge cooldowns)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -92,6 +93,9 @@ Run the built server with `bun run --cwd apps/server start`.
 | Replace the placeholder CRS look | `apps/client/src/features/crs/crsVisuals.tsx` (animation in `CrsAvatar.tsx`) |
 | Spawn pavés from a broken prop (#8) | `StreetRoom.dropPaves(slot)` |
 | Replace a prop's placeholder look or its debris colours | `apps/client/src/features/prop/propVisuals.tsx` (debris simulation in `prop/debris.ts`) |
+| Tune the dodge (speed factor, duration, cooldown, bonk threshold and down time) | `packages/shared/src/dodge/constants.ts` |
+| Change the dodge burst (direction, wall bonk) or its cooldown rule | `startDodge` / `stepBody` in `packages/shared/src/physics/body.ts`; `dodgeDirection`, `dodgeReady` in `dodge/dodge.ts`; the server checks are in `StreetRoom.dodge()` |
+| Change the dodge key, its cooldown bar or its look | `apps/client/src/features/dodge/` (key, HUD); the lean, squash and dust puff are in `features/player/PlayerAvatar.tsx` |
 | Change the attack keys | `apps/client/src/features/melee/useAttackInput.ts`; the swing animation is in `features/player/PlayerAvatar.tsx` |
 | Change the HP bar and status line | `apps/client/src/features/health/` (HUD and the bar above other players) |
 | Change the knocked-down look | `apps/client/src/features/player/PlayerAvatar.tsx` |

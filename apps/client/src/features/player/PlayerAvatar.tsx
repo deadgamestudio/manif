@@ -26,6 +26,18 @@ const SWING_MS = 260;
 const ARM_REST = -0.15;
 const ARM_RAISED = 2.6;
 const ARM_SMASH = -1.3;
+/** Dodge (#9): a clumsy forward dive, leaning and squashed, in radians and scale. */
+const DODGE_LEAN = 0.75;
+const DODGE_SQUASH = 0.8;
+const DODGE_RATE = 20;
+/** Dust puff left where a dodge starts: primitives that grow and fade, in seconds and metres. */
+const DUST_TIME = 0.45;
+const DUST_GROW = 1.6;
+const DUST_PUFFS: readonly [number, number][] = [
+  [-0.25, -0.15],
+  [0.25, -0.2],
+  [0, -0.4],
+];
 
 /**
  * One player. Its position is interpolated towards the server state each frame.
@@ -50,6 +62,14 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
   const lastStatus = useRef<number>(PlayerStatus.Free);
   const flail = useRef(0);
   const arm = useRef<Group>(null);
+  /** 0 upright, 1 fully into the dive. */
+  const dive = useRef(0);
+  const wasDodging = useRef(false);
+  const dust = useRef<Group>(null);
+  const dustMats = useRef<(MeshStandardMaterial | null)[]>([]);
+  /** When (seconds of frame time) the current dust puff started, and where (world). */
+  const dustAge = useRef(Infinity);
+  const [dustAt] = useState(() => new Vector3());
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -117,6 +137,32 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
         s >= 1 ? ARM_REST : s < 0.35 ? ARM_REST + (ARM_RAISED - ARM_REST) * (s / 0.35) : ARM_RAISED + (ARM_SMASH - ARM_RAISED) * ((s - 0.35) / 0.65);
     }
 
+    // Dodge (#9): lean forward and squash into a dive, puff of dust where it started.
+    const dodging = p.dodging && !lying;
+    if (dodging && !wasDodging.current) {
+      dustAge.current = 0;
+      dustAt.set(g.position.x, 0, g.position.z);
+    }
+    wasDodging.current = dodging;
+    dive.current += ((dodging ? 1 : 0) - dive.current) * damp(DODGE_RATE, dt);
+    // Yaw last, so the lean (x) and the flail (z) are in the body's own frame.
+    if (y.rotation.order !== "YXZ") y.rotation.order = "YXZ";
+    y.rotation.x = dive.current * DODGE_LEAN;
+    y.scale.set(1, 1 - (1 - DODGE_SQUASH) * dive.current, 1);
+    const d = dust.current;
+    if (d) {
+      dustAge.current += dt;
+      const life = dustAge.current / DUST_TIME;
+      d.visible = life < 1;
+      if (d.visible) {
+        // The puff stays on the ground where the dive started while the body moves on.
+        d.position.set(dustAt.x - g.position.x, 0.15, dustAt.z - g.position.z);
+        d.rotation.y = y.rotation.y;
+        d.scale.setScalar(0.4 + life * DUST_GROW);
+        for (const m of dustMats.current) if (m) m.opacity = 0.7 * (1 - life);
+      }
+    }
+
     body.current?.color.copy(grabbed || p.status === PlayerStatus.Ko ? HURT_COLOR : isLocal ? LOCAL_COLOR : OTHER_COLOR);
   });
 
@@ -141,6 +187,22 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
             <meshStandardMaterial color="#212121" />
           </mesh>
         </group>
+      </group>
+      {/* Dodge dust (#9): placeholder primitives until Jordan's effects. */}
+      <group ref={dust} visible={false}>
+        {DUST_PUFFS.map(([x, z], i) => (
+          <mesh key={`${x},${z}`} position={[x, 0, z]}>
+            <sphereGeometry args={[0.18, 8, 6]} />
+            <meshStandardMaterial
+              ref={(m) => {
+                dustMats.current[i] = m;
+              }}
+              color="#d7ccc8"
+              transparent
+              depthWrite={false}
+            />
+          </mesh>
+        ))}
       </group>
       <NameTag name={name} isLocal={isLocal} y={HEIGHT + 0.55} />
       {/* The local player's HP is in the HUD. */}

@@ -32,6 +32,8 @@ export interface PlayerShape {
   status: PlayerStatus;
   /** Whole seconds left in the current non-free state, for countdowns (0 while free). */
   stateLeft: number;
+  /** In a dodge burst (#9), for the visual and the HUD cooldown. The cooldown itself stays server-side. */
+  dodging: boolean;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */

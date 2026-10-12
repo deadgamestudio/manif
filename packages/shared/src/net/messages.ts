@@ -9,6 +9,12 @@ export const ClientMessage = {
    */
   Attack: "attack",
   /**
+   * Dodge (#9): a short burst of speed in the held move direction, or the
+   * facing when standing still. No payload: the server picks the direction
+   * and enforces the cooldown and the player's state (free, not knocked down).
+   */
+  Dodge: "dodge",
+  /**
    * DEBUG, dev builds only: knock yourself or the nearest player over.
    * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) give real hits.
    */
@@ -31,6 +37,7 @@ export interface ClientMessagePayloads {
   [ClientMessage.Move]: MoveInput;
   [ClientMessage.Start]: undefined;
   [ClientMessage.Attack]: undefined;
+  [ClientMessage.Dodge]: undefined;
   [ClientMessage.DebugKnockback]: DebugKnockbackPayload;
   [ClientMessage.DebugHealth]: DebugHealthPayload;
 }

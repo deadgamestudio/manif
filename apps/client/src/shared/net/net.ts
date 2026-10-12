@@ -348,6 +348,18 @@ export const net = {
     room.send(ClientMessage.Attack);
   },
 
+  /**
+   * Dodge (#9). The server picks the direction and enforces the cooldown; the
+   * avatar and the HUD react to the synced `dodging` flag, so a refused press
+   * shows nothing. Not sent while we can't act.
+   */
+  sendDodge() {
+    if (!room || room.state.phase !== Phase.Playing) return;
+    const me = room.state.players.get(room.sessionId);
+    if (!me || me.down || me.status !== PlayerStatus.Free) return;
+    room.send(ClientMessage.Dodge);
+  },
+
   /** Send a move direction, only if it differs from the last one sent. */
   sendMove(x: number, z: number) {
     const dir = normalizeMove(x, z);
