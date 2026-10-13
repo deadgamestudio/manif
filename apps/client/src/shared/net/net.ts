@@ -37,6 +37,7 @@ import {
   type SyncedMap,
   type ShoveEvent,
   type SwingEvent,
+  type RoundBoardEvent,
   type RoundEndEvent,
 } from "@manif/shared";
 import { setInviteUrl } from "./invite.ts";
@@ -200,16 +201,19 @@ function setTruckIds(ids: readonly string[]) {
 /**
  * The round (#12): timer, progress and result, kept out of NetSnapshot so the
  * once-a-second countdown re-renders only the HUD, not the game. `end` is the
- * last ServerMessage.RoundEnd seen in this room (null after joining). The
- * object is replaced (never mutated) on change, for useSyncExternalStore.
+ * last ServerMessage.RoundEnd seen in this room (null after joining). `board`
+ * is the last ServerMessage.RoundBoard of this march (#63), for the Tab
+ * scoreboard; null outside the march. The object is replaced (never mutated)
+ * on change, for useSyncExternalStore.
  */
 export interface RoundView {
   timeLeft: number;
   progress: number;
   result: RoundResult;
   end: RoundEndEvent | null;
+  board: RoundBoardEvent | null;
 }
-const NO_ROUND: RoundView = { timeLeft: 0, progress: 0, result: RoundResult.None, end: null };
+const NO_ROUND: RoundView = { timeLeft: 0, progress: 0, result: RoundResult.None, end: null, board: null };
 let roundView: RoundView = NO_ROUND;
 const roundListeners = new Set<() => void>();
 function setRound(patch: Partial<RoundView>) {
@@ -390,6 +394,9 @@ function attach(joined: ClientRoom, gen: number) {
     // A new phase starts from no held input on the server (#12): forget the
     // last direction sent, or pressing the same key again would not be sent.
     lastSent = { x: 0, z: 0 };
+    // #63: the live board belongs to one march; the next one starts from a fresh message.
+    const phase = (joined.state as ClientState | undefined)?.phase;
+    if (gen === generation && phase !== Phase.Marching && roundView.board) setRound({ board: null });
     refresh();
   });
   const refreshRound = () => {
@@ -407,6 +414,10 @@ function attach(joined: ClientRoom, gen: number) {
     emit({ type: "roundEnd", event });
   });
   callbacks.listen("hostId", refresh);
+  joined.onMessage(ServerMessage.RoundBoard, (event: RoundBoardEvent) => {
+    if (gen !== generation) return;
+    setRound({ board: event });
+  });
   joined.onMessage(ServerMessage.RenameRefused, (event: RenameRefusedEvent) => {
     if (gen !== generation) return;
     for (const listener of renameListeners) listener(event);

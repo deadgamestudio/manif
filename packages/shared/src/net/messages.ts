@@ -1,5 +1,5 @@
 import type { RenameRefusal } from "../lobby/index.js";
-import type { RoundEndEvent } from "../round/index.js";
+import type { RoundBoardEvent, RoundEndEvent } from "../round/index.js";
 
 /** Message type names sent from client to server. */
 export const ClientMessage = {
@@ -197,6 +197,8 @@ export const ServerMessage = {
   Shove: "shove",
   /** The round just ended (#12): result, time and per-player numbers for the end screen. Sent once; not in Schema. */
   RoundEnd: "round:end",
+  /** The round's live counts for the Tab scoreboard (#63): at most once a second, only on change, only while marching. Not in Schema. */
+  RoundBoard: "round:board",
   /** Your rename (#61) was refused: the name is empty or taken. Only to the sender; your name stays as it was. */
   RenameRefused: "rename:refused",
 } as const;
@@ -247,6 +249,7 @@ export interface ShoveEvent {
 export interface ServerMessagePayloads {
   [ServerMessage.Shove]: ShoveEvent;
   [ServerMessage.RoundEnd]: RoundEndEvent;
+  [ServerMessage.RoundBoard]: RoundBoardEvent;
   [ServerMessage.RenameRefused]: RenameRefusedEvent;
   [ServerMessage.Impulse]: ImpulseEvent;
   [ServerMessage.Swing]: SwingEvent;

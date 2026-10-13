@@ -28,13 +28,28 @@ export function emptyStats(): RoundPlayerStats {
   return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0, teammatesThrown: 0, splats: 0, slips: 0, hosed: 0 };
 }
 
+/**
+ * One protester's row, shared by the end screen and the live board (#63) so
+ * they can't drift apart. `archetype` (#14): what they marched as this round,
+ * an `Archetype`, for the end screen and future scoring (#41).
+ */
+export type RoundPlayerRow = RoundPlayerStats & { id: string; name: string; archetype?: number };
+
 /** Payload of `ServerMessage.RoundEnd`. */
 export interface RoundEndEvent {
   result: RoundResult;
   /** How long the march lasted, in whole seconds. */
   seconds: number;
-  /** `archetype` (#14): what they marched as this round, an `Archetype`, for the end screen and future scoring (#41). */
-  players: (RoundPlayerStats & { id: string; name: string; archetype?: number })[];
+  players: RoundPlayerRow[];
+}
+
+/**
+ * Payload of `ServerMessage.RoundBoard` (#63): the round's counts so far, one
+ * row per protester in join order. Sent during the march only, at most once a
+ * second and only when something changed (plus once to a mid-round joiner).
+ */
+export interface RoundBoardEvent {
+  players: RoundPlayerRow[];
 }
 
 export interface RoundAward {

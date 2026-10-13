@@ -81,7 +81,9 @@ import {
   type BurningView,
   type FireAction,
   type LightableView,
+  type RoundBoardEvent,
   type RoundEndEvent,
+  type RoundPlayerRow,
   type RoundWave,
   type HitEvent,
   type ImpulseEvent,
@@ -136,7 +138,7 @@ import { Gas } from "../features/gas/index.js";
 import { Fires } from "../features/fire/index.js";
 import { Carries } from "../features/carry/index.js";
 import { FireBrigade, type BrigadeHost, type HoseTarget } from "../features/pompier/index.js";
-import { DEBUG_ROUND_ENABLED, RoundStats, parseDebugRound } from "../features/round/index.js";
+import { DEBUG_ROUND_ENABLED, IDLE_BOARD, RoundStats, boardKey, parseDebugRound, stepBoard, type BoardThrottle } from "../features/round/index.js";
 import { HealAuras } from "../features/archetype/index.js";
 import { StreetState } from "./state.js";
 
@@ -191,6 +193,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private round = createRound();
   /** Per-player numbers for the end screen (#12). Server-only, sent once at the end. */
   private roundStats = new RoundStats();
+  /** The live Tab board (#63): when it last went out and what it said. Throttled by `stepBoard`. */
+  private board: BoardThrottle = IDLE_BOARD;
+  /** Who joined mid-march (#63) and gets the current board on the next tick, without waiting for a change. */
+  private boardJoiners = new Set<string>();
   /** The cortège's front this round, 0..1 (the last value while nobody is free). Synced as `state.progress`. */
   private front = 0;
   /** DEBUG (#12, dev only): this round cannot end. Cleared by the next start. */
@@ -521,6 +527,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // towards the win threshold from now on. Before a round: the start zone.
     if (this.state.phase === Phase.Waiting) this.placeAtSpawn(client.sessionId, player);
     else this.placeAtRear(client.sessionId, player);
+    // #63: a mid-march joiner sees the board at once. Sent from the next tick, once their join is through.
+    if (this.state.phase === Phase.Marching) this.boardJoiners.add(client.sessionId);
     this.moveInputs.set(client.sessionId, { x: 0, z: 0 });
     this.joinOrder.set(client.sessionId, this.joinCounter++);
     // The creator is the first to join, so becomes host.
@@ -554,6 +562,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.lastRename.delete(client.sessionId);
     this.heals.remove(client.sessionId);
     this.roundStats.remove(client.sessionId);
+    this.boardJoiners.delete(client.sessionId);
     this.slips.remove(client.sessionId);
     this.brigade.remove(client.sessionId);
     if (this.state.hostId === client.sessionId) {
@@ -717,10 +726,39 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const event: RoundEndEvent = {
       result: this.round.result,
       seconds: Math.round(this.round.elapsed),
-      players: Array.from(this.state.players.entries(), ([id, p]) => ({ id, name: p.name, archetype: p.archetype, ...this.roundStats.get(id) })),
+      players: this.roundRows(),
     };
     this.broadcast(ServerMessage.RoundEnd, event);
     console.log(`[street ${this.roomId}] end: result ${event.result} after ${event.seconds} s, progress ${this.state.progress}`);
+  }
+
+  /**
+   * One row per protester in join order (#12, #63), for the end screen and the
+   * live board alike. Built from `state.players` only, so no BAC ever shows up.
+   */
+  private roundRows(): RoundPlayerRow[] {
+    return Array.from(this.state.players.entries(), ([id, p]) => ({ id, name: p.name, archetype: p.archetype, ...this.roundStats.get(id) }));
+  }
+
+  /**
+   * The live Tab board (#63): during the march, at most once a second and only
+   * when a count (or the roster) changed; plus a copy straight away to anyone
+   * who just joined mid-march. Nothing while waiting or on the end screen.
+   */
+  private sendBoard() {
+    const marching = this.state.phase === Phase.Marching;
+    if (!marching) {
+      this.board = IDLE_BOARD;
+      this.boardJoiners.clear();
+      return;
+    }
+    const players = this.roundRows();
+    const { send, next } = stepBoard(this.board, marching, this.now, boardKey(players));
+    this.board = next;
+    const event: RoundBoardEvent = { players };
+    if (send) this.broadcast(ServerMessage.RoundBoard, event);
+    else for (const id of this.boardJoiners) this.clients.getById(id)?.send(ServerMessage.RoundBoard, event);
+    this.boardJoiners.clear();
   }
 
   /** Mirror the round into Schema, only what changed: the countdown moves once a second. */
@@ -1247,6 +1285,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * 5. The round (#12): progress and waves, then the win/lose check and the
    *    timers. Only the round clock runs while `ended` (the street is frozen),
    *    and nothing at all while `waiting`.
+   * 6. The live Tab board (#63), if it is due.
    */
   private step(dt: number) {
     if (this.state.phase === Phase.Marching) {
@@ -1254,6 +1293,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.updateFront();
     }
     if (this.state.phase !== Phase.Waiting) this.stepRoundClock(dt);
+    this.sendBoard();
   }
 
   /** Steps 1 to 4 of `step`: the street itself, only while marching. */
