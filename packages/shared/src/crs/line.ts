@@ -25,7 +25,7 @@ import {
 } from "../physics/index.js";
 import type { Level } from "../level/index.js";
 import { PLAYER_RADIUS } from "../player/index.js";
-import { DEFAULT_BEHAVIOUR, steerTo, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
+import { DEFAULT_BEHAVIOUR, steerTo, tryThrowGas, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import {
   CRS_STATS,
   CrsKind,
@@ -494,18 +494,26 @@ export function holdSlot(line: ShieldLine, bot: CrsBot, ctx: CrsContext): void {
   bot.input.z = dz * k;
 }
 
+/** The member of a formed line that throws tear gas (#7): the one in the middle of the list, so the line keeps one thrower as members fall. */
+export function lineThrower(line: ShieldLine): CrsBot | undefined {
+  return line.members[Math.floor(line.members.length / 2)];
+}
+
 /**
  * Behaviour of a line member: while the line is formed it holds its slot and
- * never swings or grabs; once broken it is a plain chasing bot (#5).
+ * never swings or grabs (its thrower lobs tear gas, #7); once broken it is a
+ * plain chasing bot (#5).
  */
 export function lineBehaviour(line: ShieldLine, base: CrsBehaviour = DEFAULT_BEHAVIOUR): CrsBehaviour {
   return {
     updateTarget: base.updateTarget,
     act: base.act,
     drag: base.drag,
-    orders: (bot, ctx) => {
+    orders: (bot, ctx, host) => {
       if (!line.formed) return false;
       holdSlot(line, bot, ctx);
+      // Tear gas (#7): one member lobs canisters over the shields, without leaving its slot.
+      if (lineThrower(line) === bot && isShieldUp(line, bot)) tryThrowGas(bot, ctx, host);
       return true;
     },
   };

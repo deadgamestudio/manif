@@ -212,6 +212,25 @@ function boundsExit(a: Vec2, b: Vec2, bounds: CollisionWorld["bounds"], r: numbe
 }
 
 /**
+ * Where a circle of radius `r` swept from `a` to `b` first touches anything in
+ * `world` (a wall, an obstacle, a prop, the street edge), as a fraction of the
+ * way in [0, 1], or Infinity if the way is clear. Also flies tear gas
+ * canisters (#7).
+ */
+export function wallEntry(a: Vec2, b: Vec2, world: CollisionWorld, r: number): number {
+  let wallT = boundsExit(a, b, world.bounds, r) ?? Infinity;
+  for (const box of world.boxes) {
+    const t = segmentEntry(a, b, { type: "box", x: box.x, z: box.z, halfX: box.halfX + r, halfZ: box.halfZ + r });
+    if (t !== null && t < wallT) wallT = t;
+  }
+  for (const c of world.circles) {
+    const t = segmentEntry(a, b, { type: "circle", x: c.x, z: c.z, r: c.r + r });
+    if (t !== null && t < wallT) wallT = t;
+  }
+  return wallT;
+}
+
+/**
  * Move a projectile one tick (mutates `p`). The whole move is a swept circle
  * of the item's radius, tested as a segment against every shape grown by that
  * radius, so nothing is skipped whatever the speed. The first contact along
@@ -232,15 +251,7 @@ export function stepProjectile<K extends string>(
   const a: Vec2 = { x: p.x, z: p.z };
   const b: Vec2 = { x: p.x + p.dirX * dist, z: p.z + p.dirZ * dist };
 
-  let wallT = boundsExit(a, b, world.bounds, r) ?? Infinity;
-  for (const box of world.boxes) {
-    const t = segmentEntry(a, b, { type: "box", x: box.x, z: box.z, halfX: box.halfX + r, halfZ: box.halfZ + r });
-    if (t !== null && t < wallT) wallT = t;
-  }
-  for (const c of world.circles) {
-    const t = segmentEntry(a, b, { type: "circle", x: c.x, z: c.z, r: c.r + r });
-    if (t !== null && t < wallT) wallT = t;
-  }
+  const wallT = wallEntry(a, b, world, r);
 
   let hit: ProjectileTarget<K> | null = null;
   let hitT = Infinity;

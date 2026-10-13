@@ -3,7 +3,8 @@ import { GRAB_IMMUNITY, PlayerStatus, createHealth, damage, grab, rescue, tickHe
 import { STREET_LEVEL, levelWorld } from "../level/index.js";
 import { TICK_DT } from "../net/index.js";
 import { KNOCKDOWN_THRESHOLD, applyImpulse, circleOverlaps, createBody, isDown, stepBody, type Body, type CollisionWorld } from "../physics/index.js";
-import { PLAYER_RADIUS } from "../player/index.js";
+import { PLAYER_RADIUS, PLAYER_SPEED } from "../player/index.js";
+import { GAS_SLOW } from "../gas/index.js";
 import { createCrsBot, hitCrs, stepCrs, steerTo, strikeCrs, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import { CRS_STATS, CrsKind, CrsStatus } from "./constants.js";
 import { NavGrid } from "./nav.js";
@@ -467,5 +468,94 @@ describe("the full street", () => {
       expect(circleOverlaps(world, door.x, door.z, STATS.radius)).toBe(false);
       expect(nav.findPath({ x: 0, z: 92 }, door)).not.toBeNull();
     }
+  });
+});
+
+describe("tear gas (#7)", () => {
+  /** A host that records canisters and accepts them while `accept` is true. */
+  class GasHost extends FakeHost {
+    readonly throws: { by: string; to: { x: number; z: number } }[] = [];
+    accept = true;
+    throwGas(by: string, _from: { x: number; z: number }, to: { x: number; z: number }) {
+      if (!this.accept) return false;
+      this.throws.push({ by, to: { x: to.x, z: to.z } });
+      return true;
+    }
+  }
+
+  function gasSetup() {
+    const host = new GasHost();
+    const nav = new NavGrid(OPEN, STATS.radius);
+    const bots: CrsBot[] = [];
+    const ctx: CrsContext = { world: OPEN, nav, vans: [VAN], bots, now: 0, dt: TICK_DT, rng: () => 0.5 };
+    const run = (seconds: number) => {
+      for (let t = 0; t < seconds; t += TICK_DT) {
+        ctx.now += TICK_DT;
+        host.now = ctx.now;
+        for (const b of bots) stepCrs(b, ctx, host);
+      }
+    };
+    return { host, ctx, bots, run };
+  }
+
+  test("a gassed protester still outruns a CRS", () => {
+    expect(PLAYER_SPEED * GAS_SLOW).toBeGreaterThan(STATS.speed);
+  });
+
+  test("a fresh bot's first canister is ready after half a cooldown", () => {
+    expect(createCrsBot("crs-1", CrsKind.Crs, 0, 0, 0, 7).gasReadyAt).toBe(7 + STATS.gasCooldown / 2);
+  });
+
+  test("a CRS throws at a bunch of protesters in range, then waits its cooldown", () => {
+    const { host, bots, run } = gasSetup();
+    const bot = createCrsBot("crs-1", CrsKind.Crs, 0, 0);
+    bot.gasReadyAt = 0.1;
+    bots.push(bot);
+    host.add("a", 0, 12);
+    host.add("b", 1, 12);
+    run(0.3);
+    expect(host.throws.length).toBe(1);
+    const to = host.throws[0]!.to;
+    // Aimed at the bunch, give or take the scatter.
+    expect(Math.hypot(to.x - 0.5, to.z - 12)).toBeLessThanOrEqual(1.01);
+    // Facing the throw.
+    expect(Math.abs(bot.rotation - Math.atan2(to.x, to.z))).toBeLessThan(0.3);
+    expect(bot.gasReadyAt).toBeCloseTo(0.1 + STATS.gasCooldown, 1);
+  });
+
+  test("no throw at a lone protester", () => {
+    const { host, bots, run } = gasSetup();
+    bots.push(createCrsBot("crs-1", CrsKind.Crs, 0, 0));
+    host.add("a", 0, 10);
+    run(STATS.gasCooldown);
+    expect(host.throws.length).toBe(0);
+  });
+
+  test("a refused throw is retried later, not every tick, and is not a throw", () => {
+    const { host, bots, run, ctx } = gasSetup();
+    const bot = createCrsBot("crs-1", CrsKind.Crs, 0, 0);
+    bots.push(bot);
+    bot.gasReadyAt = 0.1;
+    host.add("a", 0, 12);
+    host.add("b", 1, 12);
+    host.accept = false;
+    run(0.2);
+    expect(host.throws.length).toBe(0);
+    expect(bot.gasReadyAt).toBeGreaterThan(ctx.now);
+    expect(bot.gasReadyAt).toBeLessThanOrEqual(ctx.now + STATS.retargetInterval + 1e-9);
+    host.accept = true;
+    run(STATS.retargetInterval);
+    expect(host.throws.length).toBe(1);
+  });
+
+  test("a grabbing or stunned bot throws nothing", () => {
+    const { host, bots, run, ctx } = gasSetup();
+    const bot = createCrsBot("crs-1", CrsKind.Crs, 0, 0);
+    bots.push(bot);
+    host.add("a", 0, 10);
+    host.add("b", 1, 10);
+    stunCrs(bot, ctx.now, 100);
+    run(STATS.gasCooldown);
+    expect(host.throws.length).toBe(0);
   });
 });

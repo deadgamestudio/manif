@@ -16,6 +16,7 @@
  * `stepCrs` takes a `CrsBehaviour` whose steps (pick a target, act, drag) a
  * unit type can replace one at a time.
  */
+import { GAS_MAX_RANGE, GAS_SCATTER, pickGasAim, scatterAim } from "../gas/index.js";
 import { PlayerStatus } from "../health/index.js";
 import {
   applyImpulse,
@@ -83,9 +84,12 @@ export interface CrsBot {
   lastHitAt: number;
   /** Walking direction this tick (unit or zero). Reused, never reallocated. */
   readonly input: Vec2;
+  /** Room time of the next tear gas throw (#7), if its unit throws any (`stats.gasCooldown`). */
+  gasReadyAt: number;
 }
 
-export function createCrsBot(id: string, kind: CrsKind, x: number, z: number, rotation = 0): CrsBot {
+/** `now` is the room time it appears: its first tear gas (#7) is ready half a cooldown later, so a fresh wave does not gas at once. */
+export function createCrsBot(id: string, kind: CrsKind, x: number, z: number, rotation = 0, now = 0): CrsBot {
   const stats = CRS_STATS[kind];
   return {
     id,
@@ -114,6 +118,7 @@ export function createCrsBot(id: string, kind: CrsKind, x: number, z: number, ro
     staggerCount: 0,
     lastHitAt: -Infinity,
     input: { x: 0, z: 0 },
+    gasReadyAt: now + stats.gasCooldown / 2,
   };
 }
 
@@ -138,6 +143,12 @@ export interface CrsHost {
    * (too many shoves in a row); otherwise it never does.
    */
   shove(by: string, id: string, dirX: number, dirZ: number, strength: number, floor: boolean): void;
+  /**
+   * Bot `by` throws a tear gas canister (#7) from `from` to `to`. False when
+   * the room refuses it (too many clouds, or another bot just threw). Optional:
+   * without it, bots never throw gas.
+   */
+  throwGas?(by: string, from: Vec2, to: Vec2): boolean;
 }
 
 /** What a bot sees of the world this tick. */
@@ -152,6 +163,8 @@ export interface CrsContext {
   /** Room time, seconds. */
   now: number;
   dt: number;
+  /** Random numbers in [0, 1) for the tear gas scatter (#7). Math.random when absent; tests pass their own. */
+  rng?: () => number;
 }
 
 /** The swappable steps of one tick (#13: a unit type replaces some). */
@@ -288,7 +301,8 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
       // Nobody in sight: back to its post, so a bot that dragged someone away does not idle out of sight forever.
       if (Math.hypot(bot.post.x - bot.body.x, bot.post.z - bot.body.z) > POST_REACHED) steerTo(bot, bot.post.x, bot.post.z, ctx);
       else setInput(bot, NO_MOVE);
-    } else if (behaviour.act(bot, target, ctx, host)) {
+    } else if (tryThrowGas(bot, ctx, host) || behaviour.act(bot, target, ctx, host)) {
+      // Throwing a canister (#7) takes the tick, like a baton swing.
       setInput(bot, NO_MOVE);
     } else {
       steerTo(bot, target.x, target.z, ctx);
@@ -308,6 +322,33 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
     const back = s.radius + PLAYER_RADIUS + 0.05;
     host.drag(bot.grabbedId, bot.body.x - Math.sin(bot.rotation) * back, bot.body.z - Math.cos(bot.rotation) * back);
   }
+}
+
+/**
+ * Tear gas (#7): a bot whose unit throws gas (`stats.gasCooldown` > 0) and
+ * whose cooldown is over looks for a bunch of free protesters in range (see
+ * `pickGasAim`) and lobs a canister at it, a little off. The room may refuse
+ * (cloud cap, one throw every few seconds for the whole squad); the bot then
+ * tries again a bit later. Returns true if it threw (it faces the throw).
+ *
+ * Called while chasing (lone bots) and by a formed shield line's thrower (#6).
+ * Who it throws at is the room's protesters as the bot sees them, never a
+ * point sent by a client.
+ */
+export function tryThrowGas(bot: CrsBot, ctx: CrsContext, host: CrsHost): boolean {
+  const s = bot.stats;
+  if (!host.throwGas || !(s.gasCooldown > 0) || ctx.now < bot.gasReadyAt) return false;
+  // Retry soon whatever happens; a throw pushes it to the full cooldown below.
+  bot.gasReadyAt = ctx.now + s.retargetInterval;
+  const aim = pickGasAim(bot.body, host.protesters());
+  if (!aim) return false;
+  const to = scatterAim(bot.body, aim, GAS_SCATTER, GAS_MAX_RANGE, ctx.rng);
+  if (!host.throwGas(bot.id, bot.body, to)) return false;
+  bot.gasReadyAt = ctx.now + s.gasCooldown;
+  const dx = to.x - bot.body.x;
+  const dz = to.z - bot.body.z;
+  if (dx !== 0 || dz !== 0) bot.rotation = Math.atan2(dx, dz);
+  return true;
 }
 
 /** Whether the grabbed protester is still there and still grabbed. */

@@ -181,7 +181,7 @@ export class CrsSquad {
     if (this.bots.length >= MAX_CRS) return null;
     const id = `crs-${++this.counter}`;
     // Facing +Z: towards the start, where the cortège comes from.
-    const bot = createCrsBot(id, kind, x, z, 0);
+    const bot = createCrsBot(id, kind, x, z, 0, this.ctx.now);
     this.bots.push(bot);
     this.byId.set(id, bot);
     const view = new Crs();

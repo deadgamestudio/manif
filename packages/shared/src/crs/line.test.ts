@@ -39,6 +39,7 @@ import {
   checkBreak,
   createShieldLine,
   lineBehaviour,
+  lineThrower,
   lineSlots,
   maxAdvanceFor,
   recordLineHit,
@@ -419,5 +420,32 @@ describe("blocking and shoving", () => {
     // The protester was not pushed through anything and the line did not walk over them.
     expect(p.body.z).toBeGreaterThan(line.centre.z - 0.01);
     for (const b of bots) expect(Math.hypot(p.body.x - b.body.x, p.body.z - b.body.z)).toBeGreaterThan(PLAYER_RADIUS + LINE_SHIELD_RADIUS - 0.05);
+  });
+});
+
+describe("tear gas (#7)", () => {
+  class GasHost extends FakeHost {
+    readonly throws: string[] = [];
+    throwGas(by: string) {
+      this.throws.push(by);
+      return true;
+    }
+  }
+
+  test("only the line's thrower lobs gas over the shields, without leaving its slot; a broken line throws like lone bots", () => {
+    const host = new GasHost();
+    const { line, bots } = makeLine(OPEN, 0, 0);
+    host.add("a", 0, 12);
+    host.add("b", 1, 12);
+    const thrower = lineThrower(line)!;
+    const slot = { x: thrower.body.x, z: thrower.body.z };
+    // Long enough for one throw (half a cooldown), short of a second.
+    run(OPEN, line, bots, host, CRS_STATS[CrsKind.Crs].gasCooldown / 2 + 1, () => ({ x: 0, z: 0 }), () => {
+      // Nobody walks onto the line in this test.
+      for (const p of host.people.values()) p.body.z = 12;
+    });
+    expect(line.formed).toBe(true);
+    expect(host.throws).toEqual([thrower.id]);
+    expect(Math.hypot(thrower.body.x - slot.x, thrower.body.z - (slot.z + advanced(line)))).toBeLessThan(0.5);
   });
 });

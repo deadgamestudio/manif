@@ -9,7 +9,9 @@ import {
   ROOM_NAME,
   ServerMessage,
   normalizeMove,
+  type CanisterShape,
   type CrsShape,
+  type GasCloudShape,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type GroundItemShape,
@@ -23,6 +25,7 @@ import {
   type PlayerShape,
   type PropShapeState,
   type StreetStateShape,
+  type SyncedMap,
   type ShoveEvent,
   type SwingEvent,
 } from "@manif/shared";
@@ -142,6 +145,22 @@ function setItemIds(items: readonly string[], projectiles: readonly string[]) {
   for (const listener of itemListeners) listener();
 }
 
+/**
+ * Tear gas (#7): ids of the clouds and canisters in flight, kept out of
+ * NetSnapshot like the throwables, and when (performance.now(), ms) we first
+ * saw each one, for the grow-in and the canister's lob.
+ */
+let gasIds: readonly string[] = [];
+let canisterIds: readonly string[] = [];
+const gasSeenAt = new Map<string, number>();
+const gasListeners = new Set<() => void>();
+function setGasIds(clouds: readonly string[], canisters: readonly string[]) {
+  if (clouds === gasIds && canisters === canisterIds) return;
+  gasIds = clouds;
+  canisterIds = canisters;
+  for (const listener of gasListeners) listener();
+}
+
 /** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
 let generation = 0;
 
@@ -154,6 +173,8 @@ function clearEffects() {
   propBrokenAt.clear();
   lastLocalSwing = -Infinity;
   setItemIds([], []);
+  gasSeenAt.clear();
+  setGasIds([], []);
 }
 
 function update(patch: Partial<NetSnapshot>) {
@@ -234,6 +255,30 @@ function attach(joined: ClientRoom, gen: number) {
   callbacks.onRemove("items", (_item, id) => refreshItems(id));
   callbacks.onAdd("projectiles", () => refreshItems());
   callbacks.onRemove("projectiles", (_p, id) => refreshItems(id));
+  // Tear gas (#7): same pattern as the throwables.
+  const refreshGas = (removed?: string) => {
+    if (gen !== generation) return;
+    const state = joined.state as ClientState | undefined;
+    const ids = (map: SyncedMap<unknown> | undefined): string[] =>
+      map ? Array.from(map.entries(), ([id]) => id).filter((id) => id !== removed) : [];
+    setGasIds(ids(state?.gas), ids(state?.canisters));
+  };
+  callbacks.onAdd("gas", (_c, id) => {
+    gasSeenAt.set(`cloud:${id}`, performance.now());
+    refreshGas();
+  });
+  callbacks.onRemove("gas", (_c, id) => {
+    gasSeenAt.delete(`cloud:${id}`);
+    refreshGas(id);
+  });
+  callbacks.onAdd("canisters", (_c, id) => {
+    gasSeenAt.set(`can:${id}`, performance.now());
+    refreshGas();
+  });
+  callbacks.onRemove("canisters", (_c, id) => {
+    gasSeenAt.delete(`can:${id}`);
+    refreshGas(id);
+  });
   callbacks.listen("phase", refresh);
   callbacks.listen("hostId", refresh);
 
@@ -388,6 +433,37 @@ export const net = {
   /** Live state of a thrown item in flight (#8). Read from useFrame. */
   getProjectile(id: string): ProjectileShape | undefined {
     return room?.state.projectiles?.get(id);
+  },
+
+  /** Call `listener` when a tear gas cloud or canister (#7) appears or goes. */
+  subscribeGas(listener: () => void): () => void {
+    gasListeners.add(listener);
+    return () => gasListeners.delete(listener);
+  },
+
+  /** Ids of the tear gas clouds (#7). Same array until one is added or removed. */
+  getGasIds(): readonly string[] {
+    return gasIds;
+  },
+
+  /** Ids of the tear gas canisters in flight (#7). Same array until one is added or removed. */
+  getCanisterIds(): readonly string[] {
+    return canisterIds;
+  },
+
+  /** Live state of a tear gas cloud (#7). Read from useFrame. */
+  getGasCloud(id: string): GasCloudShape | undefined {
+    return room?.state.gas?.get(id);
+  },
+
+  /** A tear gas canister in flight (#7). Read from useFrame. */
+  getCanister(id: string): CanisterShape | undefined {
+    return room?.state.canisters?.get(id);
+  },
+
+  /** When (performance.now()) we first saw cloud or canister `id` (#7), or undefined. */
+  getGasSeenAt(kind: "cloud" | "can", id: string): number | undefined {
+    return gasSeenAt.get(`${kind}:${id}`);
   },
 
   /** When (performance.now()) CRS `id` was last hit by a protester (#5), if ever. */
