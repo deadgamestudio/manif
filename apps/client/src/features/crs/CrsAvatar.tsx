@@ -4,6 +4,7 @@ import { Color, Vector3, type Group, type MeshStandardMaterial, type Sprite } fr
 import { CRS_STATS, CrsKind, CrsStatus } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
+import { useRagdoll } from "../ragdoll/index.ts";
 import { CRS_LOOKS, type CrsRig } from "./crsVisuals.tsx";
 
 const FALLEN_ANGLE = Math.PI / 2;
@@ -31,7 +32,8 @@ const BAR_WIDTH = 0.8;
 
 /**
  * One police bot. Interpolated towards the server state each frame, like
- * PlayerAvatar. Tips over while down or out (#2), wobbles while stunned,
+ * PlayerAvatar. Ragdolls while down or out (#26, or tips over when too many
+ * ragdolls are playing), wobbles while stunned,
  * tugs with both arms while grabbing, swings its baton on the server's swing
  * event, flashes on a protester's hit. All in useFrame: no React state per frame.
  */
@@ -54,6 +56,7 @@ export function CrsAvatar({ id }: { id: string }) {
   const [kind] = useState(() => (net.getCrs(id)?.kind ?? CrsKind.Crs) as CrsKind);
   const look = CRS_LOOKS[kind] ?? CRS_LOOKS[CrsKind.Crs];
   const stats = CRS_STATS[kind] ?? CRS_STATS[CrsKind.Crs];
+  const ragdoll = useRagdoll(look.ragdoll);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -62,7 +65,10 @@ export function CrsAvatar({ id }: { id: string }) {
     const c = net.getCrs(id);
     if (!g || !t || !y) return;
     g.visible = c !== undefined;
-    if (!c) return;
+    if (!c) {
+      ragdoll.reset();
+      return;
+    }
 
     if (!placed.current) {
       g.position.set(c.x, 0, c.z);
@@ -78,13 +84,16 @@ export function CrsAvatar({ id }: { id: string }) {
 
     // Fall over like a bowling pin, along the last push.
     const lying = c.down || c.status === CrsStatus.Out;
-    if (lying && fall.current < 0.3) {
+    const ragdolling = ragdoll.update(dt, lying, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id));
+    t.visible = !ragdolling;
+    if (ragdolling) fall.current = 0;
+    else if (lying && fall.current < 0.3) {
       const hit = net.getLastImpulse(id);
       const dx = hit ? hit.dirX : -Math.sin(c.rotation);
       const dz = hit ? hit.dirZ : -Math.cos(c.rotation);
       fallAxis.set(dz, 0, -dx).normalize();
     }
-    const target = lying ? 1 : 0;
+    const target = lying && !ragdolling ? 1 : 0;
     fall.current += (target - fall.current) * damp(lying ? FALL_RATE : GETUP_RATE, dt);
     if (Math.abs(target - fall.current) < 1e-3) fall.current = target;
     const angle = fall.current * FALLEN_ANGLE;
@@ -125,7 +134,11 @@ export function CrsAvatar({ id }: { id: string }) {
 
     const hitAt = net.getLastCrsHit(id);
     const flash = hitAt === undefined ? 0 : Math.max(0, 1 - (performance.now() - hitAt) / HIT_FLASH_MS);
-    bodyMat.current?.color.copy(UNIFORM).lerp(FLASH, flash);
+    const m = bodyMat.current;
+    if (m) {
+      m.color.copy(UNIFORM).lerp(FLASH, flash);
+      ragdoll.setColor(m.color);
+    }
 
     // HP bar only once hurt.
     const ratio = Math.max(0, Math.min(1, c.hp / stats.maxHp));
@@ -142,6 +155,7 @@ export function CrsAvatar({ id }: { id: string }) {
       <group ref={tilt}>
         <group ref={yaw}>{look.render({ body: bodyMat, batonArm, shieldArm, lineShield } satisfies CrsRig)}</group>
       </group>
+      {ragdoll.view}
       <group ref={bar} position-y={look.height + 0.4} visible={false}>
         <sprite scale={[BAR_WIDTH + 0.06, 0.13, 1]} renderOrder={10}>
           <spriteMaterial color="#141414" depthTest={false} depthWrite={false} />

@@ -9,5 +9,7 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Unit tests run in Bun (bun:test): tsconfig.node.json checks them.
+  "exclude": ["src/**/*.test.ts"]
 }
