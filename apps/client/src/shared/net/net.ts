@@ -632,6 +632,18 @@ export const net = {
   },
 
   /**
+   * Hop (#45). The server enforces the cooldown and the state; the avatar
+   * reacts to the synced `airborne` flag, so a refused press shows nothing.
+   * Not sent while we can't act.
+   */
+  sendJump() {
+    if (!room || room.state.phase !== Phase.Marching) return;
+    const me = room.state.players.get(room.sessionId);
+    if (!me || me.down || me.status !== PlayerStatus.Free) return;
+    room.send(ClientMessage.Jump);
+  },
+
+  /**
    * Interact key pressed or released (#10 rescue, #8 pick-up). Always sent,
    * whatever our state: the server decides what it does, and a release must
    * never be lost or a rescue would keep going.

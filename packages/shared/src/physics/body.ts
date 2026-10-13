@@ -11,7 +11,7 @@
  * and unit tested without a room or a clock.
  */
 import type { MoveInput } from "../net/index.js";
-import { moveCircle, type CollisionWorld, type Vec2 } from "./collision.js";
+import { circleOverlaps, moveCircle, resolveCircle, type CollisionWorld, type Vec2 } from "./collision.js";
 import {
   DOWN_DURATION,
   GETUP_IMMUNITY,
@@ -25,6 +25,7 @@ import {
   WALL_BOUNCE_TANGENT_KEEP,
 } from "./constants.js";
 import { DODGE_BONK_DOWN, DODGE_BONK_FACTOR, DODGE_DURATION, DODGE_SPEED_FACTOR } from "../dodge/constants.js";
+import { JUMP_DURATION, JUMP_LAND_SEARCH, JUMP_LAND_STEP } from "../jump/constants.js";
 
 /** A physical root body on the ground plane. Server-side only, except `x`, `z` and "down". */
 export interface Body extends Vec2 {
@@ -40,10 +41,87 @@ export interface Body extends Vec2 {
   /** Unit direction of the current dodge. */
   dodgeX: number;
   dodgeZ: number;
+  /**
+   * Seconds left of a hop (#45). > 0 means airborne: shapes flagged
+   * `hoppable` (an intact bin, a fallen CRS) do not collide. Walking is unchanged.
+   */
+  jumpTime: number;
+  /** The hop ended (timer, knock-down, grab): the next step pushes the body out of whatever it came down on. */
+  landPending: boolean;
 }
 
 export function createBody(x: number, z: number): Body {
-  return { x, z, vx: 0, vz: 0, downTime: 0, immuneTime: 0, dodgeTime: 0, dodgeX: 0, dodgeZ: 0 };
+  return { x, z, vx: 0, vz: 0, downTime: 0, immuneTime: 0, dodgeTime: 0, dodgeX: 0, dodgeZ: 0, jumpTime: 0, landPending: false };
+}
+
+/** In the air (#45): a hop is under way. */
+export function isAirborne(body: Body): boolean {
+  return body.jumpTime > 0;
+}
+
+/**
+ * Start a hop (#45): for `duration` seconds the body is airborne and passes
+ * over hoppable shapes. Refused (false) while down, dodging or already in the
+ * air. Cooldown and health state are the caller's rules.
+ */
+export function startJump(body: Body, duration = JUMP_DURATION): boolean {
+  if (isDown(body) || isDodging(body) || isAirborne(body) || !(duration > 0)) return false;
+  body.jumpTime = duration;
+  body.landPending = false;
+  return true;
+}
+
+/**
+ * End a hop at once (knocked down, grabbed, KO). The next step lands the body
+ * (see `landBody`). A no-op on the ground.
+ */
+export function endJump(body: Body): void {
+  if (!isAirborne(body)) return;
+  body.jumpTime = 0;
+  body.landPending = true;
+}
+
+/**
+ * Bring a body down (#45) clear of everything: if it came down on something
+ * solid (a bin, a fallen CRS), push it out the shortest way it can reach
+ * without crossing anything that is solid in the air (a wall, a car). The
+ * plain push-out first; if that leaves it inside something or would cross a
+ * wall (a bin in a pocket next to a wall), the nearest reachable free spot on
+ * rings around it. Returns true if the body moved.
+ */
+export function landBody(world: CollisionWorld, body: Body, radius: number): boolean {
+  if (!circleOverlaps(world, body.x, body.z, radius)) return false;
+  const pushed = resolveCircle(world, body.x, body.z, radius);
+  if (reachable(world, body, pushed.x, pushed.z, radius)) {
+    body.x = pushed.x;
+    body.z = pushed.z;
+    return true;
+  }
+  for (let ring = JUMP_LAND_STEP; ring <= JUMP_LAND_SEARCH + 1e-9; ring += JUMP_LAND_STEP) {
+    // More directions on wider rings, so candidates stay about one step apart.
+    const n = Math.max(8, Math.ceil((2 * Math.PI * ring) / JUMP_LAND_STEP));
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * Math.PI * 2;
+      const x = body.x + Math.cos(a) * ring;
+      const z = body.z + Math.sin(a) * ring;
+      if (reachable(world, body, x, z, radius)) {
+        body.x = x;
+        body.z = z;
+        return true;
+      }
+    }
+  }
+  // Nowhere free in reach (never seen on the real street): the plain push-out.
+  body.x = pushed.x;
+  body.z = pushed.z;
+  return true;
+}
+
+/** Free spot (x, z) that a body in the air at its position could slide to in a straight line. */
+function reachable(world: CollisionWorld, from: Vec2, x: number, z: number, radius: number): boolean {
+  if (circleOverlaps(world, x, z, radius)) return false;
+  const res = moveCircle(world, from, x - from.x, z - from.z, radius, true);
+  return Math.abs(res.x - x) < 1e-6 && Math.abs(res.z - z) < 1e-6;
 }
 
 export function isDodging(body: Body): boolean {
@@ -54,11 +132,11 @@ export function isDodging(body: Body): boolean {
  * Start a dodge burst (#9): for `duration` seconds the body moves at
  * DODGE_SPEED_FACTOR times its walking speed along (dirX, dirZ), ignoring the
  * move input. Refused (false) while down, already dodging, or with no
- * direction. Cooldown and health state are the caller's rules.
+ * direction, or in the air (#45). Cooldown and health state are the caller's rules.
  */
 export function startDodge(body: Body, dirX: number, dirZ: number, duration = DODGE_DURATION): boolean {
   const len = Math.hypot(dirX, dirZ);
-  if (isDown(body) || isDodging(body) || !Number.isFinite(len) || len < 1e-6 || !(duration > 0)) return false;
+  if (isDown(body) || isDodging(body) || isAirborne(body) || !Number.isFinite(len) || len < 1e-6 || !(duration > 0)) return false;
   body.dodgeX = dirX / len;
   body.dodgeZ = dirZ / len;
   body.dodgeTime = duration;
@@ -92,6 +170,8 @@ export function knockDown(body: Body, duration = DOWN_DURATION): boolean {
   if (isDown(body) || isImmune(body) || duration <= 0) return false;
   body.downTime = duration;
   endDodge(body);
+  // Floored mid-hop (#45): down it comes, and lands clear of what it was over.
+  endJump(body);
   return true;
 }
 
@@ -162,6 +242,8 @@ export interface BodyStepResult {
    * burst ended; the body was knocked down unless it was in get-up immunity.
    */
   bonk: DodgeBonk | null;
+  /** A hop (#45) came down this step (its timer ran out, or it was cut short since the last step). */
+  landed: boolean;
 }
 
 /**
@@ -183,7 +265,10 @@ export function stepBody(
   const gotUp = tickTimers(body, dt);
 
   const control = hasControl(body);
-  if (!control) endDodge(body);
+  if (!control) {
+    endDodge(body);
+    endJump(body);
+  }
   const dodging = isDodging(body);
   const dodgeSpeed = walkSpeed * DODGE_SPEED_FACTOR;
   // A dodge replaces the walk for its duration; knockback still adds on top.
@@ -196,7 +281,8 @@ export function stepBody(
   let bonk: DodgeBonk | null = null;
   if (dx !== 0 || dz !== 0) {
     // moveCircle sub-steps, so a dodge at any speed cannot tunnel through a wall.
-    const res = moveCircle(world, body, dx, dz, radius);
+    // In the air (#45), hoppable shapes are skipped: the filter is at query time.
+    const res = moveCircle(world, body, dx, dz, radius, isAirborne(body));
     body.x = res.x;
     body.z = res.z;
     impactSpeed = bounce(body, res.pushX, res.pushZ);
@@ -207,8 +293,22 @@ export function stepBody(
     body.dodgeTime -= dt;
     if (body.dodgeTime <= 1e-9) body.dodgeTime = 0;
   }
+  // The hop's timer runs after the move, so a body is airborne for the whole
+  // of its last moving step and lands at the end of it (#45).
+  if (isAirborne(body)) {
+    body.jumpTime -= dt;
+    if (body.jumpTime <= 1e-9) {
+      body.jumpTime = 0;
+      body.landPending = true;
+    }
+  }
+  const landed = body.landPending;
+  if (landed) {
+    body.landPending = false;
+    landBody(world, body, radius);
+  }
   applyDrag(body, dt);
-  return { gotUp, impactSpeed, bonk };
+  return { gotUp, impactSpeed, bonk, landed };
 }
 
 /**

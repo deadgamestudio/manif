@@ -76,6 +76,30 @@ describe("ragdoll sim", () => {
     expect(maxSpeed).toBeLessThan(0.3);
   });
 
+  test("floored mid-hop (#45): seeded where the avatar was drawn, then falls and settles on the ground", () => {
+    const lift = 0.6;
+    const ground = createSim(BODY);
+    seedStanding(ground, 0, 0, 0);
+    const air = createSim(BODY);
+    seedStanding(air, 0, 0, 0, lift);
+    // Same pose, just higher: no pop between the hopping capsule and the ragdoll.
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      expect(at(air.pos, i)[1]).toBeCloseTo(at(ground.pos, i)[1] + lift, 5);
+      expect(at(air.pos, i)[0]).toBeCloseTo(at(ground.pos, i)[0], 5);
+    }
+    kick(air, 1, 0, 1, 0);
+    for (let t = 0; t < 3; t += STEP) {
+      stepSim(air, STEP, 0, 0, 0);
+      for (const v of air.pos) expect(Number.isFinite(v)).toBe(true);
+    }
+    for (let i = 0; i < PARTICLE_COUNT; i++) expect(at(air.pos, i)[1]).toBeGreaterThanOrEqual((air.radii[i] as number) - 1e-4);
+    expect(at(air.pos, P.Pelvis)[1]).toBeLessThan(BODY.torsoRadius + 0.05);
+    // Nonsense lifts are ignored.
+    const bad = createSim(BODY);
+    seedStanding(bad, 0, 0, 0, Number.NaN);
+    expect(Array.from(bad.pos)).toEqual(Array.from(ground.pos));
+  });
+
   test("dt of 0, NaN or huge never produces NaN or a jump", () => {
     const sim = createSim(BODY);
     seedStanding(sim, 1, 2, 0);

@@ -10,6 +10,7 @@ import { CarriedItem } from "../throwable/index.ts";
 import { COUGH_ANGLE, COUGH_SPEED } from "../gas/index.ts";
 import { BodyFire, FireHoldBar, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
 import { PROTESTER_RAGDOLL, useRagdoll } from "../ragdoll/index.ts";
+import { HopArc, LAND_SQUASH } from "../jump/index.ts";
 import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;
@@ -78,6 +79,8 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
   const dustAge = useRef(Infinity);
   const [dustAt] = useState(() => new Vector3());
   const ragdoll = useRagdoll(PROTESTER_RAGDOLL);
+  /** The hop arc (#45): drawn from the synced `airborne` flag and local time. */
+  const [hop] = useState(() => new HopArc());
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -93,11 +96,13 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     lastStatus.current = p.status;
     if (arrested) {
       ragdoll.reset();
+      hop.reset();
       return;
     }
 
     if (!placed.current || respawned) {
       ragdoll.reset();
+      hop.reset();
       t.visible = true;
       g.position.set(p.x, 0, p.z);
       y.rotation.y = p.rotation;
@@ -119,8 +124,12 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     // Pick the fall direction at the start of the fall (the impulse event and
     // the `down` patch may arrive in either order, so keep looking briefly).
     const lying = p.down || p.status === PlayerStatus.Ko;
+    // Hop (#45): the height before this frame's update is where the body was
+    // drawn, so a fall that starts now starts from there (no pop).
+    const drawnLift = hop.lift;
+    hop.update(dt, p.airborne && !lying);
     // Ragdoll (#26) if a slot is free: the capsule hides and stays upright meanwhile.
-    const ragdolling = ragdoll.update(dt, lying, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id));
+    const ragdolling = ragdoll.update(dt, lying, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id), drawnLift);
     t.visible = !ragdolling;
     if (ragdolling) fall.current = 0;
     else if (lying && fall.current < 0.3) {
@@ -138,7 +147,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     const angle = fall.current * FALLEN_ANGLE;
     t.quaternion.setFromAxisAngle(fallAxis, angle);
     // Lift the pivot as it tips, so the lying capsule rests on the ground instead of in it.
-    t.position.y = Math.sin(angle) * PLAYER_RADIUS;
+    t.position.y = Math.sin(angle) * PLAYER_RADIUS + hop.lift;
 
     // Grabbed: flail side to side (the drag itself is the CRS's, #5). In tear
     // gas (#7): a slower, lopsided cough wobble.
@@ -172,7 +181,8 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
 
     // Dodge (#9): lean forward and squash into a dive, puff of dust where it started.
     const dodging = p.dodging && !lying;
-    if (dodging && !wasDodging.current) {
+    // A hop (#45) kicks up the same dust where it takes off.
+    if ((dodging && !wasDodging.current) || hop.tookOff) {
       dustAge.current = 0;
       dustAt.set(g.position.x, 0, g.position.z);
     }
@@ -181,7 +191,9 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     // Yaw last, so the lean (x) and the flail (z) are in the body's own frame.
     if (y.rotation.order !== "YXZ") y.rotation.order = "YXZ";
     y.rotation.x = dive.current * DODGE_LEAN;
-    y.scale.set(1, 1 - (1 - DODGE_SQUASH) * dive.current, 1);
+    // Squashed by the dive, and briefly on landing from a hop (#45).
+    const land = 1 - LAND_SQUASH * hop.squash;
+    y.scale.set(1 + LAND_SQUASH * 0.5 * hop.squash, (1 - (1 - DODGE_SQUASH) * dive.current) * land, 1 + LAND_SQUASH * 0.5 * hop.squash);
     const d = dust.current;
     if (d) {
       dustAge.current += dt;

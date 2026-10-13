@@ -40,7 +40,9 @@ export function propShape(slot: PropSlot, broken: boolean): PropShape | null {
   const type = PROP_TYPES[slot.kind];
   const def: PropShapeDef | null = broken ? type.broken : type.intact;
   if (!def) return null;
-  if (def.type === "circle") return { type: "circle", x: slot.x, z: slot.z, r: def.r };
+  // Only flagged when true, so the shapes of other props stay as they were.
+  const hop = type.hoppable ? { hoppable: true } : {};
+  if (def.type === "circle") return { type: "circle", x: slot.x, z: slot.z, r: def.r, ...hop };
   const quarter = Math.abs(Math.sin(slot.rotation)) > Math.SQRT1_2;
   return {
     type: "box",
@@ -48,6 +50,7 @@ export function propShape(slot: PropSlot, broken: boolean): PropShape | null {
     z: slot.z,
     halfX: quarter ? def.halfZ : def.halfX,
     halfZ: quarter ? def.halfX : def.halfZ,
+    ...hop,
   };
 }
 

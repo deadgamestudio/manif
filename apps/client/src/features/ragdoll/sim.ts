@@ -113,11 +113,16 @@ export function writeRestPose(rest: number[][], x: number, z: number, yaw: numbe
   }
 }
 
-/** Puts the ragdoll standing at the root, at rest. */
-export function seedStanding(sim: RagdollSim, x: number, z: number, yaw: number): void {
+/**
+ * Puts the ragdoll standing at the root, at rest, `lift` metres off the ground
+ * (floored mid-hop, #45: it falls from where the avatar was drawn, no pop).
+ */
+export function seedStanding(sim: RagdollSim, x: number, z: number, yaw: number, lift = 0): void {
   writeRestPose(sim.rest, x, z, yaw, sim.pos);
+  const up = Number.isFinite(lift) && lift > 0 ? lift : 0;
+  if (up > 0) for (let i = 1; i < sim.pos.length; i += 3) sim.pos[i] = (sim.pos[i] as number) + up;
   sim.prev.set(sim.pos);
-  sim.pelvisY = sim.standingPelvisY;
+  sim.pelvisY = sim.standingPelvisY + up;
   sim.acc = 0;
   sim.fallX = 0;
   sim.fallZ = 0;

@@ -76,6 +76,7 @@ import { Bodies, DEBUG_KNOCKBACK_ENABLED, planDebugKnockback } from "../features
 import { DEBUG_HEALTH_ENABLED, Healths, parseDebugHealth } from "../features/health/index.js";
 import { MeleeCooldowns } from "../features/melee/index.js";
 import { DodgeCooldowns } from "../features/dodge/index.js";
+import { JumpCooldowns } from "../features/jump/index.js";
 import { Player } from "../features/player/index.js";
 import { Props } from "../features/prop/index.js";
 import { CrsSquad } from "../features/crs/index.js";
@@ -119,6 +120,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private meleeCooldowns = new MeleeCooldowns();
   /** Last dodge time per session (#9). Server-only; only `dodging` is synced. */
   private dodgeCooldowns = new DodgeCooldowns();
+  /** Last hop time per session (#45). Server-only; only `airborne` is synced. */
+  private jumpCooldowns = new JumpCooldowns();
   /** HP, status and their timers per session (#3). Server-only; hp, status and stateLeft are synced. */
   private healths = new Healths();
   /** Who is holding interact and pulling which grabbed teammate (#10). Server-only; progress is synced on the grabbed player. */
@@ -177,6 +180,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     batonHit: (by, id, dirX, dirZ, amount, impulse) => {
       const swing: SwingEvent = { id: by };
       this.broadcast(ServerMessage.Swing, swing);
+      // A hop (#45) dodges the baton: airborne when the swing resolves (after
+      // this tick's protester step), the swing is seen but does nothing. The
+      // bot's baton cooldown is spent all the same. A grab still lands.
+      if (this.bodies.isAirborne(id)) return;
       this.damagePlayer(id, amount);
       this.applyImpulse(id, dirX, dirZ, impulse);
     },
@@ -238,6 +245,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.dodge(client.sessionId);
     },
 
+    // Hop (#45). No payload: the server owns the cooldown and the state checks.
+    // An old cached client never sends it (Space still hits there): nothing breaks.
+    [ClientMessage.Jump]: (client: Client) => {
+      if (this.state.phase !== Phase.Marching) return;
+      this.jump(client.sessionId);
+    },
+
     // Throw the carried item (#8) along the aim. Only a direction: the server
     // re-normalizes it, checks the thrower, and flies the projectile itself.
     [ClientMessage.Throw]: (client: Client, message: unknown) => {
@@ -290,6 +304,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         else if (cmd?.action === "calm") {
           this.crs.clear();
           this.round.fired = ROUND_WAVES.map(() => true);
+        } else if (cmd?.action === "fallen") {
+          const self = this.state.players.get(client.sessionId);
+          if (self) {
+            const d = cmd.distance;
+            this.crs.spawnFallen(self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d, this.now, cmd.seconds);
+          }
         } else if (cmd?.action === "water") {
           const self = this.state.players.get(client.sessionId);
           if (self) this.extinguishAt(self.x, self.z, cmd.radius);
@@ -332,6 +352,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.moveInputs.delete(client.sessionId);
     this.meleeCooldowns.remove(client.sessionId);
     this.dodgeCooldowns.remove(client.sessionId);
+    this.jumpCooldowns.remove(client.sessionId);
     // A rescue aimed at this player ends on the next tick (unknown target).
     this.rescues.remove(client.sessionId);
     this.bodies.remove(client.sessionId);
@@ -380,6 +401,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.gas.reset();
     this.meleeCooldowns.clear();
     this.dodgeCooldowns.clear();
+    // Hops (#45): the cooldowns here, the timers with the bodies (placeAtSpawn makes fresh ones, on the ground).
+    this.jumpCooldowns.clear();
     this.state.players.forEach((player, sessionId) => {
       this.placeAtSpawn(sessionId, player);
       this.healths.reset(sessionId, player);
@@ -653,6 +676,22 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   /**
+   * One hop (#45): JUMP_DURATION in the air, passing over bins and fallen CRS
+   * (never cars, walls or shield lines), and a baton swing misses meanwhile.
+   * Only a protester with control (free, not knocked down) and not dodging
+   * hops, at most once per JUMP_COOLDOWN, counted from the start of the last
+   * one. Carrying a pavé is fine. Returns true if the hop started.
+   */
+  jump(id: string): boolean {
+    const player = this.state.players.get(id);
+    if (!player || !this.hasControl(id)) return false;
+    if (!this.jumpCooldowns.ready(id, this.now)) return false;
+    if (!this.bodies.jump(id, player)) return false;
+    this.jumpCooldowns.start(id, this.now);
+    return true;
+  }
+
+  /**
    * Interact key (E) pressed or released. On a press, a grabbed teammate in
    * RESCUE_RANGE has priority (#10): the press starts holding, and the rescue
    * itself runs in `step` for as long as the key stays down. Then a burning
@@ -772,6 +811,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const free = this.healths.canMove(sessionId);
       // Grabbed or KO mid-dodge (#9): the burst stops at once.
       if (!free && player.dodging) this.bodies.endDodge(sessionId, player);
+      // Grabbed or KO mid-hop (#45): down at once, landing clear of what it was over.
+      if (!free && player.airborne) this.bodies.endJump(sessionId, player);
       // Tear gas (#7): a cloud reaching them (never through a wall) costs HP now and then and slows the walk.
       const gas = this.gas.expose(sessionId, player, this.props.world, this.now);
       if (gas.damage > 0) this.damagePlayer(sessionId, gas.damage);
@@ -918,11 +959,15 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     return props;
   }
 
-  /** The room's world plus the raised shields (#6), or the room's world itself when no line is up. */
+  /**
+   * The room's world plus the raised shields (#6) and the CRS lying on the
+   * ground (#45, hoppable), or the room's world itself when there are neither.
+   */
   private buildCrowdWorld(): CollisionWorld {
     const shields = this.crs.shieldContacts();
-    if (shields.length === 0) return this.props.world;
     this.crowdCircles.length = 0;
+    this.crs.fallenCircles(this.crowdCircles);
+    if (shields.length === 0 && this.crowdCircles.length === 0) return this.props.world;
     for (const c of this.props.world.circles) this.crowdCircles.push(c);
     for (const s of shields) this.crowdCircles.push({ x: s.body.x, z: s.body.z, r: s.radius });
     this.crowdWorld.bounds = this.props.world.bounds;

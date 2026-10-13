@@ -17,6 +17,13 @@ export const ClientMessage = {
    */
   Dodge: "dodge",
   /**
+   * Hop (#45): about half a second in the air, over bins and fallen CRS (not
+   * cars, walls or shield lines), and a baton swing misses. No payload: the
+   * server enforces the cooldown and the player's state (free, not knocked
+   * down, not dodging). Ignored outside the march.
+   */
+  Jump: "jump",
+  /**
    * The interact key (E), sent on press (`held: true`) and on release
    * (`held: false`). No target: the server picks from its own positions.
    * On a press, a grabbed teammate in RESCUE_RANGE wins (#10: keep holding to
@@ -62,6 +69,7 @@ export interface ClientMessagePayloads {
   [ClientMessage.Start]: undefined;
   [ClientMessage.Attack]: undefined;
   [ClientMessage.Dodge]: undefined;
+  [ClientMessage.Jump]: undefined;
   [ClientMessage.Interact]: InteractPayload;
   [ClientMessage.Throw]: ThrowPayload;
   [ClientMessage.DebugKnockback]: DebugKnockbackPayload;
@@ -82,7 +90,9 @@ export type DebugRoundPayload =
   /** #16: put out every fire and burning body within `radius` of yourself, like a hose (#17) would. */
   | { action: "water"; radius: number }
   /** #16: no CRS on the street and no more waves this round, for scripted tests that need a calm street. */
-  | { action: "calm" };
+  | { action: "calm" }
+  /** #45: a CRS lying out cold `distance` m in front of yourself for `seconds`, to hop over it. */
+  | { action: "fallen"; distance: number; seconds: number };
 
 /** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
 export interface InteractPayload {

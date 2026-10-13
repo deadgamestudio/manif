@@ -9,6 +9,7 @@ import { useAttackInput } from "../melee/index.ts";
 import { DebugKnockbackKeys } from "../debug/index.ts";
 import { HealthHud } from "../health/index.ts";
 import { DodgeHud, useDodgeInput } from "../dodge/index.ts";
+import { useJumpInput } from "../jump/index.ts";
 import { useInteractInput } from "../interact/index.ts";
 import { RescueHud } from "../rescue/index.ts";
 import { GasOverlay } from "../gas/index.ts";
@@ -24,6 +25,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
   useMoveInput();
   useAttackInput();
   useDodgeInput();
+  useJumpInput();
   useInteractInput();
   // Touch mode also caps the pixel ratio: phones pay for every pixel of the fire and gas layers.
   const touch = useInputMode() === "touch";
@@ -59,9 +61,9 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         <FireHud localId={snap.sessionId} players={snap.players} touch={touch} />
         <div className="hud-help">Emmenez au moins la moitié du cortège jusqu'à la Préfecture avant la fin du chrono.</div>
         {touch ? (
-          <div className="hud-help">Joystick à gauche pour marcher · Taper pour frapper ou lancer · Esquive pour plonger · Action pour ramasser, maintenue pour libérer, éteindre un·e camarade ou mettre le feu à une poubelle ou une voiture</div>
+          <div className="hud-help">Joystick pour marcher · Taper pour frapper ou lancer · Sauter par-dessus poubelles et CRS à terre · Esquive pour plonger · Action pour ramasser, maintenue pour libérer, éteindre un·e camarade ou mettre le feu</div>
         ) : (
-          <div>WASD / flèches pour marcher · Espace / clic pour taper · Maj pour plonger · E pour ramasser un pavé, clic pour le lancer vers la souris · E (maintenu) pour libérer, éteindre un·e camarade ou mettre le feu à une poubelle ou une voiture · sors vite des lacrymos (Maj pour plonger dehors)</div>
+          <div>WASD / flèches pour marcher · clic pour taper · Espace pour sauter par-dessus une poubelle ou un CRS à terre (et esquiver la matraque) · Maj pour plonger · E pour ramasser un pavé, clic pour le lancer vers la souris · E (maintenu) pour libérer, éteindre un·e camarade ou mettre le feu à une poubelle ou une voiture · sors vite des lacrymos (Maj pour plonger dehors)</div>
         )}
         {import.meta.env.DEV && <DebugKnockbackKeys />}
         <button type="button" className="hud-leave" onClick={() => net.leave()}>
