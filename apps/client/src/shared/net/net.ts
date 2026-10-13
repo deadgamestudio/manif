@@ -211,6 +211,22 @@ function setRound(patch: Partial<RoundView>) {
   for (const listener of roundListeners) listener();
 }
 
+/**
+ * The server's event messages as they arrive (and our own swing, which the
+ * server doesn't echo back), for the sound layer (#57). Not state: a missed
+ * one only costs a sound.
+ */
+export type NetEvent =
+  | { type: "swing"; id: string }
+  | { type: "hit"; event: HitEvent }
+  | { type: "shove"; ids: readonly string[] }
+  | { type: "impulse"; event: ImpulseEvent }
+  | { type: "roundEnd"; event: RoundEndEvent };
+const eventListeners = new Set<(event: NetEvent) => void>();
+function emit(event: NetEvent) {
+  for (const listener of eventListeners) listener(event);
+}
+
 /** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
 let generation = 0;
 
@@ -375,26 +391,34 @@ function attach(joined: ClientRoom, gen: number) {
   callbacks.listen("progress", refreshRound);
   callbacks.listen("result", refreshRound);
   joined.onMessage(ServerMessage.RoundEnd, (event: RoundEndEvent) => {
-    if (gen === generation) setRound({ end: event });
+    if (gen !== generation) return;
+    setRound({ end: event });
+    emit({ type: "roundEnd", event });
   });
   callbacks.listen("hostId", refresh);
 
   joined.onMessage(ServerMessage.Impulse, (event: ImpulseEvent) => {
-    if (gen === generation) lastImpulses.set(event.id, event);
+    if (gen !== generation) return;
+    lastImpulses.set(event.id, event);
+    emit({ type: "impulse", event });
   });
 
   joined.onMessage(ServerMessage.Swing, (event: SwingEvent) => {
-    if (gen === generation) lastSwings.set(event.id, performance.now());
+    if (gen !== generation) return;
+    lastSwings.set(event.id, performance.now());
+    emit({ type: "swing", id: event.id });
   });
   joined.onMessage(ServerMessage.Shove, (event: ShoveEvent) => {
     if (gen !== generation) return;
     const now = performance.now();
     for (const id of event.ids) lastShoves.set(id, now);
+    emit({ type: "shove", ids: event.ids });
   });
   joined.onMessage(ServerMessage.Hit, (event: HitEvent) => {
     if (gen !== generation) return;
     if (event.kind === "prop") lastPropHits.set(event.target, performance.now());
     else if (event.kind === "crs") lastCrsHits.set(event.target, performance.now());
+    emit({ type: "hit", event });
   });
 
   joined.onLeave(() => {
@@ -464,6 +488,20 @@ export const net = {
 
   getSnapshot(): NetSnapshot {
     return snapshot;
+  },
+
+  /**
+   * The whole live, decoded street state, or null outside a room. Updated in
+   * place by the SDK: read it on a timer or from useFrame, never keep pieces.
+   */
+  getState(): StreetStateShape | null {
+    return room?.state ?? null;
+  },
+
+  /** Call `listener` for every server event message (#57, the sound layer) and our own swing. */
+  subscribeEvents(listener: (event: NetEvent) => void): () => void {
+    eventListeners.add(listener);
+    return () => eventListeners.delete(listener);
   },
 
   /**
@@ -652,6 +690,7 @@ export const net = {
     if (now - lastLocalSwing >= MELEE_COOLDOWN * 1000) {
       lastLocalSwing = now;
       lastSwings.set(room.sessionId, now);
+      emit({ type: "swing", id: room.sessionId });
     }
     room.send(ClientMessage.Attack);
   },
