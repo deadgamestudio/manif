@@ -311,3 +311,58 @@
     font-size: 16px;
   }
 }
+
+/* ---------- Renaming yourself in the roster (#61) ---------- */
+
+/* The pencil on your own line: a small sticker, not a full button. */
+.lobby .btn-rename {
+  flex: none;
+  padding: 2px 6px;
+  font-size: 15px;
+  line-height: 1.2;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.lobby .btn-rename:hover:not(:disabled) {
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.lobby .roster li.is-renaming {
+  padding: 6px;
+}
+
+.roster-rename {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roster-rename .field-row {
+  gap: 6px;
+}
+
+/* 16px at least, or iOS zooms the page on focus. */
+.roster-rename .field {
+  padding: 6px 8px;
+  font-size: 17px;
+}
+
+.roster-rename .btn-icon,
+.roster-rename .btn-rename-ok {
+  padding: 4px 10px;
+  font-size: 18px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.roster-rename-error {
+  margin: 0;
+  padding: 3px 8px;
+  align-self: flex-start;
+  background: var(--paint-red);
+  border: 2px solid var(--ink);
+  color: #fff;
+  font: 700 14px/1.3 var(--font-body);
+  transform: rotate(-0.6deg);
+}

@@ -40,7 +40,8 @@ export interface RoundEndEvent {
 export interface RoundAward {
   /** The joke title. */
   title: string;
-  /** Who gets it. */
+  /** Who gets it: the player's session id (two players can share a name, #61), and the name they marched under. */
+  id: string;
   name: string;
   /** The number behind it, for the caption. */
   value: number;
@@ -70,7 +71,7 @@ export function roundAwards(players: RoundEndEvent["players"]): RoundAward[] {
   for (const a of AWARDS) {
     let best: RoundEndEvent["players"][number] | null = null;
     for (const p of players) if (p[a.stat] > 0 && (!best || p[a.stat] > best[a.stat])) best = p;
-    if (best) out.push({ title: a.title, name: best.name, value: best[a.stat], unit: a.unit });
+    if (best) out.push({ title: a.title, id: best.id, name: best.name, value: best[a.stat], unit: a.unit });
   }
   return out;
 }

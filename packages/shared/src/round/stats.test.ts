@@ -24,17 +24,17 @@ describe("roundAwards", () => {
   });
 
   test("lighting fires (#16) earns its own award", () => {
-    expect(roundAwards([player("A", { firesLit: 2 })])).toEqual([{ title: "Pyromane du dimanche", name: "A", value: 2, unit: "feux allumés" }]);
+    expect(roundAwards([player("A", { firesLit: 2 })])).toEqual([{ title: "Pyromane du dimanche", id: "A", name: "A", value: 2, unit: "feux allumés" }]);
   });
 
   test("throwing teammates (#11) earns its own award", () => {
-    expect(roundAwards([player("A", { teammatesThrown: 3 })])).toEqual([{ title: "Catapulte humaine", name: "A", value: 3, unit: "camarades lancés" }]);
+    expect(roundAwards([player("A", { teammatesThrown: 3 })])).toEqual([{ title: "Catapulte humaine", id: "A", name: "A", value: 3, unit: "camarades lancés" }]);
   });
 
   test("tomatoes and poo on CRS, and slipping on poo (#15), earn their own awards", () => {
     expect(roundAwards([player("A", { splats: 4 }), player("B", { slips: 2 })])).toEqual([
-      { title: "Primeur de combat", name: "A", value: 4, unit: "CRS repeints ou parfumés" },
-      { title: "Pied dans la crotte", name: "B", value: 2, unit: "glissades" },
+      { title: "Primeur de combat", id: "A", name: "A", value: 4, unit: "CRS repeints ou parfumés" },
+      { title: "Pied dans la crotte", id: "B", name: "B", value: 2, unit: "glissades" },
     ]);
   });
 

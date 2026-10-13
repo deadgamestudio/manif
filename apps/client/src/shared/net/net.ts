@@ -27,6 +27,8 @@ import {
   type LobbyJoinOptions,
   type MoveInput,
   type PickArchetypePayload,
+  type RenamePayload,
+  type RenameRefusedEvent,
   type PlayerShape,
   type PropShapeState,
   type StreetStateShape,
@@ -227,6 +229,9 @@ function emit(event: NetEvent) {
   for (const listener of eventListeners) listener(event);
 }
 
+/** Who wants to hear that our rename was refused (#61): the lobby's name field. */
+const renameListeners = new Set<(event: RenameRefusedEvent) => void>();
+
 /** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
 let generation = 0;
 
@@ -396,6 +401,10 @@ function attach(joined: ClientRoom, gen: number) {
     emit({ type: "roundEnd", event });
   });
   callbacks.listen("hostId", refresh);
+  joined.onMessage(ServerMessage.RenameRefused, (event: RenameRefusedEvent) => {
+    if (gen !== generation) return;
+    for (const listener of renameListeners) listener(event);
+  });
 
   joined.onMessage(ServerMessage.Impulse, (event: ImpulseEvent) => {
     if (gen !== generation) return;
@@ -502,6 +511,12 @@ export const net = {
   subscribeEvents(listener: (event: NetEvent) => void): () => void {
     eventListeners.add(listener);
     return () => eventListeners.delete(listener);
+  },
+
+  /** Call `listener` when the server refuses our rename (#61): the name was empty or taken. */
+  subscribeRenameRefused(listener: (event: RenameRefusedEvent) => void): () => void {
+    renameListeners.add(listener);
+    return () => renameListeners.delete(listener);
   },
 
   /**
@@ -778,6 +793,15 @@ export const net = {
   pickArchetype(archetype: number) {
     const payload: PickArchetypePayload = { archetype };
     room?.send(ClientMessage.PickArchetype, payload);
+  },
+
+  /**
+   * Rename yourself in the lobby (#61). The raw text: the server cleans it and
+   * either changes your `name` in the state or answers RenameRefused.
+   */
+  rename(name: string) {
+    const payload: RenamePayload = { name };
+    room?.send(ClientMessage.Rename, payload);
   },
 
   /** DEBUG (#2), dev builds only: ask the server to knock someone over. The server refuses it in production. */

@@ -112,6 +112,11 @@ import {
   type ArchetypeStats,
   type AuraSubject,
   type PickArchetypePayload,
+  RENAME_COOLDOWN_MS,
+  checkRename,
+  renameAllowedAt,
+  type RenamePayload,
+  type RenameRefusedEvent,
 } from "@manif/shared";
 import { Bodies, DEBUG_KNOCKBACK_ENABLED, planDebugKnockback } from "../features/physics/index.js";
 import { DEBUG_HEALTH_ENABLED, Healths, parseDebugHealth } from "../features/health/index.js";
@@ -319,6 +324,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   /** Arrival order per session, for host hand-over. Server-only. */
   private joinOrder = new Map<string, number>();
   private joinCounter = 0;
+  /** When each player's last rename was processed (#61), wall-clock ms, for the rate limit. Server-only. */
+  private lastRename = new Map<string, number>();
 
   override messages = {
     // Input only: the client says where it wants to go, the server moves it.
@@ -378,6 +385,28 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       // Its max HP at once; the start of the march resets everyone again anyway.
       this.healths.reset(client.sessionId, player, archetypeStats(archetype).maxHp);
       console.log(`[street ${this.roomId}] ${client.sessionId} picks archetype ${archetype}`);
+    },
+
+    // Rename (#61): lobby only, one per RENAME_COOLDOWN_MS per player (extra messages dropped),
+    // cleaned and checked against everyone else's name by the shared rule. Empty or taken: the
+    // sender alone hears why, the name stays. Host and join order are untouched.
+    [ClientMessage.Rename]: (client: Client, message: unknown) => {
+      if (this.state.phase !== Phase.Waiting) return;
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const now = Date.now();
+      if (!renameAllowedAt(now, this.lastRename.get(client.sessionId), RENAME_COOLDOWN_MS)) return;
+      this.lastRename.set(client.sessionId, now);
+      const raw = (message as Partial<RenamePayload> | null)?.name;
+      const players = Array.from(this.state.players.entries(), ([id, p]) => ({ id, name: p.name }));
+      const check = checkRename(raw, this.state.phase, client.sessionId, players);
+      if (check.ok) {
+        console.log(`[street ${this.roomId}] ${client.sessionId} renames "${player.name}" -> "${check.name}"`);
+        player.name = check.name;
+      } else if (check.reason === "empty" || check.reason === "taken") {
+        const refused: RenameRefusedEvent = { reason: check.reason };
+        client.send(ServerMessage.RenameRefused, refused);
+      }
     },
 
     // Game rule: only the host starts, and only from `waiting` (the lobby screen).
@@ -497,6 +526,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.fires.remove(client.sessionId);
     this.protesterViews.delete(client.sessionId);
     this.joinOrder.delete(client.sessionId);
+    this.lastRename.delete(client.sessionId);
     this.heals.remove(client.sessionId);
     this.roundStats.remove(client.sessionId);
     this.slips.remove(client.sessionId);
