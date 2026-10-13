@@ -1,5 +1,5 @@
 import { schema, t, type SchemaType } from "@colyseus/schema";
-import { CrsKind, CrsStatus } from "@manif/shared";
+import { CrsKind, CrsMount, CrsStatus } from "@manif/shared";
 
 /**
  * One police bot (#5), keyed by a server-made id ("crs-1", ...) in
@@ -16,8 +16,18 @@ export const Crs = schema(
     status: t.uint8().default(CrsStatus.Active),
     /** Knocked down (#2). */
     down: t.boolean(),
-    /** `CrsKind`: the unit type (#13). Always CRS for now. */
+    /** `CrsKind`: the unit type (#13). */
     kind: t.uint8().default(CrsKind.Crs),
+    /**
+     * BAC (#13): false while it still passes for a protester (the client then
+     * draws it with the protester avatar, `name` on its placard). Always true
+     * for the other units.
+     */
+    revealed: t.boolean().default(true),
+    /** A BAC's protester name while disguised (#13); "" for every other bot. */
+    name: t.string().default(""),
+    /** `CrsMount` (#13): what a BRAV-M rides (bike with two, one or no riders); `Foot` for the others. */
+    mount: t.uint8().default(CrsMount.Foot),
     /** In a formed shield line (#6): shield raised, solid to protesters. Slots and orders stay server-side. */
     formation: t.boolean(),
     /** On fire (#16). The burn timer stays in the server's fire feature. */

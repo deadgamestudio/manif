@@ -3,7 +3,7 @@
  * The real Schema classes live in the server only.
  */
 import type { PlayerStatus } from "../health/index.js";
-import type { CrsKind, CrsStatus } from "../crs/index.js";
+import type { CrsKind, CrsMount, CrsStatus } from "../crs/index.js";
 import type { ThrowableKind } from "../throwable/index.js";
 import type { Phase, RoundResult } from "../round/index.js";
 
@@ -85,6 +85,16 @@ export interface CrsShape {
   splatted: boolean;
   /** Hit by a dog poo (#15): the other CRS keep away. */
   stinky: boolean;
+  /**
+   * BAC (#13): false while it passes for a protester. Draw it then exactly
+   * like one (the protester avatar, `name` on the placard, a full HP bar).
+   * Always true for the other units.
+   */
+  revealed: boolean;
+  /** A BAC's protester name while disguised (#13); "" otherwise. */
+  name: string;
+  /** What a BRAV-M rides (#13), see `CrsMount`; `Foot` for the other units. */
+  mount: CrsMount;
 }
 
 /** An item lying on the ground (#8), keyed by a server-made id. */

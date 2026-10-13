@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Vector3, type Group, type MeshStandardMaterial } from "three";
-import { PLAYER_RADIUS, PlayerStatus } from "@manif/shared";
+import { PLAYER_RADIUS, PlayerStatus, type PlayerShape } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { HealthBar } from "../health/index.ts";
@@ -40,6 +40,10 @@ const DODGE_RATE = 20;
 /** Dust puff left where a dodge starts: primitives that grow and fade, in seconds and metres. */
 const DUST_TIME = 0.45;
 const DUST_GROW = 1.6;
+/** Where an avatar reads the state it draws from. */
+export type PlayerSource = (id: string) => PlayerShape | undefined;
+const readPlayer: PlayerSource = (id) => net.getPlayer(id);
+
 const DUST_PUFFS: readonly [number, number][] = [
   [-0.25, -0.15],
   [0.25, -0.2],
@@ -61,8 +65,22 @@ const DUST_PUFFS: readonly [number, number][] = [
  * Carried (#11): lifted above the carrier's head (both bodies share a spot on
  * the server) and flailing; the carrier holds an arm up. Thrown, the ragdoll
  * starts from that height, so the pose flows into the flight without a pop.
+ *
+ * `source` reads the state it draws (the synced player by default). A
+ * disguised BAC (#13) passes its own, so it is drawn by this very component
+ * and looks exactly like any other protester.
  */
-export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; isLocal: boolean }) {
+export function PlayerAvatar({
+  id,
+  name,
+  isLocal,
+  source = readPlayer,
+}: {
+  id: string;
+  name: string;
+  isLocal: boolean;
+  source?: PlayerSource;
+}) {
   const group = useRef<Group>(null);
   const tilt = useRef<Group>(null);
   const yaw = useRef<Group>(null);
@@ -93,7 +111,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     const g = group.current;
     const t = tilt.current;
     const y = yaw.current;
-    const p = net.getPlayer(id);
+    const p = source(id);
     if (!g || !t || !y || !p) return;
 
     const arrested = p.status === PlayerStatus.Arrested;
@@ -248,7 +266,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
             <CarriedItem id={id} />
           </group>
           {/* The bum on fire (#16). */}
-          <BodyFire isOnFire={() => net.getPlayer(id)?.onFire === true} />
+          <BodyFire isOnFire={() => source(id)?.onFire === true} />
           {/* Small nose so facing direction is visible. */}
           <mesh position={[0, HEIGHT * 0.7, PLAYER_RADIUS]} castShadow>
             <boxGeometry args={[0.2, 0.2, 0.3]} />
@@ -259,7 +277,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
       {/* The ragdoll (#26), in world space under the root: never tilted or turned with the capsule. */}
       {ragdoll.view}
       {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
-      <BodyFire isOnFire={() => net.getPlayer(id)?.onFire === true} anchor={(out) => ragdoll.torso(out)} />
+      <BodyFire isOnFire={() => source(id)?.onFire === true} anchor={(out) => ragdoll.torso(out)} />
       {/* Dodge dust (#9): placeholder primitives until Jordan's effects. */}
       <group ref={dust} visible={false}>
         {DUST_PUFFS.map(([x, z], i) => (
@@ -278,7 +296,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
       </group>
       <NameTag name={name} isLocal={isLocal} y={HEIGHT + 0.55} />
       {/* The local player's HP is in the HUD. */}
-      {!isLocal && <HealthBar id={id} y={HEIGHT + 0.95} />}
+      {!isLocal && <HealthBar id={id} y={HEIGHT + 0.95} source={source} />}
       {/* Over everyone, the local player included: help is coming (#10). */}
       <RescueBar id={id} y={HEIGHT + 1.25} />
       {/* Lighting a prop or patting someone out (#16). */}

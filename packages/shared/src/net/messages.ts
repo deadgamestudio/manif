@@ -91,10 +91,15 @@ export type DebugRoundPayload =
   | { action: "water"; radius: number }
   /** #16: no CRS on the street and no more waves this round, for scripted tests that need a calm street. */
   | { action: "calm" }
+  /** #13: no bots on the street right now, but the waves still to come still come. */
+  | { action: "clear" }
   /** #45: a CRS lying out cold `distance` m in front of yourself for `seconds`, to hop over it. */
   | { action: "fallen"; distance: number; seconds: number }
-  /** #45: an ordinary CRS standing `distance` m in front of yourself, facing you, to test a baton swing against a hop. */
-  | { action: "crs"; distance: number };
+  /**
+   * #45: an ordinary CRS standing `distance` m in front of yourself, facing you, to test a baton swing against a hop.
+   * #13: `kind` another unit type (`CrsKind`); a BAC blends in for `blend` seconds when given.
+   */
+  | { action: "crs"; distance: number; kind?: number; blend?: number };
 
 /** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
 export interface InteractPayload {

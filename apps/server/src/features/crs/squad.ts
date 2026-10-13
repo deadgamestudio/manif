@@ -1,6 +1,21 @@
 import type { MapSchema } from "@colyseus/schema";
 import {
   applyImpulse,
+  BAC_BEHAVIOUR,
+  BRAVM_BEHAVIOUR,
+  CrsMount,
+  HEAVY_IMPULSE,
+  bacStalkAt,
+  canRemount,
+  crsRadius,
+  isRiding,
+  leaveBike,
+  mountBike,
+  remount,
+  resolveCircle,
+  revealBac,
+  stepBike,
+  stepWreck,
   CRS_RESPAWN_DELAY,
   CRS_SPAWN_CLEARANCE,
   CRS_STATS,
@@ -66,6 +81,12 @@ const ROTATION_EPSILON = 0.01;
  * members are ordinary bots with the line's behaviour (hold your slot) until
  * it breaks; then they chase like the others. Line members are not counted by
  * `reinforceTo` and are not replaced when taken out.
+ *
+ * Unit types (#13): `spawnBac` slips a plain-clothes BAC into the cortège
+ * (disguised until `revealBac`: any hit, push, stun, splat or burn reveals
+ * it at once), `spawnBravm` brings a BRAV-M bike. The squad does the bike's
+ * bookkeeping: the passenger it drops and picks up again, riders knocked off
+ * or getting off when blocked, the wreck left behind, a bike that rides off.
  */
 export class CrsSquad {
   /** Keep this many bots on the street by replacing those taken out. 0 turns it off (#12). */
@@ -75,6 +96,9 @@ export class CrsSquad {
   private readonly nav: NavGrid;
   private readonly vans: Vec2[];
   private readonly ctx: CrsContext;
+  /** The same as `ctx` with the bikes' own grid, cleared for a bike (#13). */
+  private readonly bikeCtx: CrsContext;
+  private readonly bikeNav: NavGrid;
   /** Room times when a replacement is due. */
   private respawnAt: number[] = [];
   private counter = 0;
@@ -96,13 +120,19 @@ export class CrsSquad {
     private readonly world: CollisionWorld,
     private readonly views: MapSchema<Crs>,
     private readonly behaviour?: CrsBehaviour,
+    /** A knockback the squad gave a bot on its own (#13: riders knocked off a bike, the wreck), for the room to announce. */
+    private readonly onImpulse?: (id: string, res: ImpulseResult) => void,
   ) {
-    // One grid for every unit type, cleared for the widest of them.
+    // One grid for every unit on foot, cleared for the widest of them.
     const clearance = Math.max(...Object.values(CRS_STATS).map((s) => s.radius));
     this.avoid = { ...world };
     this.nav = new NavGrid(this.avoid, clearance);
+    // And one for the bikes (#13), wider: a bike never paths through a gap it can't fit.
+    const bikeClearance = Math.max(clearance, ...Object.values(CRS_STATS).map((s) => s.bike?.radius ?? 0));
+    this.bikeNav = new NavGrid(this.avoid, bikeClearance);
     this.vans = vanDoors(level);
     this.ctx = { world, avoid: this.avoid, nav: this.nav, vans: this.vans, bots: this.bots, now: 0, dt: 0 };
+    this.bikeCtx = { ...this.ctx, nav: this.bikeNav };
   }
 
   get size(): number {
@@ -120,6 +150,7 @@ export class CrsSquad {
     this.avoid.boxes = h && h.boxes.length > 0 ? [...this.world.boxes, ...h.boxes] : this.world.boxes;
     this.avoid.circles = h && h.circles.length > 0 ? [...this.world.circles, ...h.circles] : this.world.circles;
     this.nav.rebuild(this.avoid);
+    this.bikeNav.rebuild(this.avoid);
   }
 
   /**
@@ -188,7 +219,7 @@ export class CrsSquad {
       if (!line.formed) continue;
       for (const bot of line.members) {
         if (!isShieldUp(line, bot)) continue;
-        this.contacts.push({ body: bot.body, bodyRadius: bot.stats.radius, radius: LINE_SHIELD_RADIUS, facing: line.facing });
+        this.contacts.push({ body: bot.body, bodyRadius: crsRadius(bot.kind, bot.mount), radius: LINE_SHIELD_RADIUS, facing: line.facing });
       }
     }
     return this.contacts;
@@ -203,7 +234,7 @@ export class CrsSquad {
   fallenCircles(out: CircleShape[]): CircleShape[] {
     for (const bot of this.bots) {
       if (bot.status !== CrsStatus.Out && !isDown(bot.body)) continue;
-      out.push({ x: bot.body.x, z: bot.body.z, r: bot.stats.radius, hoppable: true, soft: true });
+      out.push({ x: bot.body.x, z: bot.body.z, r: crsRadius(bot.kind, bot.mount), hoppable: true, soft: true });
     }
     return out;
   }
@@ -227,11 +258,141 @@ export class CrsSquad {
     this.byId.set(id, bot);
     const view = new Crs();
     view.kind = kind;
+    view.revealed = bot.revealed;
     // Set explicitly: mirror() skips a rotation that has not changed, and an unset float32 reads undefined on clients.
     view.rotation = bot.rotation;
     this.mirror(bot, view);
     this.views.set(id, view);
     return bot;
+  }
+
+  /**
+   * A BAC in plain clothes (#13) at (x, z), going by `name` (a protester's
+   * default name) until it reveals itself. It blends in for a random time
+   * (`disguise.blendMin`..`blendMax`), or `blend` seconds when given (dev
+   * tests). Null at the MAX_CRS cap.
+   */
+  spawnBac(x: number, z: number, name: string, blend?: number): CrsBot | null {
+    const bot = this.spawn(x, z, CrsKind.Bac);
+    if (!bot) return null;
+    const d = bot.stats.disguise;
+    if (d) bot.stalkAt = blend !== undefined ? this.ctx.now + blend : bacStalkAt(d, this.ctx.now);
+    const view = this.views.get(bot.id);
+    if (view) {
+      view.name = name;
+      this.mirror(bot, view);
+    }
+    return bot;
+  }
+
+  /** A BRAV-M bike with its two riders (#13) at (x, z), about to charge; it rides back there to leave. Null at the cap. */
+  spawnBravm(x: number, z: number): CrsBot | null {
+    const bot = this.spawn(x, z, CrsKind.BravM);
+    if (!bot) return null;
+    mountBike(bot, this.ctx.now);
+    const view = this.views.get(bot.id);
+    if (view) this.mirror(bot, view);
+    return bot;
+  }
+
+  /** BAC (#13): anything that hurts or moves it gives it away. Mirrored by the caller. */
+  private unmask(bot: CrsBot, now: number): void {
+    revealBac(bot, now);
+  }
+
+  /**
+   * After a hit, push or burn on a ridden bike (#13): knocked down or at 0
+   * HP, both riders fall off. The bot becomes the driver on foot (down, with
+   * its full rider HP, so not out), the passenger tumbles off beside it, and
+   * the empty bike skids away along the hit. Returns true if it happened.
+   */
+  private crashIfHit(bot: CrsBot, now: number): boolean {
+    if (!isRiding(bot) || (bot.status !== CrsStatus.Out && !isDown(bot.body))) return false;
+    const vx = bot.body.vx;
+    const vz = bot.body.vz;
+    const speed = Math.hypot(vx, vz);
+    const dirX = speed > 1e-6 ? vx / speed : -Math.sin(bot.rotation);
+    const dirZ = speed > 1e-6 ? vz / speed : -Math.cos(bot.rotation);
+    const x = bot.body.x;
+    const z = bot.body.z;
+    const hadPassenger = leaveBike(bot, now, true);
+    if (hadPassenger) {
+      // Off the other side, tumbling sideways.
+      const p = this.spawnRider(x - dirZ * 0.6, z + dirX * 0.6, bot.rotation);
+      if (p) {
+        const res = applyImpulse(p.body, dirX - dirZ, dirZ + dirX, HEAVY_IMPULSE, "always");
+        this.onImpulse?.(p.id, res);
+        const view = this.views.get(p.id);
+        if (view) this.mirror(p, view);
+      }
+    }
+    this.spawnWreck(x, z, bot.rotation, now, dirX, dirZ);
+    return true;
+  }
+
+  /** A BRAV-M rider on foot at (x, z), clear of the world. Null at the cap. */
+  private spawnRider(x: number, z: number, rotation: number): CrsBot | null {
+    const r = CRS_STATS[CrsKind.BravM].radius;
+    const at = resolveCircle(this.world, x, z, r);
+    const bot = this.spawn(at.x, at.z, CrsKind.BravM);
+    if (bot) bot.rotation = rotation;
+    return bot;
+  }
+
+  /**
+   * The empty bike (#13): lies there for `wreckTime`, skidding along (dirX,
+   * dirZ) when knocked over. Purely for show: none at the cap.
+   */
+  private spawnWreck(x: number, z: number, rotation: number, now: number, dirX: number, dirZ: number, skid = true): void {
+    const bike = CRS_STATS[CrsKind.BravM].bike;
+    if (!bike) return;
+    const at = resolveCircle(this.world, x, z, bike.radius);
+    const wreck = this.spawn(at.x, at.z, CrsKind.BravM);
+    if (!wreck) return;
+    wreck.mount = CrsMount.Wreck;
+    wreck.rotation = rotation;
+    wreck.status = CrsStatus.Out;
+    wreck.statusUntil = now + bike.wreckTime;
+    wreck.body.downTime = bike.wreckTime;
+    if (skid) {
+      const res = applyImpulse(wreck.body, dirX, dirZ, bike.wreckSkid, "never");
+      this.onImpulse?.(wreck.id, res);
+    }
+    const view = this.views.get(wreck.id);
+    if (view) this.mirror(wreck, view);
+  }
+
+  /** Blocked for too long (#13): both riders step off and go on on foot; the bike stays lying there. */
+  private dismount(bot: CrsBot, now: number): void {
+    const x = bot.body.x;
+    const z = bot.body.z;
+    const hadPassenger = leaveBike(bot, now, false);
+    if (hadPassenger) this.spawnRider(x - Math.cos(bot.rotation) * 0.9, z + Math.sin(bot.rotation) * 0.9, bot.rotation);
+    this.spawnWreck(x, z, bot.rotation, now, 0, 0, false);
+  }
+
+  /** The bike stopped by its target (#13): the passenger hops off towards it, with `dropTime` to land a hit or a grab. */
+  private dropPassenger(bike: CrsBot, targetId: string | null, now: number): void {
+    const ride = bike.ride;
+    const stats = CRS_STATS[CrsKind.BravM];
+    if (!ride || !stats.bike) return;
+    bike.mount = CrsMount.Solo;
+    const fx = Math.sin(bike.rotation);
+    const fz = Math.cos(bike.rotation);
+    const off = stats.bike.radius + stats.radius + 0.1;
+    const p = this.spawnRider(bike.body.x + fx * off, bike.body.z + fz * off, bike.rotation);
+    if (!p) {
+      // No room under the cap: nobody to drop, the raid is off.
+      bike.mount = CrsMount.Duo;
+      ride.phase = "leave";
+      ride.phaseAt = now;
+      return;
+    }
+    ride.passengerId = p.id;
+    p.bikeId = bike.id;
+    p.missionUntil = now + stats.bike.dropTime;
+    p.targetId = targetId;
+    p.retargetAt = now + stats.retargetInterval;
   }
 
   /**
@@ -253,7 +414,7 @@ export class CrsSquad {
   *meleeTargets(): Generator<MeleeTarget> {
     for (const bot of this.bots) {
       if (bot.status === CrsStatus.Out) continue;
-      yield { id: bot.id, shape: { type: "circle", x: bot.body.x, z: bot.body.z, r: bot.stats.radius } };
+      yield { id: bot.id, shape: { type: "circle", x: bot.body.x, z: bot.body.z, r: crsRadius(bot.kind, bot.mount) } };
     }
   }
 
@@ -264,6 +425,11 @@ export class CrsSquad {
     const hpBefore = bot.hp;
     const res = hitCrs(bot, fromX, fromZ, damage, now);
     this.recordLineDamage(bot, hpBefore, damage, now);
+    if (res) {
+      this.unmask(bot, now);
+      // Knocked off a bike (#13): the riders are down, not out.
+      if (this.crashIfHit(bot, now)) res.out = false;
+    }
     const view = this.views.get(id);
     if (res && view) this.mirror(bot, view);
     return res;
@@ -280,6 +446,10 @@ export class CrsSquad {
     const hpBefore = bot.hp;
     const res = strikeCrs(bot, dirX, dirZ, damage, impulse, stun, now);
     this.recordLineDamage(bot, hpBefore, damage, now);
+    if (res) {
+      this.unmask(bot, now);
+      if (this.crashIfHit(bot, now)) res.out = false;
+    }
     const view = this.views.get(id);
     if (res && view) this.mirror(bot, view);
     return res;
@@ -307,8 +477,10 @@ export class CrsSquad {
     const bot = this.byId.get(id);
     if (!bot) return false;
     const hpBefore = bot.hp;
-    const out = burnCrs(bot, damage, now);
+    let out = burnCrs(bot, damage, now);
     this.recordLineDamage(bot, hpBefore, damage, now);
+    if (damage > 0 && bot.status !== CrsStatus.Out) this.unmask(bot, now);
+    if (out && this.crashIfHit(bot, now)) out = false;
     const view = this.views.get(id);
     if (view) this.mirror(bot, view);
     return out;
@@ -326,7 +498,11 @@ export class CrsSquad {
    */
   affect(id: string, effect: CrsEffect, duration: number, now: number): boolean {
     const bot = this.byId.get(id);
-    if (!bot || !CRS_EFFECTS[effect](bot, now, duration)) return false;
+    if (!bot) return false;
+    // A BRAV-M riding along (#13): the wind of the ride blows the stink away.
+    if (effect === "stink" && bot.stats.stinkProofRiding === true && isRiding(bot)) return false;
+    if (!CRS_EFFECTS[effect](bot, now, duration)) return false;
+    this.unmask(bot, now);
     this.ctx.now = now;
     const view = this.views.get(id);
     if (view) this.mirror(bot, view);
@@ -337,6 +513,7 @@ export class CrsSquad {
   stun(id: string, now: number, duration?: number): boolean {
     const bot = this.byId.get(id);
     if (!bot || !stunCrs(bot, now, duration)) return false;
+    this.unmask(bot, now);
     const view = this.views.get(id);
     if (view) this.mirror(bot, view);
     return true;
@@ -359,6 +536,10 @@ export class CrsSquad {
     const bot = this.byId.get(id);
     if (!bot || bot.status === CrsStatus.Out) return null;
     const res = applyImpulse(bot.body, dirX, dirZ, strength, mode);
+    if (res.strength > 0) {
+      this.unmask(bot, this.ctx.now);
+      this.crashIfHit(bot, this.ctx.now);
+    }
     const view = this.views.get(id);
     if (view) this.mirror(bot, view);
     return res;
@@ -372,9 +553,12 @@ export class CrsSquad {
   step(now: number, dt: number, host: CrsHost, protesters: () => Vec2[], onLine?: (line: ShieldLine, res: LineStepResult) => void): void {
     this.ctx.now = now;
     this.ctx.dt = dt;
+    this.bikeCtx.now = now;
+    this.bikeCtx.dt = dt;
     for (let i = this.bots.length - 1; i >= 0; i--) {
       const bot = this.bots[i]!;
-      if (bot.status === CrsStatus.Out && now >= bot.statusUntil) this.remove(i, now);
+      if (bot.gone) this.remove(i, now, false);
+      else if (bot.status === CrsStatus.Out && now >= bot.statusUntil) this.remove(i, now);
     }
     // Lines first (#6): breaks, slots, advance and shoves, so members walk to a fresh slot.
     for (const line of this.lines) {
@@ -384,18 +568,49 @@ export class CrsSquad {
     for (let i = this.lines.length - 1; i >= 0; i--) {
       if (this.lines[i]!.members.length === 0) this.lines.splice(i, 1);
     }
-    for (const bot of this.bots) {
-      stepCrs(bot, this.ctx, host, this.behaviourOf(bot));
+    // A copy: a bike may drop a passenger or leave a wreck mid-loop (they start next tick).
+    for (const bot of this.bots.slice()) {
+      if (bot.mount === CrsMount.Wreck) stepWreck(this.world, bot, dt);
+      else if (isRiding(bot)) this.stepRider(bot, now, host);
+      else stepCrs(bot, this.ctx, host, this.behaviourOf(bot));
       const view = this.views.get(bot.id);
       if (view) this.mirror(bot, view);
     }
+    this.remountPassengers(now);
     this.reinforce(now, protesters);
   }
 
-  /** A line member follows its line's orders (until it breaks); every other bot the squad's behaviour. */
+  /** One tick of a ridden bike (#13), and what the squad does about it. */
+  private stepRider(bot: CrsBot, now: number, host: CrsHost): void {
+    // Floored or emptied since its last tick (a slip, a fire): the riders fall off.
+    if (this.crashIfHit(bot, now)) return;
+    const event = stepBike(bot, this.bikeCtx, host);
+    if (event?.type === "drop") this.dropPassenger(bot, event.targetId, now);
+    else if (event?.type === "dismount") this.dismount(bot, now);
+  }
+
+  /** Passengers back at their waiting bike (#13) get on: one bot again, riding off. */
+  private remountPassengers(now: number): void {
+    for (let i = this.bots.length - 1; i >= 0; i--) {
+      const p = this.bots[i]!;
+      if (p.bikeId === null) continue;
+      const bike = this.byId.get(p.bikeId);
+      if (!bike || !canRemount(p, bike, now)) continue;
+      this.remove(i, now, false);
+      remount(bike, now);
+      const view = this.views.get(bike.id);
+      if (view) this.mirror(bike, view);
+    }
+  }
+
+  /** A line member follows its line's orders (until it breaks); a BAC or a BRAV-M its unit's (#13); every other bot the squad's behaviour. */
   private behaviourOf(bot: CrsBot): CrsBehaviour | undefined {
     const line = this.lineOf.get(bot.id);
-    if (!line) return this.behaviour;
+    if (!line) {
+      if (bot.kind === CrsKind.Bac) return BAC_BEHAVIOUR;
+      if (bot.kind === CrsKind.BravM) return BRAVM_BEHAVIOUR;
+      return this.behaviour;
+    }
     let b = this.lineBehaviours.get(line);
     if (!b) {
       b = lineBehaviour(line, this.behaviour);
@@ -404,14 +619,15 @@ export class CrsSquad {
     return b;
   }
 
-  private remove(index: number, now: number): void {
+  /** Remove the bot at `index`. `replace`: false for a bot that left on its own (#13), never replaced. */
+  private remove(index: number, now: number, replace = true): void {
     const bot = this.bots[index]!;
     this.bots.splice(index, 1);
     this.byId.delete(bot.id);
     this.views.delete(bot.id);
     const inLine = this.lineOf.delete(bot.id);
-    // Line members are not replaced: #12 sends new lines.
-    if (this.reinforceTo > 0 && !inLine) this.respawnAt.push(now + CRS_RESPAWN_DELAY);
+    // Line members are not replaced: #12 sends new lines. Nor are other unit types (#13): the waves send them.
+    if (replace && this.reinforceTo > 0 && !inLine && bot.kind === CrsKind.Crs) this.respawnAt.push(now + CRS_RESPAWN_DELAY);
   }
 
   /** Bots that are not part of a line (formed or broken): what `reinforceTo` counts. */
@@ -447,6 +663,9 @@ export class CrsSquad {
     if (view.splatted !== splatted) view.splatted = splatted;
     const stinky = isStinky(bot, this.ctx.now);
     if (view.stinky !== stinky) view.stinky = stinky;
+    // #13: the BAC's disguise and what a BRAV-M rides.
+    if (view.revealed !== bot.revealed) view.revealed = bot.revealed;
+    if (view.mount !== bot.mount) view.mount = bot.mount;
   }
 
   /** Mirror every bot now (after the room moved some, e.g. a member pushed back by a pinned protester). */

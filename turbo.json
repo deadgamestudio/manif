@@ -30,6 +30,12 @@
     "test": {
       "outputs": []
     },
+    "@manif/server#test": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": []
+    },
     "@manif/client#test": {
       "dependsOn": [
         "build"

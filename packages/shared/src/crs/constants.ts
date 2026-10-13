@@ -1,9 +1,11 @@
-// CRS riot police bots (#5). Per-unit stats live in one table so #13 can add
-// unit types (BRAV-M, BAC...) as new rows without touching the AI. Distances in
-// world units, speeds in m/s, durations in seconds of room time.
+// Police bots (#5, #13). Per-unit stats live in one table (`CRS_STATS`): the
+// CRS, the BAC in plain clothes and the BRAV-M on their motorbikes are rows of
+// it, and their type-specific numbers (disguise, bike) sit in the same row.
+// Distances in world units, speeds in m/s, durations in seconds of room time.
 
 import { GRAB_DURATION } from "../health/index.js";
 import { HEAVY_IMPULSE, LIGHT_IMPULSE } from "../physics/index.js";
+import { PLAYER_RADIUS } from "../player/index.js";
 
 /** What a bot is doing, synced as a uint8 (`CrsShape.status`). */
 export const CrsStatus = {
@@ -18,11 +20,82 @@ export const CrsStatus = {
 } as const;
 export type CrsStatus = (typeof CrsStatus)[keyof typeof CrsStatus];
 
-/** Police unit type, synced as a uint8 (`CrsShape.kind`). Only CRS for now; #13 adds the others. */
+/** Police unit type (#13), synced as a uint8 (`CrsShape.kind`). */
 export const CrsKind = {
+  /** Shield, baton, shield lines (#6). Slow and sturdy. */
   Crs: 0,
+  /** Plain clothes: walks in the cortège looking like a protester, then reveals itself and grabs someone. */
+  Bac: 1,
+  /** Motorbike duos: charge in, the passenger hops off to hit or grab, then they ride off. */
+  BravM: 2,
 } as const;
 export type CrsKind = (typeof CrsKind)[keyof typeof CrsKind];
+
+/**
+ * What a BRAV-M bot is riding (#13), synced as a uint8 (`CrsShape.mount`).
+ * Every other unit is always `Foot`. While riding, one bot is the whole bike
+ * (one entity per duo, for the cap and the bandwidth).
+ */
+export const CrsMount = {
+  /** On foot: a normal bot. */
+  Foot: 0,
+  /** The bike with the driver and the passenger. */
+  Duo: 1,
+  /** The bike with only the driver: the passenger got off (or stayed behind). */
+  Solo: 2,
+  /** The empty bike skidding away after a crash or left behind: no rider, status `Out`, removed after a moment. */
+  Wreck: 3,
+} as const;
+export type CrsMount = (typeof CrsMount)[keyof typeof CrsMount];
+
+/** The BAC's disguise (#13): how long it blends in and when it gives itself away. */
+export interface DisguiseStats {
+  /** Blends in for a random time in [blendMin, blendMax] after it appears, keeping near a protester... */
+  blendMin: number;
+  blendMax: number;
+  /** ...about this far from them (edge to edge), so it looks like part of the crowd without bumping into anyone. */
+  followGap: number;
+  /** Then it sidles up to the nearest free protester and reveals itself once its edge is this close. At most `grabReach`, so it grabs on the same tick. */
+  revealRange: number;
+  /** Sidling up for longer than this without getting close: it gives up the act and reveals itself anyway. */
+  stalkMax: number;
+}
+
+/** The BRAV-M motorbike (#13). The riders on foot use the rest of the row. */
+export interface BikeStats {
+  /** Collision radius of the bike while ridden (one circle for the whole bike). */
+  radius: number;
+  /** Riding speed. Protesters walk at 6. */
+  speed: number;
+  /** HP of the bike while ridden. At 0 the riders fall off (they keep their own HP on foot). */
+  hp: number;
+  /** Protesters closer than this are charged. */
+  sight: number;
+  /** The bike brakes and the passenger hops off once the target's edge is this close. */
+  dropRange: number;
+  /** The passenger has this long to land a hit or a grab, then walks back to the bike. */
+  dropTime: number;
+  /** The bike waits this long past `dropTime` for the passenger, then leaves without them. */
+  returnTimeout: number;
+  /** The passenger gets back on within this distance of the bike (edge to edge). */
+  remountReach: number;
+  /** No real progress for this long while riding: the duo gets off and goes on on foot. */
+  blockedTime: number;
+  /** Progress needed in `blockedTime`, world units. */
+  blockedProgress: number;
+  /** A protester the bike runs into is knocked over with this knockback (m/s, a heavy one), no damage and no grab. */
+  ramImpulse: number;
+  /** After a ram, the next one waits this long (the bike stops at the contact in between). */
+  ramCooldown: number;
+  /** Leaving: gone once this close to its exit point... */
+  exitReach: number;
+  /** ...or after this long on the way out, wherever it is. */
+  leaveTimeout: number;
+  /** A crashed or abandoned bike lies there this long, then is removed. */
+  wreckTime: number;
+  /** Speed of the empty bike skidding away when the riders are knocked off, m/s. */
+  wreckSkid: number;
+}
 
 /** Everything that makes one unit type play differently. Change a value here, not in the AI. */
 export interface CrsStats {
@@ -69,6 +142,12 @@ export interface CrsStats {
   outDuration: number;
   /** Time between two tear gas canisters (#7) thrown by one bot. 0: this unit never throws gas. */
   gasCooldown: number;
+  /** Plain-clothes units (BAC, #13): the disguise. Absent: always in uniform. */
+  disguise?: DisguiseStats;
+  /** Motorbike units (BRAV-M, #13): the bike they arrive on. Absent: on foot. */
+  bike?: BikeStats;
+  /** Immune to dog poo stink (#15) while riding: the wind of the ride blows it away. */
+  stinkProofRiding?: boolean;
 }
 
 export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
@@ -97,9 +176,103 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
     outDuration: 3,
     gasCooldown: 12,
   },
+  // The BAC (#13): a protester's size and walk, so the disguise holds (PLAYER_RADIUS, PLAYER_SPEED).
+  // Once revealed: no shield, two hits and it is out, grabs first, barely hits.
+  [CrsKind.Bac]: {
+    radius: PLAYER_RADIUS,
+    speed: 6,
+    maxHp: 2,
+    sight: 20,
+    switchMargin: 3,
+    retargetInterval: 0.5,
+    repathInterval: 0.75,
+    batonRange: 0.6,
+    batonDamage: 10,
+    batonImpulse: 6,
+    batonCooldown: 1.5,
+    grabReach: 0.3,
+    grabCooldown: 4,
+    grabDuration: GRAB_DURATION,
+    dragSpeedFactor: 0.55,
+    stunDuration: 2.5,
+    hitImpulse: LIGHT_IMPULSE,
+    staggerHits: 2,
+    staggerWindow: 1.5,
+    heavyHitImpulse: HEAVY_IMPULSE,
+    outDuration: 3,
+    gasCooldown: 0,
+    disguise: {
+      blendMin: 8,
+      blendMax: 20,
+      followGap: 1.6,
+      revealRange: 0.3,
+      stalkMax: 15,
+    },
+  },
+  // The BRAV-M (#13): the row is for a rider on foot (after the drop, or knocked off);
+  // `bike` is the ride. On foot they hit hard (a baton hit floors) and go home soon.
+  [CrsKind.BravM]: {
+    radius: 0.45,
+    speed: 4.8,
+    maxHp: 3,
+    sight: 24,
+    switchMargin: 3,
+    retargetInterval: 0.5,
+    repathInterval: 0.75,
+    batonRange: 0.8,
+    batonDamage: 20,
+    batonImpulse: 11,
+    batonCooldown: 1.4,
+    grabReach: 0.25,
+    grabCooldown: 3,
+    grabDuration: GRAB_DURATION,
+    dragSpeedFactor: 0.55,
+    stunDuration: 2,
+    hitImpulse: LIGHT_IMPULSE,
+    staggerHits: 3,
+    staggerWindow: 1.5,
+    heavyHitImpulse: HEAVY_IMPULSE,
+    outDuration: 3,
+    gasCooldown: 0,
+    stinkProofRiding: true,
+    bike: {
+      radius: 0.6,
+      speed: 11,
+      hp: 4,
+      sight: 45,
+      dropRange: 2.5,
+      dropTime: 5,
+      returnTimeout: 6,
+      remountReach: 0.5,
+      blockedTime: 1.2,
+      blockedProgress: 0.5,
+      ramImpulse: HEAVY_IMPULSE,
+      ramCooldown: 0.8,
+      exitReach: 1.5,
+      leaveTimeout: 15,
+      wreckTime: 4,
+      wreckSkid: 9,
+    },
+  },
 };
 
-/** Hard cap on bots per room, whatever spawns them (#12 waves included). Keeps the tick and the patches bounded. */
+/** Collision radius of a bot of `kind` riding `mount` (the bike's while ridden or wrecked). */
+export function crsRadius(kind: CrsKind, mount: CrsMount = CrsMount.Foot): number {
+  const s = CRS_STATS[kind];
+  return mount !== CrsMount.Foot && s.bike ? s.bike.radius : s.radius;
+}
+
+/** Full HP of a bot of `kind` riding `mount` (the bike's while ridden), for HP bars. */
+export function crsMaxHp(kind: CrsKind, mount: CrsMount = CrsMount.Foot): number {
+  const s = CRS_STATS[kind];
+  return (mount === CrsMount.Duo || mount === CrsMount.Solo) && s.bike ? s.bike.hp : s.maxHp;
+}
+
+/**
+ * Hard cap on bots per room, whatever spawns them (#12 waves included), all
+ * unit types together (#13): a riding duo is one, a dropped passenger or a
+ * wrecked bike one more. Keeps the tick and the patches bounded.
+ */
 export const MAX_CRS = 24;
 
 /** A CRS taken out is replaced after this long, at a spawn point (until #12 owns spawning). */

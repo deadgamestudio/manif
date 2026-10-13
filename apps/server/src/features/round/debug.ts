@@ -17,6 +17,7 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
   }
   if (m.action === "hold") return { action: "hold" };
   if (m.action === "calm") return { action: "calm" };
+  if (m.action === "clear") return { action: "clear" };
   if (m.action === "water") {
     const radius = Number((m as { radius?: unknown }).radius);
     return Number.isFinite(radius) ? { action: "water", radius: Math.max(0, Math.min(20, radius)) } : null;
@@ -29,8 +30,18 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
     return { action: "fallen", distance: Math.max(0, Math.min(10, distance)), seconds: Math.max(0.1, Math.min(30, seconds)) };
   }
   if (m.action === "crs") {
-    const distance = Number((m as { distance?: unknown }).distance);
-    return Number.isFinite(distance) ? { action: "crs", distance: Math.max(0, Math.min(10, distance)) } : null;
+    const raw = m as { distance?: unknown; kind?: unknown; blend?: unknown };
+    const distance = Number(raw.distance);
+    if (!Number.isFinite(distance)) return null;
+    const kind = Number(raw.kind);
+    const blend = Number(raw.blend);
+    return {
+      action: "crs",
+      distance: Math.max(0, Math.min(40, distance)),
+      // #13: an unknown kind falls back to a CRS in the room.
+      ...(raw.kind !== undefined && Number.isInteger(kind) && kind >= 0 && kind <= 255 && { kind }),
+      ...(raw.blend !== undefined && Number.isFinite(blend) && { blend: Math.max(0, Math.min(60, blend)) }),
+    };
   }
   if (m.action === "time") {
     const seconds = Number(m.seconds);

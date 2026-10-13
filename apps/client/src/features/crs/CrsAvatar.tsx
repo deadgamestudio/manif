@@ -1,11 +1,13 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Vector3, type Group, type MeshStandardMaterial, type Sprite } from "three";
-import { CRS_STATS, CrsKind, CrsStatus } from "@manif/shared";
+import { CrsKind, CrsMount, CrsStatus, crsMaxHp, crsRadius } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
-import { useRagdoll } from "../ragdoll/index.ts";
-import { CRS_LOOKS, StinkCloud, type CrsRig } from "./crsVisuals.tsx";
+import { PROTESTER_RAGDOLL, useRagdoll } from "../ragdoll/index.ts";
+import { NameTag, PlayerAvatar } from "../player/index.ts";
+import { StinkCloud, crsLookFor, type CrsRig } from "./crsVisuals.tsx";
+import { disguiseSource, forgetDisguise } from "./disguise.ts";
 import { BodyFire, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
 
 const FALLEN_ANGLE = Math.PI / 2;
@@ -30,18 +32,56 @@ const HIT_FLASH_MS = 160;
 /** Shield line shove (#6): the shield punches forward and comes back, ms and metres. */
 const SHOVE_MS = 350;
 const SHOVE_REACH = 0.45;
-const UNIFORM = new Color("#1a2a4a");
 const FLASH = new Color("#ffffff");
 const BAR_WIDTH = 0.8;
+/** The BAC's reveal (#13): the placard shown over it for this long, ms, and the little "ta-da" pop. */
+const REVEAL_TAG_MS = 3000;
+const REVEAL_TAG = "C'était un BAC !";
+const REVEAL_POP_MS = 350;
+const REVEAL_POP = 0.35;
+
+/** What decides how a bot is drawn (#13): its kind, what it rides, and a BAC's disguise. */
+function lookKey(id: string): string {
+  const c = net.getCrs(id);
+  if (!c) return "";
+  return `${c.kind}:${c.mount ?? CrsMount.Foot}:${c.revealed === false ? 0 : 1}`;
+}
 
 /**
- * One police bot. Interpolated towards the server state each frame, like
+ * One police bot (#5). Picks how to draw it, and redraws it when that
+ * changes (#13): a disguised BAC is drawn by the protester's own avatar
+ * (`PlayerAvatar`, fed by its bot state), so nothing tells it apart; once
+ * revealed, or for any other unit, `CrsBody` with the look for its kind and
+ * mount (a BRAV-M getting off or knocked off its bike swaps from the bike to
+ * a rider on foot). Only re-renders when the look changes.
+ */
+export function CrsAvatar({ id }: { id: string }) {
+  const [key, setKey] = useState(() => lookKey(id));
+  useFrame(() => {
+    const k = lookKey(id);
+    if (k !== key && k !== "") setKey(k);
+  });
+  const c = net.getCrs(id);
+  if (!c) return null;
+  const kind = c.kind as CrsKind;
+  if (kind === CrsKind.Bac && c.revealed === false) return <BacDisguise key={key} id={id} name={c.name} />;
+  return <CrsBody key={key} id={id} kind={kind} mount={(c.mount ?? CrsMount.Foot) as CrsMount} />;
+}
+
+/** A BAC in plain clothes (#13): a protester like any other, same avatar, placard and HP bar. */
+function BacDisguise({ id, name }: { id: string; name: string }) {
+  useEffect(() => () => forgetDisguise(id), [id]);
+  return <PlayerAvatar id={id} name={name} isLocal={false} source={disguiseSource} />;
+}
+
+/**
+ * One police bot's body. Interpolated towards the server state each frame, like
  * PlayerAvatar. Ragdolls while down or out (#26, or tips over when too many
- * ragdolls are playing), wobbles while stunned,
+ * ragdolls are playing, or always for a bike), wobbles while stunned,
  * tugs with both arms while grabbing, swings its baton on the server's swing
  * event, flashes on a protester's hit. All in useFrame: no React state per frame.
  */
-export function CrsAvatar({ id }: { id: string }) {
+function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMount }) {
   const group = useRef<Group>(null);
   const tilt = useRef<Group>(null);
   const yaw = useRef<Group>(null);
@@ -59,11 +99,16 @@ export function CrsAvatar({ id }: { id: string }) {
   const stinkPhase = useRef(0);
   const bar = useRef<Group>(null);
   const barFill = useRef<Sprite>(null);
-  // The kind never changes for a bot; read it once.
-  const [kind] = useState(() => (net.getCrs(id)?.kind ?? CrsKind.Crs) as CrsKind);
-  const look = CRS_LOOKS[kind] ?? CRS_LOOKS[CrsKind.Crs];
-  const stats = CRS_STATS[kind] ?? CRS_STATS[CrsKind.Crs];
-  const ragdoll = useRagdoll(look.ragdoll);
+  // Kind and mount are fixed for this body (CrsAvatar remounts it when they change).
+  const look = crsLookFor(kind, mount);
+  const radius = crsRadius(kind, mount);
+  const maxHp = crsMaxHp(kind, mount);
+  const [uniform] = useState(() => new Color(look.color));
+  // A bike has no ragdoll: it tips over (the hook still needs a look; it is never started).
+  const ragdoll = useRagdoll(look.ragdoll ?? PROTESTER_RAGDOLL);
+  /** A revealed BAC (#13): when this body appeared, for the placard and the pop. */
+  const [shownAt] = useState(() => performance.now());
+  const revealTag = useRef<Group>(null);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -91,7 +136,7 @@ export function CrsAvatar({ id }: { id: string }) {
 
     // Fall over like a bowling pin, along the last push.
     const lying = c.down || c.status === CrsStatus.Out;
-    const ragdolling = ragdoll.update(dt, lying, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id));
+    const ragdolling = ragdoll.update(dt, lying && look.ragdoll !== null, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id));
     t.visible = !ragdolling;
     if (ragdolling) fall.current = 0;
     else if (lying && fall.current < 0.3) {
@@ -105,7 +150,15 @@ export function CrsAvatar({ id }: { id: string }) {
     if (Math.abs(target - fall.current) < 1e-3) fall.current = target;
     const angle = fall.current * FALLEN_ANGLE;
     t.quaternion.setFromAxisAngle(fallAxis, angle);
-    t.position.y = Math.sin(angle) * stats.radius;
+    t.position.y = Math.sin(angle) * radius;
+
+    // The BAC's reveal (#13): a quick pop and its placard for a moment.
+    if (kind === CrsKind.Bac) {
+      const age = performance.now() - shownAt;
+      const pop = age < REVEAL_POP_MS ? 1 + REVEAL_POP * Math.sin((age / REVEAL_POP_MS) * Math.PI) : 1;
+      g.scale.setScalar(pop);
+      if (revealTag.current) revealTag.current.visible = age < REVEAL_TAG_MS;
+    }
 
     // Thrown-item statuses (#15): a red visor, a green cloud. A splatted CRS also wobbles like a stunned one.
     if (splat.current) splat.current.visible = c.splatted === true;
@@ -161,12 +214,12 @@ export function CrsAvatar({ id }: { id: string }) {
     const flash = hitAt === undefined ? 0 : Math.max(0, 1 - (performance.now() - hitAt) / HIT_FLASH_MS);
     const m = bodyMat.current;
     if (m) {
-      m.color.copy(UNIFORM).lerp(FLASH, flash);
+      m.color.copy(uniform).lerp(FLASH, flash);
       ragdoll.setColor(m.color);
     }
 
     // HP bar only once hurt.
-    const ratio = Math.max(0, Math.min(1, c.hp / stats.maxHp));
+    const ratio = Math.max(0, Math.min(1, c.hp / maxHp));
     if (bar.current) bar.current.visible = ratio < 1 && c.status !== CrsStatus.Out;
     const f = barFill.current;
     if (f && ratio > 0) {
@@ -183,8 +236,13 @@ export function CrsAvatar({ id }: { id: string }) {
           <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} />
         </group>
       </group>
-      {ragdoll.view}
+      {look.ragdoll && ragdoll.view}
       <StinkCloud group={stink} height={look.height} />
+      {kind === CrsKind.Bac && (
+        <group ref={revealTag}>
+          <NameTag name={REVEAL_TAG} isLocal y={look.height + 0.55} />
+        </group>
+      )}
       {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
       <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} anchor={(out) => ragdoll.torso(out)} />
       <group ref={bar} position-y={look.height + 0.4} visible={false}>
