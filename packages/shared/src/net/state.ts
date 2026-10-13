@@ -5,18 +5,7 @@
 import type { PlayerStatus } from "../health/index.js";
 import type { CrsKind, CrsStatus } from "../crs/index.js";
 import type { ThrowableKind } from "../throwable/index.js";
-
-/**
- * Room phase, synced as a uint8.
- * #12 turns this into the full round lifecycle (waiting, marching, ended).
- */
-export const Phase = {
-  /** Players gather on the lobby screen; the host can start. */
-  Lobby: 0,
-  /** Everyone is in the street. */
-  Playing: 1,
-} as const;
-export type Phase = (typeof Phase)[keyof typeof Phase];
+import type { Phase, RoundResult } from "../round/index.js";
 
 export interface PlayerShape {
   x: number;
@@ -131,7 +120,14 @@ export interface StreetStateShape {
   gas: SyncedMap<GasCloudShape>;
   /** Tear gas canisters in flight by id (#7). */
   canisters: SyncedMap<CanisterShape>;
+  /** Round phase (#12): waiting (lobby screen), marching, ended. */
   phase: Phase;
+  /** Whole seconds left: of the march while marching, of the end screen while ended. */
+  timeLeft: number;
+  /** The cortège's front, 0..100 along the street (#12). */
+  progress: number;
+  /** How the last round ended (#12). Stays set through `waiting` until the next march starts. */
+  result: RoundResult;
   /** Session id of the host (who may start), or "" when the room is empty. */
   hostId: string;
 }

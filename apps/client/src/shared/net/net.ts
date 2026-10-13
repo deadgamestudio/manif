@@ -7,6 +7,7 @@ import {
   Phase,
   PlayerStatus,
   ROOM_NAME,
+  RoundResult,
   ServerMessage,
   normalizeMove,
   type CanisterShape,
@@ -14,6 +15,7 @@ import {
   type GasCloudShape,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
+  type DebugRoundPayload,
   type GroundItemShape,
   type ProjectileShape,
   type ThrowPayload,
@@ -28,6 +30,7 @@ import {
   type SyncedMap,
   type ShoveEvent,
   type SwingEvent,
+  type RoundEndEvent,
 } from "@manif/shared";
 import { setInviteUrl } from "./invite.ts";
 
@@ -161,6 +164,26 @@ function setGasIds(clouds: readonly string[], canisters: readonly string[]) {
   for (const listener of gasListeners) listener();
 }
 
+/**
+ * The round (#12): timer, progress and result, kept out of NetSnapshot so the
+ * once-a-second countdown re-renders only the HUD, not the game. `end` is the
+ * last ServerMessage.RoundEnd seen in this room (null after joining). The
+ * object is replaced (never mutated) on change, for useSyncExternalStore.
+ */
+export interface RoundView {
+  timeLeft: number;
+  progress: number;
+  result: RoundResult;
+  end: RoundEndEvent | null;
+}
+const NO_ROUND: RoundView = { timeLeft: 0, progress: 0, result: RoundResult.None, end: null };
+let roundView: RoundView = NO_ROUND;
+const roundListeners = new Set<() => void>();
+function setRound(patch: Partial<RoundView>) {
+  roundView = { ...roundView, ...patch };
+  for (const listener of roundListeners) listener();
+}
+
 /** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
 let generation = 0;
 
@@ -175,6 +198,7 @@ function clearEffects() {
   setItemIds([], []);
   gasSeenAt.clear();
   setGasIds([], []);
+  setRound(NO_ROUND);
 }
 
 function update(patch: Partial<NetSnapshot>) {
@@ -279,7 +303,24 @@ function attach(joined: ClientRoom, gen: number) {
     gasSeenAt.delete(`can:${id}`);
     refreshGas(id);
   });
-  callbacks.listen("phase", refresh);
+  callbacks.listen("phase", () => {
+    // A new phase starts from no held input on the server (#12): forget the
+    // last direction sent, or pressing the same key again would not be sent.
+    lastSent = { x: 0, z: 0 };
+    refresh();
+  });
+  const refreshRound = () => {
+    if (gen !== generation) return;
+    const state = joined.state as ClientState | undefined;
+    if (!state) return;
+    setRound({ timeLeft: state.timeLeft ?? 0, progress: state.progress ?? 0, result: (state.result ?? RoundResult.None) as RoundResult });
+  };
+  callbacks.listen("timeLeft", refreshRound);
+  callbacks.listen("progress", refreshRound);
+  callbacks.listen("result", refreshRound);
+  joined.onMessage(ServerMessage.RoundEnd, (event: RoundEndEvent) => {
+    if (gen === generation) setRound({ end: event });
+  });
   callbacks.listen("hostId", refresh);
 
   joined.onMessage(ServerMessage.Impulse, (event: ImpulseEvent) => {
@@ -441,6 +482,17 @@ export const net = {
     return () => gasListeners.delete(listener);
   },
 
+  /** Call `listener` when the round timer, progress or result changes, or a round ends (#12). */
+  subscribeRound(listener: () => void): () => void {
+    roundListeners.add(listener);
+    return () => roundListeners.delete(listener);
+  },
+
+  /** The round as last synced (#12). Same object until something changes. */
+  getRound(): RoundView {
+    return roundView;
+  },
+
   /** Ids of the tear gas clouds (#7). Same array until one is added or removed. */
   getGasIds(): readonly string[] {
     return gasIds;
@@ -487,7 +539,7 @@ export const net = {
    * the cooldown. Nothing happens while we can't act.
    */
   sendAttack() {
-    if (!room || room.state.phase !== Phase.Playing) return;
+    if (!room || room.state.phase !== Phase.Marching) return;
     const me = room.state.players.get(room.sessionId);
     if (!me || me.down || me.status !== PlayerStatus.Free) return;
     const now = performance.now();
@@ -505,7 +557,7 @@ export const net = {
    * can't act or carry nothing.
    */
   sendThrow(x: number, z: number) {
-    if (!room || room.state.phase !== Phase.Playing) return;
+    if (!room || room.state.phase !== Phase.Marching) return;
     const me = room.state.players.get(room.sessionId);
     if (!me || me.down || me.status !== PlayerStatus.Free || !me.carrying) return;
     const now = performance.now();
@@ -521,7 +573,7 @@ export const net = {
    * shows nothing. Not sent while we can't act.
    */
   sendDodge() {
-    if (!room || room.state.phase !== Phase.Playing) return;
+    if (!room || room.state.phase !== Phase.Marching) return;
     const me = room.state.players.get(room.sessionId);
     if (!me || me.down || me.status !== PlayerStatus.Free) return;
     room.send(ClientMessage.Dodge);
@@ -533,7 +585,7 @@ export const net = {
    * never be lost or a rescue would keep going.
    */
   sendInteract(held: boolean) {
-    if (!room || room.state.phase !== Phase.Playing) return;
+    if (!room || room.state.phase !== Phase.Marching) return;
     const payload: InteractPayload = { held };
     room.send(ClientMessage.Interact, payload);
   },
@@ -559,7 +611,7 @@ export const net = {
     return connect((client) => client.joinById<ClientState>(code, options));
   },
 
-  /** Host only (the server checks): lobby -> street for everyone. */
+  /** Host only (the server checks): from the lobby screen (`waiting`), start the march for everyone (#12). */
   start() {
     room?.send(ClientMessage.Start);
   },
@@ -572,6 +624,11 @@ export const net = {
   /** DEBUG (#3), dev builds only: hurt or grab yourself. The server refuses it in production. */
   debugHealth(payload: DebugHealthPayload) {
     if (import.meta.env.DEV) room?.send(ClientMessage.DebugHealth, payload);
+  },
+
+  /** DEBUG (#12), dev builds only: jump down the street or cut the round timer. The server refuses it in production. */
+  debugRound(payload: DebugRoundPayload) {
+    if (import.meta.env.DEV) room?.send(ClientMessage.DebugRound, payload);
   },
 
   /** Leave the room (or cancel a join in flight) and go back to the homepage. */

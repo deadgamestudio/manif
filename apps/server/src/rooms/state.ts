@@ -1,5 +1,5 @@
 import { schema, t, type SchemaType } from "@colyseus/schema";
-import { Phase } from "@manif/shared";
+import { Phase, RoundResult } from "@manif/shared";
 import { Player } from "../features/player/index.js";
 import { Prop } from "../features/prop/index.js";
 import { Crs } from "../features/crs/index.js";
@@ -24,8 +24,14 @@ export const StreetState = schema(
     gas: t.map(GasCloudView),
     /** Tear gas canisters in flight (#7), by server-made id (the cloud keeps it). Set once at the throw. */
     canisters: t.map(CanisterView),
-    /** See `Phase` in @manif/shared. #12 grows this into the round lifecycle. */
-    phase: t.uint8().default(Phase.Lobby),
+    /** Round phase (#12), see `Phase` in @manif/shared: waiting (the lobby screen), marching, ended. */
+    phase: t.uint8().default(Phase.Waiting),
+    /** Whole seconds left (#12): of the march while marching, of the end screen while ended. Changes once a second. */
+    timeLeft: t.uint16().default(0),
+    /** The cortège's front (#12), 0..100 from the start to the Préfecture. */
+    progress: t.uint8().default(0),
+    /** How the last round ended (#12), see `RoundResult`. Kept through waiting for the lobby. */
+    result: t.uint8().default(RoundResult.None),
     /** Session id of the host, who alone can start. */
     hostId: t.string(),
   },

@@ -50,11 +50,10 @@ const ROTATION_EPSILON = 0.01;
  * is the pure `stepCrs` from @manif/shared; the room supplies a `CrsHost` for
  * the effects on protesters.
  *
- * Spawning: `spawn` puts one bot at a point, under the MAX_CRS cap.
- * `spawnAtStart` places the first wave when the host starts. Until the round
- * loop (#12) exists, a bot taken out is replaced after CRS_RESPAWN_DELAY,
- * keeping `reinforceTo` bots on the street; #12 sets `reinforceTo` to 0 and
- * calls `spawn` itself for its waves.
+ * Spawning: `spawn` puts one bot at a point, under the MAX_CRS cap. The
+ * round (#12) calls `spawn` and `spawnLine` itself for its waves and keeps
+ * `reinforceTo` at 0. With `reinforceTo` above 0, a bot taken out is replaced
+ * after CRS_RESPAWN_DELAY, keeping that many lone bots on the street.
  *
  * Shield lines (#6): `spawnLine` puts a whole line across the street. Its
  * members are ordinary bots with the line's behaviour (hold your slot) until
@@ -191,17 +190,6 @@ export class CrsSquad {
     this.mirror(bot, view);
     this.views.set(id, view);
     return bot;
-  }
-
-  /** The first wave when the host starts: one bot on each of the level's first `count` spawn points. */
-  spawnAtStart(count: number): void {
-    const points = this.level.crsSpawns;
-    for (let i = 0; i < count && points.length > 0; i++) {
-      const p = points[i % points.length]!;
-      // A second lap around the points shifts sideways so bots don't stack.
-      const lap = Math.floor(i / points.length);
-      this.spawn(p.x - Math.sign(p.x || 1) * lap * 1.2, p.z);
-    }
   }
 
   /** What a protester's swing can land on: every bot not out, as a circle. */

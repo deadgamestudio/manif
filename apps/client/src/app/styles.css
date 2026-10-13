@@ -529,3 +529,135 @@ body,
   font-size: 40px;
   text-transform: uppercase;
 }
+
+/* ---------- March round (#12) ---------- */
+
+/* Timer and progress bar, bottom centre while marching (the top-left HUD can be wide). */
+.round-hud {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.55);
+  color: #f2f2f2;
+  font: 13px/1.4 system-ui, sans-serif;
+  pointer-events: none;
+  user-select: none;
+}
+
+.round-timer {
+  min-width: 3.2em;
+  font-family: var(--font-placard);
+  font-size: 22px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.round-timer[data-low] {
+  color: #ff5a4f;
+}
+
+.round-progress {
+  position: relative;
+  width: min(320px, 50vw);
+  height: 14px;
+  border: 2px solid #141414;
+  border-radius: 4px;
+  background: #3a3a3a;
+  overflow: hidden;
+}
+
+.round-progress-fill {
+  height: 100%;
+  background: var(--hi-vis);
+  transition: width 0.3s ease-out;
+}
+
+.round-progress-end {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 10px;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* End screen over the frozen street. */
+.round-end {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 0.45);
+}
+
+.round-end-card {
+  max-width: 460px;
+  padding: 20px 24px;
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  background: var(--cloth);
+  color: var(--ink);
+  font: 15px/1.4 var(--font-body);
+  text-align: center;
+  transform: rotate(-1.5deg);
+}
+
+.round-end-title {
+  margin: 0;
+  font-family: var(--font-placard);
+  font-size: 48px;
+  color: var(--paint-red);
+  text-transform: uppercase;
+  text-shadow: 3px 3px 0 var(--ink);
+}
+
+.round-end[data-won] .round-end-title {
+  color: var(--hi-vis);
+}
+
+.round-end-line,
+.round-end-time {
+  margin: 6px 0;
+  font-family: var(--font-marker);
+}
+
+.round-end-awards {
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.round-end-unit {
+  color: var(--muted);
+}
+
+.round-end-next {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Lobby: how the last round ended. */
+.last-round {
+  margin: 0;
+  padding: 8px 14px;
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  background: var(--cloth);
+  color: var(--ink);
+  font-family: var(--font-marker);
+}
+
+.last-round[data-won] {
+  background: var(--hi-vis);
+}

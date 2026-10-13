@@ -141,7 +141,7 @@ const propSlots: PropSlot[] = [
   prop("car-3", "car", -6, -70),
 ];
 
-/** CRS spawn points (#5): in the side-street gaps and ahead in the street. The first CRS_COUNT are used at the start. */
+/** CRS spawn points (#5): in the side-street gaps and ahead in the street. The round's waves (#12) pick the ones ahead of the cortège. */
 const crsSpawns = [
   { x: 10.8, z: 77 },
   { x: -10.8, z: 67 },
@@ -156,10 +156,11 @@ const crsSpawns = [
 ];
 
 /**
- * Where shield lines form (#6), one line each when the march starts. Each
- * faces the cortège (+Z) and advances towards it once protesters come close.
- * The first one waits after the first stretch of street; the second guards
- * the Préfecture end.
+ * Where shield lines form (#6): the round's waves (#12) put each line on the
+ * nearest one far enough ahead of the cortège (z 54 at the start, z -38 at
+ * progress 0.4). Each faces the cortège (+Z) and advances towards it once
+ * protesters come close. The first one waits after the first stretch of
+ * street; the second guards the Préfecture end.
  */
 const lineSpawns = [
   { x: 0, z: 54 },

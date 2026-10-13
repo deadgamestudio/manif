@@ -1,7 +1,9 @@
+import type { RoundEndEvent } from "../round/index.js";
+
 /** Message type names sent from client to server. */
 export const ClientMessage = {
   Move: "move",
-  /** Host only: leave the lobby and start the march. No payload. */
+  /** Host only: from `waiting` (the lobby screen), start the march (#12). No payload. */
   Start: "start",
   /**
    * Swing at whatever is in front (#4). No payload: the server uses its own
@@ -40,6 +42,12 @@ export const ClientMessage = {
    * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) exist.
    */
   DebugHealth: "debug:health",
+  /**
+   * DEBUG, dev builds only (#12): jump down the street or cut the round timer,
+   * to test waves, the win and the timeout without an 8-minute march.
+   * The server ignores it when NODE_ENV is "production".
+   */
+  DebugRound: "debug:round",
 } as const;
 export type ClientMessage = (typeof ClientMessage)[keyof typeof ClientMessage];
 
@@ -58,7 +66,19 @@ export interface ClientMessagePayloads {
   [ClientMessage.Throw]: ThrowPayload;
   [ClientMessage.DebugKnockback]: DebugKnockbackPayload;
   [ClientMessage.DebugHealth]: DebugHealthPayload;
+  [ClientMessage.DebugRound]: DebugRoundPayload;
 }
+
+/**
+ * DEBUG payload (#12). `teleport` puts yourself in the middle of the street at
+ * `progress` (0..1, 1 is inside the Préfecture zone); `time` sets the round
+ * timer to `seconds`; `hold` keeps the current round from ending (no win or
+ * loss) until the next start, for scripted tests of other features.
+ */
+export type DebugRoundPayload =
+  | { action: "teleport"; progress: number }
+  | { action: "time"; seconds: number }
+  | { action: "hold" };
 
 /** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
 export interface InteractPayload {
@@ -95,6 +115,8 @@ export const ServerMessage = {
   Hit: "hit",
   /** Shield line members (#6) shoved protesters: lets clients thrust their shields. The pushes come as Impulse events. */
   Shove: "shove",
+  /** The round just ended (#12): result, time and per-player numbers for the end screen. Sent once; not in Schema. */
+  RoundEnd: "round:end",
 } as const;
 export type ServerMessage = (typeof ServerMessage)[keyof typeof ServerMessage];
 
@@ -142,6 +164,7 @@ export interface ShoveEvent {
 
 export interface ServerMessagePayloads {
   [ServerMessage.Shove]: ShoveEvent;
+  [ServerMessage.RoundEnd]: RoundEndEvent;
   [ServerMessage.Impulse]: ImpulseEvent;
   [ServerMessage.Swing]: SwingEvent;
   [ServerMessage.Hit]: HitEvent;
