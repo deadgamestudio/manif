@@ -1,6 +1,6 @@
 import { Room, type Client } from "@colyseus/core";
 import {
-  CRS_COUNT,
+  CRS_SPAWN_CLEARANCE,
   ClientMessage,
   DEBUG_DAMAGE,
   MELEE_CRS_DAMAGE,
@@ -31,7 +31,21 @@ import {
   pickHost,
   resolveCircle,
   respawnPoint,
-  spawnPoint,
+  ROUND_WAVES,
+  RoundResult,
+  clearSpawnPoint,
+  createRound,
+  frontProgress,
+  roundOutcome,
+  startRound,
+  stepRound,
+  syncedProgress,
+  syncedSeconds,
+  waveChaserPoints,
+  waveLinePoint,
+  wavesDue,
+  type RoundEndEvent,
+  type RoundWave,
   type HitEvent,
   type ImpulseEvent,
   type InteractPayload,
@@ -61,6 +75,7 @@ import { CrsSquad } from "../features/crs/index.js";
 import { Rescues } from "../features/rescue/index.js";
 import { Throwables } from "../features/throwable/index.js";
 import { Gas } from "../features/gas/index.js";
+import { DEBUG_ROUND_ENABLED, RoundStats, parseDebugRound } from "../features/round/index.js";
 import { StreetState } from "./state.js";
 
 // The level is static shared data, imported by the client too. It is not synced.
@@ -70,7 +85,9 @@ const SWING_OBSTACLES = levelWorld(LEVEL);
 const NO_INPUT: MoveInput = { x: 0, z: 0 };
 
 /**
- * One lobby, then one street. Created by `client.create()` and joined by code
+ * One lobby and its street, round after round (#12): `waiting` (the lobby
+ * screen) -> host starts -> `marching` -> win or lose -> `ended` (results) ->
+ * the street is reset -> `waiting` again. Created by `client.create()` and joined by code
  * with `client.joinById()`; it marks itself private so `joinOrCreate` never
  * drops strangers in. The room id is the lobby code.
  */
@@ -98,6 +115,17 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * Every health timer uses it (never Date.now()), so they pause with the sim.
    */
   private now = 0;
+  /**
+   * The round (#12): phase, timers, result and which waves fired. Pure state
+   * stepped by `stepRound`; phase, whole seconds and result are mirrored into Schema.
+   */
+  private round = createRound();
+  /** Per-player numbers for the end screen (#12). Server-only, sent once at the end. */
+  private roundStats = new RoundStats();
+  /** The cortège's front this round, 0..1 (the last value while nobody is free). Synced as `state.progress`. */
+  private front = 0;
+  /** DEBUG (#12, dev only): this round cannot end. Cleared by the next start. */
+  private roundHeld = false;
 
   override maxClients = MAX_PLAYERS;
   override state = new StreetState();
@@ -169,7 +197,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // Still recorded while knocked down or not free, so the held direction applies on getting up
     // or respawning; step() ignores it until then.
     [ClientMessage.Move]: (client: Client, message: unknown) => {
-      if (this.state.phase !== Phase.Playing) return;
+      if (this.state.phase !== Phase.Marching) return;
       const m = (message ?? {}) as Partial<MoveInput>;
       this.moveInputs.set(client.sessionId, normalizeMove(Number(m.x), Number(m.z)));
     },
@@ -177,41 +205,41 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // Swing (#4). No payload is read: the server swings from its own position
     // and facing, and owns the cooldown, so a tampered client gains nothing.
     [ClientMessage.Attack]: (client: Client) => {
-      if (this.state.phase !== Phase.Playing) return;
+      if (this.state.phase !== Phase.Marching) return;
       this.attack(client);
     },
 
     // Dodge (#9). No payload: the server uses the held move direction (or the
     // facing) and owns the cooldown and the state checks.
     [ClientMessage.Dodge]: (client: Client) => {
-      if (this.state.phase !== Phase.Playing) return;
+      if (this.state.phase !== Phase.Marching) return;
       this.dodge(client.sessionId);
     },
 
     // Throw the carried item (#8) along the aim. Only a direction: the server
     // re-normalizes it, checks the thrower, and flies the projectile itself.
     [ClientMessage.Throw]: (client: Client, message: unknown) => {
-      if (this.state.phase !== Phase.Playing) return;
+      if (this.state.phase !== Phase.Marching) return;
       this.throwItem(client, message);
     },
 
     // Interact (E), on press and on release. No target: the server picks it (#10 rescue, else #8 pick-up).
     [ClientMessage.Interact]: (client: Client, message: unknown) => {
-      if (this.state.phase !== Phase.Playing) return;
+      if (this.state.phase !== Phase.Marching) return;
       const held = (message as Partial<InteractPayload> | null)?.held === true;
       this.interact(client.sessionId, held);
     },
 
-    // Game rule: only the host starts, and only from the lobby.
+    // Game rule: only the host starts, and only from `waiting` (the lobby screen).
     [ClientMessage.Start]: (client: Client) => {
-      if (client.sessionId !== this.state.hostId || this.state.phase !== Phase.Lobby) return;
+      if (client.sessionId !== this.state.hostId || this.state.phase !== Phase.Waiting) return;
       this.startMarch();
     },
 
     // DEBUG (#2): dev-only knockback trigger, until CRS (#5) can be hit (melee #4 hits props only). Not registered in production.
     ...(DEBUG_KNOCKBACK_ENABLED && {
       [ClientMessage.DebugKnockback]: (client: Client, message: unknown) => {
-        if (this.state.phase !== Phase.Playing) return;
+        if (this.state.phase !== Phase.Marching) return;
         const self = this.state.players.get(client.sessionId);
         if (!self) return;
         const plan = planDebugKnockback(client.sessionId, self, this.state.players.entries(), message);
@@ -222,10 +250,21 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // DEBUG (#3): dev-only "hurt me" / "grab me", until CRS (#5) exist.
     ...(DEBUG_HEALTH_ENABLED && {
       [ClientMessage.DebugHealth]: (client: Client, message: unknown) => {
-        if (this.state.phase !== Phase.Playing) return;
+        if (this.state.phase !== Phase.Marching) return;
         const action = parseDebugHealth(message);
         if (action === "damage") this.damagePlayer(client.sessionId, DEBUG_DAMAGE);
         else if (action === "grab") this.grabPlayer(client.sessionId);
+      },
+    }),
+
+    // DEBUG (#12): dev-only jump down the street or round timer cut, to test waves, the win and the timeout.
+    ...(DEBUG_ROUND_ENABLED && {
+      [ClientMessage.DebugRound]: (client: Client, message: unknown) => {
+        if (this.state.phase !== Phase.Marching) return;
+        const cmd = parseDebugRound(message);
+        if (cmd?.action === "time") this.round.timeLeft = cmd.seconds;
+        else if (cmd?.action === "teleport") this.debugTeleport(client.sessionId, cmd.progress);
+        else if (cmd?.action === "hold") this.roundHeld = true;
       },
     }),
   };
@@ -233,21 +272,24 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   override onCreate() {
     // Invite only: reachable by joinById(code), never by joinOrCreate/join.
     void this.setPrivate(true);
-    this.props.reset(this.state.props);
+    // A fresh room looks exactly like the street after a reset (#12).
+    this.resetStreet();
     this.setFixedTimestep((ctx) => this.step(ctx.dt), TICK_RATE);
   }
 
   override onJoin(client: Client, options?: LobbyJoinOptions) {
     const player = new Player();
     player.name = nameOrDefault(options?.name);
-    this.placeAtSpawn(client.sessionId, player);
     this.healths.reset(client.sessionId, player);
     this.state.players.set(client.sessionId, player);
+    // Mid-round (#12): a fresh protester at the rear of the cortège; it counts
+    // towards the win threshold from now on. Before a round: the start zone.
+    if (this.state.phase === Phase.Waiting) this.placeAtSpawn(client.sessionId, player);
+    else this.placeAtRear(client.sessionId, player);
     this.moveInputs.set(client.sessionId, { x: 0, z: 0 });
     this.joinOrder.set(client.sessionId, this.joinCounter++);
     // The creator is the first to join, so becomes host.
     if (!this.state.hostId) this.state.hostId = client.sessionId;
-    // A late joiner while playing simply spawns in the street (at the rear once #12 exists).
     console.log(
       `[street ${this.roomId}] join ${client.sessionId} "${player.name}" (${this.clients.length}/${MAX_PLAYERS})`,
     );
@@ -269,6 +311,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.gas.remove(client.sessionId);
     this.protesterViews.delete(client.sessionId);
     this.joinOrder.delete(client.sessionId);
+    this.roundStats.remove(client.sessionId);
     if (this.state.hostId === client.sessionId) {
       this.state.hostId = pickHost(Array.from(this.joinOrder, ([id, joinedAt]) => ({ id, joinedAt })));
       if (this.state.hostId) console.log(`[street ${this.roomId}] host -> ${this.state.hostId}`);
@@ -276,8 +319,34 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     console.log(`[street ${this.roomId}] leave ${client.sessionId}`);
   }
 
-  /** Lobby -> street, everyone at once. #12 replaces this with the round lifecycle. */
+  /** Waiting -> marching (#12), everyone at once from a clean street, with the opening wave. */
   private startMarch() {
+    this.resetStreet();
+    if (!startRound(this.round)) return;
+    this.roundHeld = false;
+    this.roundStats.clear();
+    this.updateFront();
+    this.syncRound();
+    console.log(`[street ${this.roomId}] start (${this.state.players.size} players)`);
+  }
+
+  /**
+   * The whole street back to a fresh room (#12): no CRS, gas, items in flight
+   * or grabs; props whole; the level's pavés back on the ground; every
+   * protester in the start zone with full HP, clear of the props put back, and
+   * no cooldown, rescue or held input left over. Used when a round ends and
+   * again when the next one starts.
+   */
+  private resetStreet() {
+    this.rescues.clear();
+    this.props.reset(this.state.props);
+    this.crs.clear();
+    this.crs.reinforceTo = 0;
+    this.crs.worldChanged();
+    this.throwables.reset(LEVEL.items);
+    this.gas.reset();
+    this.meleeCooldowns.clear();
+    this.dodgeCooldowns.clear();
     this.state.players.forEach((player, sessionId) => {
       this.placeAtSpawn(sessionId, player);
       this.healths.reset(sessionId, player);
@@ -286,27 +355,98 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       player.gassed = false;
       this.moveInputs.set(sessionId, { x: 0, z: 0 });
     });
-    this.rescues.clear();
-    this.props.reset(this.state.props);
-    this.throwables.reset(LEVEL.items);
-    this.gas.reset();
-    this.crs.worldChanged();
-    this.meleeCooldowns.clear();
-    this.dodgeCooldowns.clear();
-    // CRS (#5): the first wave on the level's spawn points, and replacements
-    // for those taken out. #12 replaces this with waves that grow with progress.
-    this.crs.clear();
-    this.crs.reinforceTo = CRS_COUNT;
-    this.crs.spawnAtStart(CRS_COUNT);
-    // Shield lines (#6): one per point in the level. #12 will send them in waves.
-    for (const p of LEVEL.lineSpawns) this.crs.spawnLine(p.x, p.z);
-    this.state.phase = Phase.Playing;
-    console.log(`[street ${this.roomId}] start (${this.state.players.size} players)`);
+    this.front = 0;
+    this.state.progress = 0;
   }
 
-  /** Random point in the start zone, already pushed clear of obstacles, facing the Préfecture. */
+  /**
+   * The cortège's front (#12) after the protesters moved: synced as a 0..100
+   * bar, and every wave whose threshold it crossed fires (once per round).
+   */
+  private updateFront() {
+    const front = frontProgress(LEVEL, this.state.players.values());
+    if (front !== null) this.front = front;
+    const bar = syncedProgress(this.front);
+    if (this.state.progress !== bar) this.state.progress = bar;
+    for (const wave of wavesDue(ROUND_WAVES, this.round.fired, this.front)) this.spawnWave(wave);
+  }
+
+  /**
+   * One reinforcement wave (#12): its shield line on the nearest line point far
+   * enough ahead (or, with none left, its bots as chasers), then its chasers on
+   * the CRS points ahead of the front, clear of protesters. MAX_CRS cuts it short.
+   */
+  private spawnWave(wave: RoundWave) {
+    let chasers = wave.chasers ?? 0;
+    let line = "";
+    if (wave.line) {
+      const p = waveLinePoint(LEVEL, this.front);
+      const formed = p ? this.crs.spawnLine(p.x, p.z, wave.line) : null;
+      if (formed && p) line = ` + line of ${formed.members.length} at z=${p.z}`;
+      else chasers += wave.line;
+    }
+    const people: Vec2[] = [];
+    this.state.players.forEach((p) => people.push({ x: p.x, z: p.z }));
+    let spawned = 0;
+    for (const pt of waveChaserPoints(LEVEL, this.front, chasers, people, CRS_SPAWN_CLEARANCE)) {
+      if (this.crs.spawn(pt.x, pt.z)) spawned++;
+    }
+    console.log(`[street ${this.roomId}] wave at ${wave.at}: ${spawned} chasers${line} (${this.crs.size} CRS)`);
+  }
+
+  /**
+   * The round clock (#12), every tick while marching or ended: checks the win
+   * and lose conditions (see `roundOutcome` for the order), ends the round, and
+   * after the end screen resets the street back to `waiting`.
+   */
+  private stepRoundClock(dt: number) {
+    const event = stepRound(this.round, dt, (timeLeft) =>
+      this.roundHeld ? RoundResult.None : roundOutcome(LEVEL, Array.from(this.state.players.values()), timeLeft),
+    );
+    if (event === "ended") this.endRound();
+    else if (event === "reset") {
+      this.resetStreet();
+      console.log(`[street ${this.roomId}] reset -> waiting`);
+    }
+    this.syncRound();
+  }
+
+  /** The march is over: everyone gets the result and the numbers once. The street freezes until the reset. */
+  private endRound() {
+    this.rescues.clear();
+    const event: RoundEndEvent = {
+      result: this.round.result,
+      seconds: Math.round(this.round.elapsed),
+      players: Array.from(this.state.players.entries(), ([id, p]) => ({ id, name: p.name, ...this.roundStats.get(id) })),
+    };
+    this.broadcast(ServerMessage.RoundEnd, event);
+    console.log(`[street ${this.roomId}] end: result ${event.result} after ${event.seconds} s, progress ${this.state.progress}`);
+  }
+
+  /** Mirror the round into Schema, only what changed: the countdown moves once a second. */
+  private syncRound() {
+    const s = this.state;
+    if (s.phase !== this.round.phase) s.phase = this.round.phase;
+    if (s.result !== this.round.result) s.result = this.round.result;
+    const left = syncedSeconds(this.round.timeLeft);
+    if (s.timeLeft !== left) s.timeLeft = left;
+  }
+
+  /** DEBUG (#12): put yourself mid-street at `progress` (1 is the middle of the Préfecture zone), clear of obstacles. */
+  private debugTeleport(id: string, progress: number) {
+    const player = this.state.players.get(id);
+    if (!player) return;
+    const { from, to } = LEVEL.progress;
+    const d = LEVEL.destination;
+    const x = progress >= 1 ? (d.minX + d.maxX) / 2 : from.x + (to.x - from.x) * progress;
+    const z = progress >= 1 ? (d.minZ + d.maxZ) / 2 : from.z + (to.z - from.z) * progress;
+    const p = resolveCircle(this.props.world, x, z, PLAYER_RADIUS);
+    this.bodies.place(id, player, p.x, p.z);
+  }
+
+  /** Random point in the start zone, clear of obstacles and of the props as they stand, facing the Préfecture. */
   private placeAtSpawn(sessionId: string, player: Player) {
-    const spawn = spawnPoint(LEVEL, PLAYER_RADIUS);
+    const spawn = clearSpawnPoint(LEVEL, this.props.world, PLAYER_RADIUS);
     this.bodies.place(sessionId, player, spawn.x, spawn.z);
     player.rotation = Math.PI;
   }
@@ -323,6 +463,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (!player || player.status === PlayerStatus.Arrested) return null;
     const res = this.bodies.impulse(id, player, dirX, dirZ, strength, mode);
     if (!res || res.strength === 0) return res;
+    if (res.knockedDown) this.roundStats.add(id, "knockdowns");
     const event: ImpulseEvent = { id, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
     this.broadcast(ServerMessage.Impulse, event);
     return res;
@@ -396,6 +537,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const event: HitEvent = { by, kind: "prop", target: propId, x, z, broke: res.broke };
     this.broadcast(ServerMessage.Hit, event);
     if (res.broke) {
+      this.roundStats.add(by, "propsBroken");
       this.dropPaves(res.slot);
       // The prop's new shape changes where bots can walk.
       this.crs.worldChanged();
@@ -404,6 +546,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
 
   /** Tell everyone a CRS was hit (to flash it) and pushed (to tip it the right way). */
   private announceCrsHit(by: string, crsId: string, res: CrsHitResult, x: number, z: number) {
+    if (res.out) this.roundStats.add(by, "crsOut");
     const event: HitEvent = { by, kind: "crs", target: crsId, x, z, broke: res.out };
     this.broadcast(ServerMessage.Hit, event);
     const imp = res.impulse;
@@ -541,20 +684,37 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    *    fly and land, and clouds that have run their time go.
    * 4. CRS (#5): think, move, hit, grab, drag. A bot whose protester was just
    *    arrested, rescued or disconnected goes back to work here.
+   * 5. The round (#12): progress and waves, then the win/lose check and the
+   *    timers. Only the round clock runs while `ended` (the street is frozen),
+   *    and nothing at all while `waiting`.
    */
   private step(dt: number) {
-    if (this.state.phase !== Phase.Playing) return;
+    if (this.state.phase === Phase.Marching) {
+      this.simulate(dt);
+      this.updateFront();
+    }
+    if (this.state.phase !== Phase.Waiting) this.stepRoundClock(dt);
+  }
+
+  /** Steps 1 to 4 of `step`: the street itself, only while marching. */
+  private simulate(dt: number) {
     this.now += dt;
     this.rescues.step(
       dt,
       (id) => this.protesterView(id),
       () => this.allProtesterViews(),
       (id) => this.hasControl(id),
-      (targetId) => this.pullFree(targetId),
+      (targetId, rescuerId) => {
+        if (!this.pullFree(targetId)) return false;
+        this.roundStats.add(rescuerId, "rescues");
+        return true;
+      },
     );
     const crowd = this.buildCrowdWorld();
     this.state.players.forEach((player, sessionId) => {
-      if (this.healths.tick(sessionId, player, this.now) === "respawned") this.placeAtRear(sessionId, player);
+      const health = this.healths.tick(sessionId, player, this.now);
+      if (health === "respawned") this.placeAtRear(sessionId, player);
+      else if (health === "arrested") this.roundStats.add(sessionId, "arrests");
       // Grabbed, KO or arrested: the item in hand falls where they are (#8).
       if (player.carrying !== ThrowableKind.None) this.throwables.release(player);
       // The ring over a grabbed protester (#10); 0 once free, arrested or gone.

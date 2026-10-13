@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { MAX_PLAYERS } from "@manif/shared";
+import { MAX_PLAYERS, RoundResult } from "@manif/shared";
 import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
+import { LastRound, useRound } from "../round/index.ts";
 
 /**
  * Before the march: who's here, the invite link, and Start for the host.
- * #14 adds the archetype picker here; #12 turns the phase into a round loop.
+ * This is the round's `waiting` phase (#12): the room comes back here after
+ * every round, with the last result shown. #14 adds the archetype picker here.
  */
 export function Lobby({ snap }: { snap: NetSnapshot }) {
   const code = snap.roomId ?? "";
   const link = inviteLink(code);
   const isHost = snap.hostId !== null && snap.hostId === snap.sessionId;
   const host = snap.players.find((p) => p.id === snap.hostId);
+  // A round already finished in this room: Start is a rematch.
+  const rematch = useRound().result !== RoundResult.None;
 
   return (
     <main className="screen lobby">
@@ -20,6 +24,8 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
           Manif <span className="lobby-code">#{code}</span>
         </h1>
       </header>
+
+      <LastRound />
 
       <div className="placards">
         <section className="placard placard-roster">
@@ -50,7 +56,7 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
       <div className="lobby-actions">
         {isHost ? (
           <button type="button" className="btn btn-primary btn-start" onClick={() => net.start()}>
-            C'est parti, on marche !
+            {rematch ? "On y retourne !" : "C'est parti, on marche !"}
           </button>
         ) : (
           <p className="waiting">

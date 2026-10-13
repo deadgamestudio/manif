@@ -99,9 +99,6 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
   },
 };
 
-/** CRS on the street when the host starts. #12 replaces this with waves that grow with progress. */
-export const CRS_COUNT = 6;
-
 /** Hard cap on bots per room, whatever spawns them (#12 waves included). Keeps the tick and the patches bounded. */
 export const MAX_CRS = 24;
 

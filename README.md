@@ -28,6 +28,13 @@ second, stops at the first wall, and leaves a green-grey cloud for 8 s.
 Protesters inside cough, lose HP slowly and walk slower; it wears off half a
 second after stepping out (a dodge is not slowed: dive out). Gas never goes
 through walls, and overlapping clouds don't stack.
+Each lobby plays rounds (#12): the host starts a march with an 8-minute timer
+and a progress bar from the start to the Préfecture. Get at least half the
+cortège (rounded up) free into the Préfecture forecourt at the same time to
+win; run out of time, or get everyone arrested at once (2+ players), and you
+lose. CRS reinforcements arrive in waves as the cortège advances. An end
+screen shows the result and a few joke awards for 10 s, then the street resets
+and everyone is back on the lobby screen for the next round.
 
 ## Layout
 
@@ -46,6 +53,7 @@ apps/client/src/
               crs/ (police bot avatars) dodge/ (dodge key, cooldown HUD) interact/ (E key)
               rescue/ (rescue bar, HUD prompt) throwable/ (pavés on the ground, in hand, in flight; mouse aim)
               gas/ (tear gas canisters, clouds, screen tint)
+              round/ (timer and progress HUD, end screen, last result in the lobby)
               debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/server/src/
@@ -56,9 +64,10 @@ apps/server/src/
               rescue/ (who holds interact, rescue progress)
               throwable/ (GroundItem and Projectile Schemas, items on the ground and in flight)
               gas/ (GasCloud and Canister Schemas, clouds, canisters, who is coughing)
+              round/ (end-of-round numbers, dev-only round debug)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/ throwable/ gas/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/ throwable/ gas/ round/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -107,14 +116,18 @@ Run the built server with `bun run --cwd apps/server start`.
 | Tune a prop type (HP, intact and broken collision shape, pavés dropped) | `packages/shared/src/prop/constants.ts` |
 | Handle a swing on the server (targets, hit events), hit a new kind of target | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
 | Tune a police unit (speed, HP, sight, baton, grab, drag, stun, stagger) or add a unit type (#13) | The `CRS_STATS` table in `packages/shared/src/crs/constants.ts` (plus a look in `apps/client/src/features/crs/crsVisuals.tsx`) |
-| Change how many CRS start, the cap, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
+| Change the cap on CRS, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
+| Tune the round (length, end screen time, win share, wipe rule) or the reinforcement waves (`ROUND_WAVES`: when, how many chasers, which lines) | `packages/shared/src/round/constants.ts` |
+| Change the round rules (phases, progress, win and lose order, wave spawn points, start spots clear of props) | `packages/shared/src/round/round.ts`; the room applies them in `StreetRoom.startMarch()`, `updateFront()`, `spawnWave()`, `stepRoundClock()` and `resetStreet()` |
+| Reset something new between rounds | `StreetRoom.resetStreet()` in `apps/server/src/rooms/StreetRoom.ts` (the round-live check compares the street after a reset with a fresh room) |
+| Change the round HUD, end screen or joke awards | `apps/client/src/features/round/`; the awards are `roundAwards` in `packages/shared/src/round/stats.ts`, the numbers are counted by `RoundStats` (`apps/server/src/features/round/`) |
 | Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
 | Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |
 | Tune shield lines (size, spacing, shield reach, speed, engage range, how far they advance, clearance from the start zone, shove, what breaks them) | The `LINE_*` constants in `packages/shared/src/crs/constants.ts` |
 | Change shield line rules (slots against the level, advancing, stragglers, shove, break checks, collision with protesters) | `packages/shared/src/crs/line.ts` (`lineSlots`, `stepLine`, `checkBreak`, `resolveShieldContacts`) |
-| Spawn a shield line from a new system (#12 waves) | `CrsSquad.spawnLine(x, z, size?, facing?, kind?)` in `apps/server/src/features/crs/squad.ts`; where lines form at the start is `lineSpawns` in `packages/shared/src/level/street.ts` |
+| Spawn a shield line from a new system | `CrsSquad.spawnLine(x, z, size?, facing?, kind?)` in `apps/server/src/features/crs/squad.ts`; where lines can form is `lineSpawns` in `packages/shared/src/level/street.ts` |
 | Move or add CRS spawn points | `crsSpawns` in `packages/shared/src/level/street.ts` |
-| Spawn CRS from a new system (#12 waves), stun one, hit one with a thrown item (#8) | `CrsSquad.spawn(x, z, kind)`, `reinforceTo`, `stun(id, now)`, `strike(...)` in `apps/server/src/features/crs/squad.ts`, owned by `StreetRoom` |
+| Spawn CRS from a new system, stun one, hit one with a thrown item (#8) | `CrsSquad.spawn(x, z, kind)`, `reinforceTo`, `stun(id, now)`, `strike(...)` in `apps/server/src/features/crs/squad.ts`, owned by `StreetRoom` |
 | Replace the placeholder CRS look (and the riot shield of a line) | `apps/client/src/features/crs/crsVisuals.tsx` (animation, shove thrust in `CrsAvatar.tsx`) |
 | Add a throwable kind (#15: tomato, dog poo...) | A `ThrowableKind` value and a row in `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts`, and its look in `apps/client/src/features/throwable/throwableVisuals.tsx`. What a hit does is `StreetRoom.projectileHit()` |
 | Tune pavés (speed, range, damage, knockback, stun), pick-up range, caps on items | `packages/shared/src/throwable/constants.ts` |
@@ -145,7 +158,7 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change the connection or state listeners | `apps/client/src/shared/net/net.ts` |
 | Change the homepage or the lobby screen | `apps/client/src/features/home/Home.tsx`, `features/lobby/Lobby.tsx`, `app/styles.css` |
 | Change name rules, default funny names, host hand-over order, max players | `packages/shared/src/lobby/lobby.ts`, `lobby/constants.ts` |
-| Change lobby rules (who is host, who can start, phases) | `apps/server/src/rooms/StreetRoom.ts` |
+| Change lobby rules (who is host, who can start) | `apps/server/src/rooms/StreetRoom.ts` |
 | Change the name tags above avatars | `apps/client/src/features/player/NameTag.tsx` |
 
 Before pushing, run `bun run build && bun run typecheck && bun run lint && bun run test`.
@@ -225,11 +238,11 @@ variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
   id); position and type come from the level. A broken prop switches to its
   broken collision shape (none for bins and shop windows) on the next tick.
   `swing` and `hit` are broadcast events, not state. Debris is local to each
-  client and never collides. Props reset when the host starts.
+  client and never collides. Props reset between rounds.
 - CRS bots (#5): `state.crs` holds only `x`, `z`, `rotation`, `hp`, `status`
   (active, stunned, grabbing, out), `down` and `kind`; targets, paths and timers
-  stay on the server. When the host starts, `CRS_COUNT` (6) CRS appear on the
-  level's spawn points. Each picks the nearest free protester within sight (28)
+  stay on the server. They come in the round's waves (#12), on the level's
+  spawn points ahead of the cortège. Each picks the nearest free protester within sight (28)
   and walks to them: straight when the way is clear and close, otherwise along
   an A* path on a 0.5-unit grid built from the collision world (rebuilt when a
   prop breaks), re-pathed at most every 0.75 s. No progress for 1 s re-paths;
@@ -240,11 +253,12 @@ variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
   health machine arrests them (4 s). Stunned, knocked down or out, it lets go
   and the protester is free. Protesters' melee pushes CRS back, every third quick
   hit knocks one over, and at 0 HP (6 hits) it is out: it lies there 3 s, is
-  removed, and is replaced at a spawn point 10 s later until #12 owns spawning.
+  removed, and is not replaced (the round's waves send more).
   Step order is protesters first (health timers, then movement), then CRS;
   rescues (#10) go before both, so a last-tick rescue beats the arrest.
-- Shield lines (#6): when the host starts, a line of `LINE_SIZE` (8) CRS forms
-  at each of the level's `lineSpawns` (z 54 and z -38), facing the cortège. Its
+- Shield lines (#6): a line of `LINE_SIZE` (8) CRS forms at one of the
+  level's `lineSpawns` when a round wave sends one (z 54 when the march
+  starts, z -38 at progress 0.4), facing the cortège. Its
   slots are 1.5 apart across the street, computed against the level (and props)
   around the line's centre, so a narrower street gets fewer front slots and the
   extra members stand in a second rank; no slot is ever inside a wall. The line
@@ -266,6 +280,20 @@ variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
   out. Only `formation` is synced on `Crs` (shield raised); slots and timers
   stay on the server. Pavés are not blocked by shields: they hit, stun and
   count towards the break.
+- Round loop (#12): `state.phase` is `waiting` (the lobby screen; #14 adds
+  the archetype pick there), `marching` or `ended`; the reset between rounds
+  is a server step, not a phase. `timeLeft` (whole seconds), `progress`
+  (0..100, the free protester furthest down the street) and `result` are the
+  only other synced fields. Each tick while marching: the street steps, then
+  progress and waves, then the outcome, checked win first (enough free
+  protesters in the Préfecture zone, from the players in the room right now),
+  then the wipe, then the timer. The street freezes while `ended`: every input
+  is ignored. `round:end` carries the result, the time taken and per-player
+  numbers (arrests, rescues, knockdowns, props broken, CRS taken out) once;
+  they are not in Schema. A player who joins mid-round starts at the rear of
+  the cortège and counts towards the win threshold at once. In dev builds,
+  P jumps into the Préfecture and T cuts the timer to 10 s (`debug:round`,
+  refused in production, which also has a `hold` action for scripted tests).
 - The server is authoritative. Clients only send inputs (a move direction, an attack); the server
   integrates movement at a fixed tick rate (`packages/shared/src/net/constants.ts`),
   pushes players out of obstacles and keeps them inside the street. The client
