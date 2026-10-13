@@ -17,6 +17,7 @@ import { FireHud } from "../fire/index.ts";
 import { CarryHud } from "../carry/index.ts";
 import { EndScreen, RoundHud } from "../round/index.ts";
 import { TouchControls, useInputMode } from "../touch/index.ts";
+import { HelpMenu, HelpTip } from "../help/index.ts";
 
 /**
  * The street, while marching and on the end screen (#12). Not mounted on the
@@ -30,6 +31,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
   useInteractInput();
   // Touch mode also caps the pixel ratio: phones pay for every pixel of the fire and gas layers.
   const touch = useInputMode() === "touch";
+  const ended = snap.phase === Phase.Ended;
 
   // No page scroll, zoom, selection or long-press menu while playing (#42). On
   // <html> rather than everywhere, so the homepage's fields keep working.
@@ -49,28 +51,33 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         <Scene players={snap.players} crs={snap.crs} localId={snap.sessionId} />
       </Canvas>
       <GasOverlay localId={snap.sessionId} />
-      {snap.phase === Phase.Ended ? <EndScreen /> : <RoundHud />}
-      {/* Before the HUD, so the HUD's leave button stays on top of the stick zone. */}
+      {ended && <EndScreen localId={snap.sessionId} />}
+      {/* Before the HUD, so the HUD's buttons stay on top of the stick zone. */}
       {touch && snap.phase === Phase.Marching && <TouchControls localId={snap.sessionId} players={snap.players} />}
-      <div className="hud">
-        <div>
-          manif <b>{snap.roomId}</b> · {snap.players.length}/{MAX_PLAYERS} manifestants
-        </div>
-        <HealthHud localId={snap.sessionId} />
-        <DodgeHud localId={snap.sessionId} touch={touch} />
-        <RescueHud localId={snap.sessionId} players={snap.players} touch={touch} />
-        <FireHud localId={snap.sessionId} players={snap.players} touch={touch} />
-        <CarryHud localId={snap.sessionId} players={snap.players} touch={touch} />
-        <div className="hud-help">Emmenez au moins la moitié du cortège jusqu'à la Préfecture avant la fin du chrono.</div>
-        {touch ? (
-          <div className="hud-help">Joystick pour marcher · Taper pour frapper ou lancer · Sauter par-dessus poubelles et CRS à terre · Esquive pour plonger · Action pour ramasser (un pavé, une tomate, une crotte, une trottinette ou un·e camarade, Taper pour le·la lancer), maintenue pour libérer, éteindre un·e camarade ou mettre le feu · gare aux crottes, ça glisse</div>
-        ) : (
-          <div>WASD / flèches pour marcher · clic pour taper · Espace pour sauter par-dessus une poubelle ou un CRS à terre (et esquiver la matraque) · Maj pour plonger · E pour ramasser un pavé, une tomate, une crotte ou une trottinette, ou soulever un·e camarade, clic pour le·la lancer vers la souris · E (maintenu) pour libérer, éteindre un·e camarade ou mettre le feu à une poubelle ou une voiture · sors vite des lacrymos (Maj pour plonger dehors) · regarde où tu marches, les crottes, ça glisse</div>
+      {/* One overlay, three spots: the player's panel, the round, and the buttons. The panel
+          and the round go away on the end screen; the leave button never moves. */}
+      <div className="hud" data-touch={touch || undefined} data-ended={ended || undefined}>
+        {!ended && (
+          <div className="hud-panel">
+            <p className="hud-room">
+              manif <b>{snap.roomId}</b> · {snap.players.length}/{MAX_PLAYERS} manifestants
+            </p>
+            <HealthHud localId={snap.sessionId} />
+            <DodgeHud localId={snap.sessionId} touch={touch} />
+            <RescueHud localId={snap.sessionId} players={snap.players} touch={touch} />
+            <FireHud localId={snap.sessionId} players={snap.players} touch={touch} />
+            <CarryHud localId={snap.sessionId} players={snap.players} touch={touch} />
+            <HelpTip localId={snap.sessionId} players={snap.players} touch={touch} />
+            {import.meta.env.DEV && <DebugKnockbackKeys />}
+          </div>
         )}
-        {import.meta.env.DEV && <DebugKnockbackKeys />}
-        <button type="button" className="hud-leave" onClick={() => net.leave()}>
-          Rentrer à la maison
-        </button>
+        {!ended && <RoundHud />}
+        <div className="hud-corner">
+          {!ended && <HelpMenu touch={touch} />}
+          <button type="button" className="hud-chip hud-leave" onClick={() => net.leave()}>
+            Rentrer à la maison
+          </button>
+        </div>
       </div>
     </>
   );

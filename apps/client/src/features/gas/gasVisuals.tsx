@@ -61,14 +61,19 @@ export const GAS_SCREEN_STYLE: CSSProperties = {
 export const COUGH_TEXT = "Kof kof ! Les lacrymos piquent les yeux";
 
 export const COUGH_TEXT_STYLE: CSSProperties = {
+  // Under the avatar (the camera keeps it centred), clear of the round timer
+  // at the bottom on a keyboard and of the touch buttons on a phone.
   position: "fixed",
-  bottom: 24,
+  top: "62%",
   left: "50%",
-  transform: "translateX(-50%)",
-  padding: "4px 12px",
-  borderRadius: 6,
-  background: "rgb(0 0 0 / 0.5)",
-  color: "#e6f0d8",
-  font: "600 15px/1.4 system-ui, sans-serif",
+  maxWidth: "calc(100vw - 32px)",
+  transform: "translateX(-50%) rotate(-1deg)",
+  padding: "3px 12px",
+  border: "2px solid #161616",
+  borderRadius: 3,
+  background: "rgb(214 230 190 / 0.92)",
+  color: "#161616",
+  font: '17px/1.3 "Permanent Marker", "Comic Sans MS", cursive',
+  textAlign: "center",
   pointerEvents: "none",
 };
