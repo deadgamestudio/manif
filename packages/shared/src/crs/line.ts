@@ -375,7 +375,7 @@ export function stepLine(line: ShieldLine, ctx: CrsContext, host: CrsHost): Line
   }
 
   if (now >= line.refreshAt) {
-    line.blocked = !assignSlots(line, ctx.world);
+    line.blocked = !assignSlots(line, ctx.avoid ?? ctx.world);
     line.refreshAt = now + LINE_SLOT_REFRESH;
   }
 

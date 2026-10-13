@@ -28,6 +28,14 @@ second, stops at the first wall, and leaves a green-grey cloud for 8 s.
 Protesters inside cough, lose HP slowly and walk slower; it wears off half a
 second after stepping out (a dodge is not slowed: dive out). Gas never goes
 through walls, and overlapping clouds don't stack.
+Bins and cars burn (#16): hold E next to one for a second to light it (shop
+windows and bus shelters don't burn). A burning prop slowly loses its HP for up
+to 30 s, then stays there charred, still in the way, and never burns again.
+After 8 s a fire can spread to a bin or car within 3 units, at most 6 fires at
+once. Anyone who walks into the flames, protester or CRS, gets their bum set on
+fire for 4 s: they flail, run faster and lose HP, unless a teammate pats them
+out (hold E next to them). CRS path around fires, and a shield line stops or
+splits when one is in its way.
 Each lobby plays rounds (#12): the host starts a march with an 8-minute timer
 and a progress bar from the start to the Préfecture. Get at least half the
 cortège (rounded up) free into the Préfecture forecourt at the same time to
@@ -53,6 +61,7 @@ apps/client/src/
               crs/ (police bot avatars) dodge/ (dodge key, cooldown HUD) interact/ (E key)
               rescue/ (rescue bar, HUD prompt) throwable/ (pavés on the ground, in hand, in flight; mouse aim)
               gas/ (tear gas canisters, clouds, screen tint)
+              fire/ (flames and smoke on props, burning bodies, hold bar, fire prompts)
               round/ (timer and progress HUD, end screen, last result in the lobby)
               debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
@@ -67,10 +76,11 @@ apps/server/src/
               rescue/ (who holds interact, rescue progress)
               throwable/ (GroundItem and Projectile Schemas, items on the ground and in flight)
               gas/ (GasCloud and Canister Schemas, clouds, canisters, who is coughing)
+              fire/ (Fire Schema, burning props, who is on fire, who holds E to light or pat out)
               round/ (end-of-round numbers, dev-only round debug)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/ throwable/ gas/ round/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/ throwable/ gas/ fire/ round/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -138,6 +148,10 @@ Run the built server with `bun run --cwd apps/server start`.
 | Tune tear gas (cloud radius and duration, damage, slow, linger, cap on clouds, squad interval, canister flight, throw range, group size, scatter) | `packages/shared/src/gas/constants.ts`; how often one bot throws is `gasCooldown` in `CRS_STATS` (0: that unit never throws) |
 | Change tear gas rules (who is in a cloud, walls, overlap, exposure and damage ticks, aim, canister flight, the cap) | `packages/shared/src/gas/gas.ts`; who throws when is `tryThrowGas` in `crs/brain.ts` (lone bots) and `lineThrower` in `crs/line.ts`; the server side is `apps/server/src/features/gas/` and the gas lines in `StreetRoom.step()` |
 | Replace the tear gas look (canister, cloud puffs, cough wobble, screen tint) | `apps/client/src/features/gas/gasVisuals.tsx` |
+| Tune fire (burn time, hurt zone, spread delay, cooldown and radius, cap, hold times, on-fire time, damage, panic speed) | `packages/shared/src/fire/constants.ts`; which prop kinds burn is `flammable` in `PROP_TYPES` (`prop/constants.ts`) |
+| Change fire rules (lighting, burn-down, charring, spread choice, the cap, the zone, putting out) | `packages/shared/src/fire/fire.ts` (`FireField`); bodies on fire in `fire/burn.ts`; the interact holds and their priority in `fire/hold.ts`; the server side is `apps/server/src/features/fire/` and `StreetRoom.stepFireHolds()`, `stepFires()`, `burnCrs()` |
+| Put a fire out from a new system (#17 pompiers' hose, #13 water cannon) or light one (#15 fumigène) | `StreetRoom.extinguishAt(x, z, radius)` (prop fires and burning bodies near a point), `extinguishProp(id)`, `putOutBody(id)`, `lightProp(id)`; the synced `state.fires` (by prop id: x, z, radius, intensity, left) is what to aim at. Dev builds: Y throws water around you; scripts can send `debug:round {action: "calm"}` to clear the CRS and the waves |
+| Replace the fire look (flames, smoke, charred colour, bum on fire, hold bar) | `apps/client/src/features/fire/fireVisuals.tsx` |
 | Put an item on the ground (a broken prop's pavés, a dropped carry) | `Throwables.drop(kind, x, z)` from `StreetRoom`; broken props go through `StreetRoom.dropPaves(slot)` |
 | Move or add the pavés lying on the street at the start | `items` in `packages/shared/src/level/street.ts` |
 | Change the throw key or the mouse aim | `apps/client/src/features/melee/useAttackInput.ts` (a click throws while carrying), `apps/client/src/features/throwable/aim.ts` and `AimTracker.tsx` |
@@ -147,7 +161,7 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change the dodge key, its cooldown bar or its look | `apps/client/src/features/dodge/` (key, HUD); the lean, squash and dust puff are in `features/player/PlayerAvatar.tsx` |
 | Tune the rescue (hold time, range, knockback on the CRS and the freed protester) | `packages/shared/src/rescue/constants.ts` |
 | Change the rescue rules (target choice, progress, interrupts, several rescuers) | `packages/shared/src/rescue/rescue.ts`; the room applies them at the top of `StreetRoom.step()` and the release is `StreetRoom.pullFree()` |
-| Add something to the interact key (E) | `StreetRoom.interact(id, held)` (a grabbed teammate in range has priority, then picking up an item); the key is `apps/client/src/features/interact/` |
+| Add something to the interact key (E) | `StreetRoom.interact(id, held)` (a grabbed teammate in range has priority, then patting out a burning one, then picking up an item, then lighting a prop: `StreetRoom.fireAction`); the key is `apps/client/src/features/interact/` |
 | Change the rescue bar or the HUD prompt | `apps/client/src/features/rescue/` |
 | Change the attack keys | `apps/client/src/features/melee/useAttackInput.ts`; the swing animation is in `features/player/PlayerAvatar.tsx` |
 | Change the HP bar and status line | `apps/client/src/features/health/` (HUD and the bar above other players) |

@@ -125,9 +125,10 @@ function run(
   walk: (p: Person, t: number) => { x: number; z: number } = () => ({ x: 0, z: 0 }),
   each?: (t: number) => void,
   start = 0,
+  avoid?: CollisionWorld,
 ) {
-  const nav = new NavGrid(world, R);
-  const ctx: CrsContext = { world, nav, vans: [], bots, now: start, dt: TICK_DT };
+  const nav = new NavGrid(avoid ?? world, R);
+  const ctx: CrsContext = { world, avoid, nav, vans: [], bots, now: start, dt: TICK_DT };
   const behaviour = lineBehaviour(line);
   const end = start + seconds;
   for (ctx.now = start; ctx.now < end; ctx.now += TICK_DT) {
@@ -287,6 +288,29 @@ describe("advancing", () => {
     line.maxAdvance = 2;
     run(OPEN, line, bots, host, 5);
     expect(advanced(line)).toBeCloseTo(2, 6);
+  });
+
+  test("a fire across its way (#16): the line stops short of it, no member walks into it", () => {
+    const host = new FakeHost();
+    host.add("p", 0, 30);
+    const { line, bots } = makeLine(OPEN, 0, 0);
+    // Burning barricade across the whole street, 4 ahead: what `FireField.hazards` hands the bots.
+    const fire = { x: 0, z: 5, halfX: 12, halfZ: 0.6 };
+    const avoid: CollisionWorld = { ...OPEN, boxes: [fire] };
+    run(OPEN, line, bots, host, 20, undefined, undefined, 0, avoid);
+    expect(advanced(line)).toBeGreaterThan(1);
+    expect(advanced(line)).toBeLessThan(5 - 0.6);
+    for (const b of bots) expect(b.body.z + R).toBeLessThan(fire.z - fire.halfZ + 0.05);
+  });
+
+  test("a fire on one side (#16): the line lays its slots clear of it", () => {
+    const host = new FakeHost();
+    const { line, bots } = makeLine(OPEN, 0, 0);
+    const fire = { x: -3, z: 0, r: 2 };
+    const avoid: CollisionWorld = { ...OPEN, circles: [fire] };
+    run(OPEN, line, bots, host, 3, undefined, undefined, 0, avoid);
+    expect(line.slots.size).toBeGreaterThan(0);
+    for (const slot of line.slots.values()) expect(Math.hypot(slot.x - fire.x, slot.z - fire.z)).toBeGreaterThanOrEqual(fire.r + R - 1e-6);
   });
 
   test("one member held back does not stop the whole line forever", () => {

@@ -12,6 +12,7 @@ import { DodgeHud, useDodgeInput } from "../dodge/index.ts";
 import { useInteractInput } from "../interact/index.ts";
 import { RescueHud } from "../rescue/index.ts";
 import { GasOverlay } from "../gas/index.ts";
+import { FireHud } from "../fire/index.ts";
 import { EndScreen, RoundHud } from "../round/index.ts";
 import { TouchControls, useInputMode } from "../touch/index.ts";
 
@@ -55,11 +56,12 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         <HealthHud localId={snap.sessionId} />
         <DodgeHud localId={snap.sessionId} touch={touch} />
         <RescueHud localId={snap.sessionId} players={snap.players} touch={touch} />
+        <FireHud localId={snap.sessionId} players={snap.players} touch={touch} />
         <div className="hud-help">Emmenez au moins la moitié du cortège jusqu'à la Préfecture avant la fin du chrono.</div>
         {touch ? (
-          <div className="hud-help">Joystick à gauche pour marcher · Taper pour frapper ou lancer · Esquive pour plonger · Action pour ramasser, maintenue pour libérer</div>
+          <div className="hud-help">Joystick à gauche pour marcher · Taper pour frapper ou lancer · Esquive pour plonger · Action pour ramasser, maintenue pour libérer, éteindre un·e camarade ou mettre le feu à une poubelle ou une voiture</div>
         ) : (
-          <div>WASD / flèches pour marcher · Espace / clic pour taper · Maj pour plonger · E pour ramasser un pavé, clic pour le lancer vers la souris · E (maintenu) pour libérer · sors vite des lacrymos (Maj pour plonger dehors)</div>
+          <div>WASD / flèches pour marcher · Espace / clic pour taper · Maj pour plonger · E pour ramasser un pavé, clic pour le lancer vers la souris · E (maintenu) pour libérer, éteindre un·e camarade ou mettre le feu à une poubelle ou une voiture · sors vite des lacrymos (Maj pour plonger dehors)</div>
         )}
         {import.meta.env.DEV && <DebugKnockbackKeys />}
         <button type="button" className="hud-leave" onClick={() => net.leave()}>

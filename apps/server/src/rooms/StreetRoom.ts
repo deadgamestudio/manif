@@ -1,5 +1,7 @@
 import { Room, type Client } from "@colyseus/core";
 import {
+  CRS_BURN_DAMAGE,
+  CRS_BURN_DAMAGE_INTERVAL,
   CRS_SPAWN_CLEARANCE,
   ClientMessage,
   DEBUG_DAMAGE,
@@ -44,6 +46,11 @@ import {
   waveChaserPoints,
   waveLinePoint,
   wavesDue,
+  pickFireAction,
+  CrsStatus,
+  type BurningView,
+  type FireAction,
+  type LightableView,
   type RoundEndEvent,
   type RoundWave,
   type HitEvent,
@@ -75,6 +82,7 @@ import { CrsSquad } from "../features/crs/index.js";
 import { Rescues } from "../features/rescue/index.js";
 import { Throwables } from "../features/throwable/index.js";
 import { Gas } from "../features/gas/index.js";
+import { Fires } from "../features/fire/index.js";
 import { DEBUG_ROUND_ENABLED, RoundStats, parseDebugRound } from "../features/round/index.js";
 import { StreetState } from "./state.js";
 
@@ -83,6 +91,11 @@ const LEVEL = STREET_LEVEL;
 /** What blocks a swing: the static walls and obstacles only, not props (#4). */
 const SWING_OBSTACLES = levelWorld(LEVEL);
 const NO_INPUT: MoveInput = { x: 0, z: 0 };
+/** The props that can ever burn (#16), with their shape: what a held interact may light. */
+const FLAMMABLE: readonly LightableView[] = LEVEL.propSlots.flatMap((slot) => {
+  const shape = PROP_TYPES[slot.kind].flammable ? propShape(slot, false) : null;
+  return shape ? [{ id: slot.id, shape }] : [];
+});
 
 /**
  * One lobby and its street, round after round (#12): `waiting` (the lobby
@@ -145,6 +158,15 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * `state.gas`, and who is coughing. The room applies the damage and the slow.
    */
   private gas = new Gas(this.state.gas, this.state.canisters);
+  /**
+   * Fire (#16): burning props synced as `state.fires`, who is on fire (players
+   * and CRS, `onFire`) and who holds interact to light or pat out. The room
+   * applies the damage, the panic speed and the props' HP.
+   */
+  private fires = new Fires(LEVEL.propSlots, this.state.fires);
+  /** Scratch for the fire actions (#16), reused every tick. */
+  private burningViews: BurningView[] = [];
+  private lightable: LightableView[] = [];
   /** What the bots see of each protester, reused across ticks (see `crsHost`). */
   private protesterViews = new Map<string, ProtesterView>();
   /** The room as the bots see it: effects on protesters go through the same hooks as every other system. */
@@ -265,6 +287,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         if (cmd?.action === "time") this.round.timeLeft = cmd.seconds;
         else if (cmd?.action === "teleport") this.debugTeleport(client.sessionId, cmd.progress);
         else if (cmd?.action === "hold") this.roundHeld = true;
+        else if (cmd?.action === "calm") {
+          this.crs.clear();
+          this.round.fired = ROUND_WAVES.map(() => true);
+        } else if (cmd?.action === "water") {
+          const self = this.state.players.get(client.sessionId);
+          if (self) this.extinguishAt(self.x, self.z, cmd.radius);
+        }
       },
     }),
   };
@@ -309,6 +338,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // Systems that point at a player (a CRS grab #5) see unknown ids as no-ops.
     this.healths.remove(client.sessionId);
     this.gas.remove(client.sessionId);
+    this.fires.remove(client.sessionId);
     this.protesterViews.delete(client.sessionId);
     this.joinOrder.delete(client.sessionId);
     this.roundStats.remove(client.sessionId);
@@ -340,9 +370,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private resetStreet() {
     this.rescues.clear();
     this.props.reset(this.state.props);
+    this.fires.reset();
     this.crs.clear();
     this.crs.reinforceTo = 0;
-    this.crs.worldChanged();
+    // No fire left for the bots to avoid; rebuilds their grid for the props put back.
+    this.crs.setHazards(null);
+    this.fires.takeChanged();
     this.throwables.reset(LEVEL.items);
     this.gas.reset();
     this.meleeCooldowns.clear();
@@ -353,6 +386,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       player.rescue = 0;
       player.carrying = ThrowableKind.None;
       player.gassed = false;
+      player.onFire = false;
+      player.fireHold = 0;
       this.moveInputs.set(sessionId, { x: 0, z: 0 });
     });
     this.front = 0;
@@ -477,7 +512,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   damagePlayer(id: string, amount: number): boolean {
     const player = this.state.players.get(id);
-    return player ? this.healths.damage(id, player, amount, this.now) : false;
+    if (!player || !this.healths.damage(id, player, amount, this.now)) return false;
+    // Hurt while holding interact on a fire action (#16): it starts again from 0.
+    this.fires.interrupt(id);
+    return true;
   }
 
   /** A CRS grabs a free protester (#5); arrested when `duration` (default GRAB_DURATION) ends unless rescued. */
@@ -617,9 +655,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   /**
    * Interact key (E) pressed or released. On a press, a grabbed teammate in
    * RESCUE_RANGE has priority (#10): the press starts holding, and the rescue
-   * itself runs in `step` for as long as the key stays down. Otherwise (#8)
-   * the press picks up the nearest item within PICKUP_RANGE, empty-handed
-   * and with control only.
+   * itself runs in `step` for as long as the key stays down. Then a burning
+   * teammate to pat out (#16, a hold too). Otherwise (#8) the press picks up
+   * the nearest item within PICKUP_RANGE, empty-handed and with control only.
+   * Last, holding on next to a bin or a car lights it (#16, see `fireAction`).
    * Holding is recorded even with nobody in range, so pressing E and then
    * walking up to a grabbed teammate works too.
    */
@@ -627,9 +666,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const player = this.state.players.get(id);
     if (!player) return;
     this.rescues.hold(id, held);
+    // Fire (#16): patting out a burning teammate, or lighting a prop, is a hold that runs in `step`.
+    this.fires.hold(id, held);
     if (!held || player.carrying !== ThrowableKind.None || !this.hasControl(id)) return;
     const self = this.protesterView(id);
     if (!self || pickRescueTarget(self, this.allProtesterViews()) !== null) return;
+    // A burning teammate in reach comes before picking up (lighting comes after: it is a hold, a pick-up is the press).
+    if (this.fireAction(id)?.kind === "putOut") return;
     const kind = this.throwables.pickUp(player, player.carrying);
     if (kind !== ThrowableKind.None) player.carrying = kind;
   }
@@ -675,15 +718,19 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * One fixed tick. Order matters and is fixed here:
    * 1. Rescues (#10) are applied before step 2, so a rescue landing on the
    *    last tick of a drag wins over the arrest (locked by the tests in
-   *    packages/shared/src/rescue/rescue.test.ts).
+   *    packages/shared/src/rescue/rescue.test.ts). Then held interacts
+   *    light props or pat out burning teammates (#16).
    * 2. Protesters: health timers (a drag that ends becomes an arrest), then
    *    movement. One no longer free drops what they carry (#8).
-   *    Tear gas (#7) hurts and slows whoever a cloud reaches, here too.
+   *    Tear gas (#7) hurts and slows whoever a cloud reaches, and a fire
+   *    (#16) sets alight whoever stands in it, here too.
    * 3. Thrown items (#8) fly, after the protesters moved and before the CRS,
    *    so a stunned bot lets go on this very tick. Then gas canisters (#7)
    *    fly and land, and clouds that have run their time go.
    * 4. CRS (#5): think, move, hit, grab, drag. A bot whose protester was just
-   *    arrested, rescued or disconnected goes back to work here.
+   *    arrested, rescued or disconnected goes back to work here. Then bots
+   *    in a fire catch it (#16), and the fires burn down and spread; when
+   *    one starts or goes out, the bots' grid is rebuilt around the fires.
    * 5. The round (#12): progress and waves, then the win/lose check and the
    *    timers. Only the round clock runs while `ended` (the street is frozen),
    *    and nothing at all while `waiting`.
@@ -710,6 +757,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         return true;
       },
     );
+    this.stepFireHolds(dt);
     const crowd = this.buildCrowdWorld();
     this.state.players.forEach((player, sessionId) => {
       const health = this.healths.tick(sessionId, player, this.now);
@@ -727,8 +775,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       // Tear gas (#7): a cloud reaching them (never through a wall) costs HP now and then and slows the walk.
       const gas = this.gas.expose(sessionId, player, this.props.world, this.now);
       if (gas.damage > 0) this.damagePlayer(sessionId, gas.damage);
+      // Fire (#16): a fire zone sets them on fire; burning, they lose HP now and then and run faster (panic).
+      const canBurn = player.status === PlayerStatus.Free || player.status === PlayerStatus.Grabbed;
+      const fire = this.fires.burn(sessionId, player, PLAYER_RADIUS, canBurn, this.now);
+      if (fire.damage > 0) this.damagePlayer(sessionId, fire.damage);
       const held = free ? (this.moveInputs.get(sessionId) ?? NO_INPUT) : NO_INPUT;
-      const input = gas.speed === 1 ? held : { x: held.x * gas.speed, z: held.z * gas.speed };
+      const speed = gas.speed * fire.speed;
+      const input = speed === 1 ? held : { x: held.x * speed, z: held.z * speed };
       // Walk (or dodge) from the held input (ignored while down) plus knockback
       // velocity, collided against the street (sub-stepped, bounces off walls).
       // Free and KO'd protesters bump into raised shields (#6); grabbed ones are dragged, arrested ones are in the van.
@@ -755,6 +808,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       }
       if (res.broke) console.log(`[street ${this.roomId}] ${line.id} broke (${res.broke})`);
     });
+    this.burnCrs();
+    this.stepFires(dt);
     // Members walked into protesters: push them out of the shields (walls win; a
     // member pinning someone against a wall gives way instead).
     const shields = this.crs.shieldContacts();
@@ -764,6 +819,103 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       });
       this.crs.syncViews();
     }
+  }
+
+  /**
+   * Fire (#16): what holding interact does for protester `id` right now, or
+   * null: nothing when they can't act or a grabbed teammate is in rescue
+   * reach (#10 first), else pat out the nearest burning teammate, else light
+   * the nearest prop that can burn.
+   */
+  private fireAction(id: string): FireAction | null {
+    const self = this.protesterView(id);
+    if (!self || !this.hasControl(id) || pickRescueTarget(self, this.allProtesterViews()) !== null) return null;
+    this.burningViews.length = 0;
+    this.state.players.forEach((p, pid) => {
+      if (p.onFire) this.burningViews.push({ id: pid, x: p.x, z: p.z, onFire: true });
+    });
+    this.lightable.length = 0;
+    for (const p of FLAMMABLE) if (this.fires.canIgnite(p.id, this.props.hp(p.id))) this.lightable.push(p);
+    return pickFireAction(self, PLAYER_RADIUS, this.burningViews, this.lightable);
+  }
+
+  /** Fire (#16): every held interact counts towards lighting a prop or patting out a teammate; mirrors the bar. */
+  private stepFireHolds(dt: number) {
+    for (const id of this.fires.holders()) {
+      const done = this.fires.stepHold(id, this.fireAction(id), dt);
+      if (done?.kind === "light" && this.lightProp(done.target)) this.roundStats.add(id, "firesLit");
+      else if (done?.kind === "putOut") this.putOutBody(done.target);
+    }
+    this.state.players.forEach((player, id) => {
+      const hold = this.fires.holdPercent(id);
+      if (player.fireHold !== hold) player.fireHold = hold;
+    });
+  }
+
+  /** Fire (#16): CRS standing in a fire catch it too, with their own damage numbers. A bot burnt to 0 HP is out. */
+  private burnCrs() {
+    for (const bot of this.crs.all) {
+      const view = this.crs.view(bot.id);
+      if (!view) continue;
+      const canBurn = bot.status !== CrsStatus.Out;
+      const res = this.fires.burn(bot.id, view, bot.stats.radius, canBurn, this.now, CRS_BURN_DAMAGE, CRS_BURN_DAMAGE_INTERVAL);
+      if (res.damage > 0) this.crs.burn(bot.id, res.damage, this.now);
+    }
+  }
+
+  /**
+   * Fire (#16): props burn down (their HP mirrored), burn out charred, and
+   * spread. When a fire starts or goes out, the bots' hazards are rebuilt
+   * so they path around the fires.
+   */
+  private stepFires(dt: number) {
+    for (const e of this.fires.step(dt, (id) => this.props.hp(id))) {
+      if (e.type === "burnt") this.props.char(e.id, this.state.props.get(e.id));
+      else this.props.lock(e.to);
+    }
+    for (const f of this.fires.burning()) this.props.burnTo(f.id, Math.ceil(f.fuel - 1e-9), this.state.props.get(f.id));
+    if (this.fires.takeChanged()) this.crs.setHazards(this.fires.size > 0 ? this.fires.hazards(LEVEL.bounds) : null);
+  }
+
+  /** Set prop `id` on fire (#16): a held interact, and the hook for future igniters (#15 fumigènes). False if it can't burn now. */
+  lightProp(id: string): boolean {
+    if (!this.fires.ignite(id, this.props.hp(id))) return false;
+    this.props.lock(id);
+    console.log(`[street ${this.roomId}] fire: ${id} lit (${this.fires.size} burning)`);
+    return true;
+  }
+
+  /** Put out prop `id`'s fire (#17 pompiers, #13 water cannon): it keeps the HP it had left and can burn again. */
+  extinguishProp(id: string): boolean {
+    const hp = this.fires.extinguish(id);
+    if (hp === null) return false;
+    this.props.unlock(id);
+    this.props.burnTo(id, hp, this.state.props.get(id));
+    return true;
+  }
+
+  /** Flames out on a burning protester or CRS (#16 a teammate's pat, #17 the hose, #13 the water cannon). */
+  putOutBody(id: string): boolean {
+    return this.fires.putOut(id, this.state.players.get(id) ?? this.crs.view(id));
+  }
+
+  /**
+   * Water at (x, z) (#17 pompiers' hose, #13 water cannon): puts out every
+   * prop fire whose edge is within `radius`, and every burning body whose
+   * centre is. Returns how many prop fires went out.
+   */
+  extinguishAt(x: number, z: number, radius: number): number {
+    let props = 0;
+    for (const id of this.fires.near(x, z, radius)) if (this.extinguishProp(id)) props++;
+    const r2 = radius * radius;
+    this.state.players.forEach((p, id) => {
+      if (p.onFire && (p.x - x) ** 2 + (p.z - z) ** 2 <= r2) this.putOutBody(id);
+    });
+    for (const bot of this.crs.all) {
+      if ((bot.body.x - x) ** 2 + (bot.body.z - z) ** 2 <= r2) this.putOutBody(bot.id);
+    }
+    // The bots' hazards follow on this tick's `stepFires`.
+    return props;
   }
 
   /** The room's world plus the raised shields (#6), or the room's world itself when no line is up. */

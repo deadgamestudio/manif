@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type { Color, Group, MeshStandardMaterial } from "three";
+import type { Color, Group, MeshStandardMaterial, Vector3 } from "three";
 import { RagdollController, type Hit } from "./controller.ts";
 import type { RagdollLook } from "./ragdollVisuals.tsx";
-import { SEGMENTS, SEGMENT_COUNT, restLayout, type SegmentId } from "./skeleton.ts";
+import { S, SEGMENTS, SEGMENT_COUNT, restLayout, type SegmentId } from "./skeleton.ts";
 
 export interface RagdollRig {
   /**
@@ -15,6 +15,12 @@ export interface RagdollRig {
   reset(): void;
   /** Body colour of the ragdoll (local / other / hurt, a CRS hit flash). */
   setColor(color: Color): void;
+  /**
+   * Where the torso starts (the pelvis), relative to the avatar's root group,
+   * written into `out`: for things that ride on the body, like the flames of
+   * a burning one (#16). False (and `out` untouched) while the ragdoll is not drawn.
+   */
+  torso(out: Vector3): boolean;
   /** Put this under the avatar's root group, outside its tilt and yaw groups. */
   view: ReactNode;
 }
@@ -33,6 +39,10 @@ export function useRagdoll(look: RagdollLook): RagdollRig {
 function createRig(look: RagdollLook): RagdollRig {
   const controller = new RagdollController(look.proportions);
   let root: Group | null = null;
+  // Where the root was on the last drawn frame (the pose is in world space).
+  let shown = false;
+  let rootX = 0;
+  let rootZ = 0;
   const bones: (Group | null)[] = Array.from({ length: SEGMENT_COUNT }, () => null);
   const materials: MeshStandardMaterial[] = [];
   const register = (m: MeshStandardMaterial | null) => {
@@ -67,7 +77,9 @@ function createRig(look: RagdollLook): RagdollRig {
 
   return {
     update(dt, lying, x, z, yaw, hit) {
-      const shown = controller.update(dt, lying, x, z, yaw, hit);
+      shown = controller.update(dt, lying, x, z, yaw, hit);
+      rootX = x;
+      rootZ = z;
       if (root) {
         root.visible = shown;
         // The pose is in world space; cancel the root group's offset.
@@ -83,7 +95,14 @@ function createRig(look: RagdollLook): RagdollRig {
       }
       return true;
     },
+    torso(out) {
+      const bone = controller.pose[S.Torso];
+      if (!shown || !bone) return false;
+      out.set(bone.pos.x - rootX, bone.pos.y, bone.pos.z - rootZ);
+      return true;
+    },
     reset() {
+      shown = false;
       controller.reset();
       if (root) root.visible = false;
     },

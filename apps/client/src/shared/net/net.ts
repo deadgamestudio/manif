@@ -13,6 +13,7 @@ import {
   type CanisterShape,
   type CrsShape,
   type GasCloudShape,
+  type FireShape,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type DebugRoundPayload,
@@ -165,6 +166,19 @@ function setGasIds(clouds: readonly string[], canisters: readonly string[]) {
 }
 
 /**
+ * Fire (#16): ids of the burning props, kept out of NetSnapshot like the gas,
+ * and when (performance.now(), ms) we first saw each one, for the flare-up.
+ */
+let fireIds: readonly string[] = [];
+const fireSeenAt = new Map<string, number>();
+const fireListeners = new Set<() => void>();
+function setFireIds(ids: readonly string[]) {
+  if (ids === fireIds) return;
+  fireIds = ids;
+  for (const listener of fireListeners) listener();
+}
+
+/**
  * The round (#12): timer, progress and result, kept out of NetSnapshot so the
  * once-a-second countdown re-renders only the HUD, not the game. `end` is the
  * last ServerMessage.RoundEnd seen in this room (null after joining). The
@@ -198,6 +212,8 @@ function clearEffects() {
   setItemIds([], []);
   gasSeenAt.clear();
   setGasIds([], []);
+  fireSeenAt.clear();
+  setFireIds([]);
   setRound(NO_ROUND);
 }
 
@@ -302,6 +318,21 @@ function attach(joined: ClientRoom, gen: number) {
   callbacks.onRemove("canisters", (_c, id) => {
     gasSeenAt.delete(`can:${id}`);
     refreshGas(id);
+  });
+  // Fire (#16): same pattern as the gas.
+  const refreshFires = (removed?: string) => {
+    if (gen !== generation) return;
+    const state = joined.state as ClientState | undefined;
+    const map = state?.fires;
+    setFireIds(map ? Array.from(map.entries(), ([id]) => id).filter((id) => id !== removed) : []);
+  };
+  callbacks.onAdd("fires", (_f, id) => {
+    fireSeenAt.set(id, performance.now());
+    refreshFires();
+  });
+  callbacks.onRemove("fires", (_f, id) => {
+    fireSeenAt.delete(id);
+    refreshFires(id);
   });
   callbacks.listen("phase", () => {
     // A new phase starts from no held input on the server (#12): forget the
@@ -480,6 +511,27 @@ export const net = {
   subscribeGas(listener: () => void): () => void {
     gasListeners.add(listener);
     return () => gasListeners.delete(listener);
+  },
+
+  /** Call `listener` when a prop catches fire or stops burning (#16). */
+  subscribeFires(listener: () => void): () => void {
+    fireListeners.add(listener);
+    return () => fireListeners.delete(listener);
+  },
+
+  /** Ids (level prop ids) of the burning props (#16). Same array until one is lit or goes out. */
+  getFireIds(): readonly string[] {
+    return fireIds;
+  },
+
+  /** Live state of a burning prop (#16). Read from useFrame. */
+  getFire(id: string): FireShape | undefined {
+    return room?.state.fires?.get(id);
+  },
+
+  /** When (performance.now()) we first saw prop `id` burning (#16), or undefined. */
+  getFireSeenAt(id: string): number | undefined {
+    return fireSeenAt.get(id);
   },
 
   /** Call `listener` when the round timer, progress or result changes, or a round ends (#12). */

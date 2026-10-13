@@ -30,6 +30,10 @@ export interface PlayerShape {
   carrying: ThrowableKind;
   /** In tear gas (#7): coughing and slowed, for the wobble and the screen tint. */
   gassed: boolean;
+  /** Bum on fire (#16): flailing, running faster and losing HP. The timer stays server-side. */
+  onFire: boolean;
+  /** Holding interact to light a prop or pat out a teammate (#16): 0..100 of the hold, 0 otherwise. */
+  fireHold: number;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */
@@ -49,6 +53,8 @@ export interface PropShapeState {
   /** 0..PROP_TYPES[kind].maxHp. */
   hp: number;
   broken: boolean;
+  /** Burnt out (#16): black, still in the way, never burns again. */
+  charred: boolean;
 }
 
 /**
@@ -69,6 +75,8 @@ export interface CrsShape {
   kind: CrsKind;
   /** In a formed shield line (#6): shield raised, solid to protesters. */
   formation: boolean;
+  /** On fire (#16). */
+  onFire: boolean;
 }
 
 /** An item lying on the ground (#8), keyed by a server-made id. */
@@ -106,6 +114,23 @@ export interface CanisterShape {
   toZ: number;
 }
 
+/**
+ * A burning prop (#16), keyed by its level prop id. Set when it is lit; then
+ * only `intensity` and `left` change, about once a second. Removed when it
+ * burns out (the prop is then `charred`) or is put out.
+ */
+export interface FireShape {
+  /** Centre of the prop. */
+  x: number;
+  z: number;
+  /** A circle around the whole fire zone (the prop plus FIRE_REACH), for drawing and aiming (#17). */
+  radius: number;
+  /** Flame size: 1 dying, 2 catching, 3 full blaze. */
+  intensity: number;
+  /** Whole seconds before it burns out. */
+  left: number;
+}
+
 export interface StreetStateShape {
   players: SyncedMap<PlayerShape>;
   /** Breakable props by level prop id (#4). */
@@ -120,6 +145,8 @@ export interface StreetStateShape {
   gas: SyncedMap<GasCloudShape>;
   /** Tear gas canisters in flight by id (#7). */
   canisters: SyncedMap<CanisterShape>;
+  /** Burning props by level prop id (#16). */
+  fires: SyncedMap<FireShape>;
   /** Round phase (#12): waiting (lobby screen), marching, ended. */
   phase: Phase;
   /** Whole seconds left: of the march while marching, of the end screen while ended. */

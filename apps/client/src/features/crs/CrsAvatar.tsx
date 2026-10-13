@@ -6,6 +6,7 @@ import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { useRagdoll } from "../ragdoll/index.ts";
 import { CRS_LOOKS, type CrsRig } from "./crsVisuals.tsx";
+import { BodyFire, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
 
 const FALLEN_ANGLE = Math.PI / 2;
 const FALL_RATE = 14;
@@ -102,8 +103,14 @@ export function CrsAvatar({ id }: { id: string }) {
 
     const grabbing = c.status === CrsStatus.Grabbing;
     const stunned = c.status === CrsStatus.Stunned;
-    phase.current = grabbing || stunned ? phase.current + dt : 0;
-    y.rotation.z = stunned ? Math.sin(phase.current * WOBBLE_SPEED) * WOBBLE_ANGLE : 0;
+    // On fire (#16): flails like a protester on fire.
+    const burning = c.onFire === true && !lying;
+    phase.current = grabbing || stunned || burning ? phase.current + dt : 0;
+    y.rotation.z = burning
+      ? Math.sin(phase.current * ON_FIRE_FLAIL_SPEED) * ON_FIRE_FLAIL_ANGLE
+      : stunned
+        ? Math.sin(phase.current * WOBBLE_SPEED) * WOBBLE_ANGLE
+        : 0;
 
     const baton = batonArm.current;
     const shield = shieldArm.current;
@@ -153,9 +160,14 @@ export function CrsAvatar({ id }: { id: string }) {
   return (
     <group ref={group}>
       <group ref={tilt}>
-        <group ref={yaw}>{look.render({ body: bodyMat, batonArm, shieldArm, lineShield } satisfies CrsRig)}</group>
+        <group ref={yaw}>
+          {look.render({ body: bodyMat, batonArm, shieldArm, lineShield } satisfies CrsRig)}
+          <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} />
+        </group>
       </group>
       {ragdoll.view}
+      {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
+      <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} anchor={(out) => ragdoll.torso(out)} />
       <group ref={bar} position-y={look.height + 0.4} visible={false}>
         <sprite scale={[BAR_WIDTH + 0.06, 0.13, 1]} renderOrder={10}>
           <spriteMaterial color="#141414" depthTest={false} depthWrite={false} />

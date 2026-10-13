@@ -155,6 +155,12 @@ export interface CrsHost {
 export interface CrsContext {
   /** The room's collision world (static level and props in their current shape). */
   world: CollisionWorld;
+  /**
+   * `world` plus what bots keep away from without it being solid: the fire
+   * zones (#16). Shield lines lay their slots against it; `nav` is built from
+   * it. Absent: the same as `world`.
+   */
+  avoid?: CollisionWorld;
   nav: NavGrid;
   /** Drag destinations: a point beside each police van (see `vanDoors`). */
   vans: readonly Vec2[];
@@ -446,6 +452,18 @@ export function strikeCrs(
   if (out) knockOut(bot, now);
   else if (stun > 0) stunCrs(bot, now, stun);
   return { impulse: res, out };
+}
+
+/**
+ * Damage with no push and no stun (#16: a bot on fire). The hit that empties
+ * its HP takes it out. Returns whether it did (false too for a bot already out).
+ */
+export function burnCrs(bot: CrsBot, damage: number, now: number): boolean {
+  if (bot.status === CrsStatus.Out || !(damage > 0)) return false;
+  bot.hp = Math.max(0, bot.hp - damage);
+  if (bot.hp > 0) return false;
+  knockOut(bot, now);
+  return true;
 }
 
 /**

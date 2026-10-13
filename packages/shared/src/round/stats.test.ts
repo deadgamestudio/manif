@@ -23,7 +23,11 @@ describe("roundAwards", () => {
     expect(roundAwards([])).toEqual([]);
   });
 
-  test("a tie goes to the first player", () => {
+  test("lighting fires (#16) earns its own award", () => {
+    expect(roundAwards([player("A", { firesLit: 2 })])).toEqual([{ title: "Pyromane du dimanche", name: "A", value: 2, unit: "feux allumés" }]);
+  });
+
+    test("a tie goes to the first player", () => {
     expect(roundAwards([player("A", { arrests: 2 }), player("B", { arrests: 2 })])[0]!.name).toBe("A");
   });
 });

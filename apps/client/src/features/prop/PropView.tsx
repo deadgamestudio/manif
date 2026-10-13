@@ -6,6 +6,7 @@ import { net } from "../../shared/net/index.ts";
 import { Debris } from "./Debris.tsx";
 import { spawnDebris } from "./debris.ts";
 import { PROP_LOOKS } from "./propVisuals.tsx";
+import { CHARRED_COLOR } from "../fire/index.ts";
 
 /** How long a hit flashes and wobbles the prop, ms. */
 const FLASH_MS = 160;
@@ -58,12 +59,16 @@ function PropView({ slot }: { slot: PropSlot }) {
     const hitAt = net.getLastPropHit(slot.id);
     const k = hitAt === undefined ? 0 : Math.max(0, 1 - (now - hitAt) / FLASH_MS);
     g.scale.set(1 + 0.12 * k, 1 - 0.1 * k, 1 + 0.12 * k);
+    // Burnt out (#16): everything goes charcoal (the original colours are kept to come back on a reset).
+    const charred = state?.charred === true;
     const alarmOn = look.alarm === true && brokeAt !== undefined && now - brokeAt < ALARM_MS && Math.floor(now / 250) % 2 === 0;
     g.traverse((o) => {
       const mesh = o as Mesh;
       if (!mesh.isMesh) return;
       const mat = mesh.material as MeshStandardMaterial;
       if (!("emissive" in mat)) return;
+      const base = (mesh.userData.baseColor ??= mat.color.clone()) as Color;
+      if (!mat.color.equals(charred ? CHARRED_COLOR : base)) mat.color.copy(charred ? CHARRED_COLOR : base);
       if (mesh.name === "alarm-light") {
         mat.emissiveIntensity = alarmOn ? 2 : 0;
         return;

@@ -130,6 +130,9 @@ const propSlots: PropSlot[] = [
   prop("bin-2", "bin", 8, 46),
   prop("bin-3", "bin", -8.5, -4),
   prop("bin-4", "bin", 8, -72),
+  // Bins parked beside a car, close enough for a fire to spread (#16).
+  prop("bin-5", "bin", -8.5, 36.5),
+  prop("bin-6", "bin", 8.5, -10),
   prop("shelter-1", "bus_shelter", 7.9, 58),
   prop("shelter-2", "bus_shelter", -7.8, -48),
   prop("window-1", "shop_window", -8.6, 45),
