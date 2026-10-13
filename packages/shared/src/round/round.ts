@@ -13,11 +13,13 @@ import {
   ROUND_DURATION,
   ROUND_END_DURATION,
   RoundResult,
+  UNIT_STAGES,
   WAVE_CHASER_AHEAD,
   WAVE_LINE_AHEAD,
   WIN_SHARE,
   WIPE_MIN_PLAYERS,
   type RoundWave,
+  type UnitStage,
 } from "./constants.js";
 
 /** What the round rules need to know about one protester. */
@@ -226,4 +228,11 @@ export function syncedSeconds(timeLeft: number): number {
 /** The synced progress bar: 0..100. */
 export function syncedProgress(progress: number): number {
   return Math.max(0, Math.min(100, Math.round(progress * 100)));
+}
+
+/** The unit stage (#13) for a wave firing at `progress`: the last row of `stages` whose `from` is at most it. */
+export function unitStageAt(progress: number, stages: readonly UnitStage[] = UNIT_STAGES): UnitStage {
+  let stage: UnitStage = { from: 0, bac: 0, bravm: 0 };
+  for (const s of stages) if (s.from <= progress && s.from >= stage.from) stage = s;
+  return stage;
 }

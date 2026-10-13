@@ -6,5 +6,7 @@
     "sourceMap": true,
     "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Unit tests run in Bun (bun:test): tsconfig.test.json checks them.
+  "exclude": ["src/**/*.test.ts"]
 }

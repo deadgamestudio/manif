@@ -44,6 +44,11 @@ import {
   respawnPoint,
   ROUND_WAVES,
   RoundResult,
+  CrsKind,
+  WAVE_BRAVM_AHEAD,
+  crsRadius,
+  disguiseName,
+  unitStageAt,
   clearSpawnPoint,
   createRound,
   frontProgress,
@@ -175,7 +180,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * Police bots (#5): full bot state server-side, synced fields in `state.crs`.
    * They walk the same collision world as the protesters.
    */
-  private crs = new CrsSquad(LEVEL, this.props.world, this.state.crs);
+  private crs = new CrsSquad(LEVEL, this.props.world, this.state.crs, undefined, (id, res) => {
+    // Riders knocked off a bike, the wreck skidding away (#13): every client tips them the right way.
+    if (res.strength === 0) return;
+    const event: ImpulseEvent = { id, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
+    this.broadcast(ServerMessage.Impulse, event);
+  });
   /**
    * Throwables (#8): items on the ground and in flight, synced as
    * `state.items` and `state.projectiles`. The room applies what a hit does.
@@ -337,6 +347,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         if (cmd?.action === "time") this.round.timeLeft = cmd.seconds;
         else if (cmd?.action === "teleport") this.debugTeleport(client.sessionId, cmd.progress);
         else if (cmd?.action === "hold") this.roundHeld = true;
+        // #13: no bots on the street, but the waves still to come still come (unlike `calm`).
+        else if (cmd?.action === "clear") this.crs.clear();
         else if (cmd?.action === "calm") {
           this.crs.clear();
           this.round.fired = ROUND_WAVES.map(() => true);
@@ -350,7 +362,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
           const self = this.state.players.get(client.sessionId);
           if (self) {
             const d = cmd.distance;
-            this.crs.spawn(self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d);
+            const x = self.x + Math.sin(self.rotation) * d;
+            const z = self.z + Math.cos(self.rotation) * d;
+            // #13: any unit type; a BAC with its disguise (and a set blend time, for scripted tests).
+            if (cmd.kind === CrsKind.Bac) this.crs.spawnBac(x, z, this.pickDisguiseName(), cmd.blend);
+            else if (cmd.kind === CrsKind.BravM) this.crs.spawnBravm(x, z);
+            else this.crs.spawn(x, z);
           }
         } else if (cmd?.action === "water") {
           const self = this.state.players.get(client.sessionId);
@@ -482,8 +499,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
 
   /**
    * One reinforcement wave (#12): its shield line on the nearest line point far
-   * enough ahead (or, with none left, its bots as chasers), then its chasers on
-   * the CRS points ahead of the front, clear of protesters. MAX_CRS cuts it short.
+   * enough ahead (or, with none left, its bots as chasers), then the other unit
+   * types of its stage (#13, UNIT_STAGES), then its chasers on the CRS points
+   * ahead of the front, clear of protesters. MAX_CRS cuts it short.
    */
   private spawnWave(wave: RoundWave) {
     let chasers = wave.chasers ?? 0;
@@ -496,11 +514,43 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     }
     const people: Vec2[] = [];
     this.state.players.forEach((p) => people.push({ x: p.x, z: p.z }));
+    // The unit mix (#13), before the chasers so the cap cuts plain CRS first: BAC slipped in
+    // at the rear of the cortège, BRAV-M bikes from further ahead.
+    const stage = unitStageAt(wave.at);
+    let bacs = 0;
+    for (let i = 0; i < stage.bac; i++) if (this.spawnBac()) bacs++;
+    let bikes = 0;
+    for (const pt of waveChaserPoints(LEVEL, this.front, stage.bravm, people, CRS_SPAWN_CLEARANCE, WAVE_BRAVM_AHEAD)) {
+      if (this.crs.spawnBravm(pt.x, pt.z)) bikes++;
+    }
     let spawned = 0;
     for (const pt of waveChaserPoints(LEVEL, this.front, chasers, people, CRS_SPAWN_CLEARANCE)) {
       if (this.crs.spawn(pt.x, pt.z)) spawned++;
     }
-    console.log(`[street ${this.roomId}] wave at ${wave.at}: ${spawned} chasers${line} (${this.crs.size} CRS)`);
+    const extra = bacs + bikes > 0 ? ` + ${bacs} BAC + ${bikes} BRAV-M` : "";
+    console.log(`[street ${this.roomId}] wave at ${wave.at}: ${spawned} chasers${line}${extra} (${this.crs.size} bots)`);
+  }
+
+  /** A BAC (#13) at the rear of the cortège, where a late protester would show up, clear of obstacles. */
+  private spawnBac() {
+    const free: Vec2[] = [];
+    this.state.players.forEach((p) => {
+      if (p.status === PlayerStatus.Free) free.push({ x: p.x, z: p.z });
+    });
+    const r = crsRadius(CrsKind.Bac);
+    const spot = respawnPoint(LEVEL, r, free);
+    const p = resolveCircle(this.props.world, spot.x, spot.z, r);
+    return this.crs.spawnBac(p.x, p.z, this.pickDisguiseName());
+  }
+
+  /** A default protester name (#13) for a BAC's placard, one nobody on the street already goes by. */
+  private pickDisguiseName(): string {
+    const used = new Set<string>();
+    this.state.players.forEach((p) => used.add(p.name));
+    this.state.crs.forEach((c) => {
+      if (c.name) used.add(c.name);
+    });
+    return disguiseName(used);
   }
 
   /**
@@ -1218,7 +1268,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const view = this.crs.view(bot.id);
       if (!view) continue;
       const canBurn = bot.status !== CrsStatus.Out;
-      const res = this.fires.burn(bot.id, view, bot.stats.radius, canBurn, this.now, CRS_BURN_DAMAGE, CRS_BURN_DAMAGE_INTERVAL);
+      const res = this.fires.burn(bot.id, view, crsRadius(bot.kind, bot.mount), canBurn, this.now, CRS_BURN_DAMAGE, CRS_BURN_DAMAGE_INTERVAL);
       if (res.damage > 0) this.crs.burn(bot.id, res.damage, this.now);
     }
   }

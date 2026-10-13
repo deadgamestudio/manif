@@ -62,7 +62,8 @@ export interface RoundWave {
  * already tough (4 chasers a few metres ahead of the start zone, and an
  * 8-shield line that releases 8 chasers when broken; every CRS can gas), so
  * later waves are small and spaced out. MAX_CRS caps the total on the street;
- * a wave over the cap is cut short. #13 adds other unit types here.
+ * a wave over the cap is cut short. The other unit types a wave brings
+ * depend on how far the cortège got: see UNIT_STAGES (#13).
  */
 export const ROUND_WAVES: readonly RoundWave[] = [
   { at: 0, chasers: 4, line: 8 },
@@ -89,3 +90,31 @@ export const WAVE_CHASER_AHEAD = 0.03;
  * ahead, the line's bots come as chasers instead.
  */
 export const WAVE_LINE_AHEAD = 0.12;
+
+/**
+ * The unit mix (#13): what each wave brings on top of its CRS, by how far
+ * down the street the cortège is when it fires (the wave's `at`). The stage
+ * is the last row whose `from` is at most `at`. Change the mix here.
+ */
+export interface UnitStage {
+  /** Progress (0..1) from which this stage applies. */
+  from: number;
+  /** BAC in plain clothes, slipped in at the rear of the cortège. */
+  bac: number;
+  /** BRAV-M motorbike duos, arriving from ahead. */
+  bravm: number;
+}
+
+export const UNIT_STAGES: readonly UnitStage[] = [
+  // 0-25 %: CRS only.
+  { from: 0, bac: 0, bravm: 0 },
+  // 25-50 %: the first BAC hidden in the cortège.
+  { from: 0.25, bac: 1, bravm: 0 },
+  // 50-75 %: BRAV-M raids.
+  { from: 0.5, bac: 0, bravm: 1 },
+  // 75-100 %: everything.
+  { from: 0.75, bac: 1, bravm: 1 },
+];
+
+/** BRAV-M duos appear on the CRS points at least this far ahead of the front (about 15 m): room to charge. */
+export const WAVE_BRAVM_AHEAD = 0.08;

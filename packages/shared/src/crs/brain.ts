@@ -36,6 +36,7 @@ import {
   CRS_STATS,
   CRS_STUCK_PROGRESS,
   CRS_STUCK_TIME,
+  CrsMount,
   CrsStatus,
   type CrsKind,
   type CrsStats,
@@ -101,6 +102,33 @@ export interface CrsBot {
   splatUntil: number;
   stinkUntil: number;
   backOffUntil: number;
+  /** What it rides (#13, BRAV-M); `Foot` for every other unit. */
+  mount: CrsMount;
+  /** The bike's own state while ridden (#13, see bravm.ts); null on foot. */
+  ride: BikeRide | null;
+  /** A BRAV-M passenger on foot (#13): the bike it hopped off, which waits for it. Null otherwise. */
+  bikeId: string | null;
+  /** Passenger: room time when its job is over (or it landed a hit), then it walks back to the bike. */
+  missionUntil: number;
+  /** Disguised units (#13, BAC): false while it still looks like a protester. Always true for the others. */
+  revealed: boolean;
+  /** BAC: room time when it stops blending in and sidles up to someone. */
+  stalkAt: number;
+  /** Set when the bot leaves the street on its own (a BRAV-M riding off, #13): the squad removes it, no "out". */
+  gone: boolean;
+}
+
+/** A ridden bike's plan (#13): charge a protester, wait while the passenger works, ride off. */
+export interface BikeRide {
+  phase: "charge" | "wait" | "leave";
+  /** Room time the current phase started. */
+  phaseAt: number;
+  /** The passenger on foot while waiting, by bot id. */
+  passengerId: string | null;
+  /** Where it rides off to (its spawn point). */
+  readonly exit: Vec2;
+  /** Next room time a ram may floor someone. */
+  ramReadyAt: number;
 }
 
 /** `now` is the room time it appears: its first tear gas (#7) is ready half a cooldown later, so a fresh wave does not gas at once. */
@@ -137,6 +165,13 @@ export function createCrsBot(id: string, kind: CrsKind, x: number, z: number, ro
     splatUntil: 0,
     stinkUntil: 0,
     backOffUntil: 0,
+    mount: CrsMount.Foot,
+    ride: null,
+    bikeId: null,
+    missionUntil: 0,
+    revealed: stats.disguise === undefined,
+    stalkAt: now + (stats.disguise?.blendMin ?? 0),
+    gone: false,
   };
 }
 

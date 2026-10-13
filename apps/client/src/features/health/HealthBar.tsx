@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Sprite, SpriteMaterial } from "three";
-import { MAX_HP, PlayerStatus } from "@manif/shared";
+import { MAX_HP, PlayerStatus, type PlayerShape } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
 
 const WIDTH = 0.9;
@@ -11,15 +11,24 @@ const BORDER = 0.03;
 /**
  * A small HP bar floating above another player (#3), facing the camera.
  * Updated in useFrame from the live state, so no React re-render per hit.
- * Hidden while the player is arrested (the avatar is hidden too).
+ * Hidden while the player is arrested (the avatar is hidden too). `source`
+ * reads the state (the synced player by default; a disguised BAC's own, #13).
  */
-export function HealthBar({ id, y }: { id: string; y: number }) {
+export function HealthBar({
+  id,
+  y,
+  source = (pid) => net.getPlayer(pid),
+}: {
+  id: string;
+  y: number;
+  source?: (id: string) => PlayerShape | undefined;
+}) {
   const group = useRef<Group>(null);
   const fill = useRef<Sprite>(null);
   const fillMat = useRef<SpriteMaterial>(null);
 
   useFrame(() => {
-    const p = net.getPlayer(id);
+    const p = source(id);
     const g = group.current;
     const f = fill.current;
     if (!p || !g || !f) return;

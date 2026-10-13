@@ -6,8 +6,9 @@ import { PLAYER_RADIUS } from "../player/index.js";
 import { CRS_SPAWN_CLEARANCE, MAX_CRS } from "../crs/index.js";
 import { propCollisionWorld } from "../prop/index.js";
 import { TICK_DT } from "../net/index.js";
-import { Phase, ROUND_DURATION, ROUND_END_DURATION, ROUND_WAVES, RoundResult, WAVE_LINE_AHEAD } from "./constants.js";
+import { Phase, ROUND_DURATION, ROUND_END_DURATION, ROUND_WAVES, RoundResult, UNIT_STAGES, WAVE_LINE_AHEAD } from "./constants.js";
 import {
+  unitStageAt,
   allArrested,
   arrivedCount,
   clearSpawnPoint,
@@ -291,5 +292,43 @@ describe("reset puts nobody inside a prop", () => {
       const p = clearSpawnPoint(level, world, radius, rand);
       expect(circleOverlaps(world, p.x, p.z, radius)).toBe(false);
     }
+  });
+});
+
+describe("unit mix (#13)", () => {
+  test("follows the progress stages: CRS only, then a BAC, then BRAV-M raids, then everything", () => {
+    expect(unitStageAt(0)).toMatchObject({ bac: 0, bravm: 0 });
+    expect(unitStageAt(0.2)).toMatchObject({ bac: 0, bravm: 0 });
+    expect(unitStageAt(0.25)).toMatchObject({ bac: 1, bravm: 0 });
+    expect(unitStageAt(0.4)).toMatchObject({ bac: 1, bravm: 0 });
+    expect(unitStageAt(0.5)).toMatchObject({ bac: 0, bravm: 1 });
+    expect(unitStageAt(0.6)).toMatchObject({ bac: 0, bravm: 1 });
+    expect(unitStageAt(0.75)).toMatchObject({ bac: 1, bravm: 1 });
+    expect(unitStageAt(1)).toMatchObject({ bac: 1, bravm: 1 });
+  });
+
+  test("the table starts at 0, is sorted, and the schedule's waves bring a few of each", () => {
+    expect(UNIT_STAGES[0]!.from).toBe(0);
+    for (let i = 1; i < UNIT_STAGES.length; i++) expect(UNIT_STAGES[i]!.from).toBeGreaterThan(UNIT_STAGES[i - 1]!.from);
+    const totals = ROUND_WAVES.reduce(
+      (t, w) => {
+        const s = unitStageAt(w.at);
+        return { bac: t.bac + s.bac, bravm: t.bravm + s.bravm };
+      },
+      { bac: 0, bravm: 0 },
+    );
+    expect(totals.bac).toBeGreaterThanOrEqual(1);
+    expect(totals.bravm).toBeGreaterThanOrEqual(1);
+    // The opening wave is CRS only.
+    expect(unitStageAt(ROUND_WAVES[0]!.at)).toMatchObject({ bac: 0, bravm: 0 });
+  });
+
+  test("a changed table changes the mix, unsorted rows included", () => {
+    const stages = [
+      { from: 0.6, bac: 0, bravm: 3 },
+      { from: 0, bac: 2, bravm: 0 },
+    ];
+    expect(unitStageAt(0.1, stages)).toMatchObject({ bac: 2, bravm: 0 });
+    expect(unitStageAt(0.7, stages)).toMatchObject({ bac: 0, bravm: 3 });
   });
 });

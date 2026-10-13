@@ -57,7 +57,14 @@ Each lobby plays rounds (#12): the host starts a march with an 8-minute timer
 and a progress bar from the start to the Préfecture. Get at least half the
 cortège (rounded up) free into the Préfecture forecourt at the same time to
 win; run out of time, or get everyone arrested at once (2+ players), and you
-lose. CRS reinforcements arrive in waves as the cortège advances. An end
+lose. CRS reinforcements arrive in waves as the cortège advances, and further
+down other police units join in (#13): a BAC in plain clothes slips into the
+back of the cortège looking exactly like a protester, walks along for a while,
+then sidles up to someone, pulls on its orange armband and grabs them (hit it
+first and it gives itself away; two hits and it's down); BRAV-M motorbike
+duos charge in, the passenger hops off, whacks someone and they ride off
+(a pavé, a thrown teammate or three quick hits knock both riders off, and the
+bike skids away). An end
 screen shows the result and a few joke awards for 10 s, then the street resets
 and everyone is back on the lobby screen for the next round.
 
@@ -147,7 +154,9 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change the arc check, line of sight or cooldown rule | `packages/shared/src/melee/melee.ts` |
 | Tune a prop type (HP, intact and broken collision shape, what it drops: pavés, or tomatoes for a market stall) | `packages/shared/src/prop/constants.ts` |
 | Handle a swing on the server (targets, hit events), hit a new kind of target | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
-| Tune a police unit (speed, HP, sight, baton, grab, drag, stun, stagger) or add a unit type (#13) | The `CRS_STATS` table in `packages/shared/src/crs/constants.ts` (plus a look in `apps/client/src/features/crs/crsVisuals.tsx`) |
+| Tune a police unit (speed, HP, sight, baton, grab, drag, stun, stagger) or add a unit type (#13) | The `CRS_STATS` table in `packages/shared/src/crs/constants.ts`, the BAC's `disguise` and the BRAV-M's `bike` rows included (plus a look in `apps/client/src/features/crs/crsVisuals.tsx`) |
+| Change what a BAC or a BRAV-M does (#13) | `packages/shared/src/crs/bac.ts` (blend in, sidle up, reveal) and `crs/bravm.ts` (charge, drop, wait, leave, ram, dismount, knocked off); the squad's bookkeeping (passenger, wreck, reveal on any hit) in `apps/server/src/features/crs/squad.ts`. The disguised BAC is drawn by `PlayerAvatar` fed by `apps/client/src/features/crs/disguise.ts` |
+| Change which unit types each wave brings (#13) | `UNIT_STAGES` in `packages/shared/src/round/constants.ts`, next to `ROUND_WAVES` |
 | Change the cap on CRS, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
 | Tune the round (length, end screen time, win share, wipe rule) or the reinforcement waves (`ROUND_WAVES`: when, how many chasers, which lines) | `packages/shared/src/round/constants.ts` |
 | Change the round rules (phases, progress, win and lose order, wave spawn points, start spots clear of props) | `packages/shared/src/round/round.ts`; the room applies them in `StreetRoom.startMarch()`, `updateFront()`, `spawnWave()`, `stepRoundClock()` and `resetStreet()` |
@@ -171,7 +180,7 @@ Run the built server with `bun run --cwd apps/server start`.
 | Replace the tear gas look (canister, cloud puffs, cough wobble, screen tint) | `apps/client/src/features/gas/gasVisuals.tsx` |
 | Tune fire (burn time, hurt zone, spread delay, cooldown and radius, cap, hold times, on-fire time, damage, panic speed) | `packages/shared/src/fire/constants.ts`; which prop kinds burn is `flammable` in `PROP_TYPES` (`prop/constants.ts`) |
 | Change fire rules (lighting, burn-down, charring, spread choice, the cap, the zone, putting out) | `packages/shared/src/fire/fire.ts` (`FireField`); bodies on fire in `fire/burn.ts`; the interact holds and their priority in `fire/hold.ts`; the server side is `apps/server/src/features/fire/` and `StreetRoom.stepFireHolds()`, `stepFires()`, `burnCrs()` |
-| Put a fire out from a new system (#17 pompiers' hose, #13 water cannon) or light one (#15 fumigène) | `StreetRoom.extinguishAt(x, z, radius)` (prop fires and burning bodies near a point), `extinguishProp(id)`, `putOutBody(id)`, `lightProp(id)`; the synced `state.fires` (by prop id: x, z, radius, intensity, left) is what to aim at. Dev builds: Y throws water around you; scripts can send `debug:round {action: "calm"}` to clear the CRS and the waves |
+| Put a fire out from a new system (#17 pompiers' hose, #13 water cannon) or light one (#15 fumigène) | `StreetRoom.extinguishAt(x, z, radius)` (prop fires and burning bodies near a point), `extinguishProp(id)`, `putOutBody(id)`, `lightProp(id)`; the synced `state.fires` (by prop id: x, z, radius, intensity, left) is what to aim at. Dev builds: Y throws water around you; scripts can send `debug:round {action: "calm"}` to clear the CRS and the waves (`"clear"`: the bots only), and `{action: "crs", distance, kind, blend}` to drop one unit of any type in front of themselves |
 | Replace the fire look (flames, smoke, charred colour, bum on fire, hold bar) | `apps/client/src/features/fire/fireVisuals.tsx` |
 | Put an item on the ground (a broken prop's pavés, a dropped carry) | `Throwables.drop(kind, x, z)` from `StreetRoom`; broken props go through `StreetRoom.dropItems(slot)` |
 | Move or add the pavés, dog poos and trottinettes lying on the street at the start, or the market stalls | `items`, `poos`, `trottinettes` and `propSlots` in `packages/shared/src/level/street.ts` |
