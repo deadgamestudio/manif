@@ -3,6 +3,7 @@ import { MAX_PLAYERS, RoundResult } from "@manif/shared";
 import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
 import { LastRound, useRound } from "../round/index.ts";
 import { ArchetypeBadge, ArchetypePicker } from "../archetype/index.ts";
+import "./lobby.css";
 
 /**
  * Before the march: who's here, the invite link, and Start for the host.
@@ -21,60 +22,70 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
 
   return (
     <main className="screen lobby">
-      <header className="banner banner-small">
-        <p className="banner-kicker">Point de rendez-vous</p>
-        <h1 className="banner-title">
-          Manif <span className="lobby-code">#{code}</span>
-        </h1>
-      </header>
+      {/* The banner, picker and roster scroll; the action bar under them never does,
+          so Start and the invite link stay on screen at any size. */}
+      <div className="lobby-scroll">
+        <header className="banner banner-small">
+          <p className="banner-kicker">Point de rendez-vous</p>
+          <h1 className="banner-title">
+            Manif <span className="lobby-code">#{code}</span>
+          </h1>
+        </header>
 
-      <LastRound />
+        <LastRound />
 
-      <div className="placards">
-        <ArchetypePicker current={me?.archetype ?? 0} />
+        <div className="placards">
+          <ArchetypePicker current={me?.archetype ?? 0} />
 
-        <section className="placard placard-roster">
-          <h2 className="placard-label">
-            Le cortège{" "}
-            <span className="count">
-              {snap.players.length}/{MAX_PLAYERS}
-            </span>
-          </h2>
-          <ul className="roster">
-            {snap.players.map((p) => (
-              <li key={p.id} className={p.id === snap.sessionId ? "is-me" : undefined}>
-                <span className="roster-name">
-                  {p.name}
-                  <ArchetypeBadge archetype={p.archetype} />
-                </span>
-                {p.id === snap.hostId && <span className="tag tag-host">📣 orga</span>}
-                {p.id === snap.sessionId && <span className="tag">toi</span>}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="placard placard-invite">
-          <h2 className="placard-label">Fais tourner</h2>
-          <p className="placard-text">Envoie ce lien aux potes. Le code marche aussi.</p>
-          <CopyLink link={link} />
-        </section>
+          <section className="placard placard-roster">
+            <h2 className="placard-label">
+              Le cortège{" "}
+              <span className="count">
+                {snap.players.length}/{MAX_PLAYERS}
+              </span>
+            </h2>
+            <ul className="roster">
+              {snap.players.map((p) => (
+                <li key={p.id} className={p.id === snap.sessionId ? "is-me" : undefined}>
+                  <span className="roster-name">
+                    {p.name}
+                    <ArchetypeBadge archetype={p.archetype} />
+                  </span>
+                  {p.id === snap.hostId && <span className="tag tag-host">📣 orga</span>}
+                  {p.id === snap.sessionId && <span className="tag">toi</span>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
 
-      <div className="lobby-actions">
-        {isHost ? (
-          <button type="button" className="btn btn-primary btn-start" onClick={() => net.start()}>
-            {rematch ? "On y retourne !" : "C'est parti, on marche !"}
+      <footer className="lobby-bar">
+        <div className="lobby-bar-inner">
+          <section className="lobby-invite" aria-label="Fais tourner">
+            <p className="lobby-invite-text">
+              <b>Fais tourner.</b> Envoie ce lien aux potes. Le code marche aussi.
+            </p>
+            <CopyLink link={link} />
+          </section>
+
+          <div className="lobby-go">
+            {isHost ? (
+              <button type="button" className="btn btn-primary btn-start" onClick={() => net.start()}>
+                {rematch ? "On y retourne !" : "C'est parti, on marche !"}
+              </button>
+            ) : (
+              <p className="waiting">
+                On attend que <b>{host?.name ?? "l'orga"}</b> lance le cortège…
+              </p>
+            )}
+          </div>
+
+          <button type="button" className="btn btn-ghost lobby-leave" onClick={() => net.leave()}>
+            Quitter
           </button>
-        ) : (
-          <p className="waiting">
-            On attend que <b>{host?.name ?? "l'orga"}</b> lance le cortège…
-          </p>
-        )}
-        <button type="button" className="btn btn-ghost" onClick={() => net.leave()}>
-          Quitter
-        </button>
-      </div>
+        </div>
+      </footer>
     </main>
   );
 }
