@@ -5,17 +5,20 @@ import { clearAim, updateAim } from "./aim.ts";
 /**
  * Keeps the throw aim (#8) on the mouse: each frame, the pointer projected on
  * the ground. Recomputed every frame (not only on mouse moves) because the
- * camera follows the player. Mount inside the Canvas.
+ * camera follows the player. Mouse and pen only: a finger on the street is
+ * not an aim (touch throws along the stick, #42). Mount inside the Canvas.
  */
 export function AimTracker() {
   const canvas = useThree((s) => s.gl.domElement);
   const seen = useRef(false);
 
   useEffect(() => {
-    const onMove = () => {
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType === "touch") return;
       seen.current = true;
     };
-    const onLeave = () => {
+    const onLeave = (e: PointerEvent) => {
+      if (e.pointerType === "touch") return;
       seen.current = false;
       clearAim();
     };
