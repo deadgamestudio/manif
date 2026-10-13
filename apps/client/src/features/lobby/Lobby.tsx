@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MAX_PLAYERS, RoundResult } from "@manif/shared";
 import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
 import { LastRound, useRound } from "../round/index.ts";
 import { ArchetypeBadge, ArchetypePicker } from "../archetype/index.ts";
 import { SoundControl } from "../audio/index.ts";
+import { RenameField } from "./RenameField.tsx";
 import "./lobby.css";
 
 /**
@@ -20,6 +21,9 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
   // A round already finished in this room: Start is a rematch.
   const rematch = useRound().result !== RoundResult.None;
   const me = snap.players.find((p) => p.id === snap.sessionId);
+  // Your own roster line turns into a name field (#61).
+  const [renaming, setRenaming] = useState(false);
+  const stopRenaming = useCallback(() => setRenaming(false), []);
 
   return (
     <main className="screen lobby">
@@ -47,16 +51,37 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
               </span>
             </h2>
             <ul className="roster">
-              {snap.players.map((p) => (
-                <li key={p.id} className={p.id === snap.sessionId ? "is-me" : undefined}>
-                  <span className="roster-name">
-                    {p.name}
-                    <ArchetypeBadge archetype={p.archetype} />
-                  </span>
-                  {p.id === snap.hostId && <span className="tag tag-host">📣 orga</span>}
-                  {p.id === snap.sessionId && <span className="tag">toi</span>}
-                </li>
-              ))}
+              {snap.players.map((p) => {
+                const mine = p.id === snap.sessionId;
+                if (mine && renaming) {
+                  return (
+                    <li key={p.id} className="is-me is-renaming">
+                      <RenameField name={p.name} onDone={stopRenaming} />
+                    </li>
+                  );
+                }
+                return (
+                  <li key={p.id} className={mine ? "is-me" : undefined}>
+                    <span className="roster-name">
+                      {p.name}
+                      <ArchetypeBadge archetype={p.archetype} />
+                    </span>
+                    {mine && (
+                      <button
+                        type="button"
+                        className="btn btn-rename"
+                        title="Changer de blaze"
+                        aria-label="Changer de blaze"
+                        onClick={() => setRenaming(true)}
+                      >
+                        ✏️
+                      </button>
+                    )}
+                    {p.id === snap.hostId && <span className="tag tag-host">📣 orga</span>}
+                    {mine && <span className="tag">toi</span>}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         </div>

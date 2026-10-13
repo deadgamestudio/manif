@@ -69,14 +69,14 @@ export function EndScreen({ localId }: { localId: string | null }) {
         {podium.length > 0 && (
           <ol className="podium" aria-label="Le palmarès">
             {podium.map(({ l, place }) => (
-              <Step key={l.name} laureate={l} place={place} />
+              <Step key={l.id} laureate={l} place={place} />
             ))}
           </ol>
         )}
         {rest.length > 0 && (
           <ul className="podium-rest">
             {rest.map((l) => (
-              <li key={l.name} data-me={l.isMe || undefined}>
+              <li key={l.id} data-me={l.isMe || undefined}>
                 <Badge archetype={l.archetype} />
                 <span className="podium-name">{l.name}</span> : {l.awards.map((a) => a.title).join(", ")}
               </li>

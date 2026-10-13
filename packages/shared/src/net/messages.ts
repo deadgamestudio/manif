@@ -1,3 +1,4 @@
+import type { RenameRefusal } from "../lobby/index.js";
 import type { RoundEndEvent } from "../round/index.js";
 
 /** Message type names sent from client to server. */
@@ -11,6 +12,13 @@ export const ClientMessage = {
    * march and on the end screen); an unknown id picks the default.
    */
   PickArchetype: "pickArchetype",
+  /**
+   * Rename yourself in the lobby (#61): `{ name }`, the raw text. The server
+   * cleans it (`checkRename`), refuses an empty or taken name with
+   * `ServerMessage.RenameRefused`, and ignores it outside `waiting` or more
+   * than once per RENAME_COOLDOWN_MS. Accepted, it shows up as the player's `name`.
+   */
+  Rename: "rename",
   /**
    * Swing at whatever is in front (#4). No payload: the server uses its own
    * position and facing, and enforces the cooldown and the player's state.
@@ -74,6 +82,7 @@ export interface ClientMessagePayloads {
   [ClientMessage.Move]: MoveInput;
   [ClientMessage.Start]: undefined;
   [ClientMessage.PickArchetype]: PickArchetypePayload;
+  [ClientMessage.Rename]: RenamePayload;
   [ClientMessage.Attack]: undefined;
   [ClientMessage.Dodge]: undefined;
   [ClientMessage.Jump]: undefined;
@@ -119,6 +128,16 @@ export interface PickArchetypePayload {
   archetype: number;
 }
 
+/** Payload of `ClientMessage.Rename`: the name as typed. The server cleans it. */
+export interface RenamePayload {
+  name: string;
+}
+
+/** Payload of `ServerMessage.RenameRefused`, sent to the renaming player only. */
+export interface RenameRefusedEvent {
+  reason: Exclude<RenameRefusal, "locked">;
+}
+
 /** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
 export interface InteractPayload {
   held: boolean;
@@ -156,6 +175,8 @@ export const ServerMessage = {
   Shove: "shove",
   /** The round just ended (#12): result, time and per-player numbers for the end screen. Sent once; not in Schema. */
   RoundEnd: "round:end",
+  /** Your rename (#61) was refused: the name is empty or taken. Only to the sender; your name stays as it was. */
+  RenameRefused: "rename:refused",
 } as const;
 export type ServerMessage = (typeof ServerMessage)[keyof typeof ServerMessage];
 
@@ -204,6 +225,7 @@ export interface ShoveEvent {
 export interface ServerMessagePayloads {
   [ServerMessage.Shove]: ShoveEvent;
   [ServerMessage.RoundEnd]: RoundEndEvent;
+  [ServerMessage.RenameRefused]: RenameRefusedEvent;
   [ServerMessage.Impulse]: ImpulseEvent;
   [ServerMessage.Swing]: SwingEvent;
   [ServerMessage.Hit]: HitEvent;

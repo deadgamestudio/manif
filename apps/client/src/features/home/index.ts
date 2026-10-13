@@ -1,2 +1,2 @@
 export { Home } from "./Home.tsx";
-export { loadSavedName } from "./profile.ts";
+export { loadSavedName, saveName } from "./profile.ts";

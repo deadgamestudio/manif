@@ -2,6 +2,8 @@ import { roundAwards, type RoundAward, type RoundEndEvent } from "@manif/shared"
 
 /** One protester on the podium: who, what they marched as, and their awards. */
 export interface Laureate {
+  /** Session id: the key, since two players can share a name (#61). */
+  id: string;
   name: string;
   archetype: number;
   isMe: boolean;
@@ -9,21 +11,20 @@ export interface Laureate {
 }
 
 /**
- * The awards grouped by protester, most awarded first (ties keep the join
- * order). Awards name their winner; the archetype comes from the round's
- * player list by that name.
+ * The awards grouped by protester (by id, not name), most awarded first (ties
+ * keep the join order). The archetype comes from the round's player list.
  */
 export function laureates(players: RoundEndEvent["players"], localId: string | null): Laureate[] {
-  const byName = new Map<string, Laureate>();
+  const byId = new Map<string, Laureate>();
   for (const award of roundAwards(players)) {
-    let l = byName.get(award.name);
+    let l = byId.get(award.id);
     if (!l) {
-      const p = players.find((q) => q.name === award.name);
-      l = { name: award.name, archetype: p?.archetype ?? 0, isMe: !!p && p.id === localId, awards: [] };
-      byName.set(award.name, l);
+      const p = players.find((q) => q.id === award.id);
+      l = { id: award.id, name: award.name, archetype: p?.archetype ?? 0, isMe: award.id === localId, awards: [] };
+      byId.set(award.id, l);
     }
     l.awards.push(award);
   }
-  const order = (name: string) => players.findIndex((p) => p.name === name);
-  return [...byName.values()].sort((a, b) => b.awards.length - a.awards.length || order(a.name) - order(b.name));
+  const order = (id: string) => players.findIndex((p) => p.id === id);
+  return [...byId.values()].sort((a, b) => b.awards.length - a.awards.length || order(a.id) - order(b.id));
 }
