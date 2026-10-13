@@ -14,7 +14,8 @@
     "@colyseus/core": "0.18.18",
     "@colyseus/schema": "5.0.39",
     "@colyseus/ws-transport": "0.18.4",
-    "@manif/shared": "workspace:*"
+    "@manif/shared": "workspace:*",
+    "@sentry/node": "11.7.0"
   },
   "devDependencies": {
     "@types/node": "26.6.5",

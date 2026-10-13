@@ -1,9 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import * as Sentry from "@sentry/react";
 import { App } from "./App.tsx";
 import { loadSavedName } from "../features/home/index.ts";
 import { net, readInviteCode } from "../shared/net/index.ts";
 import "./styles.css";
+
+// Error tracking with Rustrak (Sentry-protocol). The DSN is a public ingest
+// key, inlined at build time (VITE_SENTRY_DSN, see apps/client/Dockerfile).
+// Unset in dev, which just turns reporting off.
+const dsn = import.meta.env.VITE_SENTRY_DSN;
+if (dsn) Sentry.init({ dsn, environment: import.meta.env.MODE });
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root element missing");
@@ -16,7 +23,12 @@ const invite = readInviteCode();
 const savedName = loadSavedName();
 if (invite && savedName) void net.joinLobby(invite, savedName);
 
-createRoot(root).render(
+createRoot(root, {
+  // React render errors don't reach window.onerror: hand them to Sentry.
+  onCaughtError: Sentry.reactErrorHandler(),
+  onUncaughtError: Sentry.reactErrorHandler(),
+  onRecoverableError: Sentry.reactErrorHandler(),
+}).render(
   <StrictMode>
     <App />
   </StrictMode>,

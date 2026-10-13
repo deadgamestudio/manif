@@ -200,6 +200,10 @@ older versions, so let agents use the skill rather than their memory.
   `apps/client/.env.example`.
 - Server: `PORT` (default `2567`), `NODE_ENV` (`production` turns off the debug
   knockback message). `GET /health` answers 200 while the server is up.
+- Error tracking: `VITE_SENTRY_DSN` (client, inlined into the bundle at build)
+  and `SENTRY_DSN` (server, read at runtime) send to self-hosted Rustrak. They
+  default to the committed public ingest keys, so production needs no Coolify
+  env; unset turns reporting off.
 
 ## Deploy
 
