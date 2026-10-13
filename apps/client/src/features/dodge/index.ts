@@ -1,2 +1,2 @@
 export { useDodgeInput } from "./useDodgeInput.ts";
-export { DodgeCooldownFill, DodgeHud, useDodgeStart } from "./DodgeHud.tsx";
+export { DodgeCooldownFill, DodgeHud, useDodgeCooldown, useDodgeStart } from "./DodgeHud.tsx";

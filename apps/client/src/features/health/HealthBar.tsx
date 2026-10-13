@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Sprite, SpriteMaterial } from "three";
-import { MAX_HP, PlayerStatus, type PlayerShape } from "@manif/shared";
+import { PlayerStatus, archetypeStats, type PlayerShape } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
 
 const WIDTH = 0.9;
@@ -33,7 +33,8 @@ export function HealthBar({
     const f = fill.current;
     if (!p || !g || !f) return;
     g.visible = p.status !== PlayerStatus.Arrested;
-    const ratio = Math.max(0, Math.min(1, p.hp / MAX_HP));
+    // Out of the archetype's own max HP (#14).
+    const ratio = Math.max(0, Math.min(1, p.hp / archetypeStats(p.archetype).maxHp));
     f.visible = ratio > 0;
     if (ratio > 0) {
       // Sprites face the camera, so shift the fill in screen space through its

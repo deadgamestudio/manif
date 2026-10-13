@@ -362,3 +362,44 @@ describe("same tick as the arrest", () => {
     expect(rescue(arrested, (arrestTick + 1) * DT)).toBe(arrested);
   });
 });
+
+describe("an archetype's rescue time (#14)", () => {
+  /** Ticks until `target` is free, with `rescuer` holding and needing `time` seconds. */
+  function ticksToFree(time: number | undefined): number {
+    const people = new Map([
+      ["r", person("r", 0, 0)],
+      ["t", person("t", 1, 0, S.Grabbed)],
+    ]);
+    const rescuers = new Map<string, Rescuer>([["r", createRescuer()]]);
+    (rescuers.get("r") as Rescuer).holding = true;
+    for (let i = 1; i <= 200; i++) {
+      const done = stepRescues(
+        rescuers,
+        (id) => people.get(id),
+        () => people.values(),
+        () => true,
+        DT,
+        (target) => {
+          const p = people.get(target);
+          if (!p || p.status !== S.Grabbed) return false;
+          p.status = S.Free;
+          return true;
+        },
+        time === undefined ? undefined : () => time,
+      );
+      if (done.length > 0) return i;
+    }
+    return Infinity;
+  }
+
+  test("a quicker rescuer frees in proportion; no timeOf is the base time", () => {
+    expect(ticksToFree(undefined)).toBe(RESCUE_TICKS);
+    expect(ticksToFree(RESCUE_TIME)).toBe(RESCUE_TICKS);
+    expect(ticksToFree(RESCUE_TIME * 0.6)).toBe(Math.round(RESCUE_TICKS * 0.6));
+  });
+
+  test("the ring still reads 0..1 for a quick rescuer", () => {
+    const rescuers = [{ holding: true, targetId: "t", progress: RESCUE_TIME * 0.5 }];
+    expect(rescueProgress(rescuers, "t")).toBeCloseTo(0.5);
+  });
+});

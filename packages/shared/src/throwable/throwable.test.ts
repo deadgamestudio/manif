@@ -168,6 +168,17 @@ describe("projectile flight", () => {
     expect(p.z).toBe(0);
   });
 
+  test("an archetype's throw range (#14) scales how far it flies", () => {
+    for (const factor of [0.75, 1.25]) {
+      const p = createProjectile("p1", PAVE, "me", 0, 0, 1, 0, factor);
+      expect(fly(p, OPEN).type).toBe("landed");
+      expect(p.x).toBeCloseTo(T.range * factor, 6);
+    }
+    // A bad factor is ignored.
+    expect(createProjectile("p1", PAVE, "me", 0, 0, 1, 0, Number.NaN).left).toBe(T.range);
+    expect(createProjectile("p1", PAVE, "me", 0, 0, 1, 0, -2).left).toBe(T.range);
+  });
+
   test("a thin wall stops it at the wall, even in one huge step", () => {
     const wall = { x: 5, z: 0, halfX: 0.5, halfZ: 3 };
     const world: CollisionWorld = { ...OPEN, boxes: [wall] };

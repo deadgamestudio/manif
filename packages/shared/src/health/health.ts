@@ -34,6 +34,8 @@ export interface Health {
   invulnerableUntil: number;
   /** Room time until which grabs only are ignored (after a rescue, #10). */
   grabImmuneUntil: number;
+  /** HP on a respawn and the heal cap: MAX_HP, or the archetype's own (#14). */
+  maxHp: number;
 }
 
 /** Which status changes the machine allows. Anything else is refused. */
@@ -48,9 +50,15 @@ export function canTransition(from: PlayerStatus, to: PlayerStatus): boolean {
   return ALLOWED[from].includes(to);
 }
 
-/** A fresh protester: free, full HP, no invulnerability. */
-export function createHealth(): Health {
-  return { hp: MAX_HP, status: PlayerStatus.Free, until: 0, invulnerableUntil: 0, grabImmuneUntil: 0 };
+/** A fresh protester: free, full HP (`maxHp`, an archetype's #14), no invulnerability. */
+export function createHealth(maxHp = MAX_HP): Health {
+  const max = validMaxHp(maxHp);
+  return { hp: max, status: PlayerStatus.Free, until: 0, invulnerableUntil: 0, grabImmuneUntil: 0, maxHp: max };
+}
+
+/** A max HP that fits the synced uint8: a whole number in 1..255, MAX_HP if not a number. */
+function validMaxHp(maxHp: number): number {
+  return Number.isFinite(maxHp) ? Math.min(255, Math.max(1, Math.round(maxHp))) : MAX_HP;
 }
 
 /** Only free protesters walk. Their move input is ignored otherwise. */
@@ -117,9 +125,20 @@ export function rescue(h: Health, now: number): Health {
   return { ...h, status: PlayerStatus.Free, until: 0, hp: Math.max(h.hp, RESCUE_MIN_HP), grabImmuneUntil: now + GRAB_IMMUNITY };
 }
 
-/** Back in the street: free, full HP, briefly invulnerable. */
-export function respawn(now: number): Health {
-  return { hp: MAX_HP, status: PlayerStatus.Free, until: 0, invulnerableUntil: now + RESPAWN_INVULNERABILITY, grabImmuneUntil: 0 };
+/** Back in the street: free, full HP (`maxHp`), briefly invulnerable. */
+export function respawn(now: number, maxHp = MAX_HP): Health {
+  const max = validMaxHp(maxHp);
+  return { hp: max, status: PlayerStatus.Free, until: 0, invulnerableUntil: now + RESPAWN_INVULNERABILITY, grabImmuneUntil: 0, maxHp: max };
+}
+
+/**
+ * Give `amount` HP back (#14, a CGT's heal aura), up to `maxHp`. Free
+ * protesters only: a grabbed, KO'd or arrested one is past a merguez.
+ * Ignored for a non-positive or non-finite amount, or at full HP.
+ */
+export function heal(h: Health, amount: number): Health {
+  if (!Number.isFinite(amount) || amount <= 0 || h.status !== PlayerStatus.Free || h.hp >= h.maxHp) return h;
+  return { ...h, hp: Math.min(h.maxHp, h.hp + amount) };
 }
 
 /** What a tick changed, so the room can react (place the body on respawn, announce arrests...). */
@@ -132,7 +151,7 @@ export type HealthEvent = "arrested" | "respawned" | null;
  */
 export function tickHealth(h: Health, now: number): { health: Health; event: HealthEvent } {
   if (h.status === PlayerStatus.Free || now < h.until) return { health: h, event: null };
-  if (h.status === PlayerStatus.Arrested) return { health: respawn(now), event: "respawned" };
+  if (h.status === PlayerStatus.Arrested) return { health: respawn(now, h.maxHp), event: "respawned" };
   // Grabbed (drag over) or KO (collapse over).
   return { health: { ...h, status: PlayerStatus.Arrested, until: now + RESPAWN_DELAY }, event: "arrested" };
 }

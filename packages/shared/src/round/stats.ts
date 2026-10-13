@@ -33,7 +33,8 @@ export interface RoundEndEvent {
   result: RoundResult;
   /** How long the march lasted, in whole seconds. */
   seconds: number;
-  players: (RoundPlayerStats & { id: string; name: string })[];
+  /** `archetype` (#14): what they marched as this round, an `Archetype`, for the end screen and future scoring (#41). */
+  players: (RoundPlayerStats & { id: string; name: string; archetype?: number })[];
 }
 
 export interface RoundAward {

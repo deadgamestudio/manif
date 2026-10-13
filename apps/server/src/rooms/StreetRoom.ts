@@ -12,6 +12,7 @@ import {
   PROP_TYPES,
   RESCUE_CRS_IMPULSE,
   RESCUE_PROTESTER_IMPULSE,
+  RESCUE_TIME,
   MELEE_PROP_DAMAGE,
   PLAYER_RADIUS,
   PLAYER_SPEED,
@@ -100,6 +101,17 @@ import {
   type CollisionWorld,
   type CircleShape,
   type Vec2,
+  DODGE_COOLDOWN,
+  GRAB_DURATION,
+  archetypeOf,
+  archetypeStats,
+  canPickArchetype,
+  filmFactor,
+  propDamageOf,
+  spreadAim,
+  type ArchetypeStats,
+  type AuraSubject,
+  type PickArchetypePayload,
 } from "@manif/shared";
 import { Bodies, DEBUG_KNOCKBACK_ENABLED, planDebugKnockback } from "../features/physics/index.js";
 import { DEBUG_HEALTH_ENABLED, Healths, parseDebugHealth } from "../features/health/index.js";
@@ -116,6 +128,7 @@ import { Fires } from "../features/fire/index.js";
 import { Carries } from "../features/carry/index.js";
 import { FireBrigade, type BrigadeHost, type HoseTarget } from "../features/pompier/index.js";
 import { DEBUG_ROUND_ENABLED, RoundStats, parseDebugRound } from "../features/round/index.js";
+import { HealAuras } from "../features/archetype/index.js";
 import { StreetState } from "./state.js";
 
 // The level is static shared data, imported by the client too. It is not synced.
@@ -297,6 +310,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private crowdWorld: { -readonly [K in keyof CollisionWorld]: CollisionWorld[K] } = { ...this.props.world };
   private crowdCircles: CircleShape[] = [];
 
+  /** The CGT's heal aura (#14): the fraction of an HP each protester is owed. Server-only. */
+  private heals = new HealAuras();
+  /** Scratch for the heal aura (#14), reused every tick. */
+  private auraHealers: AuraSubject[] = [];
+  private auraTargets: AuraSubject[] = [];
+
   /** Arrival order per session, for host hand-over. Server-only. */
   private joinOrder = new Map<string, number>();
   private joinCounter = 0;
@@ -345,6 +364,20 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (this.state.phase !== Phase.Marching) return;
       const held = (message as Partial<InteractPayload> | null)?.held === true;
       this.interact(client.sessionId, held);
+    },
+
+    // Archetype pick (#14): only the id, only in the lobby. Locked from the start of the march
+    // until the street is back to `waiting`; an unknown id picks the default. Duplicates are fine.
+    [ClientMessage.PickArchetype]: (client: Client, message: unknown) => {
+      if (!canPickArchetype(this.state.phase)) return;
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const archetype = archetypeOf((message as Partial<PickArchetypePayload> | null)?.archetype);
+      if (player.archetype === archetype) return;
+      player.archetype = archetype;
+      // Its max HP at once; the start of the march resets everyone again anyway.
+      this.healths.reset(client.sessionId, player, archetypeStats(archetype).maxHp);
+      console.log(`[street ${this.roomId}] ${client.sessionId} picks archetype ${archetype}`);
     },
 
     // Game rule: only the host starts, and only from `waiting` (the lobby screen).
@@ -464,6 +497,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.fires.remove(client.sessionId);
     this.protesterViews.delete(client.sessionId);
     this.joinOrder.delete(client.sessionId);
+    this.heals.remove(client.sessionId);
     this.roundStats.remove(client.sessionId);
     this.slips.remove(client.sessionId);
     this.brigade.remove(client.sessionId);
@@ -515,9 +549,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.dodgeCooldowns.clear();
     // Hops (#45): the cooldowns here, the timers with the bodies (placeAtSpawn makes fresh ones, on the ground).
     this.jumpCooldowns.clear();
+    this.heals.clear();
     this.state.players.forEach((player, sessionId) => {
       this.placeAtSpawn(sessionId, player);
-      this.healths.reset(sessionId, player);
+      // Every stat comes from the archetype picked in the lobby (#14); only max HP is kept per player (in health).
+      this.healths.reset(sessionId, player, archetypeStats(player.archetype).maxHp);
       player.rescue = 0;
       player.carrying = ThrowableKind.None;
       player.gassed = false;
@@ -621,7 +657,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const event: RoundEndEvent = {
       result: this.round.result,
       seconds: Math.round(this.round.elapsed),
-      players: Array.from(this.state.players.entries(), ([id, p]) => ({ id, name: p.name, ...this.roundStats.get(id) })),
+      players: Array.from(this.state.players.entries(), ([id, p]) => ({ id, name: p.name, archetype: p.archetype, ...this.roundStats.get(id) })),
     };
     this.broadcast(ServerMessage.RoundEnd, event);
     console.log(`[street ${this.roomId}] end: result ${event.result} after ${event.seconds} s, progress ${this.state.progress}`);
@@ -689,12 +725,17 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     return true;
   }
 
-  /** A CRS grabs a free protester (#5); arrested when `duration` (default GRAB_DURATION) ends unless rescued. */
+  /**
+   * A CRS grabs a free protester (#5); arrested when `duration` (default
+   * GRAB_DURATION) ends unless rescued. The drag lasts longer for an
+   * archetype's `grabTime` (#14), and longer still with a bobo filming nearby.
+   */
   grabPlayer(id: string, duration?: number): boolean {
     const player = this.state.players.get(id);
     // Held overhead or flying through the air (#11): out of a CRS's reach.
     if (!player || this.carry.isCarried(id) || this.carry.isFlying(id)) return false;
-    if (!this.healths.grab(id, player, this.now, duration)) return false;
+    const drag = (duration ?? GRAB_DURATION) * this.statsOf(id).grabTime * this.filmedFactor(player);
+    if (!this.healths.grab(id, player, this.now, drag)) return false;
     // A grabbed carrier drops their teammate at once.
     this.endCarry(id);
     return true;
@@ -708,6 +749,42 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   rescuePlayer(id: string): boolean {
     const player = this.state.players.get(id);
     return player ? this.healths.rescue(id, player, this.now) : false;
+  }
+
+  /** Protester `id`'s archetype stats (#14), from the id they picked and the shared table. The default's for an unknown id. */
+  private statsOf(id: string): ArchetypeStats {
+    return archetypeStats(this.state.players.get(id)?.archetype);
+  }
+
+  /** The filming aura (#14) at `at`: the best of the free bobos in reach (no stacking), 1 with none. */
+  private filmedFactor(at: Vec2): number {
+    const filmers: AuraSubject[] = [];
+    this.state.players.forEach((p, pid) => {
+      const stats = archetypeStats(p.archetype);
+      if (stats.filmAura > 1 && p.status === PlayerStatus.Free) filmers.push({ id: pid, x: p.x, z: p.z, stats });
+    });
+    return filmers.length > 0 ? filmFactor(at, filmers) : 1;
+  }
+
+  /**
+   * The heal aura (#14), once a tick: every free protester below their max HP
+   * near a free CGT gets HP back, at the best rate in reach (no stacking).
+   */
+  private stepHealAuras(dt: number) {
+    const healers = this.auraHealers;
+    const targets = this.auraTargets;
+    healers.length = 0;
+    targets.length = 0;
+    this.state.players.forEach((p, id) => {
+      if (p.status !== PlayerStatus.Free) return;
+      const stats = archetypeStats(p.archetype);
+      if (stats.healAura > 0) healers.push({ id, x: p.x, z: p.z, stats });
+      if (p.hp < stats.maxHp) targets.push({ id, x: p.x, z: p.z, stats });
+    });
+    for (const [id, hp] of this.heals.step(targets, healers, dt)) {
+      const player = this.state.players.get(id);
+      if (player) this.healths.heal(id, player, hp, this.now);
+    }
   }
 
   /** May act (attack #4, throw and pick up #8, dodge #9, rescue #10): free, not knocked down and not carried (#11). */
@@ -747,7 +824,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
 
   /** A swing or a thrown item lands on a prop: HP off, the hit announced, and if it broke, its pavés dropped. */
   private damageProp(by: string, propId: string, amount: number, x: number, z: number) {
-    const res = this.props.damage(propId, amount, this.state.props.get(propId));
+    // The black bloc's hits count double (#14): every prop hit goes through here, swing, throw or thrown teammate.
+    const res = this.props.damage(propId, propDamageOf(amount, this.statsOf(by).propDamage), this.state.props.get(propId));
     if (!res) return;
     const event: HitEvent = { by, kind: "prop", target: propId, x, z, broke: res.broke };
     this.broadcast(ServerMessage.Hit, event);
@@ -789,8 +867,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       return;
     }
     if (!isItemKind(player.carrying)) return;
-    const dir = aimDirection(Number(m.x), Number(m.z), player.rotation);
-    if (!this.throwables.launch(id, player.carrying, player.x, player.z, dir.x, dir.z)) return;
+    // The archetype's arm (#14): how far it flies, and how far off the aim it may wobble.
+    const stats = this.statsOf(id);
+    const dir = spreadAim(aimDirection(Number(m.x), Number(m.z), player.rotation), stats.throwSpread, Math.random());
+    if (!this.throwables.launch(id, player.carrying, player.x, player.z, dir.x, dir.z, stats.throwRange)) return;
     player.carrying = ThrowableKind.None;
     player.rotation = Math.atan2(dir.x, dir.z);
     // The thrower already played the arm swing locally.
@@ -895,7 +975,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   dodge(id: string): boolean {
     const player = this.state.players.get(id);
     if (!player || !this.hasControl(id)) return false;
-    if (!this.dodgeCooldowns.ready(id, this.now)) return false;
+    if (!this.dodgeCooldowns.ready(id, this.now, DODGE_COOLDOWN * this.statsOf(id).dodgeCooldown)) return false;
     const dir = dodgeDirection(this.moveInputs.get(id) ?? NO_INPUT, player.rotation);
     if (!this.bodies.dodge(id, player, dir.x, dir.z)) return false;
     this.dodgeCooldowns.start(id, this.now);
@@ -1130,6 +1210,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         this.roundStats.add(rescuerId, "rescues");
         return true;
       },
+      // The étudiant·e pulls faster (#14).
+      (id) => RESCUE_TIME * this.statsOf(id).rescueTime,
     );
     this.stepFireHolds(dt);
     const crowd = this.buildCrowdWorld();
@@ -1166,13 +1248,16 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       // Free and KO'd protesters bump into raised shields (#6); grabbed ones are dragged, arrested ones are in the van.
       const solid = player.status === PlayerStatus.Free || player.status === PlayerStatus.Ko;
       if (carried) return;
-      const res = this.bodies.step(sessionId, player, input, dt, solid ? crowd : this.props.world);
+      // The archetype's walk (#14) composes with the slowdowns above; the dodge burst follows it.
+      const res = this.bodies.step(sessionId, player, input, dt, solid ? crowd : this.props.world, archetypeStats(player.archetype).speed);
       // A head-on dodge into a wall or prop bonks (#9): tip the avatar backwards like a hit.
       if (res?.bonk) {
         const event: ImpulseEvent = { id: sessionId, dirX: res.bonk.x, dirZ: res.bonk.z, strength: res.bonk.speed, down: player.down };
         this.broadcast(ServerMessage.Impulse, event);
       }
     });
+    // The CGT's heal aura (#14), after everyone moved.
+    this.stepHealAuras(dt);
     // Carries (#11): drops (timer, carrier hit or no longer free), then each carried teammate onto their carrier.
     this.stepCarries();
     // Thrown teammates (#11) hit the CRS and props they fly into, before the CRS step, so a floored bot lets go on this tick.
@@ -1410,6 +1495,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     view.z = player.z;
     view.status = player.status;
     view.down = player.down;
+    // The black bloc is chased first (#14): a weight on distance, see `pickTarget`.
+    view.priority = archetypeStats(player.archetype).targetWeight;
     return view;
   }
 

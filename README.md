@@ -78,6 +78,16 @@ duos charge in, the passenger hops off, whacks someone and they ride off
 bike skids away). An end
 screen shows the result and a few joke awards for 10 s, then the street resets
 and everyone is back on the lobby screen for the next round.
+On the lobby screen each player picks an archetype (#14), locked for the whole
+march: manifestant·e lambda (the default, plain stats), bobo gaucho, mec de
+cité, gilet jaune, black bloc, syndicaliste CGT, étudiant·e or retraité·e. Each
+has a look (clothes colour and a placeholder prop) and passive modifiers: speed,
+HP, how long a CRS drag lasts, rescue time, damage to props, throw range, dodge
+cooldown, how keen the CRS are to chase you, and two auras (the CGT slowly heals
+teammates nearby, a bobo filming makes nearby grabs last longer). The numbers
+are one table in `packages/shared/src/archetype/constants.ts`; the looks are
+`apps/client/src/features/archetype/archetypeVisuals.tsx`. Players who join
+mid-march are the default until the next lobby.
 
 ## Layout
 
@@ -99,6 +109,7 @@ apps/client/src/
               fire/ (flames and smoke on props, burning bodies, hold bar, fire prompts)
               pompier/ (fire trucks)  water/ (the water jet, for the hose and a future water cannon)
               round/ (timer and progress HUD, end screen, last result in the lobby)
+              archetype/ (the lobby pick menu, the placeholder looks)
               debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/client/seo/      the link preview and search tags (meta.ts) and the Vite plugin that writes them (plugin.ts)
@@ -115,10 +126,11 @@ apps/server/src/
               fire/ (Fire Schema, burning props, who is on fire, who holds E to light or pat out)
               pompier/ (Truck Schema, FireBrigade: trucks, the pompiers' work, what the water does)
               round/ (end-of-round numbers, dev-only round debug)
+              archetype/ (the CGT's heal aura)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
   net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ jump/ rescue/ throwable/ gas/ fire/ round/
-  water/ pompier/   (each with an index.ts)
+  water/ pompier/ archetype/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -174,6 +186,8 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change the cap on CRS, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
 | Tune the round (length, end screen time, win share, wipe rule) or the reinforcement waves (`ROUND_WAVES`: when, how many chasers, which lines) | `packages/shared/src/round/constants.ts` |
 | Change the round rules (phases, progress, win and lose order, wave spawn points, start spots clear of props) | `packages/shared/src/round/round.ts`; the room applies them in `StreetRoom.startMarch()`, `updateFront()`, `spawnWave()`, `stepRoundClock()` and `resetStreet()` |
+| Tune an archetype (#14: speed, max HP, drag time, rescue time, prop damage, throw range and spread, dodge cooldown, CRS target weight, heal and filming auras), rename one or add one | The `ARCHETYPES` table in `packages/shared/src/archetype/constants.ts` (aura radius there too; the rules, such as no aura stacking, in `archetype/archetype.ts`). Give a new one a look in `apps/client/src/features/archetype/archetypeVisuals.tsx`. Systems read the numbers through `StreetRoom.statsOf(id)`, never the id |
+| Change an archetype's look (clothes colour, placeholder props, lobby icon) | `apps/client/src/features/archetype/archetypeVisuals.tsx` (the one file for Jordan's models); the lobby menu is `ArchetypePicker.tsx` next to it |
 | Reset something new between rounds | `StreetRoom.resetStreet()` in `apps/server/src/rooms/StreetRoom.ts` (the round-live check compares the street after a reset with a fresh room) |
 | Change the round HUD, end screen or joke awards | `apps/client/src/features/round/`; the awards are `roundAwards` in `packages/shared/src/round/stats.ts`, the numbers are counted by `RoundStats` (`apps/server/src/features/round/`) |
 | Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |

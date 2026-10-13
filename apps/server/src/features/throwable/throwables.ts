@@ -78,10 +78,14 @@ export class Throwables {
     return releaseCarried(carrier, this.ground);
   }
 
-  /** Throw from (x, z) along the unit direction. False at the MAX_PROJECTILES cap (the item stays in hand). */
-  launch(by: string, kind: ItemKind, x: number, z: number, dirX: number, dirZ: number): boolean {
+  /**
+   * Throw from (x, z) along the unit direction, `rangeFactor` times as far as
+   * the item's range (#14, the thrower's archetype). False at the
+   * MAX_PROJECTILES cap (the item stays in hand).
+   */
+  launch(by: string, kind: ItemKind, x: number, z: number, dirX: number, dirZ: number, rangeFactor = 1): boolean {
     if (this.flying.length >= MAX_PROJECTILES) return false;
-    const p = createProjectile(`proj-${++this.counter}`, kind, by, x, z, dirX, dirZ);
+    const p = createProjectile(`proj-${++this.counter}`, kind, by, x, z, dirX, dirZ, rangeFactor);
     this.flying.push(p);
     const view = new ProjectileView();
     view.kind = kind;

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useSyncExternalStore } from "react";
 import { DODGE_COOLDOWN } from "@manif/shared";
+import { useArchetypeStats } from "../archetype/index.ts";
 import { net } from "../../shared/net/index.ts";
 
 const FIELDS = ["dodging"] as const;
@@ -25,19 +26,24 @@ export function useDodgeStart(localId: string | null): number {
   return useSyncExternalStore(subscribe, () => startedAt.current);
 }
 
+/** The local player's dodge cooldown in seconds: their archetype's own (#14). */
+export function useDodgeCooldown(localId: string | null): number {
+  return DODGE_COOLDOWN * useArchetypeStats(localId).dodgeCooldown;
+}
+
 /**
  * The bar's fill: empties when a dodge starts and refills over DODGE_COOLDOWN.
  * A CSS animation does the refill, so React renders once per dodge. Shared by
  * the HUD and the touch Esquive button (#42).
  */
-export function DodgeCooldownFill({ started }: { started: number }) {
+export function DodgeCooldownFill({ started, cooldown = DODGE_COOLDOWN }: { started: number; cooldown?: number }) {
   return (
     // A new key restarts the refill animation on every dodge.
     <div
       key={started}
       className="hud-dodge-fill"
       data-cooling={started > 0 || undefined}
-      style={{ animationDuration: `${DODGE_COOLDOWN}s` }}
+      style={{ animationDuration: `${cooldown}s` }}
     />
   );
 }
@@ -48,10 +54,11 @@ export function DodgeCooldownFill({ started }: { started: number }) {
  */
 export function DodgeHud({ localId, touch = false }: { localId: string | null; touch?: boolean }) {
   const started = useDodgeStart(localId);
+  const cooldown = useDodgeCooldown(localId);
   return (
     <div className="hud-dodge">
       <div className="hud-dodge-bar" aria-hidden="true">
-        <DodgeCooldownFill started={started} />
+        <DodgeCooldownFill started={started} cooldown={cooldown} />
       </div>
       <span>{touch ? "Esquive" : "Plongeon (Maj)"}</span>
     </div>

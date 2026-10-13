@@ -12,6 +12,7 @@ import {
   respawn,
   secondsLeft,
   tickHealth,
+  heal,
   type Health,
 } from "./health.js";
 
@@ -268,5 +269,45 @@ describe("secondsLeft", () => {
     expect(secondsLeft(a, KO_DURATION)).toBe(RESPAWN_DELAY);
     expect(secondsLeft(a, KO_DURATION + 2.5)).toBe(RESPAWN_DELAY - 2);
     expect(secondsLeft(a, KO_DURATION + RESPAWN_DELAY + 5)).toBe(0);
+  });
+});
+
+describe("an archetype's max HP (#14)", () => {
+  test("a fresh protester starts at its archetype's max HP", () => {
+    expect(createHealth(130)).toMatchObject({ hp: 130, maxHp: 130 });
+    expect(createHealth()).toMatchObject({ hp: MAX_HP, maxHp: MAX_HP });
+  });
+
+  test("and comes back from the van with it", () => {
+    let h = createHealth(75);
+    h = damage(h, 100, 0);
+    for (let t = 0; t < 30 && h.status !== PlayerStatus.Free; t += 0.5) h = tickHealth(h, t).health;
+    for (let t = 30; h.status !== PlayerStatus.Free; t += 0.5) h = tickHealth(h, t).health;
+    expect(h).toMatchObject({ hp: 75, maxHp: 75 });
+    expect(respawn(0, 130).hp).toBe(130);
+  });
+
+  test("a max HP outside the uint8 is clamped", () => {
+    expect(createHealth(999).hp).toBe(255);
+    expect(createHealth(0).hp).toBe(1);
+    expect(createHealth(Number.NaN).hp).toBe(MAX_HP);
+  });
+});
+
+describe("heal (#14, the CGT's aura)", () => {
+  test("gives HP back up to the max", () => {
+    const h = damage(createHealth(100), 10, 0);
+    expect(heal(h, 4).hp).toBe(94);
+    expect(heal(h, 50).hp).toBe(100);
+  });
+
+  test("nothing at full HP, for a bad amount, or when not free", () => {
+    const full = createHealth();
+    expect(heal(full, 5)).toBe(full);
+    const hurt = damage(createHealth(), 10, 0);
+    expect(heal(hurt, 0)).toBe(hurt);
+    expect(heal(hurt, Number.NaN)).toBe(hurt);
+    const grabbed = grab(hurt, 0);
+    expect(heal(grabbed, 5)).toBe(grabbed);
   });
 });

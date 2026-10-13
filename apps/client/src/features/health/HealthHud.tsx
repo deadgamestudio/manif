@@ -1,5 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { MAX_HP, PlayerStatus } from "@manif/shared";
+import { PlayerStatus } from "@manif/shared";
+import { useArchetypeStats } from "../archetype/index.ts";
 import { net } from "../../shared/net/index.ts";
 
 const FIELDS = ["hp", "status", "stateLeft"] as const;
@@ -32,17 +33,19 @@ export function HealthHud({ localId }: { localId: string | null }) {
     const p = localId ? net.getPlayer(localId) : undefined;
     return p ? `${p.hp}|${p.status}|${p.stateLeft}` : "";
   });
+  // Out of the archetype's own max HP (#14).
+  const maxHp = useArchetypeStats(localId).maxHp;
   if (!key) return null;
   const [hp = 0, status = 0, left = 0] = key.split("|").map(Number);
-  const ratio = Math.max(0, Math.min(1, hp / MAX_HP));
+  const ratio = Math.max(0, Math.min(1, hp / maxHp));
   const label = describe(status, left);
 
   return (
     <div className="hud-health">
-      <div className="hud-hp" role="meter" aria-label="Points de vie" aria-valuemin={0} aria-valuemax={MAX_HP} aria-valuenow={hp}>
+      <div className="hud-hp" role="meter" aria-label="Points de vie" aria-valuemin={0} aria-valuemax={maxHp} aria-valuenow={hp}>
         <div className="hud-hp-fill" style={{ width: `${ratio * 100}%` }} data-low={ratio <= 0.3 || undefined} />
         <span className="hud-hp-text">
-          {hp}/{MAX_HP}
+          {hp}/{maxHp}
         </span>
       </div>
       {label && <div className="hud-status">{label}</div>}

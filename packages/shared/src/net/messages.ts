@@ -6,6 +6,12 @@ export const ClientMessage = {
   /** Host only: from `waiting` (the lobby screen), start the march (#12). No payload. */
   Start: "start",
   /**
+   * Pick an archetype (#14) in the lobby. Only the id: the server looks the
+   * stats up in the shared table. Ignored outside `waiting` (locked during the
+   * march and on the end screen); an unknown id picks the default.
+   */
+  PickArchetype: "pickArchetype",
+  /**
    * Swing at whatever is in front (#4). No payload: the server uses its own
    * position and facing, and enforces the cooldown and the player's state.
    */
@@ -67,6 +73,7 @@ export interface MoveInput {
 export interface ClientMessagePayloads {
   [ClientMessage.Move]: MoveInput;
   [ClientMessage.Start]: undefined;
+  [ClientMessage.PickArchetype]: PickArchetypePayload;
   [ClientMessage.Attack]: undefined;
   [ClientMessage.Dodge]: undefined;
   [ClientMessage.Jump]: undefined;
@@ -106,6 +113,11 @@ export type DebugRoundPayload =
    * fire before another truck comes, `soak` the hose's water per second (a slow hose keeps a pompier busy). Each is optional.
    */
   | { action: "brigade"; delay?: number; crew?: number; spray?: number; extra?: number; soak?: number };
+
+/** Payload of `ClientMessage.PickArchetype`: an `Archetype` id. */
+export interface PickArchetypePayload {
+  archetype: number;
+}
 
 /** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
 export interface InteractPayload {

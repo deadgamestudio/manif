@@ -208,8 +208,10 @@ export interface Projectile extends Vec2 {
 }
 
 /** Spawn a projectile at (x, z) flying along the unit direction (dirX, dirZ). */
-export function createProjectile(id: string, kind: ItemKind, by: string, x: number, z: number, dirX: number, dirZ: number): Projectile {
-  return { id, kind, by, x, z, dirX, dirZ, left: THROWABLE_TYPES[kind].range, hits: new Set(), struck: 0 };
+export function createProjectile(id: string, kind: ItemKind, by: string, x: number, z: number, dirX: number, dirZ: number, rangeFactor = 1): Projectile {
+  // An archetype's throw range (#14) scales how far it flies, not how fast.
+  const factor = Number.isFinite(rangeFactor) && rangeFactor > 0 ? rangeFactor : 1;
+  return { id, kind, by, x, z, dirX, dirZ, left: THROWABLE_TYPES[kind].range * factor, hits: new Set(), struck: 0 };
 }
 
 /** Something a projectile can hit and affect: an intact prop or a CRS (as in melee). */
