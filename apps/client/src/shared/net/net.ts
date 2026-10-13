@@ -27,7 +27,9 @@ import {
   type LobbyJoinOptions,
   type MoveInput,
   type PickArchetypePayload,
+  type ReadyPayload,
   type RenamePayload,
+  type StartPayload,
   type RenameRefusedEvent,
   type PlayerShape,
   type PropShapeState,
@@ -52,6 +54,8 @@ export interface LobbyPlayer {
   name: string;
   /** The archetype picked in the lobby (#14), an `Archetype`. */
   archetype: number;
+  /** Marked ready in the lobby (#62). Read through `canStart`, which ignores the host's flag. */
+  ready: boolean;
 }
 
 export interface NetSnapshot {
@@ -279,7 +283,7 @@ function readRoom(r: ClientRoom): Partial<NetSnapshot> {
   return {
     phase: state.phase as Phase,
     hostId: state.hostId || null,
-    players: Array.from(state.players.entries(), ([id, p]) => ({ id, name: p.name, archetype: p.archetype ?? 0 })),
+    players: Array.from(state.players.entries(), ([id, p]) => ({ id, name: p.name, archetype: p.archetype ?? 0, ready: p.ready === true })),
     crs: state.crs ? Array.from(state.crs.entries(), ([id]) => id) : [],
   };
 }
@@ -297,6 +301,8 @@ function attach(joined: ClientRoom, gen: number) {
     callbacks.listen(player as PlayerShape & IRef, "name", refresh);
     // The lobby shows everyone's pick (#14).
     callbacks.listen(player as PlayerShape & IRef, "archetype", refresh);
+    // ...and who is ready (#62).
+    callbacks.listen(player as PlayerShape & IRef, "ready", refresh);
     refresh();
   });
   callbacks.onRemove("players", (_player, id) => {
@@ -784,9 +790,21 @@ export const net = {
     return connect((client) => client.joinById<ClientState>(code, options));
   },
 
-  /** Host only (the server checks): from the lobby screen (`waiting`), start the march for everyone (#12). */
-  start() {
-    room?.send(ClientMessage.Start);
+  /**
+   * Host only (the server checks): from the lobby screen (`waiting`), start the march for everyone (#12).
+   * The server refuses it while someone isn't ready (#62), unless `force` ("Lancer quand même").
+   */
+  start(force = false) {
+    if (force) {
+      const payload: StartPayload = { force: true };
+      room?.send(ClientMessage.Start, payload);
+    } else room?.send(ClientMessage.Start);
+  },
+
+  /** Mark yourself ready or not in the lobby (#62). The server ignores it outside `waiting` and from the host. */
+  setReady(ready: boolean) {
+    const payload: ReadyPayload = { ready };
+    room?.send(ClientMessage.Ready, payload);
   },
 
   /** Pick an archetype in the lobby (#14). The server ignores it outside `waiting`. */
