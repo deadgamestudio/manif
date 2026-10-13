@@ -26,6 +26,7 @@ import {
   strikeCrs,
   stunCrs,
   vanDoors,
+  type CircleShape,
   type CollisionWorld,
   type CrsBehaviour,
   type CrsBot,
@@ -188,6 +189,20 @@ export class CrsSquad {
     return this.contacts;
   }
 
+  /**
+   * CRS lying on the ground (#45): knocked down or out. Protesters walking
+   * bump into them and hop over them (the circles are `hoppable`), and they
+   * give way when they squeeze someone against a wall or a prop (`soft`). Appended
+   * to `out` as circles of the bot's radius. Bots ignore each other, as before.
+   */
+  fallenCircles(out: CircleShape[]): CircleShape[] {
+    for (const bot of this.bots) {
+      if (bot.status !== CrsStatus.Out && !isDown(bot.body)) continue;
+      out.push({ x: bot.body.x, z: bot.body.z, r: bot.stats.radius, hoppable: true, soft: true });
+    }
+    return out;
+  }
+
   /** From the Préfecture end towards the start: where the cortège comes from. */
   private towardsCortege(): Vec2 {
     const { from, to } = this.level.progress;
@@ -211,6 +226,21 @@ export class CrsSquad {
     view.rotation = bot.rotation;
     this.mirror(bot, view);
     this.views.set(id, view);
+    return bot;
+  }
+
+  /**
+   * DEBUG (#45, dev only): a bot lying out cold at (x, z) for `seconds`, then
+   * removed like any bot taken out. For scripted hop tests. Null at the cap.
+   */
+  spawnFallen(x: number, z: number, now: number, seconds: number): CrsBot | null {
+    const bot = this.spawn(x, z);
+    if (!bot) return null;
+    bot.status = CrsStatus.Out;
+    bot.statusUntil = now + seconds;
+    bot.body.downTime = seconds;
+    const view = this.views.get(bot.id);
+    if (view) this.mirror(bot, view);
     return bot;
   }
 

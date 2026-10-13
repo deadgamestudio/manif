@@ -17,11 +17,16 @@ export interface PropType {
   paves: number;
   /** Can be set on fire (#16): bins and cars burn, glass and bus shelters do not. */
   flammable: boolean;
+  /**
+   * A hop (#45) clears it while it stands: a body in the air passes over its
+   * shape. Bots never hop, so they still walk round it. Low props only.
+   */
+  hoppable: boolean;
 }
 
 export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
-  // A wheelie bin: two whacks and the lid flies. Nothing left to stand behind.
-  bin: { maxHp: 2, intact: { type: "circle", r: 0.5 }, broken: null, paves: 0, flammable: true },
+  // A wheelie bin: two whacks and the lid flies. Nothing left to stand behind. Low enough to hop over (#45).
+  bin: { maxHp: 2, intact: { type: "circle", r: 0.5 }, broken: null, paves: 0, flammable: true, hoppable: true },
   // The glass shatters; the frame and bench stay.
   bus_shelter: {
     maxHp: 4,
@@ -29,9 +34,10 @@ export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
     broken: { type: "box", halfX: 0.6, halfZ: 1.6 },
     paves: 2,
     flammable: false,
+    hoppable: false,
   },
   // A shop front: once smashed you can step into the gap.
-  shop_window: { maxHp: 3, intact: { type: "box", halfX: 0.5, halfZ: 1.5 }, broken: null, paves: 1, flammable: false },
+  shop_window: { maxHp: 3, intact: { type: "box", halfX: 0.5, halfZ: 1.5 }, broken: null, paves: 1, flammable: false, hoppable: false },
   // A burnt-out car is still a car.
   car: {
     maxHp: 6,
@@ -39,5 +45,6 @@ export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
     broken: { type: "box", halfX: 1, halfZ: 2.1 },
     paves: 1,
     flammable: true,
+    hoppable: false,
   },
 };

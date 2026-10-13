@@ -8,6 +8,7 @@ export * from "./prop/index.js";
 export * from "./melee/index.js";
 export * from "./crs/index.js";
 export * from "./dodge/index.js";
+export * from "./jump/index.js";
 export * from "./rescue/index.js";
 export * from "./throwable/index.js";
 export * from "./gas/index.js";

@@ -24,6 +24,8 @@ export interface PlayerShape {
   stateLeft: number;
   /** In a dodge burst (#9), for the visual and the HUD cooldown. The cooldown itself stays server-side. */
   dodging: boolean;
+  /** In the air (#45), for the hop arc. The timer and the cooldown stay server-side; the height is the client's own. */
+  airborne: boolean;
   /** While grabbed: how far a teammate's rescue has got (#10), 0..100. 0 otherwise. */
   rescue: number;
   /** The item in hand (#8), a `ThrowableKind`; `ThrowableKind.None` (0) when empty-handed. */

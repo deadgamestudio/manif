@@ -8,9 +8,10 @@ export interface RagdollRig {
   /**
    * Call once per frame from the avatar's useFrame, after it has moved its
    * root group to (x, z). Returns true while the ragdoll is drawn: hide the
-   * normal avatar and skip its tip-over then.
+   * normal avatar and skip its tip-over then. `lift` (metres, default 0) is
+   * how high the avatar is drawn right now (a hop, #45): a fall starts there.
    */
-  update(dt: number, lying: boolean, x: number, z: number, yaw: number, hit: Hit | undefined): boolean;
+  update(dt: number, lying: boolean, x: number, z: number, yaw: number, hit: Hit | undefined, lift?: number): boolean;
   /** Stop and free the slot (arrested, respawned). Unmounting does it too. */
   reset(): void;
   /** Body colour of the ragdoll (local / other / hurt, a CRS hit flash). */
@@ -76,8 +77,8 @@ function createRig(look: RagdollLook): RagdollRig {
   );
 
   return {
-    update(dt, lying, x, z, yaw, hit) {
-      shown = controller.update(dt, lying, x, z, yaw, hit);
+    update(dt, lying, x, z, yaw, hit, lift = 0) {
+      shown = controller.update(dt, lying, x, z, yaw, hit, lift);
       rootX = x;
       rootZ = z;
       if (root) {

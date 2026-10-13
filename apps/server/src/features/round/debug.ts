@@ -21,6 +21,17 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
     const radius = Number((m as { radius?: unknown }).radius);
     return Number.isFinite(radius) ? { action: "water", radius: Math.max(0, Math.min(20, radius)) } : null;
   }
+  if (m.action === "fallen") {
+    const raw = m as { distance?: unknown; seconds?: unknown };
+    const distance = Number(raw.distance);
+    const seconds = Number(raw.seconds);
+    if (!Number.isFinite(distance) || !Number.isFinite(seconds)) return null;
+    return { action: "fallen", distance: Math.max(0, Math.min(10, distance)), seconds: Math.max(0.1, Math.min(30, seconds)) };
+  }
+  if (m.action === "crs") {
+    const distance = Number((m as { distance?: unknown }).distance);
+    return Number.isFinite(distance) ? { action: "crs", distance: Math.max(0, Math.min(10, distance)) } : null;
+  }
   if (m.action === "time") {
     const seconds = Number(m.seconds);
     return Number.isFinite(seconds) ? { action: "time", seconds: Math.max(0, seconds) } : null;

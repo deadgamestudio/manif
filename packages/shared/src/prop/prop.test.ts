@@ -76,7 +76,7 @@ describe("prop types", () => {
 describe("propShape", () => {
   test("places the shape at the slot", () => {
     expect(propShape(slot("car", 3, -4), false)).toEqual({ type: "box", x: 3, z: -4, halfX: 1, halfZ: 2.1 });
-    expect(propShape(slot("bin", 1, 2), false)).toEqual({ type: "circle", x: 1, z: 2, r: 0.5 });
+    expect(propShape(slot("bin", 1, 2), false)).toEqual({ type: "circle", x: 1, z: 2, r: 0.5, hoppable: true });
   });
 
   test("a quarter turn swaps the half extents", () => {

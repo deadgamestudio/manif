@@ -23,6 +23,8 @@ export const Player = schema(
     stateLeft: t.uint8(),
     /** In a dodge burst (#9). The cooldown and burst timer stay server-side in the physics and dodge features. */
     dodging: t.boolean(),
+    /** In the air (#45). The hop timer stays in the physics feature, the cooldown in the jump feature. */
+    airborne: t.boolean(),
     /** While grabbed: a teammate's rescue progress (#10), 0..100. 0 otherwise. Progress per rescuer stays server-side. */
     rescue: t.uint8().default(0),
     /** The item in hand (#8), a `ThrowableKind` from @manif/shared; 0 when empty-handed. */

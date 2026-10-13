@@ -15,13 +15,14 @@ const press = (e: MouseEvent) => e.preventDefault();
 const interactDown = () => net.sendInteract(true);
 const interactUp = () => net.sendInteract(false);
 const dodge = () => net.sendDodge();
+const jump = () => net.sendJump();
 
 /**
  * On-screen controls for phones and tablets (#42), shown in touch mode only.
  * They send the same messages as the keyboard. Left half: a floating stick
  * that appears where the thumb lands. Right thumb: Taper (hit, or throw along
- * the stick), Esquive (dodge, with its cooldown) and Action (pick up, held to
- * rescue; lit when it would do something). Each control follows its own
+ * the stick), Esquive (dodge, with its cooldown), Sauter (hop, #45) and
+ * Action (pick up, held to rescue; lit when it would do something). Each control follows its own
  * finger, so walking and hitting at once works.
  */
 export function TouchControls({ localId, players }: { localId: string | null; players: readonly LobbyPlayer[] }) {
@@ -73,6 +74,7 @@ export function TouchControls({ localId, players }: { localId: string | null; pl
   }, []);
   const taper = useHoldButton(attack);
   const esquive = useHoldButton(dodge);
+  const sauter = useHoldButton(jump);
   const action = useHoldButton(interactDown, interactUp);
   const dodgeStarted = useDodgeStart(localId);
   const hint = useActionHint(localId, players);
@@ -94,6 +96,9 @@ export function TouchControls({ localId, players }: { localId: string | null; pl
       <div className="touch-buttons">
         <button type="button" className="touch-btn touch-btn-action" data-held={action.held || undefined} data-hint={hint || undefined} {...action.handlers}>
           Action
+        </button>
+        <button type="button" className="touch-btn touch-btn-jump" data-held={sauter.held || undefined} {...sauter.handlers}>
+          Sauter
         </button>
         <button type="button" className="touch-btn touch-btn-dodge" data-held={esquive.held || undefined} {...esquive.handlers}>
           Esquive

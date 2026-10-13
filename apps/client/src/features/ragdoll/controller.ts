@@ -65,8 +65,9 @@ export class RagdollController {
    * One frame. Returns true if the ragdoll should be drawn (and the normal
    * avatar hidden), false if the avatar draws itself (standing, or the
    * tip-over when no slot was free). Never writes the root: x and z are read only.
+   * `lift` is how high the avatar was drawn (a hop, #45): a fall starts from there.
    */
-  update(dt: number, lying: boolean, x: number, z: number, yaw: number, hit: Hit | undefined): boolean {
+  update(dt: number, lying: boolean, x: number, z: number, yaw: number, hit: Hit | undefined, lift = 0): boolean {
     const frame = Number.isFinite(dt) && dt > 0 ? dt : 0;
     this.clock += frame;
     if (hit !== this.lastHit) {
@@ -81,7 +82,7 @@ export class RagdollController {
           this.mode = Mode.Fallback;
           return false;
         }
-        seedStanding(this.sim, x, z, yaw);
+        seedStanding(this.sim, x, z, yaw, lift);
         this.mode = Mode.Ragdoll;
         this.kicked = false;
         this.sinceFall = 0;

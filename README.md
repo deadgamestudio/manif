@@ -7,15 +7,19 @@ So far: a monorepo, a homepage where you pick a name and create or join a
 private lobby by code or invite link, a lobby screen where the host starts the
 march, and a long street (start zone at one end, the Préfecture at the other)
 with walls and obstacles the server collides players against, with names above
-the players walking it, synced through the server. Players swing (Space or
+the players walking it, synced through the server. Players swing (left
 click) to smash breakable props: bins, bus shelters, shop windows and cars.
+Space hops (#45): half a second in the air to get over a wheelie bin or a CRS
+lying in the street (not over cars, walls or a shield line), and a baton swing
+that lands while you are in the air misses. A grab still gets you. A short
+cooldown keeps it from being spammed. On a phone it is the Sauter button.
 CRS riot police bots chase the nearest protester, hit them with batons, grab
 them and drag them to the police vans; protesters can hit them back, or dodge
 (Shift) with a short burst of speed that has a 3 s cooldown. A teammate being
 dragged away can be rescued: hold E next to them for a second (or floor the CRS
 holding them) and they are free, with a moment of grab immunity. Pavés lie in
 the street and fall out of broken bus shelters, shop windows and cars: press E
-next to one to pick it up, then click (or Space) to throw it towards the mouse.
+next to one to pick it up, then click to throw it towards the mouse.
 A pavé floors and stuns the CRS it hits, which drops whoever it was dragging,
 and lands on the ground again wherever it stops.
 Further down, CRS shield lines stand across the street: a wall of shields that
@@ -58,7 +62,7 @@ Inside each one, code is grouped by feature:
 apps/client/src/
   app/        main.tsx, App.tsx, styles.css
   features/   home/ lobby/ game/ level/ player/ health/ movement/ melee/ (attack input) prop/ (props, debris)
-              crs/ (police bot avatars) dodge/ (dodge key, cooldown HUD) interact/ (E key)
+              crs/ (police bot avatars) dodge/ (dodge key, cooldown HUD) jump/ (Space, the hop arc) interact/ (E key)
               rescue/ (rescue bar, HUD prompt) throwable/ (pavés on the ground, in hand, in flight; mouse aim)
               gas/ (tear gas canisters, clouds, screen tint)
               fire/ (flames and smoke on props, burning bodies, hold bar, fire prompts)
@@ -72,7 +76,7 @@ apps/server/src/
   app/        server bootstrap
   features/   player/ (Player Schema)  physics/ (knockback bodies)  health/ (HP and arrest timers)
               melee/ (swing cooldowns)  prop/ (Prop Schema, prop HP, the room's collision world)
-              crs/ (Crs Schema, CrsSquad: the bots, spawning, syncing)  dodge/ (dodge cooldowns)
+              crs/ (Crs Schema, CrsSquad: the bots, spawning, syncing)  dodge/ (dodge cooldowns)  jump/ (hop cooldowns)
               rescue/ (who holds interact, rescue progress)
               throwable/ (GroundItem and Projectile Schemas, items on the ground and in flight)
               gas/ (GasCloud and Canister Schemas, clouds, canisters, who is coughing)
@@ -80,7 +84,7 @@ apps/server/src/
               round/ (end-of-round numbers, dev-only round debug)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/ throwable/ gas/ fire/ round/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ jump/ rescue/ throwable/ gas/ fire/ round/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -120,6 +124,8 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change collision (push-out, sliding, sub-steps, minimum wall thickness) | `packages/shared/src/physics/collision.ts` |
 | Tune knockback (drag, friction, knockdown threshold, down time, get-up immunity, wall bounce) | `packages/shared/src/physics/constants.ts` |
 | Change knockback kinematics (impulses, integration, bounce, down timer) | `packages/shared/src/physics/body.ts`; the server side is `apps/server/src/features/physics/` |
+| Tune the hop (time in the air, cooldown, drawn height, landing search) | `packages/shared/src/jump/constants.ts` |
+| Make a prop hoppable, or change what a hop clears | `hoppable` in `PROP_TYPES` (`packages/shared/src/prop/constants.ts`); fallen CRS are added as hoppable, soft circles by `CrsSquad.fallenCircles()`. The filter is `skipHoppable` in `physics/collision.ts`, the hop and its landing are `startJump` / `landBody` in `physics/body.ts`, and the baton miss is in `crsHost.batonHit` in `StreetRoom.ts` |
 | Push a body from a new hit (melee, baton, pavé...) | `StreetRoom.applyImpulse(id, dirX, dirZ, strength, mode?)` in `apps/server/src/rooms/StreetRoom.ts` |
 | Tune HP, KO time, respawn delay, invulnerability, grab immunity after a rescue, default drag time, respawn margin | `packages/shared/src/health/constants.ts` |
 | Change the health state machine (free, grabbed, KO, arrested) | `packages/shared/src/health/health.ts`; respawn position in `health/respawn.ts` |

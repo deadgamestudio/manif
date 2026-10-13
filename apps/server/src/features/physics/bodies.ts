@@ -2,12 +2,15 @@ import {
   applyImpulse,
   createBody,
   endDodge,
+  endJump,
   hasControl,
+  isAirborne,
   isDodging,
   isDown,
   moveCircle,
   resolveShieldContacts,
   startDodge,
+  startJump,
   stepBody,
   type Body,
   type BodyStepResult,
@@ -26,6 +29,8 @@ export interface BodyView {
   down: boolean;
   /** In a dodge burst (#9). */
   dodging: boolean;
+  /** In the air (#45). */
+  airborne: boolean;
 }
 
 /**
@@ -52,6 +57,7 @@ export class Bodies {
     view.z = z;
     view.down = false;
     view.dodging = false;
+    view.airborne = false;
   }
 
   remove(id: string): void {
@@ -65,6 +71,12 @@ export class Bodies {
   isDown(id: string): boolean {
     const body = this.bodies.get(id);
     return body ? isDown(body) : false;
+  }
+
+  /** In the air (#45): a baton swing misses, hoppable shapes are skipped. */
+  isAirborne(id: string): boolean {
+    const body = this.bodies.get(id);
+    return body ? isAirborne(body) : false;
   }
 
   /** Whether the entity may move and act. Later actions (#4 attack, #8 throw, #9 dodge) check this. */
@@ -89,6 +101,9 @@ export class Bodies {
     if (!body) return null;
     const res = applyImpulse(body, dirX, dirZ, strength, mode);
     view.down = isDown(body);
+    // Floored mid-hop (#45): the hop ends with the knock-down.
+    const airborne = isAirborne(body);
+    if (view.airborne !== airborne) view.airborne = airborne;
     return res;
   }
 
@@ -102,6 +117,24 @@ export class Bodies {
     view.dodging = true;
     view.rotation = Math.atan2(body.dodgeX, body.dodgeZ);
     return true;
+  }
+
+  /**
+   * Start a hop (#45). Refused while down, dodging or already in the air; the
+   * room checks health state and cooldown first.
+   */
+  jump(id: string, view: BodyView): boolean {
+    const body = this.bodies.get(id);
+    if (!body || !startJump(body)) return false;
+    view.airborne = true;
+    return true;
+  }
+
+  /** Cut a hop short (grabbed, KO): it lands on its next step. A no-op on the ground. */
+  endJump(id: string, view: BodyView): void {
+    const body = this.bodies.get(id);
+    if (body) endJump(body);
+    if (view.airborne) view.airborne = false;
   }
 
   /** Stop a dodge at once (grabbed, KO). A no-op if not dodging. */
@@ -124,9 +157,11 @@ export class Bodies {
     body.vx = 0;
     body.vz = 0;
     endDodge(body);
+    endJump(body);
     if (view.x !== body.x) view.x = body.x;
     if (view.z !== body.z) view.z = body.z;
     if (view.dodging) view.dodging = false;
+    if (view.airborne) view.airborne = false;
   }
 
   /**
@@ -158,6 +193,8 @@ export class Bodies {
     if (view.down !== down) view.down = down;
     const dodging = isDodging(body);
     if (view.dodging !== dodging) view.dodging = dodging;
+    const airborne = isAirborne(body);
+    if (view.airborne !== airborne) view.airborne = airborne;
     // Face the walking direction; a body that is down or dodging keeps its facing.
     if (!down && !dodging && (input.x !== 0 || input.z !== 0)) view.rotation = Math.atan2(input.x, input.z);
     return res;

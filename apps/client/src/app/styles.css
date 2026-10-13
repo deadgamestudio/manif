@@ -754,8 +754,10 @@ html.playing .round-hud {
   transform: translate(-50%, -50%);
 }
 
-/* Right thumb: Taper in the corner, Esquive to its left, Action above it. Lifted
-   above the round timer and progress bar, which sit at the bottom centre. */
+/* Right thumb: Taper in the corner, Esquive to its left, Action above it, and
+   Sauter (#45) on the diagonal between those two, inside the same square so the
+   block is no bigger than before. Lifted above the round timer and progress
+   bar, which sit at the bottom centre. */
 .touch-buttons {
   position: absolute;
   right: calc(16px + env(safe-area-inset-right, 0px));
@@ -814,6 +816,15 @@ html.playing .round-hud {
   bottom: 108px;
   width: 68px;
   height: 68px;
+}
+
+/* Clear of Esquive, Action and Taper by about 20px each. */
+.touch-btn-jump {
+  right: 100px;
+  bottom: 100px;
+  width: 64px;
+  height: 64px;
+  font-size: 14px;
 }
 
 /* Lit when a press would free a teammate or pick something up. */
