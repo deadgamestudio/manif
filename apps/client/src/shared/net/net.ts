@@ -423,6 +423,14 @@ function connect(action: (client: Client) => Promise<ClientRoom>): Promise<void>
   return attempt;
 }
 
+/** The teammate player `carrierId` holds overhead (#11), or null. */
+function carriedOf(carrierId: string): string | null {
+  const players = room?.state.players;
+  if (!players) return null;
+  for (const [id, p] of players.entries()) if (p.carriedBy === carrierId) return id;
+  return null;
+}
+
 export const net = {
   subscribe(listener: () => void): () => void {
     listeners.add(listener);
@@ -454,6 +462,11 @@ export const net = {
     return () => {
       for (const unbind of unbinds) unbind();
     };
+  },
+
+  /** The teammate player `carrierId` holds overhead (#11), or null. Scans the players: read it from useFrame or a poll. */
+  getCarried(carrierId: string): string | null {
+    return carriedOf(carrierId);
   },
 
   /** The last impulse a body received, if any. Read from useFrame. */
@@ -603,15 +616,16 @@ export const net = {
   },
 
   /**
-   * Throw the carried item (#8) along a ground direction (the server
-   * normalizes it; zero throws along the facing). Plays the arm swing locally
-   * right away; the projectile itself is the server's. Not sent while we
-   * can't act or carry nothing.
+   * Throw the carried item (#8), or the carried teammate (#11), along a
+   * ground direction (the server normalizes it; zero throws along the
+   * facing). Plays the arm swing locally right away; the flight itself is the
+   * server's. Not sent while we can't act or carry nothing.
    */
   sendThrow(x: number, z: number) {
     if (!room || room.state.phase !== Phase.Marching) return;
     const me = room.state.players.get(room.sessionId);
-    if (!me || me.down || me.status !== PlayerStatus.Free || !me.carrying) return;
+    if (!me || me.down || me.status !== PlayerStatus.Free || me.carriedBy) return;
+    if (!me.carrying && carriedOf(room.sessionId) === null) return;
     const now = performance.now();
     lastLocalSwing = now;
     lastSwings.set(room.sessionId, now);
@@ -644,7 +658,7 @@ export const net = {
   },
 
   /**
-   * Interact key pressed or released (#10 rescue, #8 pick-up). Always sent,
+   * Interact key pressed or released (#10 rescue, #8 pick-up, #11 lift or put down a teammate). Always sent,
    * whatever our state: the server decides what it does, and a release must
    * never be lost or a rescue would keep going.
    */

@@ -35,6 +35,8 @@ export const Player = schema(
     onFire: t.boolean(),
     /** Holding interact to light a prop or pat out a teammate (#16): 0..100 of the hold, 0 otherwise. */
     fireHold: t.uint8().default(0),
+    /** Carried overhead by this teammate (#11), a session id; "" when not carried. The carry timer stays in the server's carry feature. */
+    carriedBy: t.string().default(""),
   },
   "Player",
 );

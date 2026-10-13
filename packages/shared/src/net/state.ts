@@ -36,6 +36,8 @@ export interface PlayerShape {
   onFire: boolean;
   /** Holding interact to light a prop or pat out a teammate (#16): 0..100 of the hold, 0 otherwise. */
   fireHold: number;
+  /** Carried overhead by this teammate (#11), a session id; "" when not carried. The timer stays server-side. */
+  carriedBy: string;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */

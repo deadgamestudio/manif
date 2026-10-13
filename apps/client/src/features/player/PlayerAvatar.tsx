@@ -11,6 +11,7 @@ import { COUGH_ANGLE, COUGH_SPEED } from "../gas/index.ts";
 import { BodyFire, FireHoldBar, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
 import { PROTESTER_RAGDOLL, useRagdoll } from "../ragdoll/index.ts";
 import { HopArc, LAND_SQUASH } from "../jump/index.ts";
+import { CARRY_ARM_UP, CARRY_FLAIL_ANGLE, CARRY_FLAIL_SPEED, CARRY_LIFT, CARRY_LIFT_RATE } from "../carry/index.ts";
 import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;
@@ -56,6 +57,10 @@ const DUST_PUFFS: readonly [number, number][] = [
  * Health (#3): KO lies flat like `down`, grabbed flails, arrested hides the
  * avatar (it is in the van), and a respawn snaps to the new spot instead of
  * sliding there across the street.
+ *
+ * Carried (#11): lifted above the carrier's head (both bodies share a spot on
+ * the server) and flailing; the carrier holds an arm up. Thrown, the ragdoll
+ * starts from that height, so the pose flows into the flight without a pop.
  */
 export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; isLocal: boolean }) {
   const group = useRef<Group>(null);
@@ -81,6 +86,8 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
   const ragdoll = useRagdoll(PROTESTER_RAGDOLL);
   /** The hop arc (#45): drawn from the synced `airborne` flag and local time. */
   const [hop] = useState(() => new HopArc());
+  /** Height of the carried pose (#11), eased up when picked up and down when dropped. */
+  const carryLift = useRef(0);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -97,6 +104,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     if (arrested) {
       ragdoll.reset();
       hop.reset();
+      carryLift.current = 0;
       return;
     }
 
@@ -124,10 +132,13 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     // Pick the fall direction at the start of the fall (the impulse event and
     // the `down` patch may arrive in either order, so keep looking briefly).
     const lying = p.down || p.status === PlayerStatus.Ko;
-    // Hop (#45): the height before this frame's update is where the body was
-    // drawn, so a fall that starts now starts from there (no pop).
-    const drawnLift = hop.lift;
+    // Hop (#45) and carried pose (#11): the height before this frame's update
+    // is where the body was drawn, so a fall (a throw) that starts now starts from there (no pop).
+    const drawnLift = hop.lift + carryLift.current;
     hop.update(dt, p.airborne && !lying);
+    const carried = !!p.carriedBy && !lying;
+    carryLift.current += ((carried ? CARRY_LIFT : 0) - carryLift.current) * damp(CARRY_LIFT_RATE, dt);
+    if (carryLift.current < 1e-3) carryLift.current = 0;
     // Ragdoll (#26) if a slot is free: the capsule hides and stays upright meanwhile.
     const ragdolling = ragdoll.update(dt, lying, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id), drawnLift);
     t.visible = !ragdolling;
@@ -147,7 +158,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     const angle = fall.current * FALLEN_ANGLE;
     t.quaternion.setFromAxisAngle(fallAxis, angle);
     // Lift the pivot as it tips, so the lying capsule rests on the ground instead of in it.
-    t.position.y = Math.sin(angle) * PLAYER_RADIUS + hop.lift;
+    t.position.y = Math.sin(angle) * PLAYER_RADIUS + hop.lift + carryLift.current;
 
     // Grabbed: flail side to side (the drag itself is the CRS's, #5). In tear
     // gas (#7): a slower, lopsided cough wobble.
@@ -157,6 +168,8 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     const coughing = !grabbed && !burning && !lying && p.gassed;
     flail.current = burning
       ? flail.current + dt * ON_FIRE_FLAIL_SPEED
+      : carried
+        ? flail.current + dt * CARRY_FLAIL_SPEED
       : grabbed
         ? flail.current + dt * FLAIL_SPEED
         : coughing
@@ -164,6 +177,8 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
           : 0;
     y.rotation.z = burning
       ? Math.sin(flail.current) * ON_FIRE_FLAIL_ANGLE
+      : carried
+        ? Math.sin(flail.current) * CARRY_FLAIL_ANGLE
       : grabbed
         ? Math.sin(flail.current) * FLAIL_ANGLE
         : coughing
@@ -175,8 +190,10 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     if (a) {
       const swungAt = net.getLastSwing(id);
       const s = swungAt === undefined ? 1 : (performance.now() - swungAt) / SWING_MS;
+      // Holding a teammate overhead (#11): the arm stays up.
+      const rest = !lying && net.getCarried(id) !== null ? CARRY_ARM_UP : ARM_REST;
       a.rotation.x =
-        s >= 1 ? ARM_REST : s < 0.35 ? ARM_REST + (ARM_RAISED - ARM_REST) * (s / 0.35) : ARM_RAISED + (ARM_SMASH - ARM_RAISED) * ((s - 0.35) / 0.65);
+        s >= 1 ? rest : s < 0.35 ? ARM_REST + (ARM_RAISED - ARM_REST) * (s / 0.35) : ARM_RAISED + (ARM_SMASH - ARM_RAISED) * ((s - 0.35) / 0.65);
     }
 
     // Dodge (#9): lean forward and squash into a dive, puff of dust where it started.

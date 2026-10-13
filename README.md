@@ -22,6 +22,12 @@ the street and fall out of broken bus shelters, shop windows and cars: press E
 next to one to pick it up, then click to throw it towards the mouse.
 A pavé floors and stuns the CRS it hits, which drops whoever it was dragging,
 and lands on the ground again wherever it stops.
+Teammates can be thrown too: press E next to a free teammate to lift them
+overhead (no asking), walk a bit slower, and click to throw them towards the
+mouse. They fly flailing over bins and fallen CRS, bowl over the CRS they hit
+(which drops whoever it was dragging) and smash props, then lie in a heap and
+get up. Not thrown within 3 s, they wriggle free; a carrier who is hit or
+grabbed drops them at once. E again puts them down.
 Further down, CRS shield lines stand across the street: a wall of shields that
 advances slowly towards the cortège once it comes close, blocks protesters and
 shoves whoever leans on it. Hit it hard enough in a short time, or get behind
@@ -167,7 +173,10 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change the dodge key, its cooldown bar or its look | `apps/client/src/features/dodge/` (key, HUD); the lean, squash and dust puff are in `features/player/PlayerAvatar.tsx` |
 | Tune the rescue (hold time, range, knockback on the CRS and the freed protester) | `packages/shared/src/rescue/constants.ts` |
 | Change the rescue rules (target choice, progress, interrupts, several rescuers) | `packages/shared/src/rescue/rescue.ts`; the room applies them at the top of `StreetRoom.step()` and the release is `StreetRoom.pullFree()` |
-| Add something to the interact key (E) | `StreetRoom.interact(id, held)` (a grabbed teammate in range has priority, then patting out a burning one, then picking up an item, then lighting a prop: `StreetRoom.fireAction`); the key is `apps/client/src/features/interact/` |
+| Add something to the interact key (E) | The priority is `pickInteract` in `packages/shared/src/carry/carry.ts` (a carrier puts down; else rescue, pat out, pick up an item, pick up a teammate, light), used by `StreetRoom.interact(id, held)` and by the client prompts (`carryTargetFor`, `fireActionFor`, `useActionHint`); the key is `apps/client/src/features/interact/` |
+| Tune carrying and throwing teammates (range, carry time, carrier speed, throw speed, time in the air, what a hit does to CRS and props) | `packages/shared/src/carry/constants.ts` |
+| Change the carry rules (who can lift whom, drops, launch, what a flight hits) | `packages/shared/src/carry/carry.ts` and `launchBody` in `physics/body.ts`; the server side is `apps/server/src/features/carry/` and `StreetRoom.pickUpTeammate()`, `throwTeammate()`, `endCarry()`, `stepCarries()`, `stepFlights()` |
+| Change the carried pose or the carry prompts | `apps/client/src/features/carry/` (`carryVisuals.ts`, `CarryHud.tsx`); the pose is drawn in `features/player/PlayerAvatar.tsx` |
 | Change the rescue bar or the HUD prompt | `apps/client/src/features/rescue/` |
 | Change the attack keys | `apps/client/src/features/melee/useAttackInput.ts`; the swing animation is in `features/player/PlayerAvatar.tsx` |
 | Change the HP bar and status line | `apps/client/src/features/health/` (HUD and the bar above other players) |
