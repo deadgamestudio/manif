@@ -8,6 +8,7 @@
 import type { ReactNode, RefObject } from "react";
 import type { Group, MeshStandardMaterial } from "three";
 import { CRS_STATS, CrsKind, LINE_SHIELD_RADIUS } from "@manif/shared";
+import { crsRagdoll, type RagdollLook } from "../ragdoll/index.ts";
 
 /** Refs CrsAvatar animates. A real model should expose the same pieces. */
 export interface CrsRig {
@@ -29,6 +30,8 @@ export interface CrsLook {
   /** Total height, for the HP bar above it. */
   height: number;
   render: (rig: CrsRig) => ReactNode;
+  /** Its floppy look while knocked down (#26); the primitives are in ragdoll/ragdollVisuals.tsx. */
+  ragdoll: RagdollLook;
 }
 
 const CAPSULE_LENGTH = 1.05;
@@ -37,6 +40,7 @@ function crsLook(radius: number): CrsLook {
   const height = CAPSULE_LENGTH + radius * 2;
   return {
     height,
+    ragdoll: crsRagdoll(radius),
     render: (rig) => (
       <>
         {/* Body: navy uniform. */}

@@ -76,9 +76,10 @@ export const HOLD_BAR_COLOR = "#ff8a00";
 
 /** HUD lines. */
 export const FIRE_TEXT = {
-  onFire: "Au feu ! Ton derrière brûle : cours, ou fais-toi éteindre (E maintenu par un·e camarade)",
-  putOut: (name: string) => `Maintiens E pour éteindre ${name} !`,
-  light: (what: string) => `Maintiens E pour mettre le feu ${what}`,
+  /** `key` is "E", or "Action" on touch (#42). */
+  onFire: (key: string) => `Au feu ! Ton derrière brûle : cours, ou fais-toi éteindre (${key} maintenu par un·e camarade)`,
+  putOut: (key: string, name: string) => `Maintiens ${key} pour éteindre ${name} !`,
+  light: (key: string, what: string) => `Maintiens ${key} pour mettre le feu ${what}`,
   /** What a prop kind is called in the prompt. */
   kinds: { bin: "à la poubelle", car: "à la voiture", bus_shelter: "à l'abribus", shop_window: "à la vitrine" } as Record<string, string>,
 } as const;

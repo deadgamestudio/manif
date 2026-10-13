@@ -9,6 +9,7 @@ import { RescueBar } from "../rescue/index.ts";
 import { CarriedItem } from "../throwable/index.ts";
 import { COUGH_ANGLE, COUGH_SPEED } from "../gas/index.ts";
 import { BodyFire, FireHoldBar, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
+import { PROTESTER_RAGDOLL, useRagdoll } from "../ragdoll/index.ts";
 import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;
@@ -45,9 +46,11 @@ const DUST_PUFFS: readonly [number, number][] = [
 
 /**
  * One player. Its position is interpolated towards the server state each frame.
- * While `down` (#2) the capsule tips over towards the push, pivoting at its
- * feet, and stands back up when `down` clears. All in useFrame: no React state
- * per frame. #26 replaces the tip-over with a ragdoll.
+ * While `down` (#2) the capsule is swapped for a floppy ragdoll (#26, see
+ * features/ragdoll) pinned to that position and thrown along the hit, which
+ * blends back into the capsule when `down` clears. With too many ragdolls
+ * already playing, the capsule tips over towards the push instead, pivoting
+ * at its feet. All in useFrame: no React state per frame.
  *
  * Health (#3): KO lies flat like `down`, grabbed flails, arrested hides the
  * avatar (it is in the van), and a respawn snaps to the new spot instead of
@@ -74,6 +77,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
   /** When (seconds of frame time) the current dust puff started, and where (world). */
   const dustAge = useRef(Infinity);
   const [dustAt] = useState(() => new Vector3());
+  const ragdoll = useRagdoll(PROTESTER_RAGDOLL);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -87,9 +91,14 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     // Back from the van: appear at the respawn point, standing.
     const respawned = lastStatus.current === PlayerStatus.Arrested && !arrested;
     lastStatus.current = p.status;
-    if (arrested) return;
+    if (arrested) {
+      ragdoll.reset();
+      return;
+    }
 
     if (!placed.current || respawned) {
+      ragdoll.reset();
+      t.visible = true;
       g.position.set(p.x, 0, p.z);
       y.rotation.y = p.rotation;
       y.rotation.z = 0;
@@ -110,7 +119,11 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     // Pick the fall direction at the start of the fall (the impulse event and
     // the `down` patch may arrive in either order, so keep looking briefly).
     const lying = p.down || p.status === PlayerStatus.Ko;
-    if (lying && fall.current < 0.3) {
+    // Ragdoll (#26) if a slot is free: the capsule hides and stays upright meanwhile.
+    const ragdolling = ragdoll.update(dt, lying, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id));
+    t.visible = !ragdolling;
+    if (ragdolling) fall.current = 0;
+    else if (lying && fall.current < 0.3) {
       const hit = net.getLastImpulse(id);
       // No event seen (joined late): fall backwards.
       const dx = hit ? hit.dirX : -Math.sin(p.rotation);
@@ -119,7 +132,7 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
       fallAxis.set(dz, 0, -dx).normalize();
     }
 
-    const target = lying ? 1 : 0;
+    const target = lying && !ragdolling ? 1 : 0;
     fall.current += (target - fall.current) * damp(lying ? FALL_RATE : GETUP_RATE, dt);
     if (Math.abs(target - fall.current) < 1e-3) fall.current = target;
     const angle = fall.current * FALLEN_ANGLE;
@@ -183,7 +196,9 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
       }
     }
 
-    body.current?.color.copy(grabbed || p.status === PlayerStatus.Ko ? HURT_COLOR : isLocal ? LOCAL_COLOR : OTHER_COLOR);
+    const color = grabbed || p.status === PlayerStatus.Ko ? HURT_COLOR : isLocal ? LOCAL_COLOR : OTHER_COLOR;
+    body.current?.color.copy(color);
+    ragdoll.setColor(color);
   });
 
   return (
@@ -212,6 +227,10 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
           </mesh>
         </group>
       </group>
+      {/* The ragdoll (#26), in world space under the root: never tilted or turned with the capsule. */}
+      {ragdoll.view}
+      {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
+      <BodyFire isOnFire={() => net.getPlayer(id)?.onFire === true} anchor={(out) => ragdoll.torso(out)} />
       {/* Dodge dust (#9): placeholder primitives until Jordan's effects. */}
       <group ref={dust} visible={false}>
         {DUST_PUFFS.map(([x, z], i) => (
