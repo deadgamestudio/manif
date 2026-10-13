@@ -23,6 +23,10 @@ COPY apps/client apps/client
 # (https://manif.bazlab.si/colyseus -> wss://..., see src/shared/net/net.ts).
 ARG VITE_SERVER_URL=/colyseus
 ENV VITE_SERVER_URL=$VITE_SERVER_URL
+# Rustrak DSN for error tracking. Public (it ends up in the browser bundle),
+# so its default lives here; docker-compose passes it through.
+ARG VITE_SENTRY_DSN=https://d0c9bddd10f34714ac2833a55eaf7678@rustrack.bazlab.si/5
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 # The client imports @manif/shared's compiled dist, so shared builds first.
 # A production build leaves out the dev-only debug knockback keys.
 RUN cd packages/shared && bun run build \
