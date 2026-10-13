@@ -102,7 +102,7 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change how many CRS start, the cap, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
 | Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
 | Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |
-| Tune shield lines (size, spacing, shield reach, speed, engage range, how far they advance, shove, what breaks them) | The `LINE_*` constants in `packages/shared/src/crs/constants.ts` |
+| Tune shield lines (size, spacing, shield reach, speed, engage range, how far they advance, clearance from the start zone, shove, what breaks them) | The `LINE_*` constants in `packages/shared/src/crs/constants.ts` |
 | Change shield line rules (slots against the level, advancing, stragglers, shove, break checks, collision with protesters) | `packages/shared/src/crs/line.ts` (`lineSlots`, `stepLine`, `checkBreak`, `resolveShieldContacts`) |
 | Spawn a shield line from a new system (#12 waves) | `CrsSquad.spawnLine(x, z, size?, facing?, kind?)` in `apps/server/src/features/crs/squad.ts`; where lines form at the start is `lineSpawns` in `packages/shared/src/level/street.ts` |
 | Move or add CRS spawn points | `crsSpawns` in `packages/shared/src/level/street.ts` |
@@ -238,7 +238,7 @@ variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
   around the line's centre, so a narrower street gets fewer front slots and the
   extra members stand in a second rank; no slot is ever inside a wall. The line
   holds until a free protester comes within 30, then advances at 1.2 m/s for at
-  most 20 m, waiting for members out of place except stragglers (2 s late) or
+  most 20 m (never closer than 22 m to the start zone, so line 1 stops at z 64), waiting for members out of place except stragglers (2 s late) or
   stunned and floored ones, so one member stuck on a car never stops it. In
   formation, members never swing or grab. Their shields (radius 0.6, so the gap
   between two is 0.3) are solid to free and KO'd protesters: protesters step

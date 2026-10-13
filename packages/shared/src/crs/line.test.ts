@@ -14,6 +14,7 @@ import {
   type CollisionWorld,
 } from "../physics/index.js";
 import { PLAYER_RADIUS, PLAYER_SPEED } from "../player/index.js";
+import { PICKUP_RANGE } from "../throwable/index.js";
 import { createCrsBot, stepCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import {
   CRS_STATS,
@@ -28,6 +29,7 @@ import {
   LINE_SLOT_TOLERANCE,
   LINE_SPACING,
   LINE_SPEED,
+  LINE_START_CLEARANCE,
   LINE_STRAGGLER_TIME,
 } from "./constants.js";
 import {
@@ -38,6 +40,7 @@ import {
   createShieldLine,
   lineBehaviour,
   lineSlots,
+  maxAdvanceFor,
   recordLineHit,
   resolveShieldContacts,
   stepLine,
@@ -311,6 +314,38 @@ describe("advancing", () => {
     });
     expect(advanced(line)).toBeGreaterThan(8);
     expect(line.formed).toBe(true);
+  });
+});
+
+describe("keeping the street playable", () => {
+  test("a line never advances into the first stretch of street past the start zone", () => {
+    const start = STREET_LEVEL.start;
+    for (const p of STREET_LEVEL.lineSpawns) {
+      const max = maxAdvanceFor(STREET_LEVEL, p, UP);
+      expect(max).toBeGreaterThanOrEqual(0);
+      expect(start.minZ - (p.z + max)).toBeGreaterThanOrEqual(LINE_START_CLEARANCE - 1e-9);
+    }
+    // The first line stops short of the first bin, the bollards and the first pavés.
+    const first = STREET_LEVEL.lineSpawns[0]!;
+    const stop = first.z + maxAdvanceFor(STREET_LEVEL, first, UP);
+    const bin = STREET_LEVEL.propSlots.find((s) => s.id === "bin-1")!;
+    expect(bin.z - stop).toBeGreaterThan(5);
+    expect(maxAdvanceFor(STREET_LEVEL, { x: 0, z: 80 }, UP)).toBe(0);
+  });
+
+  test("on the real street, the first line stops at its limit with a protester waiting just ahead of the start zone", () => {
+    const host = new FakeHost();
+    host.add("p", 0, 82);
+    const spawn = STREET_LEVEL.lineSpawns[0]!;
+    const { line, bots } = makeLine(STREET, spawn.x, spawn.z);
+    line.maxAdvance = maxAdvanceFor(STREET_LEVEL, spawn, UP);
+    run(STREET, line, bots, host, 20);
+    expect(line.centre.z).toBeCloseTo(spawn.z + line.maxAdvance, 6);
+    for (const b of bots) expect(b.body.z).toBeLessThan(STREET_LEVEL.start.minZ - LINE_START_CLEARANCE + 0.5);
+  });
+
+  test("a pavé lying under a shield can still be picked up from in front of it", () => {
+    expect(PICKUP_RANGE).toBeGreaterThan(LINE_SHIELD_RADIUS + PLAYER_RADIUS);
   });
 });
 

@@ -158,6 +158,13 @@ export const LINE_ENGAGE_RANGE = 30;
 /** A line advances at most this far from where it formed, then holds there. */
 export const LINE_MAX_ADVANCE = 20;
 
+/**
+ * A line never advances closer than this to the start zone, so the first
+ * stretch of street (bollards, the first bin, the first pavés) stays free for
+ * the cortège to gather, pick up pavés and smash props.
+ */
+export const LINE_START_CLEARANCE = 22;
+
 /** A member this close to its slot counts as in place. The line advances only when its members are in place. */
 export const LINE_SLOT_TOLERANCE = 0.35;
 

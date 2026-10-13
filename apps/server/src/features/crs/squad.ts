@@ -16,6 +16,7 @@ import {
   isShieldUp,
   lineBehaviour,
   lineSlots,
+  maxAdvanceFor,
   recordLineHit,
   stepLine,
   isDown,
@@ -134,7 +135,8 @@ export class CrsSquad {
       members.push(bot);
     }
     if (members.length === 0) return null;
-    const line = createShieldLine(`line-${++this.lineCounter}`, members, { x, z }, dir);
+    // Never closer than LINE_START_CLEARANCE to the start zone (#12 can lower it further).
+    const line = createShieldLine(`line-${++this.lineCounter}`, members, { x, z }, dir, maxAdvanceFor(this.level, { x, z }, dir));
     this.lines.push(line);
     for (const bot of members) {
       this.lineOf.set(bot.id, line);

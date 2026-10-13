@@ -23,6 +23,7 @@ import {
   type CollisionWorld,
   type Vec2,
 } from "../physics/index.js";
+import type { Level } from "../level/index.js";
 import { PLAYER_RADIUS } from "../player/index.js";
 import { DEFAULT_BEHAVIOUR, steerTo, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import {
@@ -48,6 +49,7 @@ import {
   LINE_SLOT_TOLERANCE,
   LINE_SPACING,
   LINE_SPEED,
+  LINE_START_CLEARANCE,
   LINE_STRAGGLER_TIME,
 } from "./constants.js";
 import type { ProtesterView } from "./targeting.js";
@@ -161,6 +163,20 @@ export function lineSlots(
     out.push({ x: centre.x + across.x * t, z: centre.z + across.z * t });
   }
   return out;
+}
+
+/**
+ * How far a line formed at `centre`, facing `facing`, may advance: `limit`,
+ * cut so it stops LINE_START_CLEARANCE short of the level's start zone (the
+ * zone's nearest edge along the facing). 0 if it is already that close.
+ */
+export function maxAdvanceFor(level: Level, centre: Vec2, facing: Vec2, limit = LINE_MAX_ADVANCE): number {
+  const s = level.start;
+  let near = Infinity;
+  for (const x of [s.minX, s.maxX]) {
+    for (const z of [s.minZ, s.maxZ]) near = Math.min(near, (x - centre.x) * facing.x + (z - centre.z) * facing.z);
+  }
+  return Math.max(0, Math.min(limit, near - LINE_START_CLEARANCE));
 }
 
 export function createShieldLine(id: string, members: CrsBot[], centre: Vec2, facing: Vec2, maxAdvance = LINE_MAX_ADVANCE): ShieldLine {
