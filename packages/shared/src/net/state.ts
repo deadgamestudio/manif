@@ -76,6 +76,8 @@ export interface CrsShape {
   down: boolean;
   /** Unit type (#13). See `CrsKind`. */
   kind: CrsKind;
+  /** In a formed shield line (#6): shield raised, solid to protesters. */
+  formation: boolean;
 }
 
 /** An item lying on the ground (#8), keyed by a server-made id. */

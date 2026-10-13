@@ -23,6 +23,7 @@ import {
   type PlayerShape,
   type PropShapeState,
   type StreetStateShape,
+  type ShoveEvent,
   type SwingEvent,
 } from "@manif/shared";
 import { setInviteUrl } from "./invite.ts";
@@ -121,6 +122,8 @@ const lastSwings = new Map<string, number>();
 const lastPropHits = new Map<string, number>();
 /** When (performance.now(), ms) each CRS was last hit by a protester (#5). */
 const lastCrsHits = new Map<string, number>();
+/** When (performance.now(), ms) each CRS last shoved with its shield (#6). */
+const lastShoves = new Map<string, number>();
 const propBrokenAt = new Map<string, number>();
 /** Local cosmetic gate so the swing animation is not replayed faster than the server allows. */
 let lastLocalSwing = -Infinity;
@@ -147,6 +150,7 @@ function clearEffects() {
   lastSwings.clear();
   lastPropHits.clear();
   lastCrsHits.clear();
+  lastShoves.clear();
   propBrokenAt.clear();
   lastLocalSwing = -Infinity;
   setItemIds([], []);
@@ -214,6 +218,7 @@ function attach(joined: ClientRoom, gen: number) {
     lastImpulses.delete(id);
     lastSwings.delete(id);
     lastCrsHits.delete(id);
+    lastShoves.delete(id);
     refresh();
   });
   // Throwables (#8): only the id lists; positions are read live from useFrame.
@@ -238,6 +243,11 @@ function attach(joined: ClientRoom, gen: number) {
 
   joined.onMessage(ServerMessage.Swing, (event: SwingEvent) => {
     if (gen === generation) lastSwings.set(event.id, performance.now());
+  });
+  joined.onMessage(ServerMessage.Shove, (event: ShoveEvent) => {
+    if (gen !== generation) return;
+    const now = performance.now();
+    for (const id of event.ids) lastShoves.set(id, now);
   });
   joined.onMessage(ServerMessage.Hit, (event: HitEvent) => {
     if (gen !== generation) return;
@@ -342,6 +352,11 @@ export const net = {
   /** When (performance.now()) body `id` last swung (#4), if ever. */
   getLastSwing(id: string): number | undefined {
     return lastSwings.get(id);
+  },
+
+  /** When (performance.now()) CRS `id` last shoved with its shield (#6), if ever. */
+  getLastShove(id: string): number | undefined {
+    return lastShoves.get(id);
   },
 
   /** Live, decoded state of a police bot (#5). Read from useFrame. */

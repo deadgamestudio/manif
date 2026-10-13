@@ -6,10 +6,19 @@ import {
   CRS_STATS,
   CrsKind,
   CrsStatus,
+  LINE_SHIELD_RADIUS,
+  LINE_SIZE,
   MAX_CRS,
   NavGrid,
   createCrsBot,
+  createShieldLine,
   hitCrs,
+  isShieldUp,
+  lineBehaviour,
+  lineSlots,
+  maxAdvanceFor,
+  recordLineHit,
+  stepLine,
   isDown,
   pickSpawn,
   stepCrs,
@@ -23,6 +32,9 @@ import {
   type CrsHitResult,
   type CrsHost,
   type ImpulseResult,
+  type LineStepResult,
+  type ShieldContact,
+  type ShieldLine,
   type Level,
   type MeleeTarget,
   type Vec2,
@@ -43,6 +55,11 @@ const ROTATION_EPSILON = 0.01;
  * loop (#12) exists, a bot taken out is replaced after CRS_RESPAWN_DELAY,
  * keeping `reinforceTo` bots on the street; #12 sets `reinforceTo` to 0 and
  * calls `spawn` itself for its waves.
+ *
+ * Shield lines (#6): `spawnLine` puts a whole line across the street. Its
+ * members are ordinary bots with the line's behaviour (hold your slot) until
+ * it breaks; then they chase like the others. Line members are not counted by
+ * `reinforceTo` and are not replaced when taken out.
  */
 export class CrsSquad {
   /** Keep this many bots on the street by replacing those taken out. 0 turns it off (#12). */
@@ -55,6 +72,14 @@ export class CrsSquad {
   /** Room times when a replacement is due. */
   private respawnAt: number[] = [];
   private counter = 0;
+  private readonly lines: ShieldLine[] = [];
+  /** The line each line member belongs to (kept after the line breaks). */
+  private readonly lineOf = new Map<string, ShieldLine>();
+  private lineCounter = 0;
+  /** One behaviour per line, shared by its members. */
+  private readonly lineBehaviours = new WeakMap<ShieldLine, CrsBehaviour>();
+  /** Reused every tick: the raised shields protesters collide with. */
+  private readonly contacts: ShieldContact[] = [];
 
   constructor(
     private readonly level: Level,
@@ -88,6 +113,67 @@ export class CrsSquad {
     this.byId.clear();
     this.views.clear();
     this.respawnAt = [];
+    this.lines.length = 0;
+    this.lineOf.clear();
+  }
+
+  /**
+   * Form a shield line (#6) of up to `size` bots centred on (x, z), facing
+   * the cortège (the start of the street) unless `facing` says otherwise. The
+   * slots come from the level around that point, so a narrow street gets a
+   * shorter line. Each member appears on its slot. Null when no slot fits or
+   * at the MAX_CRS cap; a line may be shorter than `size` near the cap.
+   */
+  spawnLine(x: number, z: number, size = LINE_SIZE, facing?: Vec2, kind: CrsKind = CrsKind.Crs): ShieldLine | null {
+    const dir = facing ?? this.towardsCortege();
+    const slots = lineSlots(this.world, { x, z }, dir, size, CRS_STATS[kind].radius);
+    const members: CrsBot[] = [];
+    for (const slot of slots) {
+      const bot = this.spawn(slot.x, slot.z, kind);
+      if (!bot) break;
+      bot.rotation = Math.atan2(dir.x, dir.z);
+      members.push(bot);
+    }
+    if (members.length === 0) return null;
+    // Never closer than LINE_START_CLEARANCE to the start zone (#12 can lower it further).
+    const line = createShieldLine(`line-${++this.lineCounter}`, members, { x, z }, dir, maxAdvanceFor(this.level, { x, z }, dir));
+    this.lines.push(line);
+    for (const bot of members) {
+      this.lineOf.set(bot.id, line);
+      const view = this.views.get(bot.id);
+      if (view) this.mirror(bot, view);
+    }
+    return line;
+  }
+
+  /** Every shield line, formed or broken. */
+  get shieldLines(): readonly ShieldLine[] {
+    return this.lines;
+  }
+
+  /**
+   * The raised shields protesters collide with this tick (#6): members of a
+   * formed line that are standing. Moving a contact's body moves the bot.
+   */
+  shieldContacts(): readonly ShieldContact[] {
+    this.contacts.length = 0;
+    for (const line of this.lines) {
+      if (!line.formed) continue;
+      for (const bot of line.members) {
+        if (!isShieldUp(line, bot)) continue;
+        this.contacts.push({ body: bot.body, bodyRadius: bot.stats.radius, radius: LINE_SHIELD_RADIUS, facing: line.facing });
+      }
+    }
+    return this.contacts;
+  }
+
+  /** From the Préfecture end towards the start: where the cortège comes from. */
+  private towardsCortege(): Vec2 {
+    const { from, to } = this.level.progress;
+    const dx = from.x - to.x;
+    const dz = from.z - to.z;
+    const len = Math.hypot(dx, dz) || 1;
+    return { x: dx / len, z: dz / len };
   }
 
   /** Add one bot at (x, z), facing the start of the street. Null at the MAX_CRS cap. */
@@ -100,6 +186,8 @@ export class CrsSquad {
     this.byId.set(id, bot);
     const view = new Crs();
     view.kind = kind;
+    // Set explicitly: mirror() skips a rotation that has not changed, and an unset float32 reads undefined on clients.
+    view.rotation = bot.rotation;
     this.mirror(bot, view);
     this.views.set(id, view);
     return bot;
@@ -128,7 +216,9 @@ export class CrsSquad {
   hit(id: string, fromX: number, fromZ: number, damage: number, now: number): CrsHitResult | null {
     const bot = this.byId.get(id);
     if (!bot) return null;
+    const hpBefore = bot.hp;
     const res = hitCrs(bot, fromX, fromZ, damage, now);
+    this.recordLineDamage(bot, hpBefore, damage, now);
     const view = this.views.get(id);
     if (res && view) this.mirror(bot, view);
     return res;
@@ -142,10 +232,21 @@ export class CrsSquad {
   strike(id: string, dirX: number, dirZ: number, damage: number, impulse: number, stun: number, now: number): CrsHitResult | null {
     const bot = this.byId.get(id);
     if (!bot) return null;
+    const hpBefore = bot.hp;
     const res = strikeCrs(bot, dirX, dirZ, damage, impulse, stun, now);
+    this.recordLineDamage(bot, hpBefore, damage, now);
     const view = this.views.get(id);
     if (res && view) this.mirror(bot, view);
     return res;
+  }
+
+  /**
+   * A server-resolved hit landed on a line member: it counts towards breaking
+   * its line (#6). A hit on a bot already at 0 HP does not count.
+   */
+  private recordLineDamage(bot: CrsBot, hpBefore: number, damage: number, now: number): void {
+    const line = this.lineOf.get(bot.id);
+    if (line && hpBefore > 0) recordLineHit(line, Math.min(hpBefore, damage), now);
   }
 
   /** Stun bot `id` (a pavé, #8). It lets go of any grab on its next tick. */
@@ -184,19 +285,39 @@ export class CrsSquad {
    * have been out long enough are removed (and a replacement scheduled).
    * `protesters` is where replacements avoid spawning.
    */
-  step(now: number, dt: number, host: CrsHost, protesters: () => Vec2[]): void {
+  step(now: number, dt: number, host: CrsHost, protesters: () => Vec2[], onLine?: (line: ShieldLine, res: LineStepResult) => void): void {
     this.ctx.now = now;
     this.ctx.dt = dt;
     for (let i = this.bots.length - 1; i >= 0; i--) {
       const bot = this.bots[i]!;
       if (bot.status === CrsStatus.Out && now >= bot.statusUntil) this.remove(i, now);
     }
+    // Lines first (#6): breaks, slots, advance and shoves, so members walk to a fresh slot.
+    for (const line of this.lines) {
+      const res = stepLine(line, this.ctx, host);
+      if (onLine && (res.broke !== null || res.shovedBy.length > 0)) onLine(line, res);
+    }
+    for (let i = this.lines.length - 1; i >= 0; i--) {
+      if (this.lines[i]!.members.length === 0) this.lines.splice(i, 1);
+    }
     for (const bot of this.bots) {
-      stepCrs(bot, this.ctx, host, this.behaviour);
+      stepCrs(bot, this.ctx, host, this.behaviourOf(bot));
       const view = this.views.get(bot.id);
       if (view) this.mirror(bot, view);
     }
     this.reinforce(now, protesters);
+  }
+
+  /** A line member follows its line's orders (until it breaks); every other bot the squad's behaviour. */
+  private behaviourOf(bot: CrsBot): CrsBehaviour | undefined {
+    const line = this.lineOf.get(bot.id);
+    if (!line) return this.behaviour;
+    let b = this.lineBehaviours.get(line);
+    if (!b) {
+      b = lineBehaviour(line, this.behaviour);
+      this.lineBehaviours.set(line, b);
+    }
+    return b;
   }
 
   private remove(index: number, now: number): void {
@@ -204,7 +325,14 @@ export class CrsSquad {
     this.bots.splice(index, 1);
     this.byId.delete(bot.id);
     this.views.delete(bot.id);
-    if (this.reinforceTo > 0) this.respawnAt.push(now + CRS_RESPAWN_DELAY);
+    const inLine = this.lineOf.delete(bot.id);
+    // Line members are not replaced: #12 sends new lines.
+    if (this.reinforceTo > 0 && !inLine) this.respawnAt.push(now + CRS_RESPAWN_DELAY);
+  }
+
+  /** Bots that are not part of a line (formed or broken): what `reinforceTo` counts. */
+  private get loneBots(): number {
+    return this.bots.length - this.lineOf.size;
   }
 
   private reinforce(now: number, protesters: () => Vec2[]): void {
@@ -213,7 +341,7 @@ export class CrsSquad {
     if (due === 0) return;
     this.respawnAt = this.respawnAt.filter((t) => now < t);
     const people = protesters();
-    for (let i = 0; i < due && this.bots.length < this.reinforceTo; i++) {
+    for (let i = 0; i < due && this.loneBots < this.reinforceTo; i++) {
       const p = pickSpawn(this.level.crsSpawns, people, CRS_SPAWN_CLEARANCE);
       if (p) this.spawn(p.x, p.z);
     }
@@ -228,5 +356,15 @@ export class CrsSquad {
     if (view.status !== bot.status) view.status = bot.status;
     const down = isDown(bot.body);
     if (view.down !== down) view.down = down;
+    const formation = this.lineOf.get(bot.id)?.formed === true && bot.status !== CrsStatus.Out;
+    if (view.formation !== formation) view.formation = formation;
+  }
+
+  /** Mirror every bot now (after the room moved some, e.g. a member pushed back by a pinned protester). */
+  syncViews(): void {
+    for (const bot of this.bots) {
+      const view = this.views.get(bot.id);
+      if (view) this.mirror(bot, view);
+    }
   }
 }

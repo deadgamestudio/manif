@@ -6,6 +6,7 @@ import {
   isDodging,
   isDown,
   moveCircle,
+  resolveShieldContacts,
   startDodge,
   stepBody,
   type Body,
@@ -14,6 +15,7 @@ import {
   type ImpulseResult,
   type KnockdownMode,
   type MoveInput,
+  type ShieldContact,
 } from "@manif/shared";
 
 /** The synced fields a body writes after each step. `Player` fits it (CRS bodies live in the crs feature, #5). */
@@ -127,11 +129,28 @@ export class Bodies {
     if (view.dodging) view.dodging = false;
   }
 
-  /** One fixed tick for one body, then mirror position and `down` into `view`. */
-  step(id: string, view: BodyView, input: MoveInput, dt: number): BodyStepResult | null {
+  /**
+   * Push a body out of raised shields (#6) and back out of the world; a
+   * member pinning it against a wall is pushed back instead (see
+   * `resolveShieldContacts`). Mirrors position into `view`.
+   */
+  separate(id: string, view: BodyView, shields: readonly ShieldContact[]): void {
+    const body = this.bodies.get(id);
+    if (!body || shields.length === 0) return;
+    if (!resolveShieldContacts(this.world, body, this.radius, shields)) return;
+    if (view.x !== body.x) view.x = body.x;
+    if (view.z !== body.z) view.z = body.z;
+  }
+
+  /**
+   * One fixed tick for one body, then mirror position and `down` into `view`.
+   * `world` replaces the room's world for this step: the room adds the raised
+   * shields of CRS lines (#6) to it, so protesters bump into them.
+   */
+  step(id: string, view: BodyView, input: MoveInput, dt: number, world: CollisionWorld = this.world): BodyStepResult | null {
     const body = this.bodies.get(id);
     if (!body) return null;
-    const res = stepBody(this.world, body, input, this.walkSpeed, this.radius, dt);
+    const res = stepBody(world, body, input, this.walkSpeed, this.radius, dt);
     // Assign only on change, so idle bodies cost nothing in the patch.
     if (view.x !== body.x) view.x = body.x;
     if (view.z !== body.z) view.z = body.z;

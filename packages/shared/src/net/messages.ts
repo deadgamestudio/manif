@@ -93,6 +93,8 @@ export const ServerMessage = {
   Swing: "swing",
   /** A swing landed on something (#4). Not stored in Schema; lets clients flash the target. */
   Hit: "hit",
+  /** Shield line members (#6) shoved protesters: lets clients thrust their shields. The pushes come as Impulse events. */
+  Shove: "shove",
 } as const;
 export type ServerMessage = (typeof ServerMessage)[keyof typeof ServerMessage];
 
@@ -132,7 +134,14 @@ export interface HitEvent {
   broke: boolean;
 }
 
+/** Payload of `ServerMessage.Shove`. */
+export interface ShoveEvent {
+  /** Ids of the CRS that shoved this tick. */
+  ids: string[];
+}
+
 export interface ServerMessagePayloads {
+  [ServerMessage.Shove]: ShoveEvent;
   [ServerMessage.Impulse]: ImpulseEvent;
   [ServerMessage.Swing]: SwingEvent;
   [ServerMessage.Hit]: HitEvent;

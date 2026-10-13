@@ -68,6 +68,12 @@ export interface Level {
    * #12 picks among them for its waves.
    */
   crsSpawns: readonly Vec2[];
+  /**
+   * Where shield lines form (#6): the centre of each line, which faces the
+   * cortège and spans the street around it. Must be clear for a CRS and ahead
+   * of the start zone (checked by tests). #12 can pick among them for waves.
+   */
+  lineSpawns: readonly Vec2[];
   /** Items on the ground at the start of the march (#8). Must be clear of obstacles and props (checked by tests). */
   items: readonly LevelItem[];
 }

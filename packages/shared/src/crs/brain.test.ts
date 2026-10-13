@@ -81,6 +81,7 @@ class FakeHost implements CrsHost {
     p.body.z = z;
     this.sync(p);
   }
+  shove() {}
   /** What the room does for players each tick, before the bots: health timers, then bodies. */
   tickPeople(world: CollisionWorld) {
     for (const p of this.people.values()) {

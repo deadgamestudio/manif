@@ -18,6 +18,8 @@ export const Crs = schema(
     down: t.boolean(),
     /** `CrsKind`: the unit type (#13). Always CRS for now. */
     kind: t.uint8().default(CrsKind.Crs),
+    /** In a formed shield line (#6): shield raised, solid to protesters. Slots and orders stay server-side. */
+    formation: t.boolean(),
   },
   "Crs",
 );

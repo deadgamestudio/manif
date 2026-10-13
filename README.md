@@ -18,6 +18,10 @@ the street and fall out of broken bus shelters, shop windows and cars: press E
 next to one to pick it up, then click (or Space) to throw it towards the mouse.
 A pavé floors and stuns the CRS it hits, which drops whoever it was dragging,
 and lands on the ground again wherever it stops.
+Further down, CRS shield lines stand across the street: a wall of shields that
+advances slowly towards the cortège once it comes close, blocks protesters and
+shoves whoever leans on it. Hit it hard enough in a short time, or get behind
+it, and it breaks up into ordinary chasing CRS.
 
 ## Layout
 
@@ -98,9 +102,12 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change how many CRS start, the cap, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
 | Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
 | Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |
+| Tune shield lines (size, spacing, shield reach, speed, engage range, how far they advance, clearance from the start zone, shove, what breaks them) | The `LINE_*` constants in `packages/shared/src/crs/constants.ts` |
+| Change shield line rules (slots against the level, advancing, stragglers, shove, break checks, collision with protesters) | `packages/shared/src/crs/line.ts` (`lineSlots`, `stepLine`, `checkBreak`, `resolveShieldContacts`) |
+| Spawn a shield line from a new system (#12 waves) | `CrsSquad.spawnLine(x, z, size?, facing?, kind?)` in `apps/server/src/features/crs/squad.ts`; where lines form at the start is `lineSpawns` in `packages/shared/src/level/street.ts` |
 | Move or add CRS spawn points | `crsSpawns` in `packages/shared/src/level/street.ts` |
 | Spawn CRS from a new system (#12 waves), stun one, hit one with a thrown item (#8) | `CrsSquad.spawn(x, z, kind)`, `reinforceTo`, `stun(id, now)`, `strike(...)` in `apps/server/src/features/crs/squad.ts`, owned by `StreetRoom` |
-| Replace the placeholder CRS look | `apps/client/src/features/crs/crsVisuals.tsx` (animation in `CrsAvatar.tsx`) |
+| Replace the placeholder CRS look (and the riot shield of a line) | `apps/client/src/features/crs/crsVisuals.tsx` (animation, shove thrust in `CrsAvatar.tsx`) |
 | Add a throwable kind (#15: tomato, dog poo...) | A `ThrowableKind` value and a row in `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts`, and its look in `apps/client/src/features/throwable/throwableVisuals.tsx`. What a hit does is `StreetRoom.projectileHit()` |
 | Tune pavés (speed, range, damage, knockback, stun), pick-up range, caps on items | `packages/shared/src/throwable/constants.ts` |
 | Change the pick-up, carry, aim or flight rules (swept collision, what stops a throw, where it lands) | `packages/shared/src/throwable/throwable.ts`; the server side is `apps/server/src/features/throwable/` and `StreetRoom.throwItem()` / `interact()` |
@@ -225,6 +232,29 @@ variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
   removed, and is replaced at a spawn point 10 s later until #12 owns spawning.
   Step order is protesters first (health timers, then movement), then CRS;
   rescues (#10) go before both, so a last-tick rescue beats the arrest.
+- Shield lines (#6): when the host starts, a line of `LINE_SIZE` (8) CRS forms
+  at each of the level's `lineSpawns` (z 54 and z -38), facing the cortège. Its
+  slots are 1.5 apart across the street, computed against the level (and props)
+  around the line's centre, so a narrower street gets fewer front slots and the
+  extra members stand in a second rank; no slot is ever inside a wall. The line
+  holds until a free protester comes within 30, then advances at 1.2 m/s for at
+  most 20 m (never closer than 22 m to the start zone, so line 1 stops at z 64), waiting for members out of place except stragglers (2 s late) or
+  stunned and floored ones, so one member stuck on a car never stops it. In
+  formation, members never swing or grab. Their shields (radius 0.6, so the gap
+  between two is 0.3) are solid to free and KO'd protesters: protesters step
+  against them as circles (sub-stepped, so a dodge or a flying body cannot
+  squeeze through), and after the bots move, anyone they walked into is pushed
+  out, walls first; a member that would crush someone into a wall is pushed
+  back instead and the line waits. Lone CRS still walk through protesters. Every
+  2 s, any free protester touching a shield is shoved 7 m/s away from the line
+  without damage (sent as `shove` and `impulse` events); the third shove in a
+  row floors them. The line breaks for good when 8 HP of hits (melee, pavés)
+  land on its members within 3 s, when 2 members are stunned or floored at
+  once, or when 2 free protesters (1 if only one is free) stand behind it for
+  2 s; its members then chase like the others and are not replaced when taken
+  out. Only `formation` is synced on `Crs` (shield raised); slots and timers
+  stay on the server. Pavés are not blocked by shields: they hit, stun and
+  count towards the break.
 - The server is authoritative. Clients only send inputs (a move direction, an attack); the server
   integrates movement at a fixed tick rate (`packages/shared/src/net/constants.ts`),
   pushes players out of obstacles and keeps them inside the street. The client
