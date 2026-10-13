@@ -18,6 +18,7 @@ import { CarryHud } from "../carry/index.ts";
 import { EndScreen, RoundHud } from "../round/index.ts";
 import { TouchControls, useInputMode } from "../touch/index.ts";
 import { HelpMenu, HelpTip } from "../help/index.ts";
+import { SoundControl } from "../audio/index.ts";
 
 /**
  * The street, while marching and on the end screen (#12). Not mounted on the
@@ -73,6 +74,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         )}
         {!ended && <RoundHud />}
         <div className="hud-corner">
+          <SoundControl placement="hud" touch={touch} />
           {!ended && <HelpMenu touch={touch} />}
           <button type="button" className="hud-chip hud-leave" onClick={() => net.leave()}>
             Rentrer à la maison

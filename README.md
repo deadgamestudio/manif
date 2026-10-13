@@ -110,11 +110,12 @@ apps/client/src/
               pompier/ (fire trucks)  water/ (the water jet, for the hose and a future water cannon)
               round/ (timer and progress HUD, end screen, last result in the lobby)
               archetype/ (the lobby pick menu, the placeholder looks)
+              audio/ (sound: what plays when, the crowd bed, music, the sound button)
               debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/client/seo/      the link preview and search tags (meta.ts) and the Vite plugin that writes them (plugin.ts)
 apps/client/scripts/  og/ (renders the link preview image)
-apps/client/public/   og/og.png, favicon.svg, apple-touch-icon.png
+apps/client/public/   og/og.png, favicon.svg, apple-touch-icon.png, sounds/ (CC0 MP3s, with CREDITS.md)
 apps/server/src/
   app/        server bootstrap
   features/   player/ (Player Schema)  physics/ (knockback bodies)  health/ (HP and arrest timers)
@@ -189,6 +190,7 @@ Run the built server with `bun run --cwd apps/server start`.
 | Tune an archetype (#14: speed, max HP, drag time, rescue time, prop damage, throw range and spread, dodge cooldown, CRS target weight, heal and filming auras), rename one or add one | The `ARCHETYPES` table in `packages/shared/src/archetype/constants.ts` (aura radius there too; the rules, such as no aura stacking, in `archetype/archetype.ts`). Give a new one a look in `apps/client/src/features/archetype/archetypeVisuals.tsx`. Systems read the numbers through `StreetRoom.statsOf(id)`, never the id |
 | Change an archetype's look (clothes colour, placeholder props, lobby icon) | `apps/client/src/features/archetype/archetypeVisuals.tsx` (the one file for Jordan's models); the lobby menu is `ArchetypePicker.tsx` next to it |
 | Reset something new between rounds | `StreetRoom.resetStreet()` in `apps/server/src/rooms/StreetRoom.ts` (the round-live check compares the street after a reset with a fresh room) |
+| Change what sound plays when (#57), the crowd bed, the music, or the voice caps | `apps/client/src/features/audio/`: `cues.ts` turns server messages and state changes into sounds (tested in `cues.test.ts`), `sounds.ts` is the catalogue (file, gain, per-sound cap, pitch spread), `director.ts` runs it all, `synth.ts` makes the blips and stings in code. New files go in `apps/client/public/sounds/` (CC0 only) with a line in its `CREDITS.md` |
 | Change the round HUD, end screen or joke awards | `apps/client/src/features/round/`; the awards are `roundAwards` in `packages/shared/src/round/stats.ts`, the numbers are counted by `RoundStats` (`apps/server/src/features/round/`) |
 | Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
 | Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |

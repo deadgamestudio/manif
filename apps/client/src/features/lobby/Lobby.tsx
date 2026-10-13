@@ -3,6 +3,7 @@ import { MAX_PLAYERS, RoundResult } from "@manif/shared";
 import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
 import { LastRound, useRound } from "../round/index.ts";
 import { ArchetypeBadge, ArchetypePicker } from "../archetype/index.ts";
+import { SoundControl } from "../audio/index.ts";
 import "./lobby.css";
 
 /**
@@ -22,6 +23,7 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
 
   return (
     <main className="screen lobby">
+      <SoundControl placement="lobby" />
       {/* The banner, picker and roster scroll; the action bar under them never does,
           so Start and the invite link stay on screen at any size. */}
       <div className="lobby-scroll">

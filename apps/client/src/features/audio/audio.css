@@ -1,0 +1,110 @@
+/* The sound button and its panel (#57), in the HUD's placard look (see .hud-chip
+   and .hud-help-panel in app/styles.css). In the HUD it sits in .hud-corner, by
+   the "?"; on the lobby screen it is pinned to the top right on its own. */
+
+.sound-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  padding: 0;
+}
+
+.sound-btn[aria-expanded="true"] {
+  background: var(--hi-vis);
+}
+
+.hud[data-touch] .sound-btn {
+  width: 44px;
+}
+
+/* In the HUD, the panel hangs from .hud-corner (position: relative), like the help list. */
+.sound-hud {
+  display: contents;
+}
+
+.sound-corner {
+  --hud-shadow: 3px 3px 0 rgb(0 0 0 / 0.45);
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 5;
+}
+
+.sound-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 2;
+  width: min(250px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  padding: 10px 14px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 4px 10px 6px 12px / 12px 6px 10px 4px;
+  background: var(--cloth);
+  color: var(--ink);
+  box-shadow: 6px 6px 0 rgb(0 0 0 / 0.45);
+  font: 14px/1.35 var(--font-body);
+  text-align: left;
+  pointer-events: auto;
+  animation: hud-drop 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sound-title {
+  margin: 0 0 6px;
+  font-family: var(--font-placard);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: var(--paint-red);
+}
+
+.sound-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.sound-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.sound-volume {
+  justify-content: space-between;
+}
+
+.sound-volume input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  max-width: 140px;
+  accent-color: var(--paint-red);
+}
+
+.sound-hint {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 2px dashed rgb(22 22 22 / 0.3);
+  font-size: 13px;
+}
+
+.sound-hint kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: #fffaf0;
+  box-shadow: 0 2px 0 var(--ink);
+  font-family: var(--font-placard);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sound-panel {
+    animation: none;
+  }
+}

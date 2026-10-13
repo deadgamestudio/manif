@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { NAME_MAX_LENGTH, nameOrDefault, parseLobbyCode, randomDefaultName } from "@manif/shared";
 import { net, readInviteCode, type NetSnapshot } from "../../shared/net/index.ts";
+import { unlockAudio } from "../audio/index.ts";
 import { initialName, saveName } from "./profile.ts";
 import "./home.css";
 
@@ -29,6 +30,8 @@ export function Home({ snap }: { snap: NetSnapshot }) {
   };
 
   const onCreate = () => {
+    // The click that starts the game is the one browsers accept to start sound with (#57).
+    unlockAudio();
     setLocalError(null);
     void net.createLobby(commitName());
   };
@@ -41,6 +44,7 @@ export function Home({ snap }: { snap: NetSnapshot }) {
       return;
     }
     setLocalError(null);
+    unlockAudio();
     void net.joinLobby(parsed, commitName());
   };
 

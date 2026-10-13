@@ -83,6 +83,8 @@ export function controls(touch: boolean): readonly (readonly [string, string])[]
         ["Maj", "plonger : sous la matraque, hors des lacrymos"],
         ["E", "ramasser un pavé, une tomate, une crotte, une trottinette, ou soulever un·e camarade"],
         ["E maintenu", "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
+        // The sound feature's MUTE_KEY_LABEL (#57); spelled out here so this file stays plain data.
+        ["M", "couper ou remettre le son"],
         [HELP_KEY_LABEL, "afficher ou cacher cette aide"],
       ];
 }
