@@ -114,6 +114,7 @@ import { Throwables } from "../features/throwable/index.js";
 import { Gas } from "../features/gas/index.js";
 import { Fires } from "../features/fire/index.js";
 import { Carries } from "../features/carry/index.js";
+import { FireBrigade, type BrigadeHost, type HoseTarget } from "../features/pompier/index.js";
 import { DEBUG_ROUND_ENABLED, RoundStats, parseDebugRound } from "../features/round/index.js";
 import { StreetState } from "./state.js";
 
@@ -204,6 +205,40 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private fires = new Fires(LEVEL.propSlots, this.state.fires);
   /** Who carries whom, and the teammates in a throw's flight (#11). Server-only; `carriedBy` is synced on the carried player. */
   private carry = new Carries();
+  /**
+   * Pompiers (#17): fire trucks synced as `state.trucks`; their crews are bots
+   * in the CRS squad (`CrsKind.Pompier`), so they count towards MAX_CRS.
+   * The room applies what their water does.
+   */
+  private brigade = new FireBrigade(LEVEL, this.crs, this.props.world, SWING_OBSTACLES, this.state.trucks);
+  /** Scratch for the hose (#17), reused every tick. */
+  private hoseTargets: HoseTarget[] = [];
+  /** The room as the brigade sees it (#17). */
+  private brigadeHost: BrigadeHost = {
+    fires: () => this.fires.burning(),
+    protesters: () => {
+      const out = this.hoseTargets;
+      out.length = 0;
+      this.state.players.forEach((p, id) => {
+        if (p.status !== PlayerStatus.Arrested) out.push({ id, x: p.x, z: p.z, onFire: p.onFire });
+      });
+      return out;
+    },
+    pushProtester: (id, dirX, dirZ, strength) => {
+      const res = this.applyImpulse(id, dirX, dirZ, strength);
+      if (res && res.strength > 0) this.roundStats.add(id, "hosed");
+    },
+    pushBot: (id, dirX, dirZ, strength) => {
+      const res = this.crs.push(id, dirX, dirZ, strength);
+      if (res && res.strength > 0) {
+        const event: ImpulseEvent = { id, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
+        this.broadcast(ServerMessage.Impulse, event);
+      }
+    },
+    extinguish: (id) => this.extinguishProp(id),
+    putOutBody: (id) => this.putOutBody(id),
+    log: (message) => console.log(`[street ${this.roomId}] ${message}`),
+  };
   /** Who last slipped on which dog poo (#15), so getting up on one doesn't floor you again. Server-only. */
   private slips = new SlipGuards();
   /** Scratch for the slip checks (#15), reused every tick. */
@@ -348,9 +383,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         else if (cmd?.action === "teleport") this.debugTeleport(client.sessionId, cmd.progress);
         else if (cmd?.action === "hold") this.roundHeld = true;
         // #13: no bots on the street, but the waves still to come still come (unlike `calm`).
-        else if (cmd?.action === "clear") this.crs.clear();
-        else if (cmd?.action === "calm") {
+        else if (cmd?.action === "clear") {
           this.crs.clear();
+          this.brigade.clear();
+        } else if (cmd?.action === "calm") {
+          this.crs.clear();
+          this.brigade.clear();
           this.round.fired = ROUND_WAVES.map(() => true);
         } else if (cmd?.action === "fallen") {
           const self = this.state.players.get(client.sessionId);
@@ -367,12 +405,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
             // #13: any unit type; a BAC with its disguise (and a set blend time, for scripted tests).
             if (cmd.kind === CrsKind.Bac) this.crs.spawnBac(x, z, this.pickDisguiseName(), cmd.blend);
             else if (cmd.kind === CrsKind.BravM) this.crs.spawnBravm(x, z);
+            // #17: pompiers come off a truck, never on their own.
+            else if (cmd.kind === CrsKind.Pompier) return;
             else this.crs.spawn(x, z);
           }
         } else if (cmd?.action === "water") {
           const self = this.state.players.get(client.sessionId);
           if (self) this.extinguishAt(self.x, self.z, cmd.radius);
-        }
+        } else if (cmd?.action === "brigade") this.brigade.tune(cmd);
       },
     }),
   };
@@ -426,6 +466,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.joinOrder.delete(client.sessionId);
     this.roundStats.remove(client.sessionId);
     this.slips.remove(client.sessionId);
+    this.brigade.remove(client.sessionId);
     if (this.state.hostId === client.sessionId) {
       this.state.hostId = pickHost(Array.from(this.joinOrder, ([id, joinedAt]) => ({ id, joinedAt })));
       if (this.state.hostId) console.log(`[street ${this.roomId}] host -> ${this.state.hostId}`);
@@ -437,6 +478,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private startMarch() {
     this.resetStreet();
     if (!startRound(this.round)) return;
+    // #17: the dev-only brigade tuning lasts one round.
+    this.brigade.resetTuning();
     this.roundHeld = false;
     this.roundStats.clear();
     this.updateFront();
@@ -458,6 +501,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.props.reset(this.state.props);
     this.fires.reset();
     this.crs.clear();
+    // No fire truck or pompier left (#17).
+    this.brigade.clear();
     this.crs.reinforceTo = 0;
     // No fire left for the bots to avoid; rebuilds their grid for the props put back.
     this.crs.setHazards(null);
@@ -1055,9 +1100,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    *    so a stunned bot lets go on this very tick. Then gas canisters (#7)
    *    fly and land, and clouds that have run their time go.
    * 4. CRS (#5): think, move, hit, grab, drag. A bot whose protester was just
-   *    arrested, rescued or disconnected goes back to work here. Then bots
-   *    in a fire catch it (#16), and the fires burn down and spread; when
-   *    one starts or goes out, the bots' grid is rebuilt around the fires.
+   *    arrested, rescued or disconnected goes back to work here. Then the
+   *    pompiers (#17) decide and spray (their trucks come and go), bots in a
+   *    fire catch it (#16), and the fires burn down and spread; when one
+   *    starts or goes out, the bots' grid is rebuilt around the fires.
    * 5. The round (#12): progress and waves, then the win/lose check and the
    *    timers. Only the round clock runs while `ended` (the street is frozen),
    *    and nothing at all while `waiting`.
@@ -1150,6 +1196,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (res.broke) console.log(`[street ${this.roomId}] ${line.id} broke (${res.broke})`);
     });
     if (poos.length > 0) this.slipCrs(poos);
+    // Pompiers (#17): trucks come and go, the crews pick fires and spray (puts out fires, pushes whoever is in the water).
+    this.brigade.step(this.now, dt, this.brigadeHost);
     this.burnCrs();
     this.stepFires(dt);
     // Members walked into protesters: push them out of the shields (walls win; a
@@ -1267,7 +1315,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     for (const bot of this.crs.all) {
       const view = this.crs.view(bot.id);
       if (!view) continue;
-      const canBurn = bot.status !== CrsStatus.Out;
+      // A pompier (#17) is fireproof.
+      const canBurn = bot.status !== CrsStatus.Out && bot.stats.invulnerable !== true;
       const res = this.fires.burn(bot.id, view, crsRadius(bot.kind, bot.mount), canBurn, this.now, CRS_BURN_DAMAGE, CRS_BURN_DAMAGE_INTERVAL);
       if (res.damage > 0) this.crs.burn(bot.id, res.damage, this.now);
     }

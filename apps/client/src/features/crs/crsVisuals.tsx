@@ -9,12 +9,15 @@
  * - BRAV-M (#13): on foot, black with a motorbike helmet and no shield; on
  *   the bike, a long low box on two wheels with one or two riders; the wreck
  *   is the bike alone.
+ * - Pompier (#17, not police): a navy capsule with yellow reflective bands,
+ *   a yellow helmet with a red stripe, and a brass hose nozzle in hand. The
+ *   water jet itself is the water feature's (WaterJet).
  * Sizes come from CRS_STATS (crsRadius), so what you see is what you bump into.
  */
 import type { ReactNode, RefObject } from "react";
 import type { Group, MeshStandardMaterial } from "three";
 import { CRS_STATS, CrsKind, CrsMount, LINE_SHIELD_RADIUS, PLAYER_RADIUS } from "@manif/shared";
-import { PROTESTER_RAGDOLL, crsRagdoll, type RagdollLook } from "../ragdoll/index.ts";
+import { PROTESTER_RAGDOLL, crsRagdoll, pompierRagdoll, type RagdollLook } from "../ragdoll/index.ts";
 
 /** Refs CrsAvatar animates. A real model should expose the same pieces. */
 export interface CrsRig {
@@ -306,6 +309,78 @@ function bikeLook(riders: 0 | 1 | 2): CrsLook {
   };
 }
 
+const POMPIER_UNIFORM = "#1f2a44";
+const POMPIER_BAND = "#ffd600";
+const POMPIER_HELMET = "#f9c80e";
+const POMPIER_STRIPE = "#d32f2f";
+const NOZZLE = "#c9a227";
+const HOSE = "#b71c1c";
+
+/** Where a pompier's nozzle is (local to its facing group): the water jet starts there. */
+export const POMPIER_NOZZLE_Y = 1.05;
+
+/**
+ * A pompier (#17): a navy capsule with two yellow reflective bands, a yellow
+ * helmet with a red stripe, both arms forward on the hose (CrsAvatar raises
+ * them while spraying), the brass nozzle in the right hand.
+ */
+function pompierLook(radius: number): CrsLook {
+  const height = CAPSULE_LENGTH + radius * 2;
+  return {
+    height,
+    color: POMPIER_UNIFORM,
+    ragdoll: pompierRagdoll(radius, { uniform: POMPIER_UNIFORM, helmet: POMPIER_HELMET, nozzle: NOZZLE }),
+    render: (rig) => (
+      <>
+        <mesh position-y={height / 2} castShadow>
+          <capsuleGeometry args={[radius, CAPSULE_LENGTH, 4, 12]} />
+          <meshStandardMaterial ref={rig.body} color={POMPIER_UNIFORM} />
+        </mesh>
+        {/* Reflective bands round the chest and the legs. */}
+        {[height * 0.32, height * 0.6].map((y) => (
+          <mesh key={y} position-y={y}>
+            <cylinderGeometry args={[radius + 0.015, radius + 0.015, 0.09, 16, 1, true]} />
+            <meshStandardMaterial color={POMPIER_BAND} emissive={POMPIER_BAND} emissiveIntensity={0.35} />
+          </mesh>
+        ))}
+        {/* The helmet, with a red stripe over the top front to back. */}
+        <mesh position-y={height - 0.14} castShadow>
+          <sphereGeometry args={[radius * 0.88, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshStandardMaterial color={POMPIER_HELMET} metalness={0.4} roughness={0.35} />
+        </mesh>
+        <mesh position-y={height - 0.14} rotation-z={Math.PI / 2}>
+          <torusGeometry args={[radius * 0.89, 0.035, 6, 20, Math.PI]} />
+          <meshStandardMaterial color={POMPIER_STRIPE} />
+        </mesh>
+        <Splat group={rig.splat} radius={radius} at={[0, height - 0.3, radius * 0.8]} />
+        {/* Left arm on the hose. */}
+        <group ref={rig.shieldArm} position={[-radius - 0.05, height * 0.62, 0.05]}>
+          <mesh position-y={-0.3} castShadow>
+            <boxGeometry args={[0.15, 0.6, 0.15]} />
+            <meshStandardMaterial color={POMPIER_UNIFORM} />
+          </mesh>
+          <mesh position={[0.25, -0.55, 0]} rotation-z={Math.PI / 2}>
+            <cylinderGeometry args={[0.06, 0.06, 0.6, 8]} />
+            <meshStandardMaterial color={HOSE} />
+          </mesh>
+        </group>
+        {/* Right arm with the brass nozzle (pointing forward once the arm is raised). */}
+        <group ref={rig.batonArm} position={[radius + 0.05, height * 0.62, 0.05]}>
+          <mesh position-y={-0.3} castShadow>
+            <boxGeometry args={[0.15, 0.6, 0.15]} />
+            <meshStandardMaterial color={POMPIER_UNIFORM} />
+          </mesh>
+          <mesh position-y={-0.68}>
+            <cylinderGeometry args={[0.05, 0.08, 0.32, 8]} />
+            <meshStandardMaterial color={NOZZLE} metalness={0.6} roughness={0.3} />
+          </mesh>
+        </group>
+        <group ref={rig.lineShield} visible={false} />
+      </>
+    ),
+  };
+}
+
 const LOOKS = {
   crs: crsLook(CRS_STATS[CrsKind.Crs].radius),
   bac: bacLook(),
@@ -313,11 +388,13 @@ const LOOKS = {
   duo: bikeLook(2),
   solo: bikeLook(1),
   wreck: bikeLook(0),
+  pompier: pompierLook(CRS_STATS[CrsKind.Pompier].radius),
 };
 
 /** The look of a bot of `kind` riding `mount` (a disguised BAC is drawn as a protester, not with these). */
 export function crsLookFor(kind: CrsKind, mount: CrsMount): CrsLook {
   if (kind === CrsKind.Bac) return LOOKS.bac;
+  if (kind === CrsKind.Pompier) return LOOKS.pompier;
   if (kind === CrsKind.BravM) {
     if (mount === CrsMount.Duo) return LOOKS.duo;
     if (mount === CrsMount.Solo) return LOOKS.solo;

@@ -99,7 +99,13 @@ export type DebugRoundPayload =
    * #45: an ordinary CRS standing `distance` m in front of yourself, facing you, to test a baton swing against a hop.
    * #13: `kind` another unit type (`CrsKind`); a BAC blends in for `blend` seconds when given.
    */
-  | { action: "crs"; distance: number; kind?: number; blend?: number };
+  | { action: "crs"; distance: number; kind?: number; blend?: number }
+  /**
+   * #17: tune the fire brigade for scripted tests, until the next round: `delay` seconds before a truck sets off,
+   * `crew` pompiers per truck, `spray` the accidental spray chance per second (0 turns it off), `extra` seconds of
+   * fire before another truck comes, `soak` the hose's water per second (a slow hose keeps a pompier busy). Each is optional.
+   */
+  | { action: "brigade"; delay?: number; crew?: number; spray?: number; extra?: number; soak?: number };
 
 /** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
 export interface InteractPayload {

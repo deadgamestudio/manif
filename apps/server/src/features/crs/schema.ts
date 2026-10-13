@@ -36,6 +36,8 @@ export const Crs = schema(
     splatted: t.boolean(),
     /** Hit by a dog poo (#15): the others keep away. The timer stays in `CrsBot.stinkUntil`. */
     stinky: t.boolean(),
+    /** A pompier's hose is on (#17), along `rotation`. Set by the brigade; always false for the police. */
+    spraying: t.boolean(),
   },
   "Crs",
 );

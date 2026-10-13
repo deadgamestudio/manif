@@ -11,6 +11,7 @@ import { CrsView } from "../crs/index.ts";
 import { AimTracker, ThrowablesView } from "../throwable/index.ts";
 import { GasView } from "../gas/index.ts";
 import { FiresView } from "../fire/index.ts";
+import { TrucksView } from "../pompier/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
 
 const LEVEL = STREET_LEVEL;
@@ -51,6 +52,7 @@ export function Scene({
       <ThrowablesView />
       <GasView />
       <FiresView />
+      <TrucksView />
     </>
   );
 }

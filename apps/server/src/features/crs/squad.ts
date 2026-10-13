@@ -114,6 +114,10 @@ export class CrsSquad {
   private hazards: CollisionWorld | null = null;
   /** The world plus the hazards: the navigation grid and shield line slots are laid against it. */
   private readonly avoid: { -readonly [K in keyof CollisionWorld]: CollisionWorld[K] };
+  /** A behaviour per unit kind set from outside (#17: the pompiers', run by the brigade). */
+  private readonly unitBehaviours = new Map<CrsKind, CrsBehaviour>();
+  /** Scratch for `pathLength`. */
+  private readonly scratch: Vec2 = { x: 0, z: 0 };
 
   constructor(
     private readonly level: Level,
@@ -163,6 +167,53 @@ export class CrsSquad {
     this.worldChanged();
     // A fire lit or gone on someone's route: everyone re-paths on their next step.
     for (const bot of this.bots) bot.path = null;
+  }
+
+  /** Bots of `kind` follow `behaviour` (#17: the pompiers follow the brigade's orders). */
+  setBehaviour(kind: CrsKind, behaviour: CrsBehaviour): void {
+    this.unitBehaviours.set(kind, behaviour);
+  }
+
+  /**
+   * How far a bot on foot would walk from `from` to `to` (#17: which fire a
+   * pompier can reach): the length of its path around walls, props and fire
+   * zones. Null when there is no path (blocked, or behind a fire). Both ends
+   * snap to the nearest walkable spot, like the bots' own paths.
+   */
+  pathLength(from: Vec2, to: Vec2): number | null {
+    const path = this.nav.findPath(from, to);
+    if (path === null) return null;
+    let len = 0;
+    let x = from.x;
+    let z = from.z;
+    for (const cell of path) {
+      this.nav.centre(cell, this.scratch);
+      len += Math.hypot(this.scratch.x - x, this.scratch.z - z);
+      x = this.scratch.x;
+      z = this.scratch.z;
+    }
+    return len;
+  }
+
+  /** Bot `id` leaves the street on its own (#17: a pompier getting back on its truck): removed on the next step, never replaced. */
+  retire(id: string): void {
+    const bot = this.byId.get(id);
+    if (bot) bot.gone = true;
+  }
+
+  /** Water on bot `id` (#17): the tomato and the stink wash off. Returns true if there was something to wash. */
+  wash(id: string): boolean {
+    const bot = this.byId.get(id);
+    if (!bot) return false;
+    const now = this.ctx.now;
+    const dirty = isSplatted(bot, now) || isStinky(bot, now);
+    if (!dirty) return false;
+    bot.splatUntil = Math.min(bot.splatUntil, now);
+    bot.stinkUntil = Math.min(bot.stinkUntil, now);
+    bot.backOffUntil = Math.min(bot.backOffUntil, now);
+    const view = this.views.get(id);
+    if (view) this.mirror(bot, view);
+    return true;
   }
 
   /** Remove every bot. */
@@ -498,7 +549,8 @@ export class CrsSquad {
    */
   affect(id: string, effect: CrsEffect, duration: number, now: number): boolean {
     const bot = this.byId.get(id);
-    if (!bot) return false;
+    // A pompier (#17): a tomato or a poo leaves nothing on it (it still gets knocked over by the throw).
+    if (!bot || bot.stats.invulnerable === true) return false;
     // A BRAV-M riding along (#13): the wind of the ride blows the stink away.
     if (effect === "stink" && bot.stats.stinkProofRiding === true && isRiding(bot)) return false;
     if (!CRS_EFFECTS[effect](bot, now, duration)) return false;
@@ -603,10 +655,12 @@ export class CrsSquad {
     }
   }
 
-  /** A line member follows its line's orders (until it breaks); a BAC or a BRAV-M its unit's (#13); every other bot the squad's behaviour. */
+  /** A line member follows its line's orders (until it breaks); a BAC or a BRAV-M its unit's (#13), a pompier the brigade's (#17); every other bot the squad's behaviour. */
   private behaviourOf(bot: CrsBot): CrsBehaviour | undefined {
     const line = this.lineOf.get(bot.id);
     if (!line) {
+      const own = this.unitBehaviours.get(bot.kind);
+      if (own) return own;
       if (bot.kind === CrsKind.Bac) return BAC_BEHAVIOUR;
       if (bot.kind === CrsKind.BravM) return BRAVM_BEHAVIOUR;
       return this.behaviour;

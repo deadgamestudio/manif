@@ -6,6 +6,7 @@
 import { GRAB_DURATION } from "../health/index.js";
 import { HEAVY_IMPULSE, LIGHT_IMPULSE } from "../physics/index.js";
 import { PLAYER_RADIUS } from "../player/index.js";
+import type { WaterJetStats } from "../water/index.js";
 
 /** What a bot is doing, synced as a uint8 (`CrsShape.status`). */
 export const CrsStatus = {
@@ -28,6 +29,12 @@ export const CrsKind = {
   Bac: 1,
   /** Motorbike duos: charge in, the passenger hops off to hit or grab, then they ride off. */
   BravM: 2,
+  /**
+   * Not police (#17): a pompier off a fire truck, who puts out fires with a
+   * hose and is on nobody's side. Never hits, grabs or arrests; protesters
+   * can knock one over but never hurt it; CRS never grab it.
+   */
+  Pompier: 3,
 } as const;
 export type CrsKind = (typeof CrsKind)[keyof typeof CrsKind];
 
@@ -97,6 +104,45 @@ export interface BikeStats {
   wreckSkid: number;
 }
 
+/** A pompier's hose (#17): a small water jet, and how it picks what to spray. */
+export interface HoseStats extends WaterJetStats {
+  /** A pompier walking to its fire stops and sprays once the fire's edge is this close (under `range`) and in sight. */
+  sprayFrom: number;
+  /**
+   * The "accidental" spray on a CRS: the chance, per second of spraying a
+   * fire, that the pompier swings the hose over a CRS standing near that
+   * fire for a moment. 0 turns it off. Keep it low: a joke, not a weapon.
+   */
+  accidentalSprayChance: number;
+  /** Only a CRS this close to the fire being sprayed (centre to the fire's edge) can be hosed "by accident"... */
+  accidentalRange: number;
+  /** ...and the hose stays on it this long, then goes back to the fire. */
+  accidentalTime: number;
+}
+
+/** The fire brigade (#17): when trucks come, how many, and when they go. */
+export interface BrigadeStats {
+  /** A truck sets off this long after a prop starts burning (if something still burns then). */
+  arriveDelay: number;
+  /** Pompiers getting off each truck. They count towards MAX_CRS. */
+  crew: number;
+  /** Most fire trucks on the street at once. */
+  maxTrucks: number;
+  /** Fires burning without a break for this long call one more truck (up to `maxTrucks`), at most once per this long. */
+  extraTruckAfter: number;
+  /** The truck's speed driving in and out of its side street. */
+  driveSpeed: number;
+  /** A pompier down (knocked over) for longer than this in total since it last worked gives up its fire for someone else. */
+  downTooLong: number;
+  /** No progress towards its fire for this long: the pompier gives up on that fire for `giveUpTime`. */
+  stuckTime: number;
+  giveUpTime: number;
+  /** A pompier walking back to its truck gets on once this close to the door. */
+  boardReach: number;
+  /** A pompier who has not made it back to the truck this long after the last fire went out gets on anyway. */
+  boardTimeout: number;
+}
+
 /** Everything that makes one unit type play differently. Change a value here, not in the AI. */
 export interface CrsStats {
   /** Collision radius (a protester is 0.4). */
@@ -148,6 +194,16 @@ export interface CrsStats {
   bike?: BikeStats;
   /** Immune to dog poo stink (#15) while riding: the wind of the ride blows it away. */
   stinkProofRiding?: boolean;
+  /**
+   * Cannot be hurt (#17, the pompiers): any hit knocks it over with the usual
+   * fall, but takes no HP, never stuns it and never takes it out. Fireproof
+   * too, and thrown items leave no status on it.
+   */
+  invulnerable?: boolean;
+  /** Units with a hose (#17, pompiers). Absent: no water. */
+  hose?: HoseStats;
+  /** The trucks a pompier crew comes in (#17). */
+  brigade?: BrigadeStats;
 }
 
 export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
@@ -254,7 +310,62 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
       wreckSkid: 9,
     },
   },
+  // The pompier (#17): no baton, no grab, no gas (all zero; its behaviour never uses them).
+  // Busy, cheerful, on nobody's side, and a hose that likes to drift towards the CRS.
+  [CrsKind.Pompier]: {
+    radius: 0.45,
+    speed: 5,
+    maxHp: 1,
+    sight: 0,
+    switchMargin: 0,
+    retargetInterval: 0.5,
+    repathInterval: 0.75,
+    batonRange: 0,
+    batonDamage: 0,
+    batonImpulse: 0,
+    batonCooldown: 1,
+    grabReach: -1,
+    grabCooldown: 1,
+    grabDuration: GRAB_DURATION,
+    dragSpeedFactor: 1,
+    stunDuration: 0,
+    hitImpulse: HEAVY_IMPULSE,
+    staggerHits: 1,
+    staggerWindow: 1.5,
+    heavyHitImpulse: HEAVY_IMPULSE,
+    outDuration: 3,
+    gasCooldown: 0,
+    invulnerable: true,
+    hose: {
+      range: 5,
+      halfAngle: 0.3,
+      knockback: 7,
+      pushInterval: 0.5,
+      soakRate: 1,
+      sprayFrom: 3.5,
+      accidentalSprayChance: 0.08,
+      accidentalRange: 5,
+      accidentalTime: 1.2,
+    },
+    brigade: {
+      arriveDelay: 10,
+      crew: 2,
+      maxTrucks: 2,
+      extraTruckAfter: 45,
+      driveSpeed: 10,
+      downTooLong: 4,
+      stuckTime: 3,
+      giveUpTime: 6,
+      boardReach: 0.8,
+      boardTimeout: 20,
+    },
+  },
 };
+
+/** Whether bots of `kind` are police (#17: a pompier is not): they chase, hit, grab, count as CRS taken out. */
+export function isPolice(kind: CrsKind): boolean {
+  return kind !== CrsKind.Pompier;
+}
 
 /** Collision radius of a bot of `kind` riding `mount` (the bike's while ridden or wrecked). */
 export function crsRadius(kind: CrsKind, mount: CrsMount = CrsMount.Foot): number {

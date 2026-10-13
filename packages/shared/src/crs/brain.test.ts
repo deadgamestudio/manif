@@ -570,3 +570,44 @@ describe("tear gas (#7)", () => {
     expect(host.throws.length).toBe(0);
   });
 });
+
+describe("pompier (#17): knocked over, never hurt", () => {
+  const pompier = () => createCrsBot("p", CrsKind.Pompier, 0, 0);
+
+  test("a melee hit floors it every time, takes no HP and never takes it out", () => {
+    const bot = pompier();
+    const hp = bot.hp;
+    for (let i = 0; i < 20; i++) {
+      bot.body.downTime = 0;
+      bot.body.immuneTime = 0;
+      const res = hitCrs(bot, -1, 0, 5, i * 2);
+      expect(res?.out).toBe(false);
+      expect(res?.impulse.knockedDown).toBe(true);
+      expect(bot.hp).toBe(hp);
+      expect(bot.status).toBe(CrsStatus.Active);
+    }
+  });
+
+  test("a pavé or a thrown teammate floors it, no damage and no stun", () => {
+    const bot = pompier();
+    const res = strikeCrs(bot, 1, 0, 50, 14, 3, 0);
+    expect(res?.out).toBe(false);
+    expect(res?.impulse.knockedDown).toBe(true);
+    expect(bot.hp).toBe(CRS_STATS[CrsKind.Pompier].maxHp);
+    expect(bot.status).toBe(CrsStatus.Active);
+  });
+
+  test("fireproof and never dazed", () => {
+    const bot = pompier();
+    expect(burnCrs(bot, 99, 0)).toBe(false);
+    expect(stunCrs(bot, 0, 5)).toBe(false);
+    expect(bot.hp).toBe(CRS_STATS[CrsKind.Pompier].maxHp);
+    expect(bot.status).toBe(CrsStatus.Active);
+  });
+
+  test("the police take damage as before", () => {
+    const bot = createCrsBot("c", CrsKind.Crs, 0, 0);
+    hitCrs(bot, -1, 0, 1, 0);
+    expect(bot.hp).toBe(STATS.maxHp - 1);
+  });
+});

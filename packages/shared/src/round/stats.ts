@@ -20,10 +20,12 @@ export interface RoundPlayerStats {
   splats: number;
   /** Times this player slipped on a dog poo (#15). */
   slips: number;
+  /** Times this player was pushed by a pompier's hose (#17). */
+  hosed: number;
 }
 
 export function emptyStats(): RoundPlayerStats {
-  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0, teammatesThrown: 0, splats: 0, slips: 0 };
+  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0, teammatesThrown: 0, splats: 0, slips: 0, hosed: 0 };
 }
 
 /** Payload of `ServerMessage.RoundEnd`. */
@@ -55,6 +57,7 @@ const AWARDS: readonly { stat: keyof RoundPlayerStats; title: string; unit: stri
   { stat: "teammatesThrown", title: "Catapulte humaine", unit: "camarades lancés" },
   { stat: "splats", title: "Primeur de combat", unit: "CRS repeints ou parfumés" },
   { stat: "slips", title: "Pied dans la crotte", unit: "glissades" },
+  { stat: "hosed", title: "Douche gratuite", unit: "coups de lance des pompiers" },
 ];
 
 /**

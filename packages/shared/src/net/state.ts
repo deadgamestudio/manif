@@ -95,6 +95,22 @@ export interface CrsShape {
   name: string;
   /** What a BRAV-M rides (#13), see `CrsMount`; `Foot` for the other units. */
   mount: CrsMount;
+  /** A pompier's hose is on (#17): the water jet goes out along `rotation`. Always false for the police. */
+  spraying: boolean;
+}
+
+/**
+ * A fire truck (#17), keyed by a server-made id. It drives in down a side
+ * street, parks behind the barrier while its pompiers work, and drives back
+ * out. Never in the street itself.
+ */
+export interface TruckShape {
+  x: number;
+  z: number;
+  /** Facing angle around the Y axis, in radians (the nose; it backs out the way it came). */
+  rotation: number;
+  /** Parked (lights flashing, crew off) rather than driving in or out. */
+  parked: boolean;
 }
 
 /** An item lying on the ground (#8), keyed by a server-made id. */
@@ -165,6 +181,8 @@ export interface StreetStateShape {
   canisters: SyncedMap<CanisterShape>;
   /** Burning props by level prop id (#16). */
   fires: SyncedMap<FireShape>;
+  /** Fire trucks by id (#17). Their pompiers are in `crs`, with kind `CrsKind.Pompier`. */
+  trucks: SyncedMap<TruckShape>;
   /** Round phase (#12): waiting (lobby screen), marching, ended. */
   phase: Phase;
   /** Whole seconds left: of the march while marching, of the end screen while ended. */

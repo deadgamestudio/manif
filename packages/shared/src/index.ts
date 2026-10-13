@@ -15,3 +15,5 @@ export * from "./gas/index.js";
 export * from "./fire/index.js";
 export * from "./round/index.js";
 export * from "./carry/index.js";
+export * from "./water/index.js";
+export * from "./pompier/index.js";
