@@ -1,0 +1,302 @@
+/**
+ * Throwables (#8): items on the ground, picking one up, aiming, and the flight
+ * of a thrown one. Pure logic over plain data; the server owns the only copy
+ * that matters and mirrors a few fields into Schema.
+ *
+ * The pipeline, the same for every kind (#15 adds kinds as rows in
+ * THROWABLE_TYPES):
+ * 1. An item lies on the ground (`GroundItems`): from the level data, from a
+ *    broken prop, or where a thrown one stopped.
+ * 2. Interact picks up the nearest one within PICKUP_RANGE, empty hands only.
+ * 3. A throw spawns a `Projectile` at the thrower, along the aim.
+ * 4. `stepProjectile` moves it each tick with a swept test (no tunnelling):
+ *    it stops on the first wall, prop or CRS, or falls at max range.
+ * 5. Wherever it stops, it lies on the ground again: items are never used up.
+ *
+ * Protesters are never targets (no friendly fire, no self-hits, v1).
+ */
+import { PlayerStatus } from "../health/index.js";
+import { normalizeMove, resolveCircle, type CollisionWorld, type Vec2 } from "../physics/index.js";
+import { facingDir, segmentEntry } from "../melee/index.js";
+import type { PropShape } from "../prop/index.js";
+import {
+  DROP_GAP,
+  MAX_GROUND_ITEMS,
+  PICKUP_RANGE,
+  THROWABLE_TYPES,
+  ThrowableKind,
+  type ItemKind,
+} from "./constants.js";
+
+/** Whether a synced uint8 names a real item (not `None`, not garbage). */
+export function isItemKind(kind: number): kind is ItemKind {
+  return kind !== ThrowableKind.None && (THROWABLE_TYPES as Record<number, unknown>)[kind] !== undefined;
+}
+
+/** An item lying on the ground. */
+export interface GroundItem extends Vec2 {
+  kind: ItemKind;
+}
+
+/** Told about every change, so the server can mirror the items into Schema. */
+export interface GroundItemsHooks {
+  added(id: string, item: GroundItem): void;
+  removed(id: string): void;
+}
+
+/**
+ * Items lying on the ground, oldest first. At most `cap` of them: dropping one
+ * more removes the oldest, so broken props can't fill the street and a pavé
+ * that leaves a hand never just vanishes.
+ */
+export class GroundItems {
+  private readonly items = new Map<string, GroundItem>();
+  private counter = 0;
+
+  constructor(
+    private readonly hooks?: GroundItemsHooks,
+    private readonly cap = MAX_GROUND_ITEMS,
+  ) {}
+
+  get size(): number {
+    return this.items.size;
+  }
+
+  get(id: string): GroundItem | undefined {
+    return this.items.get(id);
+  }
+
+  entries(): IterableIterator<[string, GroundItem]> {
+    return this.items.entries();
+  }
+
+  clear(): void {
+    for (const id of this.items.keys()) this.hooks?.removed(id);
+    this.items.clear();
+  }
+
+  /** Put an item on the ground at (x, z). Returns its id. */
+  drop(kind: ItemKind, x: number, z: number): string {
+    while (this.items.size >= this.cap) {
+      const oldest = this.items.keys().next().value;
+      if (oldest === undefined) break;
+      this.remove(oldest);
+    }
+    const id = `item-${++this.counter}`;
+    const item: GroundItem = { kind, x, z };
+    this.items.set(id, item);
+    this.hooks?.added(id, item);
+    return id;
+  }
+
+  /**
+   * A protester at `holder` presses interact. Empty-handed (`carrying` is
+   * ThrowableKind.None) and with an item within `range`, the nearest one is
+   * taken off the ground and its kind returned; otherwise None and nothing
+   * changes. Messages are handled one at a time, so two protesters reaching
+   * for the same item on the same tick: the first takes it, the second gets
+   * another one in range or nothing. Never two copies.
+   */
+  pickUp(holder: Vec2, carrying: number, range = PICKUP_RANGE): ThrowableKind {
+    if (carrying !== ThrowableKind.None) return ThrowableKind.None;
+    const id = nearestItem(holder, this.items, range);
+    if (id === null) return ThrowableKind.None;
+    const item = this.items.get(id)!;
+    this.remove(id);
+    return item.kind;
+  }
+
+  private remove(id: string): void {
+    if (this.items.delete(id)) this.hooks?.removed(id);
+  }
+}
+
+/** The id of the item nearest `holder` within `range` (centre to centre, edge included), or null. Ties go to the oldest. */
+export function nearestItem(holder: Vec2, items: Iterable<[string, Vec2]>, range = PICKUP_RANGE): string | null {
+  let best: string | null = null;
+  let bestD = range * range + 1e-9;
+  for (const [id, item] of items) {
+    const d = (item.x - holder.x) ** 2 + (item.z - holder.z) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = id;
+    }
+  }
+  return best;
+}
+
+/** What `releaseCarried` needs of a protester: the synced Player fits it. */
+export interface Carrier extends Vec2 {
+  status: number;
+  carrying: number;
+}
+
+/**
+ * A protester who is no longer free (grabbed, KO, arrested) lets go of what
+ * they carry: it drops on the ground where they stand, it does not vanish.
+ * Mutates `carrier.carrying`. Returns true if something was dropped.
+ */
+export function releaseCarried(carrier: Carrier, items: GroundItems): boolean {
+  if (carrier.status === PlayerStatus.Free || !isItemKind(carrier.carrying)) return false;
+  items.drop(carrier.carrying, carrier.x, carrier.z);
+  carrier.carrying = ThrowableKind.None;
+  return true;
+}
+
+/**
+ * The throw direction from a client's aim: re-normalized; a zero or invalid
+ * aim (mouse right on the player) throws along the facing instead.
+ */
+export function aimDirection(x: number, z: number, rotation: number): Vec2 {
+  const dir = normalizeMove(x, z);
+  if (dir.x !== 0 || dir.z !== 0) return dir;
+  return facingDir(rotation);
+}
+
+/** A thrown item in flight. Server-only; `x`, `z` and `kind` are synced. */
+export interface Projectile extends Vec2 {
+  id: string;
+  kind: ItemKind;
+  /** Session id of the thrower. */
+  by: string;
+  /** Unit ground direction of flight. */
+  dirX: number;
+  dirZ: number;
+  /** Distance left before it falls. */
+  left: number;
+}
+
+/** Spawn a projectile at (x, z) flying along the unit direction (dirX, dirZ). */
+export function createProjectile(id: string, kind: ItemKind, by: string, x: number, z: number, dirX: number, dirZ: number): Projectile {
+  return { id, kind, by, x, z, dirX, dirZ, left: THROWABLE_TYPES[kind].range };
+}
+
+/** Something a projectile can hit and affect: an intact prop or a CRS (as in melee). */
+export interface ProjectileTarget<K extends string = string> {
+  id: string;
+  /** What it is, for the caller ("prop", "crs"...). */
+  kind: K;
+  shape: PropShape;
+}
+
+export type ProjectileStep<K extends string = string> =
+  | { type: "flying" }
+  /** Hit a target: the caller applies damage, stun and knockback. */
+  | { type: "hit"; target: ProjectileTarget<K>; x: number; z: number }
+  /** Stopped by a wall, an obstacle, a broken prop's remains or the street edge. */
+  | { type: "blocked"; x: number; z: number }
+  /** Reached max range and fell. */
+  | { type: "landed"; x: number; z: number };
+
+/** How far short of a contact the item stops, so it lies just outside what it hit. */
+const CONTACT_BACKOFF = 0.02;
+
+/** Where a segment from `a` to `b` leaves the rectangle `bounds` shrunk by `r`, as a fraction in [0, 1], or null if it stays in. */
+function boundsExit(a: Vec2, b: Vec2, bounds: CollisionWorld["bounds"], r: number): number | null {
+  let t: number | null = null;
+  const axes = [
+    [a.x, b.x, bounds.minX + r, bounds.maxX - r],
+    [a.z, b.z, bounds.minZ + r, bounds.maxZ - r],
+  ] as const;
+  for (const [from, to, min, max] of axes) {
+    const d = to - from;
+    let edge: number | null = null;
+    if (to > max && d > 0) edge = (max - from) / d;
+    else if (to < min && d < 0) edge = (min - from) / d;
+    if (edge !== null) {
+      const e = Math.max(0, edge);
+      if (t === null || e < t) t = e;
+    }
+  }
+  return t;
+}
+
+/**
+ * Move a projectile one tick (mutates `p`). The whole move is a swept circle
+ * of the item's radius, tested as a segment against every shape grown by that
+ * radius, so nothing is skipped whatever the speed. The first contact along
+ * the way wins; a target and an obstacle touched at the same point (an intact
+ * prop is both) count as the target. The item stops just short of it.
+ *
+ * `world` is everything that blocks (static level, props in their current
+ * shape, street bounds); `targets` are what a hit affects (intact props, CRS).
+ */
+export function stepProjectile<K extends string>(
+  p: Projectile,
+  dt: number,
+  world: CollisionWorld,
+  targets: Iterable<ProjectileTarget<K>>,
+): ProjectileStep<K> {
+  const r = THROWABLE_TYPES[p.kind].radius;
+  const dist = Math.max(0, Math.min(THROWABLE_TYPES[p.kind].speed * dt, p.left));
+  const a: Vec2 = { x: p.x, z: p.z };
+  const b: Vec2 = { x: p.x + p.dirX * dist, z: p.z + p.dirZ * dist };
+
+  let wallT = boundsExit(a, b, world.bounds, r) ?? Infinity;
+  for (const box of world.boxes) {
+    const t = segmentEntry(a, b, { type: "box", x: box.x, z: box.z, halfX: box.halfX + r, halfZ: box.halfZ + r });
+    if (t !== null && t < wallT) wallT = t;
+  }
+  for (const c of world.circles) {
+    const t = segmentEntry(a, b, { type: "circle", x: c.x, z: c.z, r: c.r + r });
+    if (t !== null && t < wallT) wallT = t;
+  }
+
+  let hit: ProjectileTarget<K> | null = null;
+  let hitT = Infinity;
+  for (const target of targets) {
+    const s = target.shape;
+    const grown: PropShape =
+      s.type === "box"
+        ? { type: "box", x: s.x, z: s.z, halfX: s.halfX + r, halfZ: s.halfZ + r }
+        : { type: "circle", x: s.x, z: s.z, r: s.r + r };
+    const t = segmentEntry(a, b, grown);
+    if (t !== null && t < hitT) {
+      hitT = t;
+      hit = target;
+    }
+  }
+
+  const stopAt = (t: number) => {
+    const travelled = Math.max(0, dist * t - CONTACT_BACKOFF);
+    p.x = a.x + p.dirX * travelled;
+    p.z = a.z + p.dirZ * travelled;
+    p.left = 0;
+  };
+
+  if (hit && hitT <= wallT) {
+    stopAt(hitT);
+    return { type: "hit", target: hit, x: p.x, z: p.z };
+  }
+  if (wallT <= 1) {
+    stopAt(wallT);
+    return { type: "blocked", x: p.x, z: p.z };
+  }
+  p.x = b.x;
+  p.z = b.z;
+  p.left -= dist;
+  if (p.left <= 1e-9) {
+    p.left = 0;
+    return { type: "landed", x: p.x, z: p.z };
+  }
+  return { type: "flying" };
+}
+
+/**
+ * Where `count` items dropped by a broken prop land: on the street side of
+ * the prop (towards x = 0, where the cortège walks), spread along it, a little
+ * beyond its edge, then pushed clear of anything solid in `world`.
+ */
+export function dropSpots(shape: PropShape, count: number, world: CollisionWorld, r = 0.2): Vec2[] {
+  const out: Vec2[] = [];
+  if (count <= 0) return out;
+  const ux = shape.x > 0 ? -1 : 1;
+  const half = shape.type === "box" ? shape.halfX : shape.r;
+  const spread = shape.type === "box" ? Math.min(shape.halfZ, 1.2) : shape.r;
+  for (let i = 0; i < count; i++) {
+    const along = count === 1 ? 0 : -spread + (2 * spread * i) / (count - 1);
+    const res = resolveCircle(world, shape.x + ux * (half + DROP_GAP), shape.z + along, r);
+    out.push({ x: res.x, z: res.z });
+  }
+  return out;
+}

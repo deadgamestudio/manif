@@ -13,6 +13,7 @@ import {
   isDown,
   pickSpawn,
   stepCrs,
+  strikeCrs,
   stunCrs,
   vanDoors,
   type CollisionWorld,
@@ -128,6 +129,20 @@ export class CrsSquad {
     const bot = this.byId.get(id);
     if (!bot) return null;
     const res = hitCrs(bot, fromX, fromZ, damage, now);
+    const view = this.views.get(id);
+    if (res && view) this.mirror(bot, view);
+    return res;
+  }
+
+  /**
+   * A thrown item (#8) lands on bot `id`, flying along (dirX, dirZ): damage,
+   * knockback along the throw and a stun (see `strikeCrs`). Null for an
+   * unknown or out bot. The room broadcasts the result.
+   */
+  strike(id: string, dirX: number, dirZ: number, damage: number, impulse: number, stun: number, now: number): CrsHitResult | null {
+    const bot = this.byId.get(id);
+    if (!bot) return null;
+    const res = strikeCrs(bot, dirX, dirZ, damage, impulse, stun, now);
     const view = this.views.get(id);
     if (res && view) this.mirror(bot, view);
     return res;

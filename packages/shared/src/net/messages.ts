@@ -18,10 +18,18 @@ export const ClientMessage = {
    * The interact key (E), sent on press (`held: true`) and on release
    * (`held: false`). No target: the server picks from its own positions.
    * On a press, a grabbed teammate in RESCUE_RANGE wins (#10: keep holding to
-   * pull them free); otherwise #8 picks up a pavé. Holding matters only to
+   * pull them free); otherwise #8 picks up the nearest item (a pavé) within
+   * PICKUP_RANGE, empty-handed only. Holding matters only to
    * the rescue; a release with nothing going on is a no-op.
    */
   Interact: "interact",
+  /**
+   * Throw the carried item (#8) along a ground direction, from the mouse.
+   * Only a direction: the server re-normalizes it (zero throws along the
+   * facing), checks the thrower is carrying and has control, and spawns and
+   * flies the projectile itself. #11 (throwing a grabbed teammate) reuses it.
+   */
+  Throw: "throw",
   /**
    * DEBUG, dev builds only: knock yourself or the nearest player over.
    * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) give real hits.
@@ -47,6 +55,7 @@ export interface ClientMessagePayloads {
   [ClientMessage.Attack]: undefined;
   [ClientMessage.Dodge]: undefined;
   [ClientMessage.Interact]: InteractPayload;
+  [ClientMessage.Throw]: ThrowPayload;
   [ClientMessage.DebugKnockback]: DebugKnockbackPayload;
   [ClientMessage.DebugHealth]: DebugHealthPayload;
 }
@@ -54,6 +63,12 @@ export interface ClientMessagePayloads {
 /** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
 export interface InteractPayload {
   held: boolean;
+}
+
+/** Payload of `ClientMessage.Throw`: the aim, a ground direction (any length; the server normalizes it). */
+export interface ThrowPayload {
+  x: number;
+  z: number;
 }
 
 /** DEBUG payload (#3). `damage` takes DEBUG_DAMAGE HP off yourself; `grab` grabs yourself for the default drag time. */
@@ -72,8 +87,8 @@ export const ServerMessage = {
   /** A body (protester or CRS) received an impulse. Not stored in Schema; lets clients tip it the right way. */
   Impulse: "impulse",
   /**
-   * A player swung (#4), hit or miss: sent to everyone but the swinger, who
-   * already plays it locally. Also a CRS baton swing (#5), sent to everyone.
+   * A player swung (#4) or threw (#8), hit or miss: sent to everyone but the
+   * swinger, who already plays it locally. Also a CRS baton swing (#5), sent to everyone.
    */
   Swing: "swing",
   /** A swing landed on something (#4). Not stored in Schema; lets clients flash the target. */
@@ -100,17 +115,17 @@ export interface SwingEvent {
   id: string;
 }
 
-/** What a hit landed on: a prop (#4) or a police bot (#5). */
+/** What a hit landed on: a prop (#4) or a police bot (#5), by a swing or a thrown item (#8). */
 export type HitTargetKind = "prop" | "crs";
 
 /** Payload of `ServerMessage.Hit`. */
 export interface HitEvent {
-  /** Session id of the attacker. */
+  /** Session id of the attacker (the thrower, for a thrown item). */
   by: string;
   kind: HitTargetKind;
   /** Prop id from the level data, or the bot's id in `state.crs`. */
   target: string;
-  /** Where the swing landed, for the hit effect. */
+  /** Where the swing or the thrown item landed, for the hit effect. */
   x: number;
   z: number;
   /** True if this hit broke the prop, or took the CRS out. The synced state is the source of truth. */

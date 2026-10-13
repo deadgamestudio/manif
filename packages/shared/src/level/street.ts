@@ -1,4 +1,5 @@
-import type { BoxKind, BoxObstacle, CircleKind, CircleObstacle, Level, PropKind, PropSlot } from "./level.js";
+import { ThrowableKind } from "../throwable/index.js";
+import type { BoxKind, BoxObstacle, CircleKind, CircleObstacle, Level, LevelItem, PropKind, PropSlot } from "./level.js";
 
 /*
  * The street: about 20 wide between the facades and 200 long, running along Z.
@@ -154,6 +155,22 @@ const crsSpawns = [
   { x: -10.8, z: -73 },
 ];
 
+/** Pavés lying on the street when the march starts (#8): two in the start zone to try, then a few down the street. */
+const items: LevelItem[] = [
+  { x: -3, z: 88 },
+  { x: 3, z: 88 },
+  { x: -4, z: 76 },
+  { x: 4, z: 74 },
+  { x: 0, z: 66 },
+  { x: 3, z: 52 },
+  { x: -2, z: 38 },
+  { x: 1, z: 22 },
+  { x: -1, z: 0 },
+  { x: 2, z: -25 },
+  { x: -1, z: -50 },
+  { x: 1, z: -62 },
+].map((p) => ({ kind: ThrowableKind.Pave, ...p }));
+
 export const STREET_LEVEL: Level = {
   id: "street",
   bounds: { minX: -HALF_WIDTH, maxX: HALF_WIDTH, minZ: END_Z, maxZ: START_Z },
@@ -164,4 +181,5 @@ export const STREET_LEVEL: Level = {
   circles,
   propSlots,
   crsSpawns,
+  items,
 };

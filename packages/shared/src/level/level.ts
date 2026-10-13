@@ -5,6 +5,7 @@
  */
 import type { BoxShape, CircleShape, CollisionWorld, Rect, Vec2 } from "../physics/index.js";
 import { circleOverlaps, resolveCircle } from "../physics/index.js";
+import type { ItemKind } from "../throwable/index.js";
 
 /** What a box obstacle looks like. The client picks colours and heights from it. */
 export type BoxKind = "building" | "wall" | "kiosk" | "barrier" | "van" | "prefecture";
@@ -43,6 +44,11 @@ export interface PropSlot {
   rotation: number;
 }
 
+/** An item lying on the ground when the march starts (#8: pavés). */
+export interface LevelItem extends Vec2 {
+  kind: ItemKind;
+}
+
 export interface Level {
   id: string;
   /** Walkable area. Players are kept inside it. */
@@ -62,6 +68,8 @@ export interface Level {
    * #12 picks among them for its waves.
    */
   crsSpawns: readonly Vec2[];
+  /** Items on the ground at the start of the march (#8). Must be clear of obstacles and props (checked by tests). */
+  items: readonly LevelItem[];
 }
 
 /** The static collision world of a level, without its breakable props (`propCollisionWorld` adds them). */

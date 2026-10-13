@@ -4,7 +4,7 @@ import { STREET_LEVEL, levelWorld } from "../level/index.js";
 import { TICK_DT } from "../net/index.js";
 import { KNOCKDOWN_THRESHOLD, applyImpulse, circleOverlaps, createBody, isDown, stepBody, type Body, type CollisionWorld } from "../physics/index.js";
 import { PLAYER_RADIUS } from "../player/index.js";
-import { createCrsBot, hitCrs, stepCrs, steerTo, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
+import { createCrsBot, hitCrs, stepCrs, steerTo, strikeCrs, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import { CRS_STATS, CrsKind, CrsStatus } from "./constants.js";
 import { NavGrid } from "./nav.js";
 import { vanDoors, type ProtesterView } from "./targeting.js";
@@ -371,6 +371,41 @@ describe("protesters hitting a CRS", () => {
     const bot = createCrsBot("crs-1", CrsKind.Crs, 0, 0);
     expect(bot.hp).toBe(STATS.maxHp);
     expect(bot.stats).toBe(STATS);
+  });
+});
+
+describe("a thrown item hitting a CRS (#8)", () => {
+  test("damages it, pushes it along the throw, floors and stuns it", () => {
+    const bot = createCrsBot("crs-1", CrsKind.Crs, 0, 0);
+    const res = strikeCrs(bot, 1, 0, 2, KNOCKDOWN_THRESHOLD + 4, 1.5, 0)!;
+    expect(res.out).toBe(false);
+    expect(bot.hp).toBe(STATS.maxHp - 2);
+    expect(res.impulse.dirX).toBeCloseTo(1, 6);
+    expect(res.impulse.knockedDown).toBe(true);
+    expect(bot.status).toBe(CrsStatus.Stunned);
+    expect(bot.statusUntil).toBeCloseTo(1.5, 6);
+  });
+
+  test("a grabbing CRS struck lets go on its next tick, with the rescue's grab immunity", () => {
+    const { host, tick, addBot, bots, ctx } = setup();
+    addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, touching);
+    p.body.downTime = 1;
+    tick();
+    expect(bots[0]!.status).toBe(CrsStatus.Grabbing);
+    strikeCrs(bots[0]!, 0, 1, 2, KNOCKDOWN_THRESHOLD + 4, 1.5, ctx.now);
+    tick();
+    expect(host.releases).toEqual(["p"]);
+    expect(p.health.status).toBe(PlayerStatus.Free);
+    expect(p.health.grabImmuneUntil).toBeGreaterThan(ctx.now);
+  });
+
+  test("the hit that empties its HP takes it out; an out bot ignores it", () => {
+    const bot = createCrsBot("crs-1", CrsKind.Crs, 0, 0);
+    expect(strikeCrs(bot, 1, 0, STATS.maxHp, 1, 1.5, 0)!.out).toBe(true);
+    expect(bot.status).toBe(CrsStatus.Out);
+    expect(isDown(bot.body)).toBe(true);
+    expect(strikeCrs(bot, 1, 0, 1, 1, 1.5, 0.1)).toBeNull();
   });
 });
 

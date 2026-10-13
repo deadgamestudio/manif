@@ -15,8 +15,15 @@ import {
   PlayerStatus,
   STREET_LEVEL,
   ServerMessage,
+  THROWABLE_TYPES,
   TICK_RATE,
+  ThrowableKind,
+  aimDirection,
   dodgeDirection,
+  dropSpots,
+  isItemKind,
+  pickRescueTarget,
+  propShape,
   levelWorld,
   meleeHits,
   nameOrDefault,
@@ -31,7 +38,11 @@ import {
   type KnockdownMode,
   type LobbyJoinOptions,
   type MoveInput,
+  type Projectile,
+  type ProjectileTarget,
   type PropSlot,
+  type ThrowPayload,
+  type CrsHitResult,
   type CrsHost,
   type ProtesterView,
   type SwingEvent,
@@ -45,6 +56,7 @@ import { Player } from "../features/player/index.js";
 import { Props } from "../features/prop/index.js";
 import { CrsSquad } from "../features/crs/index.js";
 import { Rescues } from "../features/rescue/index.js";
+import { Throwables } from "../features/throwable/index.js";
 import { StreetState } from "./state.js";
 
 // The level is static shared data, imported by the client too. It is not synced.
@@ -91,6 +103,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * They walk the same collision world as the protesters.
    */
   private crs = new CrsSquad(LEVEL, this.props.world, this.state.crs);
+  /**
+   * Throwables (#8): items on the ground and in flight, synced as
+   * `state.items` and `state.projectiles`. The room applies what a hit does.
+   */
+  private throwables = new Throwables(this.state.items, this.state.projectiles);
   /** What the bots see of each protester, reused across ticks (see `crsHost`). */
   private protesterViews = new Map<string, ProtesterView>();
   /** The room as the bots see it: effects on protesters go through the same hooks as every other system. */
@@ -144,7 +161,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.dodge(client.sessionId);
     },
 
-    // Interact (E), on press and on release. No target: the server picks it (#10 rescue; #8 adds pick-up).
+    // Throw the carried item (#8) along the aim. Only a direction: the server
+    // re-normalizes it, checks the thrower, and flies the projectile itself.
+    [ClientMessage.Throw]: (client: Client, message: unknown) => {
+      if (this.state.phase !== Phase.Playing) return;
+      this.throwItem(client, message);
+    },
+
+    // Interact (E), on press and on release. No target: the server picks it (#10 rescue, else #8 pick-up).
     [ClientMessage.Interact]: (client: Client, message: unknown) => {
       if (this.state.phase !== Phase.Playing) return;
       const held = (message as Partial<InteractPayload> | null)?.held === true;
@@ -203,6 +227,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   override onLeave(client: Client) {
+    // What they carried falls where they stood (#8).
+    const leaving = this.state.players.get(client.sessionId);
+    if (leaving && isItemKind(leaving.carrying)) this.throwables.drop(leaving.carrying, leaving.x, leaving.z);
     this.state.players.delete(client.sessionId);
     this.moveInputs.delete(client.sessionId);
     this.meleeCooldowns.remove(client.sessionId);
@@ -227,10 +254,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.placeAtSpawn(sessionId, player);
       this.healths.reset(sessionId, player);
       player.rescue = 0;
+      player.carrying = ThrowableKind.None;
       this.moveInputs.set(sessionId, { x: 0, z: 0 });
     });
     this.rescues.clear();
     this.props.reset(this.state.props);
+    this.throwables.reset(LEVEL.items);
     this.crs.worldChanged();
     this.meleeCooldowns.clear();
     this.dodgeCooldowns.clear();
@@ -294,7 +323,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     return player ? this.healths.rescue(id, player, this.now) : false;
   }
 
-  /** May act (attack #4, throw #8, dodge #9, rescue #10): free and not knocked down. */
+  /** May act (attack #4, throw and pick up #8, dodge #9, rescue #10): free and not knocked down. */
   hasControl(id: string): boolean {
     return this.healths.canAct(id) && this.bodies.hasControl(id);
   }
@@ -316,15 +345,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.broadcast(ServerMessage.Swing, swing, { except: client });
 
     for (const hit of meleeHits(player, this.props.targets(), SWING_OBSTACLES)) {
-      const res = this.props.damage(hit.id, MELEE_PROP_DAMAGE, this.state.props.get(hit.id));
-      if (!res) continue;
-      const event: HitEvent = { by: id, kind: "prop", target: hit.id, x: hit.point.x, z: hit.point.z, broke: res.broke };
-      this.broadcast(ServerMessage.Hit, event);
-      if (res.broke) {
-        this.dropPaves(res.slot);
-        // The prop's new shape changes where bots can walk.
-        this.crs.worldChanged();
-      }
+      this.damageProp(id, hit.id, MELEE_PROP_DAMAGE, hit.point.x, hit.point.z);
     }
     // CRS (#5): pushed away from the swinger, every third quick hit knocks one
     // over, and at 0 HP it is out. A knocked-down or out CRS lets go of its grab
@@ -332,15 +353,73 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // same grab immunity as a rescue (CrsHost.release -> rescuePlayer).
     for (const hit of meleeHits(player, this.crs.meleeTargets(), SWING_OBSTACLES)) {
       const res = this.crs.hit(hit.id, player.x, player.z, MELEE_CRS_DAMAGE, this.now);
-      if (!res) continue;
-      const event: HitEvent = { by: id, kind: "crs", target: hit.id, x: hit.point.x, z: hit.point.z, broke: res.out };
-      this.broadcast(ServerMessage.Hit, event);
-      const imp = res.impulse;
-      if (imp.strength > 0) {
-        const push: ImpulseEvent = { id: hit.id, dirX: imp.dirX, dirZ: imp.dirZ, strength: imp.strength, down: imp.knockedDown };
-        this.broadcast(ServerMessage.Impulse, push);
-      }
+      if (res) this.announceCrsHit(id, hit.id, res, hit.point.x, hit.point.z);
     }
+  }
+
+  /** A swing or a thrown item lands on a prop: HP off, the hit announced, and if it broke, its pavés dropped. */
+  private damageProp(by: string, propId: string, amount: number, x: number, z: number) {
+    const res = this.props.damage(propId, amount, this.state.props.get(propId));
+    if (!res) return;
+    const event: HitEvent = { by, kind: "prop", target: propId, x, z, broke: res.broke };
+    this.broadcast(ServerMessage.Hit, event);
+    if (res.broke) {
+      this.dropPaves(res.slot);
+      // The prop's new shape changes where bots can walk.
+      this.crs.worldChanged();
+    }
+  }
+
+  /** Tell everyone a CRS was hit (to flash it) and pushed (to tip it the right way). */
+  private announceCrsHit(by: string, crsId: string, res: CrsHitResult, x: number, z: number) {
+    const event: HitEvent = { by, kind: "crs", target: crsId, x, z, broke: res.out };
+    this.broadcast(ServerMessage.Hit, event);
+    const imp = res.impulse;
+    if (imp.strength > 0) {
+      const push: ImpulseEvent = { id: crsId, dirX: imp.dirX, dirZ: imp.dirZ, strength: imp.strength, down: imp.knockedDown };
+      this.broadcast(ServerMessage.Impulse, push);
+    }
+  }
+
+  /**
+   * Throw the carried item (#8). Only a protester with control (free, not
+   * knocked down) and something in hand throws. The aim is re-normalized; a
+   * zero aim throws along the facing. The projectile starts at the server's
+   * own copy of the thrower's position, and the thrower turns to face the throw.
+   */
+  private throwItem(client: Client, message: unknown) {
+    const id = client.sessionId;
+    const player = this.state.players.get(id);
+    if (!player || !this.hasControl(id) || !isItemKind(player.carrying)) return;
+    const m = (message ?? {}) as Partial<ThrowPayload>;
+    const dir = aimDirection(Number(m.x), Number(m.z), player.rotation);
+    if (!this.throwables.launch(id, player.carrying, player.x, player.z, dir.x, dir.z)) return;
+    player.carrying = ThrowableKind.None;
+    player.rotation = Math.atan2(dir.x, dir.z);
+    // The thrower already played the arm swing locally.
+    const swing: SwingEvent = { id };
+    this.broadcast(ServerMessage.Swing, swing, { except: client });
+  }
+
+  /** A thrown item stopped on a prop or a CRS (#8): the row in THROWABLE_TYPES says what it does. */
+  private projectileHit(p: Projectile, target: ProjectileTarget<"prop" | "crs">) {
+    const type = THROWABLE_TYPES[p.kind];
+    if (target.kind === "prop") {
+      this.damageProp(p.by, target.id, type.propDamage, p.x, p.z);
+      return;
+    }
+    // Damage, knockback along the throw (a heavy one floors it) and a stun: a
+    // grabbing CRS lets go on its next tick, with the rescue's grab immunity.
+    const res = this.crs.strike(target.id, p.dirX, p.dirZ, type.crsDamage, type.knockback, type.stun, this.now);
+    if (res) this.announceCrsHit(p.by, target.id, res, p.x, p.z);
+  }
+
+  /** What a projectile can hit this tick: intact props and every CRS not out. Protesters never (no friendly fire). */
+  private projectileTargets(): ProjectileTarget<"prop" | "crs">[] {
+    const out: ProjectileTarget<"prop" | "crs">[] = [];
+    for (const t of this.props.targets()) out.push({ id: t.id, kind: "prop", shape: t.shape });
+    for (const t of this.crs.meleeTargets()) out.push({ id: t.id, kind: "crs", shape: t.shape });
+    return out;
   }
 
   /**
@@ -363,15 +442,21 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   /**
    * Interact key (E) pressed or released. On a press, a grabbed teammate in
    * RESCUE_RANGE has priority (#10): the press starts holding, and the rescue
-   * itself runs in `step` for as long as the key stays down. #8 adds pick-up
-   * here: on a press with no grabbed teammate in range (`pickRescueTarget`
-   * returns null), pick up the nearest pavé instead.
+   * itself runs in `step` for as long as the key stays down. Otherwise (#8)
+   * the press picks up the nearest item within PICKUP_RANGE, empty-handed
+   * and with control only.
    * Holding is recorded even with nobody in range, so pressing E and then
    * walking up to a grabbed teammate works too.
    */
   interact(id: string, held: boolean) {
-    if (!this.state.players.has(id)) return;
+    const player = this.state.players.get(id);
+    if (!player) return;
     this.rescues.hold(id, held);
+    if (!held || player.carrying !== ThrowableKind.None || !this.hasControl(id)) return;
+    const self = this.protesterView(id);
+    if (!self || pickRescueTarget(self, this.allProtesterViews()) !== null) return;
+    const kind = this.throwables.pickUp(player, player.carrying);
+    if (kind !== ThrowableKind.None) player.carrying = kind;
   }
 
   /**
@@ -401,12 +486,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   /**
-   * A prop just broke: it drops PROP_TYPES[kind].paves pavés (#4). Hook for #8,
-   * which owns pavés as ground items and their pickup: spawn them here.
+   * A prop just broke: it drops PROP_TYPES[kind].paves pavés (#4, #8) on its
+   * street side, clear of its broken shape and everything else.
    */
   private dropPaves(slot: PropSlot) {
     const count = PROP_TYPES[slot.kind].paves;
-    console.log(`[street ${this.roomId}] ${slot.id} broke (${count} pavé(s) to drop, #8)`);
+    const shape = propShape(slot, false);
+    if (count <= 0 || !shape) return;
+    for (const spot of dropSpots(shape, count, this.props.world)) this.throwables.drop(ThrowableKind.Pave, spot.x, spot.z);
   }
 
   /**
@@ -414,8 +501,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * 1. Rescues (#10) are applied before step 2, so a rescue landing on the
    *    last tick of a drag wins over the arrest (locked by the tests in
    *    packages/shared/src/rescue/rescue.test.ts).
-   * 2. Protesters: health timers (a drag that ends becomes an arrest), then movement.
-   * 3. CRS (#5): think, move, hit, grab, drag. A bot whose protester was just
+   * 2. Protesters: health timers (a drag that ends becomes an arrest), then
+   *    movement. One no longer free drops what they carry (#8).
+   * 3. Thrown items (#8) fly, after the protesters moved and before the CRS,
+   *    so a stunned bot lets go on this very tick.
+   * 4. CRS (#5): think, move, hit, grab, drag. A bot whose protester was just
    *    arrested, rescued or disconnected goes back to work here.
    */
   private step(dt: number) {
@@ -430,6 +520,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     );
     this.state.players.forEach((player, sessionId) => {
       if (this.healths.tick(sessionId, player, this.now) === "respawned") this.placeAtRear(sessionId, player);
+      // Grabbed, KO or arrested: the item in hand falls where they are (#8).
+      if (player.carrying !== ThrowableKind.None) this.throwables.release(player);
       // The ring over a grabbed protester (#10); 0 once free, arrested or gone.
       const rescue = player.status === PlayerStatus.Grabbed ? this.rescues.percent(sessionId) : 0;
       if (player.rescue !== rescue) player.rescue = rescue;
@@ -447,6 +539,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         this.broadcast(ServerMessage.Impulse, event);
       }
     });
+    this.throwables.step(
+      dt,
+      this.props.world,
+      () => this.projectileTargets(),
+      (p, target) => this.projectileHit(p, target),
+    );
     this.crs.step(this.now, dt, this.crsHost, () => this.freeProtesterPositions());
   }
 
