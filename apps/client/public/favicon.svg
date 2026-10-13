@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- A pavé (a paving stone) on hi-vis yellow, in the colours of styles.css. -->
+  <rect width="64" height="64" rx="14" fill="#ffd400"/>
+  <g stroke="#161616" stroke-width="3" stroke-linejoin="round">
+    <path d="M32 10 L54 21 L32 32 L10 21 Z" fill="#b9b4a8"/>
+    <path d="M10 21 L32 32 L32 54 L10 43 Z" fill="#7d786d"/>
+    <path d="M54 21 L32 32 L32 54 L54 43 Z" fill="#5c584f"/>
+  </g>
+  <path d="M20 21.5 L32 27 M38 17 L44 20" stroke="#161616" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+</svg>

@@ -29,6 +29,12 @@
     },
     "test": {
       "outputs": []
+    },
+    "@manif/client#test": {
+      "dependsOn": [
+        "build"
+      ],
+      "outputs": []
     }
   }
 }

@@ -48,6 +48,9 @@ apps/client/src/
               gas/ (tear gas canisters, clouds, screen tint)
               debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
+apps/client/seo/      the link preview and search tags (meta.ts) and the Vite plugin that writes them (plugin.ts)
+apps/client/scripts/  og/ (renders the link preview image)
+apps/client/public/   og/og.png, favicon.svg, apple-touch-icon.png
 apps/server/src/
   app/        server bootstrap
   features/   player/ (Player Schema)  physics/ (knockback bodies)  health/ (HP and arrest timers)
@@ -171,7 +174,9 @@ Production is two containers (`docker-compose.yaml`):
 
 - `client`: the Vite build served by Caddy on :80, the only public service. It
   proxies `/colyseus/*` (matchmaking and WebSockets) to the server, caches the
-  hashed `/assets/*` forever and serves `index.html` for any other path.
+  hashed `/assets/*` forever, serves `invite.html` for invite links
+  (`?lobby=<code>`) and `index.html` for any other path (see
+  [Link previews and search](#link-previews-and-search)).
 - `server`: the Colyseus server on Node 24 (distroless, non-root), reachable
   only from the client. On SIGTERM it closes the rooms and exits at once.
 
@@ -190,6 +195,40 @@ repo with `docker-compose.yaml`, give the `client` service the domain on port
 80 (Coolify's proxy adds TLS), and leave `server` without a domain. The only
 variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
 `.env.production.example`.
+
+## Link previews and search
+
+A link pasted in Discord, Slack, WhatsApp or X shows a card with a title, a
+line of text and an image. Their bots don't run JavaScript, so those tags have
+to be in the HTML the server sends, not set by the app once it runs.
+
+- `apps/client/seo/meta.ts` holds all that text, in French, and the site's
+  address (`SITE_ORIGIN`, https://manif.bazlab.si, the only place the domain
+  is written). There are two pages: the home page, and one generic invite
+  ("Tu es invité·e à une manif !") for every `/?lobby=<code>` link. The invite
+  is `noindex` and never contains the code. The home page also describes the
+  game as schema.org `VideoGame` data (JSON-LD) for search engines.
+- `apps/client/seo/plugin.ts` (a Vite plugin) puts those tags in place of the
+  `<!-- seo -->` marker in `index.html`. `vite build` writes
+  `dist/index.html` and a copy, `dist/invite.html`, with the invite's tags
+  and the same hashed bundles, plus `robots.txt` and `sitemap.xml` (the home
+  page only). The Caddyfile sends any page URL with a `lobby` query parameter
+  to `invite.html`; `vite dev` and `vite preview` do the same, so they send
+  what production sends.
+- The share image is `apps/client/public/og/og.png` (1200 × 630, under 200
+  KB), a shot of the real game. To redraw it, stop `bun run dev` and run
+  `bun run og:render` in `apps/client`: it starts the game server and the
+  client, opens five players in headless Chromium (Playwright), creates a
+  lobby, has the others join by the invite link, walks the cortège up to the
+  first shield line, lays the MANIF banner over it and shrinks the PNG to 256
+  colours with Pillow (`python3 -m pip install Pillow`). The bots move a bit
+  differently each run, so look at the image before committing it. The same
+  script draws `public/apple-touch-icon.png` from `public/favicon.svg`
+  (`bun run og:render -- icon` for that one only).
+
+`apps/client/seo/plugin.test.ts` checks the built HTML (the tags, the image
+size, the invite page) and the `vite preview` routing; `bun run test` builds
+the client first.
 
 ## Notes
 
