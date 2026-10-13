@@ -132,6 +132,12 @@ export interface CrsHost {
   release(id: string): void;
   /** Move a grabbed protester's body to (x, z), collided. */
   drag(id: string, x: number, z: number): void;
+  /**
+   * A shield line member `by` shoves protester `id` (#6): a knockback of
+   * `strength` along (dirX, dirZ), no damage. `floor` knocks them down too
+   * (too many shoves in a row); otherwise it never does.
+   */
+  shove(by: string, id: string, dirX: number, dirZ: number, strength: number, floor: boolean): void;
 }
 
 /** What a bot sees of the world this tick. */
@@ -156,6 +162,13 @@ export interface CrsBehaviour {
   act(bot: CrsBot, target: ProtesterView, ctx: CrsContext, host: CrsHost): boolean;
   /** While grabbing: set `bot.input` towards the van. */
   drag(bot: CrsBot, ctx: CrsContext, host: CrsHost): void;
+  /**
+   * Optional standing orders, checked before the chase while active: a bot
+   * with a job of its own (a shield line member holding its slot, #6) sets
+   * `bot.input` and `bot.rotation` and returns true, which skips target, act
+   * and steering this tick. Returning false lets the bot chase as usual.
+   */
+  orders?(bot: CrsBot, ctx: CrsContext, host: CrsHost): boolean;
 }
 
 const scratch: Vec2 = { x: 0, z: 0 };
@@ -250,6 +263,7 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
   if (bot.status === CrsStatus.Stunned && now >= bot.statusUntil) bot.status = CrsStatus.Active;
 
   let speedFactor = 1;
+  let ordered = false;
   const down = isDown(bot.body);
   if (bot.status === CrsStatus.Out || bot.status === CrsStatus.Stunned || down) {
     // Out, dazed or on the floor: lets go of any grab and does nothing.
@@ -264,6 +278,9 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
       endGrab(bot, now);
       setInput(bot, NO_MOVE);
     }
+  } else if (behaviour.orders?.(bot, ctx, host) === true) {
+    // Following orders (#6): input and facing are already set.
+    ordered = true;
   } else {
     behaviour.updateTarget(bot, ctx, host);
     const target = bot.targetId === null ? undefined : host.protester(bot.targetId);
@@ -283,7 +300,7 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
   scratch.x = input.x * speedFactor;
   scratch.z = input.z * speedFactor;
   stepBody(ctx.world, bot.body, scratch, s.speed, s.radius, ctx.dt);
-  if (input.x !== 0 || input.z !== 0) bot.rotation = Math.atan2(input.x, input.z);
+  if (!ordered && (input.x !== 0 || input.z !== 0)) bot.rotation = Math.atan2(input.x, input.z);
   detectStuck(bot, now);
 
   if (bot.status === CrsStatus.Grabbing && bot.grabbedId !== null) {

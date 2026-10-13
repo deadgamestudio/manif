@@ -7,7 +7,7 @@
  */
 import type { ReactNode, RefObject } from "react";
 import type { Group, MeshStandardMaterial } from "three";
-import { CRS_STATS, CrsKind } from "@manif/shared";
+import { CRS_STATS, CrsKind, LINE_SHIELD_RADIUS } from "@manif/shared";
 
 /** Refs CrsAvatar animates. A real model should expose the same pieces. */
 export interface CrsRig {
@@ -15,8 +15,14 @@ export interface CrsRig {
   body: RefObject<MeshStandardMaterial | null>;
   /** Baton arm, pivoting at the shoulder (rotation-x swings it). */
   batonArm: RefObject<Group | null>;
-  /** Shield arm, pivoting at the shoulder (pushed forward while grabbing). */
+  /** Shield arm, pivoting at the shoulder (pushed forward while grabbing). Hidden in a shield line. */
   shieldArm: RefObject<Group | null>;
+  /**
+   * The big riot shield held up in front in a shield line (#6), as wide as
+   * the shield's collision reach. Shown only in formation; CrsAvatar moves it
+   * forward on a shove (its rest position is z = 0 in this group).
+   */
+  lineShield: RefObject<Group | null>;
 }
 
 export interface CrsLook {
@@ -52,6 +58,18 @@ function crsLook(radius: number): CrsLook {
           <mesh position={[0, -0.25, 0.25]} castShadow>
             <boxGeometry args={[0.55, 0.95, 0.06]} />
             <meshStandardMaterial color="#cfd8dc" transparent opacity={0.75} />
+          </mesh>
+        </group>
+        {/* Shield line (#6): a tall riot shield held up in front, nearly touching the neighbours'. */}
+        <group ref={rig.lineShield} visible={false}>
+          <mesh position={[0, height * 0.45, radius + 0.12]} castShadow>
+            <boxGeometry args={[LINE_SHIELD_RADIUS * 1.9, height * 0.8, 0.06]} />
+            <meshStandardMaterial color="#cfd8dc" transparent opacity={0.7} />
+          </mesh>
+          {/* "POLICE" band across it. */}
+          <mesh position={[0, height * 0.62, radius + 0.16]}>
+            <boxGeometry args={[LINE_SHIELD_RADIUS * 1.7, 0.14, 0.02]} />
+            <meshStandardMaterial color="#1a2a4a" />
           </mesh>
         </group>
         {/* Baton arm on the right, swings on a baton hit. */}

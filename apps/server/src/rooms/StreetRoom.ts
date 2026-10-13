@@ -45,7 +45,10 @@ import {
   type CrsHitResult,
   type CrsHost,
   type ProtesterView,
+  type ShoveEvent,
   type SwingEvent,
+  type CollisionWorld,
+  type CircleShape,
   type Vec2,
 } from "@manif/shared";
 import { Bodies, DEBUG_KNOCKBACK_ENABLED, planDebugKnockback } from "../features/physics/index.js";
@@ -130,7 +133,18 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const player = this.state.players.get(id);
       if (player) this.bodies.drag(id, player, x, z);
     },
+    // A shield line's shove (#6): knockback away from the line, no damage. Only the
+    // last of several shoves in a row floors (the others never do, whatever the strength).
+    shove: (_by, id, dirX, dirZ, strength, floor) => {
+      this.applyImpulse(id, dirX, dirZ, strength, floor ? "always" : "never");
+    },
   };
+  /**
+   * What protesters step against (#6): the room's world plus the raised
+   * shields of CRS lines as circles. Rebuilt each tick, only when a line is up.
+   */
+  private crowdWorld: { -readonly [K in keyof CollisionWorld]: CollisionWorld[K] } = { ...this.props.world };
+  private crowdCircles: CircleShape[] = [];
 
   /** Arrival order per session, for host hand-over. Server-only. */
   private joinOrder = new Map<string, number>();
@@ -268,6 +282,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.crs.clear();
     this.crs.reinforceTo = CRS_COUNT;
     this.crs.spawnAtStart(CRS_COUNT);
+    // Shield lines (#6): one per point in the level. #12 will send them in waves.
+    for (const p of LEVEL.lineSpawns) this.crs.spawnLine(p.x, p.z);
     this.state.phase = Phase.Playing;
     console.log(`[street ${this.roomId}] start (${this.state.players.size} players)`);
   }
@@ -518,6 +534,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       (id) => this.hasControl(id),
       (targetId) => this.pullFree(targetId),
     );
+    const crowd = this.buildCrowdWorld();
     this.state.players.forEach((player, sessionId) => {
       if (this.healths.tick(sessionId, player, this.now) === "respawned") this.placeAtRear(sessionId, player);
       // Grabbed, KO or arrested: the item in hand falls where they are (#8).
@@ -532,7 +549,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const input = free ? (this.moveInputs.get(sessionId) ?? NO_INPUT) : NO_INPUT;
       // Walk (or dodge) from the held input (ignored while down) plus knockback
       // velocity, collided against the street (sub-stepped, bounces off walls).
-      const res = this.bodies.step(sessionId, player, input, dt);
+      // Free and KO'd protesters bump into raised shields (#6); grabbed ones are dragged, arrested ones are in the van.
+      const solid = player.status === PlayerStatus.Free || player.status === PlayerStatus.Ko;
+      const res = this.bodies.step(sessionId, player, input, dt, solid ? crowd : this.props.world);
       // A head-on dodge into a wall or prop bonks (#9): tip the avatar backwards like a hit.
       if (res?.bonk) {
         const event: ImpulseEvent = { id: sessionId, dirX: res.bonk.x, dirZ: res.bonk.z, strength: res.bonk.speed, down: player.down };
@@ -545,7 +564,35 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       () => this.projectileTargets(),
       (p, target) => this.projectileHit(p, target),
     );
-    this.crs.step(this.now, dt, this.crsHost, () => this.freeProtesterPositions());
+    this.crs.step(this.now, dt, this.crsHost, () => this.freeProtesterPositions(), (line, res) => {
+      if (res.shovedBy.length > 0) {
+        const event: ShoveEvent = { ids: res.shovedBy };
+        this.broadcast(ServerMessage.Shove, event);
+      }
+      if (res.broke) console.log(`[street ${this.roomId}] ${line.id} broke (${res.broke})`);
+    });
+    // Members walked into protesters: push them out of the shields (walls win; a
+    // member pinning someone against a wall gives way instead).
+    const shields = this.crs.shieldContacts();
+    if (shields.length > 0) {
+      this.state.players.forEach((player, sessionId) => {
+        if (player.status === PlayerStatus.Free || player.status === PlayerStatus.Ko) this.bodies.separate(sessionId, player, shields);
+      });
+      this.crs.syncViews();
+    }
+  }
+
+  /** The room's world plus the raised shields (#6), or the room's world itself when no line is up. */
+  private buildCrowdWorld(): CollisionWorld {
+    const shields = this.crs.shieldContacts();
+    if (shields.length === 0) return this.props.world;
+    this.crowdCircles.length = 0;
+    for (const c of this.props.world.circles) this.crowdCircles.push(c);
+    for (const s of shields) this.crowdCircles.push({ x: s.body.x, z: s.body.z, r: s.radius });
+    this.crowdWorld.bounds = this.props.world.bounds;
+    this.crowdWorld.boxes = this.props.world.boxes;
+    this.crowdWorld.circles = this.crowdCircles;
+    return this.crowdWorld;
   }
 
   /** The bots' view of one protester, refreshed from the synced state (no allocation once seen). */

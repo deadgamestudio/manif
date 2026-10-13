@@ -128,3 +128,77 @@ export const CRS_DIRECT_RANGE = 12;
 
 /** Navigation grid cell size, in world units. */
 export const NAV_CELL = 0.5;
+
+// Shield lines (#6): a row of CRS across the street that advances slowly,
+// blocks the cortège and shoves whoever leans on it. Tuned for slapstick.
+
+/** Members in a line the room spawns. MAX_CRS still applies. */
+export const LINE_SIZE = 8;
+
+/**
+ * Centre-to-centre distance between two neighbours in a line. With a CRS body
+ * (0.45) the gap is 0.6, narrower than a protester (0.8), so nobody slips
+ * between two members (checked by the tests).
+ */
+export const LINE_SPACING = 1.5;
+
+/**
+ * How far a member's shield reaches from its centre, for collision with
+ * protesters. Wider than the body, so neighbouring shields nearly touch (0.3
+ * apart) and even a dodge or a flying body cannot squeeze between them.
+ */
+export const LINE_SHIELD_RADIUS = 0.6;
+
+/** How fast a line advances towards the cortège, m/s (protesters walk at 6). */
+export const LINE_SPEED = 1.2;
+
+/** A line advances only while a free protester is this close to its centre; otherwise it holds. */
+export const LINE_ENGAGE_RANGE = 30;
+
+/** A line advances at most this far from where it formed, then holds there. */
+export const LINE_MAX_ADVANCE = 20;
+
+/** A member this close to its slot counts as in place. The line advances only when its members are in place. */
+export const LINE_SLOT_TOLERANCE = 0.35;
+
+/** A member out of place this long (stuck on a prop, pinned against a protester) no longer holds the line back. */
+export const LINE_STRAGGLER_TIME = 2;
+
+/** Slots are recomputed against the level this often, seconds (they glide with the line in between). */
+export const LINE_SLOT_REFRESH = 0.25;
+
+/** Rear-rank members (more members than the street has room for) stand this far behind the front rank. */
+export const LINE_REAR_OFFSET = 1.6;
+
+/** Time between two shoves of a line, seconds. */
+export const LINE_SHOVE_INTERVAL = 2;
+
+/** A protester whose edge is this close to a shield's edge (or touching it) gets shoved. */
+export const LINE_SHOVE_REACH = 0.25;
+
+/** Knockback of a shove, m/s, away from the line. Below KNOCKDOWN_THRESHOLD: it only pushes. */
+export const LINE_SHOVE_IMPULSE = 7;
+
+/** This many shoves in a row on one protester (no rest longer than 1.5 intervals) and the last one floors them. */
+export const LINE_SHOVES_TO_FLOOR = 3;
+
+/** Damage that lands on a line's members within this window (seconds) adds up towards breaking it. */
+export const LINE_BREAK_WINDOW = 3;
+
+/** HP taken off members within LINE_BREAK_WINDOW that breaks the line (a melee hit is 1, a pavé 2). */
+export const LINE_BREAK_DAMAGE = 8;
+
+/** This many members stunned or knocked down at the same time breaks the line. */
+export const LINE_BREAK_DOWNED = 2;
+
+/** This many free protesters behind the line (fewer if fewer are free) for LINE_FLANK_TIME breaks it. */
+export const LINE_FLANK_COUNT = 2;
+
+/** How long protesters must stay behind the line to break it, seconds. */
+export const LINE_FLANK_TIME = 2;
+
+/** "Behind" means past the line's centre, along its facing, by more than this... */
+export const LINE_FLANK_DEPTH = 1;
+
+/** ...and by less than this (someone far down the street does not count). */
+export const LINE_FLANK_REACH = 20;

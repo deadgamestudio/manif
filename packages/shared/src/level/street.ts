@@ -155,6 +155,17 @@ const crsSpawns = [
   { x: -10.8, z: -73 },
 ];
 
+/**
+ * Where shield lines form (#6), one line each when the march starts. Each
+ * faces the cortège (+Z) and advances towards it once protesters come close.
+ * The first one waits after the first stretch of street; the second guards
+ * the Préfecture end.
+ */
+const lineSpawns = [
+  { x: 0, z: 54 },
+  { x: 0, z: -38 },
+];
+
 /** Pavés lying on the street when the march starts (#8): two in the start zone to try, then a few down the street. */
 const items: LevelItem[] = [
   { x: -3, z: 88 },
@@ -181,5 +192,6 @@ export const STREET_LEVEL: Level = {
   circles,
   propSlots,
   crsSpawns,
+  lineSpawns,
   items,
 };

@@ -22,6 +22,9 @@ const TUG_ANGLE = 0.25;
 const WOBBLE_SPEED = 9;
 const WOBBLE_ANGLE = 0.3;
 const HIT_FLASH_MS = 160;
+/** Shield line shove (#6): the shield punches forward and comes back, ms and metres. */
+const SHOVE_MS = 350;
+const SHOVE_REACH = 0.45;
 const UNIFORM = new Color("#1a2a4a");
 const FLASH = new Color("#ffffff");
 const BAR_WIDTH = 0.8;
@@ -44,6 +47,7 @@ export function CrsAvatar({ id }: { id: string }) {
   const bodyMat = useRef<MeshStandardMaterial>(null);
   const batonArm = useRef<Group>(null);
   const shieldArm = useRef<Group>(null);
+  const lineShield = useRef<Group>(null);
   const bar = useRef<Group>(null);
   const barFill = useRef<Sprite>(null);
   // The kind never changes for a bot; read it once.
@@ -109,6 +113,16 @@ export function CrsAvatar({ id }: { id: string }) {
       }
     }
 
+    // Shield line (#6): the riot shield replaces the arm shield, and punches forward on a shove.
+    const riot = lineShield.current;
+    if (riot) {
+      riot.visible = c.formation === true;
+      if (shield) shield.visible = !riot.visible;
+      const shovedAt = net.getLastShove(id);
+      const s = shovedAt === undefined ? 1 : (performance.now() - shovedAt) / SHOVE_MS;
+      riot.position.z = s >= 1 ? 0 : Math.sin(Math.min(1, s) * Math.PI) * SHOVE_REACH;
+    }
+
     const hitAt = net.getLastCrsHit(id);
     const flash = hitAt === undefined ? 0 : Math.max(0, 1 - (performance.now() - hitAt) / HIT_FLASH_MS);
     bodyMat.current?.color.copy(UNIFORM).lerp(FLASH, flash);
@@ -126,7 +140,7 @@ export function CrsAvatar({ id }: { id: string }) {
   return (
     <group ref={group}>
       <group ref={tilt}>
-        <group ref={yaw}>{look.render({ body: bodyMat, batonArm, shieldArm } satisfies CrsRig)}</group>
+        <group ref={yaw}>{look.render({ body: bodyMat, batonArm, shieldArm, lineShield } satisfies CrsRig)}</group>
       </group>
       <group ref={bar} position-y={look.height + 0.4} visible={false}>
         <sprite scale={[BAR_WIDTH + 0.06, 0.13, 1]} renderOrder={10}>
