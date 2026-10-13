@@ -1,0 +1,86 @@
+/* Home screen refinements. Loaded after app/styles.css, so equal-specificity rules win. */
+
+/* From an invite link: the name and the join placard stack in one column. */
+.home-invited .placards {
+  width: min(520px, 100%);
+}
+
+/* The side door for someone who came from a link but wants their own manif. */
+.home-create-link {
+  margin: -4px 0 0;
+  padding: 6px 8px;
+  background: none;
+  border: 0;
+  color: var(--cloth);
+  font-family: var(--font-marker);
+  font-size: 18px;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.home-create-link:hover:not(:disabled) {
+  color: var(--hi-vis);
+}
+
+.home-create-link:focus-visible {
+  outline: 3px solid var(--hi-vis);
+  outline-offset: 2px;
+}
+
+.home-create-link:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* Short screens (phone landscape): a strip of a banner and tighter placards,
+   so the join button is on screen without scrolling. */
+@media (max-height: 500px) {
+  .screen.home {
+    gap: 12px;
+    padding-top: 18px;
+  }
+
+  .home .banner {
+    padding: 4px 20px 6px;
+  }
+
+  .home .banner-title {
+    font-size: 44px;
+  }
+
+  .home .banner-slogan {
+    display: none;
+  }
+
+  .home .invite-note {
+    max-width: 680px;
+    padding: 6px 12px;
+  }
+
+  .home .placard {
+    gap: 8px;
+    padding: 10px 16px 12px;
+  }
+
+  .home .placard-label {
+    font-size: 22px;
+  }
+
+  .home .placard-text {
+    font-size: 15px;
+  }
+
+  /* Code field and Rejoindre on one line. */
+  .home .placard-join {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .home .placard-join .placard-label {
+    grid-column: 1 / -1;
+  }
+}
