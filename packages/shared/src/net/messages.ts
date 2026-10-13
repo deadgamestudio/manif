@@ -92,7 +92,9 @@ export type DebugRoundPayload =
   /** #16: no CRS on the street and no more waves this round, for scripted tests that need a calm street. */
   | { action: "calm" }
   /** #45: a CRS lying out cold `distance` m in front of yourself for `seconds`, to hop over it. */
-  | { action: "fallen"; distance: number; seconds: number };
+  | { action: "fallen"; distance: number; seconds: number }
+  /** #45: an ordinary CRS standing `distance` m in front of yourself, facing you, to test a baton swing against a hop. */
+  | { action: "crs"; distance: number };
 
 /** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
 export interface InteractPayload {

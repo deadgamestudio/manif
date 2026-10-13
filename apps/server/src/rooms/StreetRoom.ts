@@ -310,6 +310,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
             const d = cmd.distance;
             this.crs.spawnFallen(self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d, this.now, cmd.seconds);
           }
+        } else if (cmd?.action === "crs") {
+          const self = this.state.players.get(client.sessionId);
+          if (self) {
+            const d = cmd.distance;
+            this.crs.spawn(self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d);
+          }
         } else if (cmd?.action === "water") {
           const self = this.state.players.get(client.sessionId);
           if (self) this.extinguishAt(self.x, self.z, cmd.radius);
