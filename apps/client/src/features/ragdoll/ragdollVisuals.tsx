@@ -142,3 +142,42 @@ export function crsRagdoll(radius: number): RagdollLook {
     },
   };
 }
+
+/** A pompier (#17): the CRS proportions in navy, a yellow helmet, the brass nozzle in a hand; no baton or shield. */
+export function pompierRagdoll(radius: number, look: { uniform: string; helmet: string; nozzle: string }): RagdollLook {
+  const base = crsRagdoll(radius);
+  const p = base.proportions;
+  return {
+    proportions: p,
+    renderSegment: (segment, length, body) => {
+      const bodyMat = <meshStandardMaterial ref={body} color={look.uniform} />;
+      switch (segment) {
+        case S.Torso:
+          return limb(length, p.torsoRadius, bodyMat);
+        case S.Head:
+          return (
+            <mesh position-y={length} castShadow>
+              <sphereGeometry args={[p.headRadius * 1.15, 12, 8]} />
+              <meshStandardMaterial color={look.helmet} metalness={0.4} roughness={0.35} />
+            </mesh>
+          );
+        case S.LForearm:
+          return (
+            <>
+              {limb(length, 0.075, bodyMat)}
+              <mesh position={[0, length, -0.18]} rotation-x={Math.PI / 2} castShadow>
+                <cylinderGeometry args={[0.05, 0.07, 0.35, 8]} />
+                <meshStandardMaterial color={look.nozzle} metalness={0.6} roughness={0.3} />
+              </mesh>
+            </>
+          );
+        case S.RForearm:
+        case S.LUpperArm:
+        case S.RUpperArm:
+          return limb(length, 0.075, bodyMat);
+        default:
+          return limb(length, p.limbRadius, bodyMat);
+      }
+    },
+  };
+}

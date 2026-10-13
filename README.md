@@ -53,6 +53,17 @@ once. Anyone who walks into the flames, protester or CRS, gets their bum set on
 fire for 4 s: they flail, run faster and lose HP, unless a teammate pats them
 out (hold E next to them). CRS path around fires, and a shield line stops or
 splits when one is in its way.
+Pompiers put the fires out (#17). About 10 s after something starts burning, a
+fire truck drives down the side street nearest the fire and parks behind its
+barrier (never in the cortège); two pompiers get off, each takes the nearest
+fire it can actually reach that nobody else is on, and hoses it until it is
+out. Their water also puts out anyone on fire and pushes back whoever stands in
+the jet, protesters and CRS alike. With no fire left they get back on and the
+truck leaves; a second truck comes only if fires keep burning for a long time.
+Pompiers are on nobody's side: they never hit or grab anyone, CRS never grab
+them, and protesters can knock them over (any hit floors one) but never hurt
+them. Now and then a pompier's hose drifts "by accident" onto a CRS standing by
+its fire.
 Each lobby plays rounds (#12): the host starts a march with an 8-minute timer
 and a progress bar from the start to the Préfecture. Get at least half the
 cortège (rounded up) free into the Préfecture forecourt at the same time to
@@ -86,6 +97,7 @@ apps/client/src/
               rescue/ (rescue bar, HUD prompt) throwable/ (pavés on the ground, in hand, in flight; mouse aim)
               gas/ (tear gas canisters, clouds, screen tint)
               fire/ (flames and smoke on props, burning bodies, hold bar, fire prompts)
+              pompier/ (fire trucks)  water/ (the water jet, for the hose and a future water cannon)
               round/ (timer and progress HUD, end screen, last result in the lobby)
               debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
@@ -101,10 +113,12 @@ apps/server/src/
               throwable/ (GroundItem and Projectile Schemas, items on the ground and in flight)
               gas/ (GasCloud and Canister Schemas, clouds, canisters, who is coughing)
               fire/ (Fire Schema, burning props, who is on fire, who holds E to light or pat out)
+              pompier/ (Truck Schema, FireBrigade: trucks, the pompiers' work, what the water does)
               round/ (end-of-round numbers, dev-only round debug)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ jump/ rescue/ throwable/ gas/ fire/ round/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ jump/ rescue/ throwable/ gas/ fire/ round/
+  water/ pompier/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -182,6 +196,10 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change fire rules (lighting, burn-down, charring, spread choice, the cap, the zone, putting out) | `packages/shared/src/fire/fire.ts` (`FireField`); bodies on fire in `fire/burn.ts`; the interact holds and their priority in `fire/hold.ts`; the server side is `apps/server/src/features/fire/` and `StreetRoom.stepFireHolds()`, `stepFires()`, `burnCrs()` |
 | Put a fire out from a new system (#17 pompiers' hose, #13 water cannon) or light one (#15 fumigène) | `StreetRoom.extinguishAt(x, z, radius)` (prop fires and burning bodies near a point), `extinguishProp(id)`, `putOutBody(id)`, `lightProp(id)`; the synced `state.fires` (by prop id: x, z, radius, intensity, left) is what to aim at. Dev builds: Y throws water around you; scripts can send `debug:round {action: "calm"}` to clear the CRS and the waves (`"clear"`: the bots only), and `{action: "crs", distance, kind, blend}` to drop one unit of any type in front of themselves |
 | Replace the fire look (flames, smoke, charred colour, bum on fire, hold bar) | `apps/client/src/features/fire/fireVisuals.tsx` |
+| Tune the pompiers (#17): hose reach, cone, push, water per second, the "accidental" CRS spray (`accidentalSprayChance`, 0 turns it off), truck delay, crew size, truck cap, when a second truck comes | The `CrsKind.Pompier` row of `CRS_STATS` in `packages/shared/src/crs/constants.ts` (`hose` and `brigade`); water needed per fire is `FIRE_SOAK` in `packages/shared/src/water/constants.ts` |
+| Change what pompiers decide (fire claims, nearest reachable fire, where they stand, when trucks come and go, the accidental spray) | `packages/shared/src/pompier/brigade.ts` (pure, tested); how they move is `pompier/behaviour.ts`; the server side (trucks, jobs, applying the water) is `apps/server/src/features/pompier/brigade.ts`, stepped from `StreetRoom.simulate()`. Pompiers are bots of `CrsKind.Pompier` in the CRS squad: `isPolice(kind)` tells them apart, `stats.invulnerable` keeps hits from hurting them. Dev builds: `debug:round {action: "brigade", delay, crew, spray, extra, soak}` tunes them for one round |
+| Reuse the water jet (#13 water cannon) | `packages/shared/src/water/jet.ts`: a `WaterJetStats` (range, cone, knockback, push interval, water per second), `aimJet`, `inJet`, `jetContact`, `jetPush`, `JetSoak`, `JetPushes`; `FireBrigade.spray()` shows how the room applies it; the look is `WaterJet` in `apps/client/src/features/water/` |
+| Replace the placeholder fire truck, pompier or water jet look | `apps/client/src/features/pompier/truckVisuals.tsx`, the pompier in `apps/client/src/features/crs/crsVisuals.tsx` (its ragdoll in `ragdoll/ragdollVisuals.tsx`), the jet in `apps/client/src/features/water/waterVisuals.ts` |
 | Put an item on the ground (a broken prop's pavés, a dropped carry) | `Throwables.drop(kind, x, z)` from `StreetRoom`; broken props go through `StreetRoom.dropItems(slot)` |
 | Move or add the pavés, dog poos and trottinettes lying on the street at the start, or the market stalls | `items`, `poos`, `trottinettes` and `propSlots` in `packages/shared/src/level/street.ts` |
 | Change the throw key or the mouse aim | `apps/client/src/features/melee/useAttackInput.ts` (a click throws while carrying), `apps/client/src/features/throwable/aim.ts` and `AimTracker.tsx` |

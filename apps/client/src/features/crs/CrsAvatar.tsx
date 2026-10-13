@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Vector3, type Group, type MeshStandardMaterial, type Sprite } from "three";
-import { CrsKind, CrsMount, CrsStatus, crsMaxHp, crsRadius } from "@manif/shared";
+import { CRS_STATS, CrsKind, CrsMount, CrsStatus, crsMaxHp, crsRadius } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { PROTESTER_RAGDOLL, useRagdoll } from "../ragdoll/index.ts";
 import { NameTag, PlayerAvatar } from "../player/index.ts";
-import { StinkCloud, crsLookFor, type CrsRig } from "./crsVisuals.tsx";
+import { POMPIER_NOZZLE_Y, StinkCloud, crsLookFor, type CrsRig } from "./crsVisuals.tsx";
+import { WaterJet } from "../water/index.ts";
 import { disguiseSource, forgetDisguise } from "./disguise.ts";
 import { BodyFire, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
 
@@ -20,6 +21,12 @@ const ARM_RAISED = 2.7;
 const ARM_SMASH = -1.2;
 /** Grabbing: both arms out in front, tugging. */
 const ARM_GRAB = 1.3;
+/** A pompier spraying (#17): both arms forward on the hose, and the hose shaking a little. */
+const ARM_HOSE = 1.5;
+const HOSE_SHAKE_SPEED = 22;
+const HOSE_SHAKE = 0.06;
+/** The hose's reach and spread (#17): the jet drawn is the one the server uses. */
+const HOSE = CRS_STATS[CrsKind.Pompier].hose;
 const TUG_SPEED = 14;
 const TUG_ANGLE = 0.25;
 /** Stink cloud (#15): turns around the head and bobs, radians per second and metres. */
@@ -185,7 +192,13 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
 
     const baton = batonArm.current;
     const shield = shieldArm.current;
-    if (baton && shield) {
+    if (baton && shield && kind === CrsKind.Pompier) {
+      // A pompier (#17) never swings: arms up on the hose while spraying, down otherwise.
+      const spraying = c.spraying === true && !lying;
+      const shake = spraying ? Math.sin(performance.now() / 1000 * HOSE_SHAKE_SPEED) * HOSE_SHAKE : 0;
+      baton.rotation.x = spraying ? ARM_HOSE + shake : ARM_REST;
+      shield.rotation.x = spraying ? ARM_HOSE - shake : ARM_REST;
+    } else if (baton && shield) {
       if (grabbing) {
         // Clumsy tug of war.
         const tug = Math.sin(phase.current * TUG_SPEED) * TUG_ANGLE;
@@ -234,6 +247,17 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
         <group ref={yaw}>
           {look.render({ body: bodyMat, batonArm, shieldArm, lineShield, splat } satisfies CrsRig)}
           <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} />
+          {kind === CrsKind.Pompier && HOSE && (
+            <WaterJet
+              isOn={() => {
+                const s = net.getCrs(id);
+                return s?.spraying === true && !s.down;
+              }}
+              range={HOSE.range}
+              halfAngle={HOSE.halfAngle}
+              y={POMPIER_NOZZLE_Y}
+            />
+          )}
         </group>
       </group>
       {look.ragdoll && ragdoll.view}

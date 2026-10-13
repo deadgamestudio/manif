@@ -43,6 +43,26 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
       ...(raw.blend !== undefined && Number.isFinite(blend) && { blend: Math.max(0, Math.min(60, blend)) }),
     };
   }
+  if (m.action === "brigade") {
+    const raw = m as { delay?: unknown; crew?: unknown; spray?: unknown; extra?: unknown; soak?: unknown };
+    const num = (v: unknown, min: number, max: number) => {
+      const n = Number(v);
+      return v !== undefined && Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : undefined;
+    };
+    const delay = num(raw.delay, 0, 120);
+    const crew = num(raw.crew, 0, 4);
+    const spray = num(raw.spray, 0, 1000);
+    const extra = num(raw.extra, 0, 600);
+    const soak = num(raw.soak, 0.01, 100);
+    return {
+      action: "brigade",
+      ...(delay !== undefined && { delay }),
+      ...(crew !== undefined && { crew: Math.round(crew) }),
+      ...(spray !== undefined && { spray }),
+      ...(extra !== undefined && { extra }),
+      ...(soak !== undefined && { soak }),
+    };
+  }
   if (m.action === "time") {
     const seconds = Number(m.seconds);
     return Number.isFinite(seconds) ? { action: "time", seconds: Math.max(0, seconds) } : null;

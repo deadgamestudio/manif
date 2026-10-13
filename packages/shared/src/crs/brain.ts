@@ -487,7 +487,8 @@ export function releaseGrab(bot: CrsBot, host: CrsHost, now: number): void {
 
 /** Stun (a pavé #8, a stun hit): stands still for `duration` and lets go next tick. Ignored when out. */
 export function stunCrs(bot: CrsBot, now: number, duration = bot.stats.stunDuration): boolean {
-  if (bot.status === CrsStatus.Out || !(duration > 0)) return false;
+  // A pompier (#17) is never dazed: knocked over at most.
+  if (bot.status === CrsStatus.Out || !(duration > 0) || bot.stats.invulnerable === true) return false;
   // A grabbing bot keeps `grabbedId` until stepCrs releases it.
   bot.status = CrsStatus.Stunned;
   bot.statusUntil = Math.max(bot.statusUntil, now + duration);
@@ -510,21 +511,29 @@ export interface CrsHitResult {
 export function hitCrs(bot: CrsBot, fromX: number, fromZ: number, damage: number, now: number): CrsHitResult | null {
   if (bot.status === CrsStatus.Out) return null;
   const s = bot.stats;
+  if (s.invulnerable === true) {
+    // A pompier (#17): every hit floors it, none hurts it.
+    const away = awayFrom(bot, fromX, fromZ);
+    return { impulse: applyImpulse(bot.body, away.x, away.z, s.heavyHitImpulse, "always"), out: false };
+  }
   bot.staggerCount = now - bot.lastHitAt <= s.staggerWindow ? bot.staggerCount + 1 : 1;
   bot.lastHitAt = now;
   const heavy = bot.staggerCount >= s.staggerHits;
   if (heavy) bot.staggerCount = 0;
   bot.hp = Math.max(0, bot.hp - Math.max(0, damage));
   const out = bot.hp === 0;
-  let dx = bot.body.x - fromX;
-  let dz = bot.body.z - fromZ;
-  if (Math.hypot(dx, dz) < 1e-6) {
-    dx = -Math.sin(bot.rotation);
-    dz = -Math.cos(bot.rotation);
-  }
-  const impulse = applyImpulse(bot.body, dx, dz, heavy || out ? s.heavyHitImpulse : s.hitImpulse, out ? "always" : "auto");
+  const away = awayFrom(bot, fromX, fromZ);
+  const impulse = applyImpulse(bot.body, away.x, away.z, heavy || out ? s.heavyHitImpulse : s.hitImpulse, out ? "always" : "auto");
   if (out) knockOut(bot, now);
   return { impulse, out };
+}
+
+/** The way a hit from (fromX, fromZ) pushes the bot: away from it, or backwards when it is right on top. */
+function awayFrom(bot: CrsBot, fromX: number, fromZ: number): Vec2 {
+  const dx = bot.body.x - fromX;
+  const dz = bot.body.z - fromZ;
+  if (Math.hypot(dx, dz) < 1e-6) return { x: -Math.sin(bot.rotation), z: -Math.cos(bot.rotation) };
+  return { x: dx, z: dz };
 }
 
 /** At 0 HP: out, lying on the floor until removed, whatever the get-up timer says. */
@@ -552,6 +561,8 @@ export function strikeCrs(
   now: number,
 ): CrsHitResult | null {
   if (bot.status === CrsStatus.Out) return null;
+  // A pompier (#17): knocked over by anything that pushes it, never hurt or stunned.
+  if (bot.stats.invulnerable === true) return { impulse: applyImpulse(bot.body, dirX, dirZ, impulse, impulse > 0 ? "always" : "auto"), out: false };
   bot.hp = Math.max(0, bot.hp - Math.max(0, damage));
   const out = bot.hp === 0;
   const res = applyImpulse(bot.body, dirX, dirZ, impulse, out ? "always" : "auto");
@@ -565,7 +576,7 @@ export function strikeCrs(
  * its HP takes it out. Returns whether it did (false too for a bot already out).
  */
 export function burnCrs(bot: CrsBot, damage: number, now: number): boolean {
-  if (bot.status === CrsStatus.Out || !(damage > 0)) return false;
+  if (bot.status === CrsStatus.Out || !(damage > 0) || bot.stats.invulnerable === true) return false;
   bot.hp = Math.max(0, bot.hp - damage);
   if (bot.hp > 0) return false;
   knockOut(bot, now);

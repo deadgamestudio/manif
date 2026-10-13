@@ -14,6 +14,7 @@ import {
   type CrsShape,
   type GasCloudShape,
   type FireShape,
+  type TruckShape,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type DebugRoundPayload,
@@ -178,6 +179,15 @@ function setFireIds(ids: readonly string[]) {
   for (const listener of fireListeners) listener();
 }
 
+/** Fire trucks (#17): their ids, kept out of NetSnapshot like the fires. */
+let truckIds: readonly string[] = [];
+const truckListeners = new Set<() => void>();
+function setTruckIds(ids: readonly string[]) {
+  if (ids === truckIds) return;
+  truckIds = ids;
+  for (const listener of truckListeners) listener();
+}
+
 /**
  * The round (#12): timer, progress and result, kept out of NetSnapshot so the
  * once-a-second countdown re-renders only the HUD, not the game. `end` is the
@@ -214,6 +224,7 @@ function clearEffects() {
   setGasIds([], []);
   fireSeenAt.clear();
   setFireIds([]);
+  setTruckIds([]);
   setRound(NO_ROUND);
 }
 
@@ -334,6 +345,15 @@ function attach(joined: ClientRoom, gen: number) {
     fireSeenAt.delete(id);
     refreshFires(id);
   });
+  // Fire trucks (#17): same pattern again.
+  const refreshTrucks = (removed?: string) => {
+    if (gen !== generation) return;
+    const state = joined.state as ClientState | undefined;
+    const map = state?.trucks;
+    setTruckIds(map ? Array.from(map.entries(), ([id]) => id).filter((id) => id !== removed) : []);
+  };
+  callbacks.onAdd("trucks", () => refreshTrucks());
+  callbacks.onRemove("trucks", (_t, id) => refreshTrucks(id));
   callbacks.listen("phase", () => {
     // A new phase starts from no held input on the server (#12): forget the
     // last direction sent, or pressing the same key again would not be sent.
@@ -545,6 +565,22 @@ export const net = {
   /** When (performance.now()) we first saw prop `id` burning (#16), or undefined. */
   getFireSeenAt(id: string): number | undefined {
     return fireSeenAt.get(id);
+  },
+
+  /** Call `listener` when a fire truck (#17) arrives or has driven off. */
+  subscribeTrucks(listener: () => void): () => void {
+    truckListeners.add(listener);
+    return () => truckListeners.delete(listener);
+  },
+
+  /** Ids of the fire trucks on the street (#17). Same array until one arrives or leaves. */
+  getTruckIds(): readonly string[] {
+    return truckIds;
+  },
+
+  /** Live state of a fire truck (#17). Read from useFrame. */
+  getTruck(id: string): TruckShape | undefined {
+    return room?.state.trucks?.get(id);
   },
 
   /** Call `listener` when the round timer, progress or result changes, or a round ends (#12). */
