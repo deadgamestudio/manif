@@ -39,6 +39,8 @@ export interface PlayerShape {
   rescue: number;
   /** The item in hand (#8), a `ThrowableKind`; `ThrowableKind.None` (0) when empty-handed. */
   carrying: ThrowableKind;
+  /** In tear gas (#7): coughing and slowed, for the wobble and the screen tint. */
+  gassed: boolean;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */
@@ -94,6 +96,27 @@ export interface ProjectileShape {
   z: number;
 }
 
+/** A tear gas cloud (#7), keyed by a server-made id. Its radius never changes; it is removed when it ends. */
+export interface GasCloudShape {
+  x: number;
+  z: number;
+  radius: number;
+  /** Whole seconds left. */
+  left: number;
+}
+
+/**
+ * A tear gas canister in flight (#7), keyed by a server-made id (the cloud
+ * it becomes keeps it). Only the throw: clients fly it over
+ * CANISTER_FLIGHT_TIME themselves. Removed when it lands.
+ */
+export interface CanisterShape {
+  fromX: number;
+  fromZ: number;
+  toX: number;
+  toZ: number;
+}
+
 export interface StreetStateShape {
   players: SyncedMap<PlayerShape>;
   /** Breakable props by level prop id (#4). */
@@ -104,6 +127,10 @@ export interface StreetStateShape {
   items: SyncedMap<GroundItemShape>;
   /** Thrown items in flight by id (#8). */
   projectiles: SyncedMap<ProjectileShape>;
+  /** Tear gas clouds by id (#7). */
+  gas: SyncedMap<GasCloudShape>;
+  /** Tear gas canisters in flight by id (#7). */
+  canisters: SyncedMap<CanisterShape>;
   phase: Phase;
   /** Session id of the host (who may start), or "" when the room is empty. */
   hostId: string;

@@ -9,6 +9,7 @@ import { PlayerAvatar } from "../player/index.ts";
 import { PropsView } from "../prop/index.ts";
 import { CrsView } from "../crs/index.ts";
 import { AimTracker, ThrowablesView } from "../throwable/index.ts";
+import { GasView } from "../gas/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
 
 const LEVEL = STREET_LEVEL;
@@ -47,6 +48,7 @@ export function Scene({
       ))}
       <CrsView ids={crs} />
       <ThrowablesView />
+      <GasView />
     </>
   );
 }

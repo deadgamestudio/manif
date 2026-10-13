@@ -60,6 +60,7 @@ import { Props } from "../features/prop/index.js";
 import { CrsSquad } from "../features/crs/index.js";
 import { Rescues } from "../features/rescue/index.js";
 import { Throwables } from "../features/throwable/index.js";
+import { Gas } from "../features/gas/index.js";
 import { StreetState } from "./state.js";
 
 // The level is static shared data, imported by the client too. It is not synced.
@@ -111,6 +112,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * `state.items` and `state.projectiles`. The room applies what a hit does.
    */
   private throwables = new Throwables(this.state.items, this.state.projectiles);
+  /**
+   * Tear gas (#7): canisters and clouds, synced as `state.canisters` and
+   * `state.gas`, and who is coughing. The room applies the damage and the slow.
+   */
+  private gas = new Gas(this.state.gas, this.state.canisters);
   /** What the bots see of each protester, reused across ticks (see `crsHost`). */
   private protesterViews = new Map<string, ProtesterView>();
   /** The room as the bots see it: effects on protesters go through the same hooks as every other system. */
@@ -137,6 +143,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // last of several shoves in a row floors (the others never do, whatever the strength).
     shove: (_by, id, dirX, dirZ, strength, floor) => {
       this.applyImpulse(id, dirX, dirZ, strength, floor ? "always" : "never");
+    },
+    // Tear gas (#7): the bot picked the spot from the room's own positions; the room caps clouds and throws.
+    throwGas: (by, from, to) => {
+      if (!this.gas.launch(by, from, to, this.now)) return false;
+      const swing: SwingEvent = { id: by };
+      this.broadcast(ServerMessage.Swing, swing);
+      return true;
     },
   };
   /**
@@ -253,6 +266,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.bodies.remove(client.sessionId);
     // Systems that point at a player (a CRS grab #5) see unknown ids as no-ops.
     this.healths.remove(client.sessionId);
+    this.gas.remove(client.sessionId);
     this.protesterViews.delete(client.sessionId);
     this.joinOrder.delete(client.sessionId);
     if (this.state.hostId === client.sessionId) {
@@ -269,11 +283,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.healths.reset(sessionId, player);
       player.rescue = 0;
       player.carrying = ThrowableKind.None;
+      player.gassed = false;
       this.moveInputs.set(sessionId, { x: 0, z: 0 });
     });
     this.rescues.clear();
     this.props.reset(this.state.props);
     this.throwables.reset(LEVEL.items);
+    this.gas.reset();
     this.crs.worldChanged();
     this.meleeCooldowns.clear();
     this.dodgeCooldowns.clear();
@@ -519,8 +535,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    *    packages/shared/src/rescue/rescue.test.ts).
    * 2. Protesters: health timers (a drag that ends becomes an arrest), then
    *    movement. One no longer free drops what they carry (#8).
+   *    Tear gas (#7) hurts and slows whoever a cloud reaches, here too.
    * 3. Thrown items (#8) fly, after the protesters moved and before the CRS,
-   *    so a stunned bot lets go on this very tick.
+   *    so a stunned bot lets go on this very tick. Then gas canisters (#7)
+   *    fly and land, and clouds that have run their time go.
    * 4. CRS (#5): think, move, hit, grab, drag. A bot whose protester was just
    *    arrested, rescued or disconnected goes back to work here.
    */
@@ -546,7 +564,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const free = this.healths.canMove(sessionId);
       // Grabbed or KO mid-dodge (#9): the burst stops at once.
       if (!free && player.dodging) this.bodies.endDodge(sessionId, player);
-      const input = free ? (this.moveInputs.get(sessionId) ?? NO_INPUT) : NO_INPUT;
+      // Tear gas (#7): a cloud reaching them (never through a wall) costs HP now and then and slows the walk.
+      const gas = this.gas.expose(sessionId, player, this.props.world, this.now);
+      if (gas.damage > 0) this.damagePlayer(sessionId, gas.damage);
+      const held = free ? (this.moveInputs.get(sessionId) ?? NO_INPUT) : NO_INPUT;
+      const input = gas.speed === 1 ? held : { x: held.x * gas.speed, z: held.z * gas.speed };
       // Walk (or dodge) from the held input (ignored while down) plus knockback
       // velocity, collided against the street (sub-stepped, bounces off walls).
       // Free and KO'd protesters bump into raised shields (#6); grabbed ones are dragged, arrested ones are in the van.
@@ -564,6 +586,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       () => this.projectileTargets(),
       (p, target) => this.projectileHit(p, target),
     );
+    // Tear gas (#7): canisters fly (stopped by walls and props) and land as clouds; old clouds go.
+    this.gas.step(dt, this.now, this.props.world);
     this.crs.step(this.now, dt, this.crsHost, () => this.freeProtesterPositions(), (line, res) => {
       if (res.shovedBy.length > 0) {
         const event: ShoveEvent = { ids: res.shovedBy };

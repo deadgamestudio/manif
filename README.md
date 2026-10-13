@@ -22,6 +22,12 @@ Further down, CRS shield lines stand across the street: a wall of shields that
 advances slowly towards the cortège once it comes close, blocks protesters and
 shoves whoever leans on it. Hit it hard enough in a short time, or get behind
 it, and it breaks up into ordinary chasing CRS.
+CRS also lob tear gas canisters at bunches of protesters (a lone CRS, or the
+middle member of a shield line, over the shields): the canister flies for a
+second, stops at the first wall, and leaves a green-grey cloud for 8 s.
+Protesters inside cough, lose HP slowly and walk slower; it wears off half a
+second after stepping out (a dodge is not slowed: dive out). Gas never goes
+through walls, and overlapping clouds don't stack.
 
 ## Layout
 
@@ -39,6 +45,7 @@ apps/client/src/
   features/   home/ lobby/ game/ level/ player/ health/ movement/ melee/ (attack input) prop/ (props, debris)
               crs/ (police bot avatars) dodge/ (dodge key, cooldown HUD) interact/ (E key)
               rescue/ (rescue bar, HUD prompt) throwable/ (pavés on the ground, in hand, in flight; mouse aim)
+              gas/ (tear gas canisters, clouds, screen tint)
               debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/server/src/
@@ -48,9 +55,10 @@ apps/server/src/
               crs/ (Crs Schema, CrsSquad: the bots, spawning, syncing)  dodge/ (dodge cooldowns)
               rescue/ (who holds interact, rescue progress)
               throwable/ (GroundItem and Projectile Schemas, items on the ground and in flight)
+              gas/ (GasCloud and Canister Schemas, clouds, canisters, who is coughing)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/ throwable/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/ throwable/ gas/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -111,6 +119,9 @@ Run the built server with `bun run --cwd apps/server start`.
 | Add a throwable kind (#15: tomato, dog poo...) | A `ThrowableKind` value and a row in `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts`, and its look in `apps/client/src/features/throwable/throwableVisuals.tsx`. What a hit does is `StreetRoom.projectileHit()` |
 | Tune pavés (speed, range, damage, knockback, stun), pick-up range, caps on items | `packages/shared/src/throwable/constants.ts` |
 | Change the pick-up, carry, aim or flight rules (swept collision, what stops a throw, where it lands) | `packages/shared/src/throwable/throwable.ts`; the server side is `apps/server/src/features/throwable/` and `StreetRoom.throwItem()` / `interact()` |
+| Tune tear gas (cloud radius and duration, damage, slow, linger, cap on clouds, squad interval, canister flight, throw range, group size, scatter) | `packages/shared/src/gas/constants.ts`; how often one bot throws is `gasCooldown` in `CRS_STATS` (0: that unit never throws) |
+| Change tear gas rules (who is in a cloud, walls, overlap, exposure and damage ticks, aim, canister flight, the cap) | `packages/shared/src/gas/gas.ts`; who throws when is `tryThrowGas` in `crs/brain.ts` (lone bots) and `lineThrower` in `crs/line.ts`; the server side is `apps/server/src/features/gas/` and the gas lines in `StreetRoom.step()` |
+| Replace the tear gas look (canister, cloud puffs, cough wobble, screen tint) | `apps/client/src/features/gas/gasVisuals.tsx` |
 | Put an item on the ground (a broken prop's pavés, a dropped carry) | `Throwables.drop(kind, x, z)` from `StreetRoom`; broken props go through `StreetRoom.dropPaves(slot)` |
 | Move or add the pavés lying on the street at the start | `items` in `packages/shared/src/level/street.ts` |
 | Change the throw key or the mouse aim | `apps/client/src/features/melee/useAttackInput.ts` (a click throws while carrying), `apps/client/src/features/throwable/aim.ts` and `AimTracker.tsx` |

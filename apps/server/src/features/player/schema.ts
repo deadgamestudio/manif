@@ -27,6 +27,8 @@ export const Player = schema(
     rescue: t.uint8().default(0),
     /** The item in hand (#8), a `ThrowableKind` from @manif/shared; 0 when empty-handed. */
     carrying: t.uint8().default(0),
+    /** In tear gas (#7): coughing and slowed. Exposure timers stay server-side in the gas feature. */
+    gassed: t.boolean(),
   },
   "Player",
 );

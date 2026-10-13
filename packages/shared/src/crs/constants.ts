@@ -67,6 +67,8 @@ export interface CrsStats {
   heavyHitImpulse: number;
   /** How long a bot at 0 HP lies there before it is removed. */
   outDuration: number;
+  /** Time between two tear gas canisters (#7) thrown by one bot. 0: this unit never throws gas. */
+  gasCooldown: number;
 }
 
 export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
@@ -93,6 +95,7 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
     staggerWindow: 1.5,
     heavyHitImpulse: HEAVY_IMPULSE,
     outDuration: 3,
+    gasCooldown: 12,
   },
 };
 

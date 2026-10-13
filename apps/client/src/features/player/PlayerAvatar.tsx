@@ -7,6 +7,7 @@ import { net } from "../../shared/net/index.ts";
 import { HealthBar } from "../health/index.ts";
 import { RescueBar } from "../rescue/index.ts";
 import { CarriedItem } from "../throwable/index.ts";
+import { COUGH_ANGLE, COUGH_SPEED } from "../gas/index.ts";
 import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;
@@ -125,10 +126,16 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     // Lift the pivot as it tips, so the lying capsule rests on the ground instead of in it.
     t.position.y = Math.sin(angle) * PLAYER_RADIUS;
 
-    // Grabbed: flail side to side (the drag itself is the CRS's, #5).
+    // Grabbed: flail side to side (the drag itself is the CRS's, #5). In tear
+    // gas (#7): a slower, lopsided cough wobble.
     const grabbed = p.status === PlayerStatus.Grabbed;
-    flail.current = grabbed ? flail.current + dt * FLAIL_SPEED : 0;
-    y.rotation.z = grabbed ? Math.sin(flail.current) * FLAIL_ANGLE : 0;
+    const coughing = !grabbed && !lying && p.gassed;
+    flail.current = grabbed ? flail.current + dt * FLAIL_SPEED : coughing ? flail.current + dt * COUGH_SPEED : 0;
+    y.rotation.z = grabbed
+      ? Math.sin(flail.current) * FLAIL_ANGLE
+      : coughing
+        ? (Math.sin(flail.current) + 0.5 * Math.sin(flail.current * 2.3)) * COUGH_ANGLE
+        : 0;
     // Swing (#4): raise the arm, then smash it down in front. The local one
     // plays at the click; others' on the server's swing event.
     const a = arm.current;
