@@ -1,0 +1,15 @@
+{
+  // The code that runs in Bun or Node, not in the browser: the Vite config,
+  // the SEO plugin and its tests (seo/), and the scripts (og:render). It gets
+  // Bun's and Node's globals, which tsconfig.json's browser code must not see.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["bun"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["vite.config.ts", "seo", "scripts"]
+}
