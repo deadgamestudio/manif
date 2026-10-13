@@ -15,7 +15,7 @@ import { RescueHud } from "../rescue/index.ts";
 import { GasOverlay } from "../gas/index.ts";
 import { FireHud } from "../fire/index.ts";
 import { CarryHud } from "../carry/index.ts";
-import { EndScreen, RoundHud } from "../round/index.ts";
+import { EndScreen, RoundBoard, RoundHud } from "../round/index.ts";
 import { TouchControls, useInputMode } from "../touch/index.ts";
 import { HelpMenu, HelpTip } from "../help/index.ts";
 import { SoundControl } from "../audio/index.ts";
@@ -76,6 +76,8 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         <div className="hud-corner">
           <SoundControl placement="hud" touch={touch} />
           {!ended && <HelpMenu touch={touch} />}
+          {/* #63: the live scoreboard (hold Tab; the "📋" chip on touch). Its panel is fixed, centred on the street. */}
+          <RoundBoard localId={snap.sessionId} players={snap.players} touch={touch} ended={ended} />
           <button type="button" className="hud-chip hud-leave" onClick={() => net.leave()}>
             Rentrer à la maison
           </button>

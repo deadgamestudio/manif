@@ -75,6 +75,8 @@ export function controls(touch: boolean): readonly (readonly [string, string])[]
         ["Esquive", "plonger : sous la matraque, hors des lacrymos"],
         ["Action", "ramasser un pavé, une tomate, une crotte, une trottinette, ou soulever un·e camarade"],
         ["Action maintenue", "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
+        // The round feature's board chip (#63).
+        ["📋", "afficher ou cacher le tableau du cortège (qui est libre, qui est embarqué·e)"],
       ]
     : [
         ["ZQSD / flèches", "marcher"],
@@ -85,6 +87,8 @@ export function controls(touch: boolean): readonly (readonly [string, string])[]
         ["E maintenu", "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
         // The sound feature's MUTE_KEY_LABEL (#57); spelled out here so this file stays plain data.
         ["M", "couper ou remettre le son"],
+        // The round feature's BOARD_KEY (#63), held.
+        ["Tab maintenu", "voir le tableau du cortège (qui est libre, qui est embarqué·e)"],
         [HELP_KEY_LABEL, "afficher ou cacher cette aide"],
       ];
 }

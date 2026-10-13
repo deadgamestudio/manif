@@ -108,7 +108,7 @@ apps/client/src/
               gas/ (tear gas canisters, clouds, screen tint)
               fire/ (flames and smoke on props, burning bodies, hold bar, fire prompts)
               pompier/ (fire trucks)  water/ (the water jet, for the hose and a future water cannon)
-              round/ (timer and progress HUD, end screen, last result in the lobby)
+              round/ (timer and progress HUD, Tab scoreboard, end screen, last result in the lobby)
               archetype/ (the lobby pick menu, the placeholder looks)
               audio/ (sound: what plays when, the crowd bed, music, the sound button)
               debug/ (dev-only keys)
@@ -126,7 +126,7 @@ apps/server/src/
               gas/ (GasCloud and Canister Schemas, clouds, canisters, who is coughing)
               fire/ (Fire Schema, burning props, who is on fire, who holds E to light or pat out)
               pompier/ (Truck Schema, FireBrigade: trucks, the pompiers' work, what the water does)
-              round/ (end-of-round numbers, dev-only round debug)
+              round/ (end-of-round numbers, the live board throttle, dev-only round debug)
               archetype/ (the CGT's heal aura)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
@@ -192,6 +192,7 @@ Run the built server with `bun run --cwd apps/server start`.
 | Reset something new between rounds | `StreetRoom.resetStreet()` in `apps/server/src/rooms/StreetRoom.ts` (the round-live check compares the street after a reset with a fresh room) |
 | Change what sound plays when (#57), the crowd bed, the music, or the voice caps | `apps/client/src/features/audio/`: `cues.ts` turns server messages and state changes into sounds (tested in `cues.test.ts`), `sounds.ts` is the catalogue (file, gain, per-sound cap, pitch spread), `director.ts` runs it all, `synth.ts` makes the blips and stings in code. New files go in `apps/client/public/sounds/` (CC0 only) with a line in its `CREDITS.md` |
 | Change the round HUD, end screen or joke awards | `apps/client/src/features/round/`; the awards are `roundAwards` in `packages/shared/src/round/stats.ts`, the numbers are counted by `RoundStats` (`apps/server/src/features/round/`) |
+| Change the live Tab scoreboard (#63): its columns, look or how often it updates | Columns and status words: `apps/client/src/features/round/board.ts`; the panel, the Tab key and the phone's 📋 chip: `RoundBoard.tsx` and `board.css` beside it. The server sends `round:board` from `StreetRoom.sendBoard()`, throttled by `stepBoard` in `apps/server/src/features/round/board.ts` (once a second at most, only on change, only while marching); the rows are the same `RoundPlayerRow` as `round:end` |
 | Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
 | Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |
 | Tune shield lines (size, spacing, shield reach, speed, engage range, how far they advance, clearance from the start zone, shove, what breaks them) | The `LINE_*` constants in `packages/shared/src/crs/constants.ts` |
