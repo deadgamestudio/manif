@@ -353,13 +353,41 @@ export function hitCrs(bot: CrsBot, fromX: number, fromZ: number, damage: number
     dz = -Math.cos(bot.rotation);
   }
   const impulse = applyImpulse(bot.body, dx, dz, heavy || out ? s.heavyHitImpulse : s.hitImpulse, out ? "always" : "auto");
-  if (out) {
-    bot.status = CrsStatus.Out;
-    bot.statusUntil = now + s.outDuration;
-    // Stays on the floor until removed, whatever the get-up timer says.
-    bot.body.downTime = Math.max(bot.body.downTime, s.outDuration);
-  }
+  if (out) knockOut(bot, now);
   return { impulse, out };
+}
+
+/** At 0 HP: out, lying on the floor until removed, whatever the get-up timer says. */
+function knockOut(bot: CrsBot, now: number): void {
+  bot.status = CrsStatus.Out;
+  bot.statusUntil = now + bot.stats.outDuration;
+  bot.body.downTime = Math.max(bot.body.downTime, bot.stats.outDuration);
+}
+
+/**
+ * A thrown item lands on a bot (#8 pavés; #15's items use the same call):
+ * take `damage` HP off, push it `impulse` m/s along (dirX, dirZ), the flight
+ * direction (at KNOCKDOWN_THRESHOLD or more it falls over), and stun it for
+ * `stun` seconds. Stunned or floored, it lets go of any grab on its next tick
+ * (with the rescue's grab immunity). The hit that empties its HP takes it out
+ * instead. A bot already out ignores it (null).
+ */
+export function strikeCrs(
+  bot: CrsBot,
+  dirX: number,
+  dirZ: number,
+  damage: number,
+  impulse: number,
+  stun: number,
+  now: number,
+): CrsHitResult | null {
+  if (bot.status === CrsStatus.Out) return null;
+  bot.hp = Math.max(0, bot.hp - Math.max(0, damage));
+  const out = bot.hp === 0;
+  const res = applyImpulse(bot.body, dirX, dirZ, impulse, out ? "always" : "auto");
+  if (out) knockOut(bot, now);
+  else if (stun > 0) stunCrs(bot, now, stun);
+  return { impulse: res, out };
 }
 
 /**

@@ -4,6 +4,7 @@
  */
 import type { PlayerStatus } from "../health/index.js";
 import type { CrsKind, CrsStatus } from "../crs/index.js";
+import type { ThrowableKind } from "../throwable/index.js";
 
 /**
  * Room phase, synced as a uint8.
@@ -36,6 +37,8 @@ export interface PlayerShape {
   dodging: boolean;
   /** While grabbed: how far a teammate's rescue has got (#10), 0..100. 0 otherwise. */
   rescue: number;
+  /** The item in hand (#8), a `ThrowableKind`; `ThrowableKind.None` (0) when empty-handed. */
+  carrying: ThrowableKind;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */
@@ -75,12 +78,30 @@ export interface CrsShape {
   kind: CrsKind;
 }
 
+/** An item lying on the ground (#8), keyed by a server-made id. */
+export interface GroundItemShape {
+  kind: ThrowableKind;
+  x: number;
+  z: number;
+}
+
+/** A thrown item in flight (#8), keyed by a server-made id. Direction, range and thrower stay on the server. */
+export interface ProjectileShape {
+  kind: ThrowableKind;
+  x: number;
+  z: number;
+}
+
 export interface StreetStateShape {
   players: SyncedMap<PlayerShape>;
   /** Breakable props by level prop id (#4). */
   props: SyncedMap<PropShapeState>;
   /** Police bots by id (#5). */
   crs: SyncedMap<CrsShape>;
+  /** Items on the ground by id (#8). */
+  items: SyncedMap<GroundItemShape>;
+  /** Thrown items in flight by id (#8). */
+  projectiles: SyncedMap<ProjectileShape>;
   phase: Phase;
   /** Session id of the host (who may start), or "" when the room is empty. */
   hostId: string;

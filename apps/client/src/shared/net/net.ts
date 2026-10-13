@@ -12,6 +12,9 @@ import {
   type CrsShape,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
+  type GroundItemShape,
+  type ProjectileShape,
+  type ThrowPayload,
   type HitEvent,
   type ImpulseEvent,
   type InteractPayload,
@@ -121,6 +124,21 @@ const lastCrsHits = new Map<string, number>();
 const propBrokenAt = new Map<string, number>();
 /** Local cosmetic gate so the swing animation is not replayed faster than the server allows. */
 let lastLocalSwing = -Infinity;
+/**
+ * Throwables (#8): ids of the items on the ground and in flight. Kept out of
+ * NetSnapshot so a throw re-renders only the throwables view, not the game.
+ * Arrays are replaced (never mutated) on change, for useSyncExternalStore.
+ */
+let itemIds: readonly string[] = [];
+let projectileIds: readonly string[] = [];
+const itemListeners = new Set<() => void>();
+function setItemIds(items: readonly string[], projectiles: readonly string[]) {
+  if (items === itemIds && projectiles === projectileIds) return;
+  itemIds = items;
+  projectileIds = projectiles;
+  for (const listener of itemListeners) listener();
+}
+
 /** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
 let generation = 0;
 
@@ -131,6 +149,7 @@ function clearEffects() {
   lastCrsHits.clear();
   propBrokenAt.clear();
   lastLocalSwing = -Infinity;
+  setItemIds([], []);
 }
 
 function update(patch: Partial<NetSnapshot>) {
@@ -197,6 +216,19 @@ function attach(joined: ClientRoom, gen: number) {
     lastCrsHits.delete(id);
     refresh();
   });
+  // Throwables (#8): only the id lists; positions are read live from useFrame.
+  // `removed` is left out explicitly, in case the map still holds it while onRemove runs.
+  const refreshItems = (removed?: string) => {
+    if (gen !== generation) return;
+    const state = joined.state as ClientState | undefined;
+    const ids = (map: StreetStateShape["items"] | StreetStateShape["projectiles"] | undefined) =>
+      map ? Array.from(map.entries(), ([id]) => id).filter((id) => id !== removed) : [];
+    setItemIds(ids(state?.items), ids(state?.projectiles));
+  };
+  callbacks.onAdd("items", () => refreshItems());
+  callbacks.onRemove("items", (_item, id) => refreshItems(id));
+  callbacks.onAdd("projectiles", () => refreshItems());
+  callbacks.onRemove("projectiles", (_p, id) => refreshItems(id));
   callbacks.listen("phase", refresh);
   callbacks.listen("hostId", refresh);
 
@@ -317,6 +349,32 @@ export const net = {
     return room?.state.crs?.get(id);
   },
 
+  /** Call `listener` when an item appears on or leaves the ground, or a throw starts or stops (#8). */
+  subscribeItems(listener: () => void): () => void {
+    itemListeners.add(listener);
+    return () => itemListeners.delete(listener);
+  },
+
+  /** Ids of the items on the ground (#8). Same array until one is added or removed. */
+  getItemIds(): readonly string[] {
+    return itemIds;
+  },
+
+  /** Ids of the thrown items in flight (#8). Same array until one is added or removed. */
+  getProjectileIds(): readonly string[] {
+    return projectileIds;
+  },
+
+  /** Live state of an item on the ground (#8). Read from useFrame. */
+  getItem(id: string): GroundItemShape | undefined {
+    return room?.state.items?.get(id);
+  },
+
+  /** Live state of a thrown item in flight (#8). Read from useFrame. */
+  getProjectile(id: string): ProjectileShape | undefined {
+    return room?.state.projectiles?.get(id);
+  },
+
   /** When (performance.now()) CRS `id` was last hit by a protester (#5), if ever. */
   getLastCrsHit(id: string): number | undefined {
     return lastCrsHits.get(id);
@@ -347,6 +405,23 @@ export const net = {
       lastSwings.set(room.sessionId, now);
     }
     room.send(ClientMessage.Attack);
+  },
+
+  /**
+   * Throw the carried item (#8) along a ground direction (the server
+   * normalizes it; zero throws along the facing). Plays the arm swing locally
+   * right away; the projectile itself is the server's. Not sent while we
+   * can't act or carry nothing.
+   */
+  sendThrow(x: number, z: number) {
+    if (!room || room.state.phase !== Phase.Playing) return;
+    const me = room.state.players.get(room.sessionId);
+    if (!me || me.down || me.status !== PlayerStatus.Free || !me.carrying) return;
+    const now = performance.now();
+    lastLocalSwing = now;
+    lastSwings.set(room.sessionId, now);
+    const payload: ThrowPayload = { x, z };
+    room.send(ClientMessage.Throw, payload);
   },
 
   /**

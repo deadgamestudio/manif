@@ -35,7 +35,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         <HealthHud localId={snap.sessionId} />
         <DodgeHud localId={snap.sessionId} />
         <RescueHud localId={snap.sessionId} players={snap.players} />
-        <div>WASD / flèches pour marcher · Espace / clic pour taper · Maj pour plonger · E (maintenu) pour libérer</div>
+        <div>WASD / flèches pour marcher · Espace / clic pour taper · Maj pour plonger · E pour ramasser un pavé, clic pour le lancer vers la souris · E (maintenu) pour libérer</div>
         {import.meta.env.DEV && <DebugKnockbackKeys />}
         <button type="button" className="hud-leave" onClick={() => net.leave()}>
           Rentrer à la maison

@@ -25,6 +25,8 @@ export const Player = schema(
     dodging: t.boolean(),
     /** While grabbed: a teammate's rescue progress (#10), 0..100. 0 otherwise. Progress per rescuer stays server-side. */
     rescue: t.uint8().default(0),
+    /** The item in hand (#8), a `ThrowableKind` from @manif/shared; 0 when empty-handed. */
+    carrying: t.uint8().default(0),
   },
   "Player",
 );

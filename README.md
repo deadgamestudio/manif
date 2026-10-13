@@ -13,7 +13,11 @@ CRS riot police bots chase the nearest protester, hit them with batons, grab
 them and drag them to the police vans; protesters can hit them back, or dodge
 (Shift) with a short burst of speed that has a 3 s cooldown. A teammate being
 dragged away can be rescued: hold E next to them for a second (or floor the CRS
-holding them) and they are free, with a moment of grab immunity.
+holding them) and they are free, with a moment of grab immunity. Pavés lie in
+the street and fall out of broken bus shelters, shop windows and cars: press E
+next to one to pick it up, then click (or Space) to throw it towards the mouse.
+A pavé floors and stuns the CRS it hits, which drops whoever it was dragging,
+and lands on the ground again wherever it stops.
 
 ## Layout
 
@@ -30,7 +34,8 @@ apps/client/src/
   app/        main.tsx, App.tsx, styles.css
   features/   home/ lobby/ game/ level/ player/ health/ movement/ melee/ (attack input) prop/ (props, debris)
               crs/ (police bot avatars) dodge/ (dodge key, cooldown HUD) interact/ (E key)
-              rescue/ (rescue bar, HUD prompt) debug/ (dev-only keys)
+              rescue/ (rescue bar, HUD prompt) throwable/ (pavés on the ground, in hand, in flight; mouse aim)
+              debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/server/src/
   app/        server bootstrap
@@ -38,9 +43,10 @@ apps/server/src/
               melee/ (swing cooldowns)  prop/ (Prop Schema, prop HP, the room's collision world)
               crs/ (Crs Schema, CrsSquad: the bots, spawning, syncing)  dodge/ (dodge cooldowns)
               rescue/ (who holds interact, rescue progress)
+              throwable/ (GroundItem and Projectile Schemas, items on the ground and in flight)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/ throwable/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -93,16 +99,21 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
 | Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |
 | Move or add CRS spawn points | `crsSpawns` in `packages/shared/src/level/street.ts` |
-| Spawn CRS from a new system (#12 waves), stun one (#8 pavés) | `CrsSquad.spawn(x, z, kind)`, `reinforceTo`, `stun(id, now)` in `apps/server/src/features/crs/squad.ts`, owned by `StreetRoom` |
+| Spawn CRS from a new system (#12 waves), stun one, hit one with a thrown item (#8) | `CrsSquad.spawn(x, z, kind)`, `reinforceTo`, `stun(id, now)`, `strike(...)` in `apps/server/src/features/crs/squad.ts`, owned by `StreetRoom` |
 | Replace the placeholder CRS look | `apps/client/src/features/crs/crsVisuals.tsx` (animation in `CrsAvatar.tsx`) |
-| Spawn pavés from a broken prop (#8) | `StreetRoom.dropPaves(slot)` |
+| Add a throwable kind (#15: tomato, dog poo...) | A `ThrowableKind` value and a row in `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts`, and its look in `apps/client/src/features/throwable/throwableVisuals.tsx`. What a hit does is `StreetRoom.projectileHit()` |
+| Tune pavés (speed, range, damage, knockback, stun), pick-up range, caps on items | `packages/shared/src/throwable/constants.ts` |
+| Change the pick-up, carry, aim or flight rules (swept collision, what stops a throw, where it lands) | `packages/shared/src/throwable/throwable.ts`; the server side is `apps/server/src/features/throwable/` and `StreetRoom.throwItem()` / `interact()` |
+| Put an item on the ground (a broken prop's pavés, a dropped carry) | `Throwables.drop(kind, x, z)` from `StreetRoom`; broken props go through `StreetRoom.dropPaves(slot)` |
+| Move or add the pavés lying on the street at the start | `items` in `packages/shared/src/level/street.ts` |
+| Change the throw key or the mouse aim | `apps/client/src/features/melee/useAttackInput.ts` (a click throws while carrying), `apps/client/src/features/throwable/aim.ts` and `AimTracker.tsx` |
 | Replace a prop's placeholder look or its debris colours | `apps/client/src/features/prop/propVisuals.tsx` (debris simulation in `prop/debris.ts`) |
 | Tune the dodge (speed factor, duration, cooldown, bonk threshold and down time) | `packages/shared/src/dodge/constants.ts` |
 | Change the dodge burst (direction, wall bonk) or its cooldown rule | `startDodge` / `stepBody` in `packages/shared/src/physics/body.ts`; `dodgeDirection`, `dodgeReady` in `dodge/dodge.ts`; the server checks are in `StreetRoom.dodge()` |
 | Change the dodge key, its cooldown bar or its look | `apps/client/src/features/dodge/` (key, HUD); the lean, squash and dust puff are in `features/player/PlayerAvatar.tsx` |
 | Tune the rescue (hold time, range, knockback on the CRS and the freed protester) | `packages/shared/src/rescue/constants.ts` |
 | Change the rescue rules (target choice, progress, interrupts, several rescuers) | `packages/shared/src/rescue/rescue.ts`; the room applies them at the top of `StreetRoom.step()` and the release is `StreetRoom.pullFree()` |
-| Add something to the interact key (E), e.g. pick up a pavé (#8) | `StreetRoom.interact(id, held)` (a grabbed teammate in range has priority); the key is `apps/client/src/features/interact/` |
+| Add something to the interact key (E) | `StreetRoom.interact(id, held)` (a grabbed teammate in range has priority, then picking up an item); the key is `apps/client/src/features/interact/` |
 | Change the rescue bar or the HUD prompt | `apps/client/src/features/rescue/` |
 | Change the attack keys | `apps/client/src/features/melee/useAttackInput.ts`; the swing animation is in `features/player/PlayerAvatar.tsx` |
 | Change the HP bar and status line | `apps/client/src/features/health/` (HUD and the bar above other players) |

@@ -6,6 +6,7 @@ import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { HealthBar } from "../health/index.ts";
 import { RescueBar } from "../rescue/index.ts";
+import { CarriedItem } from "../throwable/index.ts";
 import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;
@@ -175,12 +176,14 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
             <capsuleGeometry args={[PLAYER_RADIUS, CAPSULE_LENGTH, 4, 12]} />
             <meshStandardMaterial ref={body} color={isLocal ? LOCAL_COLOR : OTHER_COLOR} />
           </mesh>
-          {/* Placeholder arm (#4), pivoting at the shoulder; it swings on attack. */}
+          {/* Placeholder arm (#4), pivoting at the shoulder; it swings on attack and on a throw (#8). */}
           <group ref={arm} position={[PLAYER_RADIUS + 0.08, HEIGHT * 0.68, 0]} rotation-x={ARM_REST}>
             <mesh position-y={-0.35} castShadow>
               <boxGeometry args={[0.16, 0.7, 0.16]} />
               <meshStandardMaterial color="#8d6e63" />
             </mesh>
+            {/* The item in hand (#8); the swing throws it. */}
+            <CarriedItem id={id} />
           </group>
           {/* Small nose so facing direction is visible. */}
           <mesh position={[0, HEIGHT * 0.7, PLAYER_RADIUS]} castShadow>

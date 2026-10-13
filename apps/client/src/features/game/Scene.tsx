@@ -8,6 +8,7 @@ import { net } from "../../shared/net/index.ts";
 import { PlayerAvatar } from "../player/index.ts";
 import { PropsView } from "../prop/index.ts";
 import { CrsView } from "../crs/index.ts";
+import { AimTracker, ThrowablesView } from "../throwable/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
 
 const LEVEL = STREET_LEVEL;
@@ -34,6 +35,7 @@ export function Scene({
   return (
     <>
       <FollowRig localId={localId} />
+      <AimTracker />
       <color attach="background" args={["#2a2d34"]} />
       <hemisphereLight args={["#dfe8ff", "#3a3a3a", 0.8]} />
 
@@ -44,6 +46,7 @@ export function Scene({
         <PlayerAvatar key={p.id} id={p.id} name={p.name} isLocal={p.id === localId} />
       ))}
       <CrsView ids={crs} />
+      <ThrowablesView />
     </>
   );
 }
