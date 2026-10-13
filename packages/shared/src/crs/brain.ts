@@ -41,6 +41,17 @@ import {
   type CrsStats,
 } from "./constants.js";
 import type { NavGrid } from "./nav.js";
+import {
+  SPLAT_GAS_SCATTER,
+  SPLAT_SPEED_FACTOR,
+  SPLAT_WOBBLE_ANGLE,
+  SPLAT_WOBBLE_SPEED,
+  STINK_KEEP_AWAY,
+  STINK_PUSH,
+  isBackingOff,
+  isSplatted,
+  isStinky,
+} from "./status.js";
 import { pickTarget, type ProtesterView } from "./targeting.js";
 
 /** Server-side state of one bot. Only x, z, rotation, hp, status, down and kind are synced. */
@@ -86,6 +97,10 @@ export interface CrsBot {
   readonly input: Vec2;
   /** Room time of the next tear gas throw (#7), if its unit throws any (`stats.gasCooldown`). */
   gasReadyAt: number;
+  /** Status timers from thrown items (#15), see crs/status.ts: room times until which each lasts. */
+  splatUntil: number;
+  stinkUntil: number;
+  backOffUntil: number;
 }
 
 /** `now` is the room time it appears: its first tear gas (#7) is ready half a cooldown later, so a fresh wave does not gas at once. */
@@ -119,6 +134,9 @@ export function createCrsBot(id: string, kind: CrsKind, x: number, z: number, ro
     lastHitAt: -Infinity,
     input: { x: 0, z: 0 },
     gasReadyAt: now + stats.gasCooldown / 2,
+    splatUntil: 0,
+    stinkUntil: 0,
+    backOffUntil: 0,
   };
 }
 
@@ -131,6 +149,8 @@ export interface CrsHost {
   canBeHurt(id: string): boolean;
   /** A baton hit from bot `by`: damage plus a knockback along (dirX, dirZ). */
   batonHit(by: string, id: string, dirX: number, dirZ: number, damage: number, impulse: number): void;
+  /** Bot `by` swings its baton and misses (#15: splatted, it can't see). Only shown. Optional. */
+  batonMiss?(by: string): void;
   /** Start a grab. False if the protester is not free (already grabbed, KO...) or gone. */
   grab(id: string, duration: number): boolean;
   /** Let go of a grabbed protester, who is free again. */
@@ -236,6 +256,15 @@ export function act(bot: CrsBot, target: ProtesterView, ctx: CrsContext, host: C
   const gap = gapTo(bot, target);
   const dx = target.x - bot.body.x;
   const dz = target.z - bot.body.z;
+  // Splatted (#15): tomato on the visor. It swings at where it thinks you are and misses; no grab.
+  if (isSplatted(bot, now)) {
+    if (gap <= s.batonRange && now >= bot.batonReadyAt) {
+      bot.batonReadyAt = now + s.batonCooldown;
+      if (dx !== 0 || dz !== 0) bot.rotation = Math.atan2(dx, dz);
+      host.batonMiss?.(bot.id);
+    }
+    return gap <= s.grabReach;
+  }
   if (gap <= s.grabReach && now >= bot.grabReadyAt && (target.down || now < bot.batonReadyAt)) {
     if (host.grab(target.id, s.grabDuration)) {
       bot.status = CrsStatus.Grabbing;
@@ -297,6 +326,9 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
       endGrab(bot, now);
       setInput(bot, NO_MOVE);
     }
+  } else if (isBackingOff(bot, now)) {
+    // Stinky (#15): backs away from the protesters for a moment, embarrassed. Before any orders: a line member steps out too.
+    backOff(bot, ctx, host);
   } else if (behaviour.orders?.(bot, ctx, host) === true) {
     // Following orders (#6): input and facing are already set.
     ordered = true;
@@ -319,6 +351,15 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
   const input = bot.input;
   scratch.x = input.x * speedFactor;
   scratch.z = input.z * speedFactor;
+  // Splatted (#15): stumbles along, slower and wobbling left and right (the facing below keeps the intended way).
+  if (isSplatted(bot, now) && (scratch.x !== 0 || scratch.z !== 0)) {
+    const a = Math.sin(now * SPLAT_WOBBLE_SPEED) * SPLAT_WOBBLE_ANGLE;
+    const c = Math.cos(a) * SPLAT_SPEED_FACTOR;
+    const sn = Math.sin(a) * SPLAT_SPEED_FACTOR;
+    const x = scratch.x;
+    scratch.x = x * c + scratch.z * sn;
+    scratch.z = -x * sn + scratch.z * c;
+  }
   stepBody(ctx.world, bot.body, scratch, s.speed, s.radius, ctx.dt);
   if (!ordered && (input.x !== 0 || input.z !== 0)) bot.rotation = Math.atan2(input.x, input.z);
   detectStuck(bot, now);
@@ -348,13 +389,43 @@ export function tryThrowGas(bot: CrsBot, ctx: CrsContext, host: CrsHost): boolea
   bot.gasReadyAt = ctx.now + s.retargetInterval;
   const aim = pickGasAim(bot.body, host.protesters());
   if (!aim) return false;
-  const to = scatterAim(bot.body, aim, GAS_SCATTER, GAS_MAX_RANGE, ctx.rng);
+  // Splatted (#15): it can't see where it throws.
+  const scatter = isSplatted(bot, ctx.now) ? GAS_SCATTER * SPLAT_GAS_SCATTER : GAS_SCATTER;
+  const to = scatterAim(bot.body, aim, scatter, GAS_MAX_RANGE, ctx.rng);
   if (!host.throwGas(bot.id, bot.body, to)) return false;
   bot.gasReadyAt = ctx.now + s.gasCooldown;
   const dx = to.x - bot.body.x;
   const dz = to.z - bot.body.z;
   if (dx !== 0 || dz !== 0) bot.rotation = Math.atan2(dx, dz);
   return true;
+}
+
+/**
+ * Stinky and embarrassed (#15): walk straight away from the target, or the
+ * nearest protester in sight, or stand still with nobody around. No path:
+ * it only lasts a moment, and walls stop it like anything else.
+ */
+export function backOff(bot: CrsBot, ctx: CrsContext, host: CrsHost): void {
+  let from: Vec2 | undefined = bot.targetId === null ? undefined : host.protester(bot.targetId);
+  if (!from) {
+    let best = bot.stats.sight * bot.stats.sight;
+    for (const p of host.protesters()) {
+      const d = (p.x - bot.body.x) ** 2 + (p.z - bot.body.z) ** 2;
+      if (d < best) {
+        best = d;
+        from = p;
+      }
+    }
+  }
+  const dx = from ? bot.body.x - from.x : 0;
+  const dz = from ? bot.body.z - from.z : 0;
+  const len = Math.hypot(dx, dz);
+  if (len < 1e-6) {
+    setInput(bot, NO_MOVE);
+    return;
+  }
+  bot.input.x = dx / len;
+  bot.input.z = dz / len;
 }
 
 /** Whether the grabbed protester is still there and still grabbed. */
@@ -525,12 +596,13 @@ export function steerTo(bot: CrsBot, gx: number, gz: number, ctx: CrsContext): v
   }
   mx /= len;
   mz /= len;
-  // Keep apart from other bots (they don't collide with each other).
+  // Keep apart from other bots (they don't collide with each other), and well away from a stinky one (#15).
   for (const other of ctx.bots) {
     if (other === bot || other.status === CrsStatus.Out) continue;
     const ox = body.x - other.body.x;
     const oz = body.z - other.body.z;
-    const range = bot.stats.radius + other.stats.radius + CRS_SEPARATION;
+    const stinky = isStinky(other, ctx.now);
+    const range = bot.stats.radius + other.stats.radius + (stinky ? STINK_KEEP_AWAY : CRS_SEPARATION);
     const d = Math.hypot(ox, oz);
     if (d >= range) continue;
     if (d < 1e-6) {
@@ -542,7 +614,7 @@ export function steerTo(bot: CrsBot, gx: number, gz: number, ctx: CrsContext): v
       mz += pz;
       continue;
     }
-    const w = (range - d) / range;
+    const w = ((range - d) / range) * (stinky ? STINK_PUSH : 1);
     mx += (ox / d) * w;
     mz += (oz / d) * w;
   }

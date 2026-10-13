@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { MIN_OBSTACLE_HALF_THICKNESS, circleOverlaps, moveCircle, type BoxShape, type CircleShape } from "../physics/index.js";
 import { PLAYER_RADIUS } from "../player/index.js";
 import { STREET_LEVEL as L, levelWorld, type PropSlot } from "../level/index.js";
+import { ThrowableKind } from "../throwable/index.js";
 import { PROP_TYPES } from "./constants.js";
 import { applyPropDamage, createPropState, propCollisionWorld, propShape, type PropShape } from "./prop.js";
 
@@ -154,5 +155,19 @@ describe("street props", () => {
         expect(g <= 1e-9 || g >= minGap).toBe(true);
       }
     }
+  });
+});
+
+describe("market stalls (#15)", () => {
+  test("a broken market stall drops tomatoes; every other prop drops pavés (or nothing)", () => {
+    expect(PROP_TYPES.market_stall.dropKind).toBe(ThrowableKind.Tomate);
+    expect(PROP_TYPES.market_stall.drops).toBeGreaterThan(0);
+    for (const [kind, t] of Object.entries(PROP_TYPES)) if (kind !== "market_stall") expect(t.dropKind).toBe(ThrowableKind.Pave);
+  });
+
+  test("the street has market stalls, and they neither burn nor get hopped over", () => {
+    expect(L.propSlots.filter((s) => s.kind === "market_stall").length).toBeGreaterThan(0);
+    expect(PROP_TYPES.market_stall.flammable).toBe(false);
+    expect(PROP_TYPES.market_stall.hoppable).toBe(false);
   });
 });

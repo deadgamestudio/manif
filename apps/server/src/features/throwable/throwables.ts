@@ -4,6 +4,7 @@ import {
   MAX_PROJECTILES,
   ThrowableKind,
   createProjectile,
+  landsAfterStop,
   releaseCarried,
   stepProjectile,
   type Carrier,
@@ -43,6 +44,11 @@ export class Throwables {
         itemViews.delete(id);
       },
     });
+  }
+
+  /** The slippery items lying on the ground (#15 dog poo). */
+  slippery(): Iterable<[string, Vec2]> {
+    return this.ground.slippery();
   }
 
   /** In flight right now. */
@@ -87,9 +93,12 @@ export class Throwables {
 
   /**
    * Move everything in flight one tick. `targets` is called once, only if
-   * something flies. A projectile that stops (hit, wall, max range) leaves
-   * the synced map and lies on the ground where it stopped; `onHit` applies
-   * a hit first.
+   * something flies. `onHit` applies every hit: the targets a piercing item
+   * went through (#15), in order, then the one it stopped on. A projectile
+   * that stops (hit, wall, max range) leaves the synced map and lies on the
+   * ground where it stopped, unless its row says it is used up (#15: see
+   * `landsAfterStop`; it counts as having hit a CRS when it hit any
+   * pierceable target).
    */
   step<K extends string>(
     dt: number,
@@ -102,6 +111,7 @@ export class Throwables {
     for (let i = this.flying.length - 1; i >= 0; i--) {
       const p = this.flying[i]!;
       const res = stepProjectile(p, dt, world, list);
+      for (const t of res.passed ?? []) onHit(p, t);
       if (res.type === "flying") {
         const view = this.projectileViews.get(p.id);
         if (view) {
@@ -113,7 +123,7 @@ export class Throwables {
       this.flying.splice(i, 1);
       this.projectileViews.delete(p.id);
       if (res.type === "hit") onHit(p, res.target);
-      this.ground.drop(p.kind, p.x, p.z);
+      if (landsAfterStop(p.kind, p.struck > 0)) this.ground.drop(p.kind, p.x, p.z);
     }
   }
 }

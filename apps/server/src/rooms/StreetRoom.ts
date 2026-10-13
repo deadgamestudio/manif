@@ -16,6 +16,13 @@ import {
   PLAYER_RADIUS,
   PLAYER_SPEED,
   Phase,
+  SLIP_IMPULSE,
+  SlipGuards,
+  carrySpeedOf,
+  isAirborne,
+  isDown,
+  isImmune,
+  type SlipBody,
   PlayerStatus,
   STREET_LEVEL,
   ServerMessage,
@@ -187,6 +194,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private fires = new Fires(LEVEL.propSlots, this.state.fires);
   /** Who carries whom, and the teammates in a throw's flight (#11). Server-only; `carriedBy` is synced on the carried player. */
   private carry = new Carries();
+  /** Who last slipped on which dog poo (#15), so getting up on one doesn't floor you again. Server-only. */
+  private slips = new SlipGuards();
+  /** Scratch for the slip checks (#15), reused every tick. */
+  private slipBody: SlipBody = { x: 0, z: 0, airborne: false, down: false, immune: false };
   /** Scratch for the fire actions (#16), reused every tick. */
   private burningViews: BurningView[] = [];
   private lightable: LightableView[] = [];
@@ -206,6 +217,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (this.bodies.isAirborne(id)) return;
       this.damagePlayer(id, amount);
       this.applyImpulse(id, dirX, dirZ, impulse);
+    },
+    // Splatted (#15): the swing is seen, and hits nothing.
+    batonMiss: (by) => {
+      const swing: SwingEvent = { id: by };
+      this.broadcast(ServerMessage.Swing, swing);
     },
     grab: (id, duration) => this.grabPlayer(id, duration),
     // Same transition as a rescue (#10): the protester is free again.
@@ -392,6 +408,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.protesterViews.delete(client.sessionId);
     this.joinOrder.delete(client.sessionId);
     this.roundStats.remove(client.sessionId);
+    this.slips.remove(client.sessionId);
     if (this.state.hostId === client.sessionId) {
       this.state.hostId = pickHost(Array.from(this.joinOrder, ([id, joinedAt]) => ({ id, joinedAt })));
       if (this.state.hostId) console.log(`[street ${this.roomId}] host -> ${this.state.hostId}`);
@@ -429,6 +446,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.crs.setHazards(null);
     this.fires.takeChanged();
     this.throwables.reset(LEVEL.items);
+    // Dog poo (#15): nobody remembers slipping.
+    this.slips.clear();
     this.gas.reset();
     this.meleeCooldowns.clear();
     this.dodgeCooldowns.clear();
@@ -639,7 +658,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.broadcast(ServerMessage.Hit, event);
     if (res.broke) {
       this.roundStats.add(by, "propsBroken");
-      this.dropPaves(res.slot);
+      this.dropItems(res.slot);
       // The prop's new shape changes where bots can walk.
       this.crs.worldChanged();
     }
@@ -740,24 +759,34 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (player) this.bodies.hold(mateId, mate, player.x, player.z, player.rotation);
   }
 
-  /** A thrown item stopped on a prop or a CRS (#8): the row in THROWABLE_TYPES says what it does. */
+  /**
+   * A thrown item hit a prop or a CRS (#8): the row in THROWABLE_TYPES says
+   * what it does. A trottinette (#15) calls this for every CRS it bowls
+   * through, once each.
+   */
   private projectileHit(p: Projectile, target: ProjectileTarget<"prop" | "crs">) {
     const type = THROWABLE_TYPES[p.kind];
     if (target.kind === "prop") {
-      this.damageProp(p.by, target.id, type.propDamage, p.x, p.z);
+      if (type.propDamage > 0) this.damageProp(p.by, target.id, type.propDamage, p.x, p.z);
       return;
     }
     // Damage, knockback along the throw (a heavy one floors it) and a stun: a
     // grabbing CRS lets go on its next tick, with the rescue's grab immunity.
+    // A tomato or a poo does none of that; the hit still flashes the bot.
+    const bot = this.crs.get(target.id);
+    const at = bot ? bot.body : p;
     const res = this.crs.strike(target.id, p.dirX, p.dirZ, type.crsDamage, type.knockback, type.stun, this.now);
-    if (res) this.announceCrsHit(p.by, target.id, res, p.x, p.z);
+    if (res) this.announceCrsHit(p.by, target.id, res, at.x, at.z);
+    // Its status (#15): a splatted visor, a stink. A second one refreshes the timer.
+    if (type.effect !== null && this.crs.affect(target.id, type.effect, type.effectTime, this.now)) this.roundStats.add(p.by, "splats");
   }
 
   /** What a projectile can hit this tick: intact props and every CRS not out. Protesters never (no friendly fire). */
   private projectileTargets(): ProjectileTarget<"prop" | "crs">[] {
     const out: ProjectileTarget<"prop" | "crs">[] = [];
     for (const t of this.props.targets()) out.push({ id: t.id, kind: "prop", shape: t.shape });
-    for (const t of this.crs.meleeTargets()) out.push({ id: t.id, kind: "crs", shape: t.shape });
+    // A trottinette (#15) goes through CRS, never through props.
+    for (const t of this.crs.meleeTargets()) out.push({ id: t.id, kind: "crs", shape: t.shape, pierceable: true });
     return out;
   }
 
@@ -787,8 +816,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   jump(id: string): boolean {
     const player = this.state.players.get(id);
-    // A carrier stays on the ground (#11): too heavy to hop.
-    if (!player || !this.hasControl(id) || this.carry.isCarrying(id)) return false;
+    // A carrier stays on the ground (#11): too heavy to hop. So does someone lugging a trottinette (#15).
+    if (!player || !this.hasControl(id) || this.carry.isCarrying(id) || carrySpeedOf(player.carrying) < 1) return false;
     if (!this.jumpCooldowns.ready(id, this.now)) return false;
     if (!this.bodies.jump(id, player)) return false;
     this.jumpCooldowns.start(id, this.now);
@@ -894,14 +923,70 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   /**
-   * A prop just broke: it drops PROP_TYPES[kind].paves pavés (#4, #8) on its
-   * street side, clear of its broken shape and everything else.
+   * A prop just broke: it drops PROP_TYPES[kind].drops items of its
+   * `dropKind` (pavés #4, #8; tomatoes from a market stall #15) on its street
+   * side, clear of its broken shape and everything else.
    */
-  private dropPaves(slot: PropSlot) {
-    const count = PROP_TYPES[slot.kind].paves;
+  private dropItems(slot: PropSlot) {
+    const type = PROP_TYPES[slot.kind];
     const shape = propShape(slot, false);
-    if (count <= 0 || !shape) return;
-    for (const spot of dropSpots(shape, count, this.props.world)) this.throwables.drop(ThrowableKind.Pave, spot.x, spot.z);
+    if (type.drops <= 0 || !shape) return;
+    for (const spot of dropSpots(shape, type.drops, this.props.world)) this.throwables.drop(type.dropKind, spot.x, spot.z);
+  }
+
+  /**
+   * Dog poo on the ground (#15): every protester who steps on one slips and
+   * falls along the way they were going (a knock-down, so the ragdoll plays),
+   * unless in the air, already down or just up (see `SlipGuards`). Not free
+   * (grabbed, KO, arrested) or carried: no slip, but stepping off still counts.
+   */
+  private slipProtesters(poos: readonly [string, Vec2][]) {
+    this.state.players.forEach((player, id) => {
+      const body = this.bodies.get(id);
+      if (!body) return;
+      const b = this.slipBody;
+      b.x = body.x;
+      b.z = body.z;
+      b.airborne = isAirborne(body) || this.carry.isCarried(id);
+      b.down = isDown(body) || player.status !== PlayerStatus.Free;
+      b.immune = isImmune(body);
+      if (this.slips.check(id, b, poos) === null) return;
+      const input = this.moveInputs.get(id) ?? NO_INPUT;
+      const moving = input.x !== 0 || input.z !== 0;
+      const res = this.applyImpulse(
+        id,
+        moving ? input.x : Math.sin(player.rotation),
+        moving ? input.z : Math.cos(player.rotation),
+        SLIP_IMPULSE,
+        "always",
+      );
+      if (res?.knockedDown) this.roundStats.add(id, "slips");
+    });
+  }
+
+  /** Dog poo (#15): CRS slip on it too, and let go of whoever they were dragging. */
+  private slipCrs(poos: readonly [string, Vec2][]) {
+    for (const bot of this.crs.all) {
+      const b = this.slipBody;
+      b.x = bot.body.x;
+      b.z = bot.body.z;
+      b.airborne = false;
+      b.down = isDown(bot.body) || bot.status === CrsStatus.Out;
+      b.immune = isImmune(bot.body);
+      if (this.slips.check(bot.id, b, poos) === null) continue;
+      const moving = bot.input.x !== 0 || bot.input.z !== 0;
+      const res = this.crs.push(
+        bot.id,
+        moving ? bot.input.x : Math.sin(bot.rotation),
+        moving ? bot.input.z : Math.cos(bot.rotation),
+        SLIP_IMPULSE,
+        "always",
+      );
+      if (res && res.strength > 0) {
+        const push: ImpulseEvent = { id: bot.id, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
+        this.broadcast(ServerMessage.Impulse, push);
+      }
+    }
   }
 
   /**
@@ -977,8 +1062,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const fire = this.fires.burn(sessionId, player, PLAYER_RADIUS, canBurn, this.now);
       if (fire.damage > 0) this.damagePlayer(sessionId, fire.damage);
       const held = free ? (this.moveInputs.get(sessionId) ?? NO_INPUT) : NO_INPUT;
-      // A carrier walks slower (#11).
-      const speed = gas.speed * fire.speed * (this.carry.isCarrying(sessionId) ? CARRY_SPEED_FACTOR : 1);
+      // A carrier walks slower (#11), and so does someone lugging a trottinette (#15).
+      const speed = gas.speed * fire.speed * (this.carry.isCarrying(sessionId) ? CARRY_SPEED_FACTOR : 1) * carrySpeedOf(player.carrying);
       const input = speed === 1 ? held : { x: held.x * speed, z: held.z * speed };
       // Walk (or dodge) from the held input (ignored while down) plus knockback
       // velocity, collided against the street (sub-stepped, bounces off walls).
@@ -996,6 +1081,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.stepCarries();
     // Thrown teammates (#11) hit the CRS and props they fly into, before the CRS step, so a floored bot lets go on this tick.
     this.stepFlights();
+    // Dog poo (#15): a handful at most (its ground cap), so every body against every poo is cheap.
+    const poos = Array.from(this.throwables.slippery());
+    if (poos.length > 0) this.slipProtesters(poos);
     this.throwables.step(
       dt,
       this.props.world,
@@ -1011,6 +1099,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       }
       if (res.broke) console.log(`[street ${this.roomId}] ${line.id} broke (${res.broke})`);
     });
+    if (poos.length > 0) this.slipCrs(poos);
     this.burnCrs();
     this.stepFires(dt);
     // Members walked into protesters: push them out of the shields (walls win; a

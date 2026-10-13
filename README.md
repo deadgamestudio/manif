@@ -22,6 +22,13 @@ the street and fall out of broken bus shelters, shop windows and cars: press E
 next to one to pick it up, then click to throw it towards the mouse.
 A pavé floors and stuns the CRS it hits, which drops whoever it was dragging,
 and lands on the ground again wherever it stops.
+Other things to throw (#15): smash a market stall for tomatoes (a tomato on a
+CRS's visor makes it stumble and miss its swings for a few seconds, and is
+gone), pick up a dog poo from the pavement (the CRS it hits stinks: it backs
+off and the others keep away from it; walk on one and you slip and fall, CRS
+too, unless you hop over it), or grab a parked trottinette (heavy: you walk
+slower and can't hop, but thrown it bowls over up to four CRS in a row, then
+lies there for the next throw).
 Teammates can be thrown too: press E next to a free teammate to lift them
 overhead (no asking), walk a bit slower, and click to throw them towards the
 mouse. They fly flailing over bins and fallen CRS, bowl over the CRS they hit
@@ -138,7 +145,7 @@ Run the built server with `bun run --cwd apps/server start`.
 | Hurt, grab or free a protester from a new system (melee, baton, gas, a thrown teammate #11...) | `StreetRoom.damagePlayer(id, amount)`, `grabPlayer(id, duration?)`, `rescuePlayer(id)`; check `hasControl(id)` before letting a player act |
 | Tune melee reach, arc, cooldown, damage to props | `packages/shared/src/melee/constants.ts` |
 | Change the arc check, line of sight or cooldown rule | `packages/shared/src/melee/melee.ts` |
-| Tune a prop type (HP, intact and broken collision shape, pavés dropped) | `packages/shared/src/prop/constants.ts` |
+| Tune a prop type (HP, intact and broken collision shape, what it drops: pavés, or tomatoes for a market stall) | `packages/shared/src/prop/constants.ts` |
 | Handle a swing on the server (targets, hit events), hit a new kind of target | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
 | Tune a police unit (speed, HP, sight, baton, grab, drag, stun, stagger) or add a unit type (#13) | The `CRS_STATS` table in `packages/shared/src/crs/constants.ts` (plus a look in `apps/client/src/features/crs/crsVisuals.tsx`) |
 | Change the cap on CRS, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
@@ -154,7 +161,9 @@ Run the built server with `bun run --cwd apps/server start`.
 | Move or add CRS spawn points | `crsSpawns` in `packages/shared/src/level/street.ts` |
 | Spawn CRS from a new system, stun one, hit one with a thrown item (#8) | `CrsSquad.spawn(x, z, kind)`, `reinforceTo`, `stun(id, now)`, `strike(...)` in `apps/server/src/features/crs/squad.ts`, owned by `StreetRoom` |
 | Replace the placeholder CRS look (and the riot shield of a line) | `apps/client/src/features/crs/crsVisuals.tsx` (animation, shove thrust in `CrsAvatar.tsx`) |
-| Add a throwable kind (#15: tomato, dog poo...) | A `ThrowableKind` value and a row in `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts`, and its look in `apps/client/src/features/throwable/throwableVisuals.tsx`. What a hit does is `StreetRoom.projectileHit()` |
+| Add a throwable kind (#15 added tomate, crotte, trottinette) | A `ThrowableKind` value and a row in `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts` (speed, range, damage, `pierce`, `effect`, what is left after a hit, carry speed, ground cap, `slippery`), and its look in `apps/client/src/features/throwable/throwableVisuals.tsx`. What a hit does is `StreetRoom.projectileHit()` |
+| Tune or add a status a thrown item leaves on a CRS (#15: splatted, stinky) | `packages/shared/src/crs/status.ts` (`CRS_EFFECTS`, the timers and their numbers); what each does to a bot is in `crs/brain.ts` (`act`, `backOff`, the wobble in `stepCrs`, the keep-away in `steerTo`); the look is the splat and `StinkCloud` in `apps/client/src/features/crs/crsVisuals.tsx` |
+| Tune slipping on dog poo (range, step-off distance, push) | `SLIP_*` in `packages/shared/src/throwable/constants.ts`; the rule is `SlipGuards` in `throwable/throwable.ts`, applied by `StreetRoom.slipProtesters()` / `slipCrs()` |
 | Tune pavés (speed, range, damage, knockback, stun), pick-up range, caps on items | `packages/shared/src/throwable/constants.ts` |
 | Change the pick-up, carry, aim or flight rules (swept collision, what stops a throw, where it lands) | `packages/shared/src/throwable/throwable.ts`; the server side is `apps/server/src/features/throwable/` and `StreetRoom.throwItem()` / `interact()` |
 | Tune tear gas (cloud radius and duration, damage, slow, linger, cap on clouds, squad interval, canister flight, throw range, group size, scatter) | `packages/shared/src/gas/constants.ts`; how often one bot throws is `gasCooldown` in `CRS_STATS` (0: that unit never throws) |
@@ -164,8 +173,8 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change fire rules (lighting, burn-down, charring, spread choice, the cap, the zone, putting out) | `packages/shared/src/fire/fire.ts` (`FireField`); bodies on fire in `fire/burn.ts`; the interact holds and their priority in `fire/hold.ts`; the server side is `apps/server/src/features/fire/` and `StreetRoom.stepFireHolds()`, `stepFires()`, `burnCrs()` |
 | Put a fire out from a new system (#17 pompiers' hose, #13 water cannon) or light one (#15 fumigène) | `StreetRoom.extinguishAt(x, z, radius)` (prop fires and burning bodies near a point), `extinguishProp(id)`, `putOutBody(id)`, `lightProp(id)`; the synced `state.fires` (by prop id: x, z, radius, intensity, left) is what to aim at. Dev builds: Y throws water around you; scripts can send `debug:round {action: "calm"}` to clear the CRS and the waves |
 | Replace the fire look (flames, smoke, charred colour, bum on fire, hold bar) | `apps/client/src/features/fire/fireVisuals.tsx` |
-| Put an item on the ground (a broken prop's pavés, a dropped carry) | `Throwables.drop(kind, x, z)` from `StreetRoom`; broken props go through `StreetRoom.dropPaves(slot)` |
-| Move or add the pavés lying on the street at the start | `items` in `packages/shared/src/level/street.ts` |
+| Put an item on the ground (a broken prop's pavés, a dropped carry) | `Throwables.drop(kind, x, z)` from `StreetRoom`; broken props go through `StreetRoom.dropItems(slot)` |
+| Move or add the pavés, dog poos and trottinettes lying on the street at the start, or the market stalls | `items`, `poos`, `trottinettes` and `propSlots` in `packages/shared/src/level/street.ts` |
 | Change the throw key or the mouse aim | `apps/client/src/features/melee/useAttackInput.ts` (a click throws while carrying), `apps/client/src/features/throwable/aim.ts` and `AimTracker.tsx` |
 | Replace a prop's placeholder look or its debris colours | `apps/client/src/features/prop/propVisuals.tsx` (debris simulation in `prop/debris.ts`) |
 | Tune the dodge (speed factor, duration, cooldown, bonk threshold and down time) | `packages/shared/src/dodge/constants.ts` |

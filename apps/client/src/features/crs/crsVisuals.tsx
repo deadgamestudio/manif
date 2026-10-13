@@ -24,6 +24,8 @@ export interface CrsRig {
    * forward on a shove (its rest position is z = 0 in this group).
    */
   lineShield: RefObject<Group | null>;
+  /** A splatted tomato on the visor (#15). Shown only while `splatted`. */
+  splat: RefObject<Group | null>;
 }
 
 export interface CrsLook {
@@ -35,6 +37,39 @@ export interface CrsLook {
 }
 
 const CAPSULE_LENGTH = 1.05;
+
+/** Drips and bits of the tomato splat (#15): x, y, radius, as fractions of the CRS radius. */
+const SPLAT_DRIPS: readonly (readonly [number, number, number])[] = [
+  [-0.35, -0.3, 0.1],
+  [0.25, -0.38, 0.08],
+  [0.45, 0.15, 0.09],
+  [-0.5, 0.1, 0.07],
+];
+
+/** Puffs of the stink cloud (#15): angle around the head (radians), height, size. */
+const STINK_PUFFS: readonly (readonly [number, number, number])[] = [
+  [0, 0.1, 0.38],
+  [2.1, 0.3, 0.32],
+  [4.2, 0.05, 0.35],
+  [1.0, 0.55, 0.26],
+  [3.3, 0.6, 0.24],
+];
+
+/**
+ * The little green stink cloud over a stinky CRS (#15). Mount it outside the
+ * tilted body (it stays upright); CrsAvatar shows it and turns `group`.
+ */
+export function StinkCloud({ group, height }: { group: RefObject<Group | null>; height: number }) {
+  return (
+    <group ref={group} position-y={height + 0.1} visible={false}>
+      {STINK_PUFFS.map(([a, y, s], i) => (
+        <sprite key={i} position={[Math.cos(a) * 0.45, y, Math.sin(a) * 0.45]} scale={[s, s, 1]}>
+          <spriteMaterial color={i % 2 === 0 ? "#8bc34a" : "#689f38"} transparent opacity={0.75} depthWrite={false} />
+        </sprite>
+      ))}
+    </group>
+  );
+}
 
 function crsLook(radius: number): CrsLook {
   const height = CAPSULE_LENGTH + radius * 2;
@@ -57,6 +92,19 @@ function crsLook(radius: number): CrsLook {
           <boxGeometry args={[radius * 1.3, 0.18, 0.06]} />
           <meshStandardMaterial color="#9fb7d6" transparent opacity={0.6} />
         </mesh>
+        {/* Tomato splat on the visor (#15): a squashed red blob and a few drips. */}
+        <group ref={rig.splat} position={[0, height - 0.28, radius * 0.76]} visible={false}>
+          <mesh scale={[1, 0.75, 0.25]}>
+            <sphereGeometry args={[radius * 0.42, 12, 8]} />
+            <meshStandardMaterial color="#d62a1e" roughness={0.3} />
+          </mesh>
+          {SPLAT_DRIPS.map(([x, y, r], i) => (
+            <mesh key={i} position={[x * radius, y * radius, 0.02]}>
+              <sphereGeometry args={[r * radius, 8, 6]} />
+              <meshStandardMaterial color="#b71c1c" roughness={0.3} />
+            </mesh>
+          ))}
+        </group>
         {/* Shield on the left arm. */}
         <group ref={rig.shieldArm} position={[-radius - 0.05, height * 0.62, 0.1]}>
           <mesh position={[0, -0.25, 0.25]} castShadow>

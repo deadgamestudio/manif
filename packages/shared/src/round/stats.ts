@@ -16,10 +16,14 @@ export interface RoundPlayerStats {
   firesLit: number;
   /** Teammates this player picked up and threw (#11). */
   teammatesThrown: number;
+  /** CRS this player splatted with a tomato or made stinky with a dog poo (#15). */
+  splats: number;
+  /** Times this player slipped on a dog poo (#15). */
+  slips: number;
 }
 
 export function emptyStats(): RoundPlayerStats {
-  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0, teammatesThrown: 0 };
+  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0, teammatesThrown: 0, splats: 0, slips: 0 };
 }
 
 /** Payload of `ServerMessage.RoundEnd`. */
@@ -49,6 +53,8 @@ const AWARDS: readonly { stat: keyof RoundPlayerStats; title: string; unit: stri
   { stat: "crsOut", title: "Terreur des CRS", unit: "CRS au tapis" },
   { stat: "firesLit", title: "Pyromane du dimanche", unit: "feux allumés" },
   { stat: "teammatesThrown", title: "Catapulte humaine", unit: "camarades lancés" },
+  { stat: "splats", title: "Primeur de combat", unit: "CRS repeints ou parfumés" },
+  { stat: "slips", title: "Pied dans la crotte", unit: "glissades" },
 ];
 
 /**

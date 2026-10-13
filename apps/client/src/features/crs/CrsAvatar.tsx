@@ -5,7 +5,7 @@ import { CRS_STATS, CrsKind, CrsStatus } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { useRagdoll } from "../ragdoll/index.ts";
-import { CRS_LOOKS, type CrsRig } from "./crsVisuals.tsx";
+import { CRS_LOOKS, StinkCloud, type CrsRig } from "./crsVisuals.tsx";
 import { BodyFire, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
 
 const FALLEN_ANGLE = Math.PI / 2;
@@ -20,6 +20,9 @@ const ARM_SMASH = -1.2;
 const ARM_GRAB = 1.3;
 const TUG_SPEED = 14;
 const TUG_ANGLE = 0.25;
+/** Stink cloud (#15): turns around the head and bobs, radians per second and metres. */
+const STINK_SPIN = 1.6;
+const STINK_BOB = 0.08;
 /** Stunned: wobbles on the spot. */
 const WOBBLE_SPEED = 9;
 const WOBBLE_ANGLE = 0.3;
@@ -51,6 +54,9 @@ export function CrsAvatar({ id }: { id: string }) {
   const batonArm = useRef<Group>(null);
   const shieldArm = useRef<Group>(null);
   const lineShield = useRef<Group>(null);
+  const splat = useRef<Group>(null);
+  const stink = useRef<Group>(null);
+  const stinkPhase = useRef(0);
   const bar = useRef<Group>(null);
   const barFill = useRef<Sprite>(null);
   // The kind never changes for a bot; read it once.
@@ -101,8 +107,20 @@ export function CrsAvatar({ id }: { id: string }) {
     t.quaternion.setFromAxisAngle(fallAxis, angle);
     t.position.y = Math.sin(angle) * stats.radius;
 
+    // Thrown-item statuses (#15): a red visor, a green cloud. A splatted CRS also wobbles like a stunned one.
+    if (splat.current) splat.current.visible = c.splatted === true;
+    const cloud = stink.current;
+    if (cloud) {
+      cloud.visible = c.stinky === true;
+      if (cloud.visible) {
+        stinkPhase.current += dt;
+        cloud.rotation.y = stinkPhase.current * STINK_SPIN;
+        cloud.position.y = look.height + 0.1 + Math.sin(stinkPhase.current * 3) * STINK_BOB;
+      }
+    }
+
     const grabbing = c.status === CrsStatus.Grabbing;
-    const stunned = c.status === CrsStatus.Stunned;
+    const stunned = c.status === CrsStatus.Stunned || (c.splatted === true && !lying);
     // On fire (#16): flails like a protester on fire.
     const burning = c.onFire === true && !lying;
     phase.current = grabbing || stunned || burning ? phase.current + dt : 0;
@@ -161,11 +179,12 @@ export function CrsAvatar({ id }: { id: string }) {
     <group ref={group}>
       <group ref={tilt}>
         <group ref={yaw}>
-          {look.render({ body: bodyMat, batonArm, shieldArm, lineShield } satisfies CrsRig)}
+          {look.render({ body: bodyMat, batonArm, shieldArm, lineShield, splat } satisfies CrsRig)}
           <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} />
         </group>
       </group>
       {ragdoll.view}
+      <StinkCloud group={stink} height={look.height} />
       {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
       <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} anchor={(out) => ragdoll.torso(out)} />
       <group ref={bar} position-y={look.height + 0.4} visible={false}>

@@ -4,7 +4,7 @@ import { net } from "../../shared/net/index.ts";
 /**
  * The interact key, E (#10 rescue, #8 pick-up). Sent on press and on release:
  * holding it next to a grabbed teammate pulls them free; otherwise a press
- * picks up the nearest pavé.
+ * picks up the nearest item (pavé, tomate, crotte, trottinette).
  * Losing focus counts as a release, so a rescue never sticks on a key the
  * page no longer sees.
  */
