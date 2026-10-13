@@ -26,6 +26,7 @@ import {
   type InteractPayload,
   type LobbyJoinOptions,
   type MoveInput,
+  type PickArchetypePayload,
   type PlayerShape,
   type PropShapeState,
   type StreetStateShape,
@@ -47,6 +48,8 @@ export type ConnectionStatus = "idle" | "connecting" | "connected" | "error";
 export interface LobbyPlayer {
   id: string;
   name: string;
+  /** The archetype picked in the lobby (#14), an `Archetype`. */
+  archetype: number;
 }
 
 export interface NetSnapshot {
@@ -255,7 +258,7 @@ function readRoom(r: ClientRoom): Partial<NetSnapshot> {
   return {
     phase: state.phase as Phase,
     hostId: state.hostId || null,
-    players: Array.from(state.players.entries(), ([id, p]) => ({ id, name: p.name })),
+    players: Array.from(state.players.entries(), ([id, p]) => ({ id, name: p.name, archetype: p.archetype ?? 0 })),
     crs: state.crs ? Array.from(state.crs.entries(), ([id]) => id) : [],
   };
 }
@@ -271,6 +274,8 @@ function attach(joined: ClientRoom, gen: number) {
   const callbacks = Callbacks.get(joined);
   callbacks.onAdd("players", (player, _id) => {
     callbacks.listen(player as PlayerShape & IRef, "name", refresh);
+    // The lobby shows everyone's pick (#14).
+    callbacks.listen(player as PlayerShape & IRef, "archetype", refresh);
     refresh();
   });
   callbacks.onRemove("players", (_player, id) => {
@@ -728,6 +733,12 @@ export const net = {
   /** Host only (the server checks): from the lobby screen (`waiting`), start the march for everyone (#12). */
   start() {
     room?.send(ClientMessage.Start);
+  },
+
+  /** Pick an archetype in the lobby (#14). The server ignores it outside `waiting`. */
+  pickArchetype(archetype: number) {
+    const payload: PickArchetypePayload = { archetype };
+    room?.send(ClientMessage.PickArchetype, payload);
   },
 
   /** DEBUG (#2), dev builds only: ask the server to knock someone over. The server refuses it in production. */

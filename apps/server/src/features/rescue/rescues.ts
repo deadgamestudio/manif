@@ -29,16 +29,17 @@ export class Rescues {
     this.rescuers.clear();
   }
 
-  /** One tick of every rescue; `free` applies a finished one. See `stepRescues`. */
+  /** One tick of every rescue; `free` applies a finished one, `timeOf` is a rescuer's own time (#14). See `stepRescues`. */
   step(
     dt: number,
     lookup: (id: string) => RescueSubject | undefined,
     subjects: () => Iterable<RescueSubject>,
     canAct: (id: string) => boolean,
     free: (targetId: string, rescuerId: string) => boolean,
+    timeOf?: (rescuerId: string) => number,
   ): [string, string][] {
     if (this.rescuers.size === 0) return [];
-    return stepRescues(this.rescuers, lookup, subjects, canAct, dt, free);
+    return stepRescues(this.rescuers, lookup, subjects, canAct, dt, free, timeOf);
   }
 
   /** Progress shown over `targetId`, 0..100 (the best of everyone pulling them). */

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Vector3, type Group, type MeshStandardMaterial } from "three";
 import { PLAYER_RADIUS, PlayerStatus, type PlayerShape } from "@manif/shared";
@@ -12,6 +12,7 @@ import { BodyFire, FireHoldBar, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from 
 import { PROTESTER_RAGDOLL, useRagdoll } from "../ragdoll/index.ts";
 import { HopArc, LAND_SQUASH } from "../jump/index.ts";
 import { CARRY_ARM_UP, CARRY_FLAIL_ANGLE, CARRY_FLAIL_SPEED, CARRY_LIFT, CARRY_LIFT_RATE } from "../carry/index.ts";
+import { SKIN, archetypeLook } from "../archetype/index.ts";
 import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;
@@ -24,10 +25,11 @@ const GETUP_RATE = 7;
 /** A grabbed protester flails: a quick side-to-side wobble, in radians and per second. */
 const FLAIL_ANGLE = 0.35;
 const FLAIL_SPEED = 18;
-const LOCAL_COLOR = new Color("#ffca28");
-const OTHER_COLOR = new Color("#42a5f5");
-/** Grabbed, KO: the body goes a bit pale. */
+/** The local player's ring on the ground (#14: the body colour is the archetype's clothes now, for everyone). */
+const LOCAL_RING = "#ffca28";
+/** Grabbed, KO: the clothes go a bit pale, towards this. */
 const HURT_COLOR = new Color("#b0bec5");
+const HURT_MIX = 0.6;
 /** Melee swing (#4): a quick wind-up and smash of the placeholder arm, in ms and radians. */
 const SWING_MS = 260;
 const ARM_REST = -0.15;
@@ -69,6 +71,10 @@ const DUST_PUFFS: readonly [number, number][] = [
  * `source` reads the state it draws (the synced player by default). A
  * disguised BAC (#13) passes its own, so it is drawn by this very component
  * and looks exactly like any other protester.
+ *
+ * Archetype (#14): the clothes colour (capsule and ragdoll) and the
+ * accessories come from `archetypeVisuals.tsx`; the arm keeps the one skin
+ * colour everyone shares. The local player gets a ring on the ground.
  */
 export function PlayerAvatar({
   id,
@@ -106,6 +112,14 @@ export function PlayerAvatar({
   const [hop] = useState(() => new HopArc());
   /** Height of the carried pose (#11), eased up when picked up and down when dropped. */
   const carryLift = useRef(0);
+  /** The archetype drawn (#14). It only changes in the lobby, so a re-render then is fine. */
+  const [archetype, setArchetype] = useState(() => source(id)?.archetype ?? 0);
+  const look = archetypeLook(archetype);
+  const [clothes, hurtClothes] = useMemo(() => {
+    const c = new Color(look.clothes);
+    return [c, c.clone().lerp(HURT_COLOR, HURT_MIX)];
+  }, [look]);
+  const Accessories = look.accessories;
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -113,6 +127,7 @@ export function PlayerAvatar({
     const y = yaw.current;
     const p = source(id);
     if (!g || !t || !y || !p) return;
+    if ((p.archetype ?? 0) !== archetype) setArchetype(p.archetype ?? 0);
 
     const arrested = p.status === PlayerStatus.Arrested;
     g.visible = !arrested;
@@ -243,7 +258,7 @@ export function PlayerAvatar({
       }
     }
 
-    const color = grabbed || p.status === PlayerStatus.Ko ? HURT_COLOR : isLocal ? LOCAL_COLOR : OTHER_COLOR;
+    const color = grabbed || p.status === PlayerStatus.Ko ? hurtClothes : clothes;
     body.current?.color.copy(color);
     ragdoll.setColor(color);
   });
@@ -254,13 +269,15 @@ export function PlayerAvatar({
         <group ref={yaw}>
           <mesh position-y={HEIGHT / 2} castShadow>
             <capsuleGeometry args={[PLAYER_RADIUS, CAPSULE_LENGTH, 4, 12]} />
-            <meshStandardMaterial ref={body} color={isLocal ? LOCAL_COLOR : OTHER_COLOR} />
+            <meshStandardMaterial ref={body} color={look.clothes} />
           </mesh>
+          {/* The archetype's props (#14): placeholders until Jordan's models. */}
+          {Accessories && <Accessories />}
           {/* Placeholder arm (#4), pivoting at the shoulder; it swings on attack and on a throw (#8). */}
           <group ref={arm} position={[PLAYER_RADIUS + 0.08, HEIGHT * 0.68, 0]} rotation-x={ARM_REST}>
             <mesh position-y={-0.35} castShadow>
               <boxGeometry args={[0.16, 0.7, 0.16]} />
-              <meshStandardMaterial color="#8d6e63" />
+              <meshStandardMaterial color={SKIN} />
             </mesh>
             {/* The item in hand (#8); the swing throws it. */}
             <CarriedItem id={id} />
@@ -274,6 +291,13 @@ export function PlayerAvatar({
           </mesh>
         </group>
       </group>
+      {/* Who you are (#14): a ring on the ground under the local player. */}
+      {isLocal && (
+        <mesh position-y={0.03} rotation-x={-Math.PI / 2}>
+          <ringGeometry args={[PLAYER_RADIUS + 0.12, PLAYER_RADIUS + 0.24, 28]} />
+          <meshBasicMaterial color={LOCAL_RING} transparent opacity={0.85} depthWrite={false} />
+        </mesh>
+      )}
       {/* The ragdoll (#26), in world space under the root: never tilted or turned with the capsule. */}
       {ragdoll.view}
       {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}

@@ -1,5 +1,5 @@
 import { schema, t, type SchemaType } from "@colyseus/schema";
-import { MAX_HP, PlayerStatus } from "@manif/shared";
+import { DEFAULT_ARCHETYPE, MAX_HP, PlayerStatus } from "@manif/shared";
 
 // Schema classes are built with `schema()` rather than `@type()` decorators,
 // so no `experimentalDecorators` / `useDefineForClassFields` settings are needed.
@@ -37,6 +37,11 @@ export const Player = schema(
     fireHold: t.uint8().default(0),
     /** Carried overhead by this teammate (#11), a session id; "" when not carried. The carry timer stays in the server's carry feature. */
     carriedBy: t.string().default(""),
+    /**
+     * The archetype picked in the lobby (#14), an `Archetype` from @manif/shared; 0 (the default) until a pick.
+     * Only the id is synced: every stat comes from it and the shared table, on the server and the client alike.
+     */
+    archetype: t.uint8().default(DEFAULT_ARCHETYPE),
   },
   "Player",
 );

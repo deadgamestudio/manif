@@ -233,11 +233,21 @@ export class Bodies {
    * One fixed tick for one body, then mirror position and `down` into `view`.
    * `world` replaces the room's world for this step: the room adds the raised
    * shields of CRS lines (#6) to it, so protesters bump into them.
+   * `speedFactor` scales this body's walking speed (#14, an archetype's
+   * `speed`), and with it the dodge burst, which is a multiple of the walk.
    */
-  step(id: string, view: BodyView, input: MoveInput, dt: number, world: CollisionWorld = this.world): BodyStepResult | null {
+  step(
+    id: string,
+    view: BodyView,
+    input: MoveInput,
+    dt: number,
+    world: CollisionWorld = this.world,
+    speedFactor = 1,
+  ): BodyStepResult | null {
     const body = this.bodies.get(id);
     if (!body) return null;
-    const res = stepBody(world, body, input, this.walkSpeed, this.radius, dt);
+    const factor = Number.isFinite(speedFactor) && speedFactor > 0 ? speedFactor : 1;
+    const res = stepBody(world, body, input, this.walkSpeed * factor, this.radius, dt);
     // Assign only on change, so idle bodies cost nothing in the patch.
     if (view.x !== body.x) view.x = body.x;
     if (view.z !== body.z) view.z = body.z;

@@ -38,6 +38,8 @@ export interface PlayerShape {
   fireHold: number;
   /** Carried overhead by this teammate (#11), a session id; "" when not carried. The timer stays server-side. */
   carriedBy: string;
+  /** The archetype picked in the lobby (#14), an `Archetype`. Read its stats with `archetypeStats`, never a local copy. */
+  archetype: number;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */

@@ -10,9 +10,10 @@
  */
 import type { ReactNode } from "react";
 import type { MeshStandardMaterial } from "three";
+import { SKIN } from "../archetype/index.ts";
 import { S, type RagdollProportions, type SegmentId } from "./skeleton.ts";
 
-/** Registers a material that takes the body colour (setColor), e.g. the local player's yellow. */
+/** Registers a material that takes the body colour (setColor): a protester's archetype clothes (#14). */
 export type BodyMaterial = (m: MeshStandardMaterial | null) => void;
 
 export interface RagdollLook {
@@ -41,7 +42,6 @@ const PROTESTER: RagdollProportions = {
   headRadius: 0.2,
   limbRadius: 0.11,
 };
-const SKIN = "#8d6e63";
 /** Trousers: the legs stand out from the torso once it is on the ground (and hide inside the capsule standing). */
 const TROUSERS = "#37474f";
 
@@ -68,9 +68,11 @@ export const PROTESTER_RAGDOLL: RagdollLook = {
             {bodyMat}
           </mesh>
         );
+      // Sleeves in the clothes colour (#14, the archetype's, through setColor); the forearms in the one skin colour everyone shares.
       case S.LUpperArm:
-      case S.LForearm:
       case S.RUpperArm:
+        return limb(length, 0.08, bodyMat);
+      case S.LForearm:
       case S.RForearm:
         return limb(length, 0.08, <meshStandardMaterial color={SKIN} />);
       default:

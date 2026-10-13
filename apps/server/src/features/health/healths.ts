@@ -5,6 +5,7 @@ import {
   createHealth,
   damage,
   grab,
+  heal,
   rescue,
   secondsLeft,
   tickHealth,
@@ -33,9 +34,14 @@ export interface HealthView {
 export class Healths {
   private readonly records = new Map<string, Health>();
 
-  /** Create or reset a protester: free, full HP. */
-  reset(id: string, view: HealthView): void {
-    this.set(id, view, createHealth(), 0);
+  /** Create or reset a protester: free, full HP (`maxHp`, the archetype's #14; MAX_HP by default). */
+  reset(id: string, view: HealthView, maxHp?: number): void {
+    this.set(id, view, createHealth(maxHp), 0);
+  }
+
+  /** Give HP back, up to the protester's max (#14, a heal aura). Free only. Returns true if it changed. */
+  heal(id: string, view: HealthView, amount: number, now: number): boolean {
+    return this.apply(id, view, now, (h) => heal(h, amount));
   }
 
   remove(id: string): void {

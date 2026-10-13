@@ -12,6 +12,8 @@ export interface ProtesterView extends Vec2 {
   status: number;
   /** Knocked down (#2). */
   down: boolean;
+  /** Target priority (#14, an archetype's `targetWeight`): chased as if 1/priority as far. 1 when absent. */
+  priority?: number;
 }
 
 /**
@@ -19,8 +21,12 @@ export interface ProtesterView extends Vec2 {
  * `sight`. Grabbed, KO and arrested protesters are never chosen. Ties go to
  * the smaller id, so the choice is deterministic.
  *
+ * Priority (#14): a protester with `priority` p counts as d / p away, so a
+ * black bloc is chased first among protesters at similar distances, never one
+ * out of sight. Sight uses the real distance.
+ *
  * Sticky: while the current target is still valid, it is kept unless another
- * is more than `switchMargin` closer. `ignoreId` is skipped (a target the bot
+ * is more than `switchMargin` closer (in weighted distance). `ignoreId` is skipped (a target the bot
  * just gave up on). Returns null when nobody qualifies.
  */
 export function pickTarget(
@@ -39,7 +45,8 @@ export function pickTarget(
     if (p.status !== PlayerStatus.Free || p.id === ignoreId) continue;
     const dSq = (p.x - from.x) ** 2 + (p.z - from.z) ** 2;
     if (!(dSq <= sightSq)) continue;
-    const d = Math.sqrt(dSq);
+    const w = p.priority;
+    const d = Math.sqrt(dSq) / (w !== undefined && w > 0 ? w : 1);
     if (p.id === currentId) currentD = d;
     if (d < bestD || (d === bestD && bestId !== null && p.id < bestId)) {
       bestD = d;

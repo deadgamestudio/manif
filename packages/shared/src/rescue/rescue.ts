@@ -118,6 +118,8 @@ export function stepRescuer(
  * a finished rescue to the live state at once and returns whether it took, so
  * a later rescuer on the same teammate sees them free and stops (no stacking,
  * no double release). Returns the rescues that took, as [targetId, rescuerId].
+ * `timeOf(rescuerId)` is how long that rescuer needs (#14, an archetype's
+ * rescue time); RESCUE_TIME when absent.
  */
 export function stepRescues(
   rescuers: ReadonlyMap<string, Rescuer>,
@@ -126,10 +128,14 @@ export function stepRescues(
   canAct: (id: string) => boolean,
   dt: number,
   free: (targetId: string, rescuerId: string) => boolean,
+  timeOf?: (rescuerId: string) => number,
 ): [string, string][] {
   const done: [string, string][] = [];
   for (const [id, r] of rescuers) {
-    const freed = stepRescuer(r, lookup(id), canAct(id), lookup, subjects, dt);
+    // An archetype's own rescue time (#14) is a rate on the clock, so progress stays in RESCUE_TIME units for the ring.
+    const time = timeOf?.(id) ?? RESCUE_TIME;
+    const rate = time > 0 ? RESCUE_TIME / time : 1;
+    const freed = stepRescuer(r, lookup(id), canAct(id), lookup, subjects, dt * rate);
     if (freed !== null && free(freed, id)) done.push([freed, id]);
   }
   return done;

@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { MAX_PLAYERS, RoundResult } from "@manif/shared";
 import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
 import { LastRound, useRound } from "../round/index.ts";
+import { ArchetypeBadge, ArchetypePicker } from "../archetype/index.ts";
 
 /**
  * Before the march: who's here, the invite link, and Start for the host.
  * This is the round's `waiting` phase (#12): the room comes back here after
- * every round, with the last result shown. #14 adds the archetype picker here.
+ * every round, with the last result shown, and each player picks an
+ * archetype for the next march here (#14).
  */
 export function Lobby({ snap }: { snap: NetSnapshot }) {
   const code = snap.roomId ?? "";
@@ -15,6 +17,7 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
   const host = snap.players.find((p) => p.id === snap.hostId);
   // A round already finished in this room: Start is a rematch.
   const rematch = useRound().result !== RoundResult.None;
+  const me = snap.players.find((p) => p.id === snap.sessionId);
 
   return (
     <main className="screen lobby">
@@ -28,6 +31,8 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
       <LastRound />
 
       <div className="placards">
+        <ArchetypePicker current={me?.archetype ?? 0} />
+
         <section className="placard placard-roster">
           <h2 className="placard-label">
             Le cortège{" "}
@@ -38,7 +43,10 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
           <ul className="roster">
             {snap.players.map((p) => (
               <li key={p.id} className={p.id === snap.sessionId ? "is-me" : undefined}>
-                <span className="roster-name">{p.name}</span>
+                <span className="roster-name">
+                  {p.name}
+                  <ArchetypeBadge archetype={p.archetype} />
+                </span>
                 {p.id === snap.hostId && <span className="tag tag-host">📣 orga</span>}
                 {p.id === snap.sessionId && <span className="tag">toi</span>}
               </li>

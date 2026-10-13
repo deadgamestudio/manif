@@ -1,7 +1,7 @@
 import { useCallback, useRef, type MouseEvent, type PointerEvent } from "react";
 import { net, type LobbyPlayer } from "../../shared/net/index.ts";
 import { tryThrow } from "../throwable/index.ts";
-import { DodgeCooldownFill, useDodgeStart } from "../dodge/index.ts";
+import { DodgeCooldownFill, useDodgeCooldown, useDodgeStart } from "../dodge/index.ts";
 import { clampKnob, stickToGround, touchAim, type GroundDir } from "./joystick.ts";
 import { useActionHint } from "./useActionHint.ts";
 import { useHoldButton } from "./useHoldButton.ts";
@@ -77,6 +77,7 @@ export function TouchControls({ localId, players }: { localId: string | null; pl
   const sauter = useHoldButton(jump);
   const action = useHoldButton(interactDown, interactUp);
   const dodgeStarted = useDodgeStart(localId);
+  const dodgeCooldown = useDodgeCooldown(localId);
   const hint = useActionHint(localId, players);
 
   return (
@@ -103,7 +104,7 @@ export function TouchControls({ localId, players }: { localId: string | null; pl
         <button type="button" className="touch-btn touch-btn-dodge" data-held={esquive.held || undefined} {...esquive.handlers}>
           Esquive
           <span className="touch-cooldown" aria-hidden="true">
-            <DodgeCooldownFill started={dodgeStarted} />
+            <DodgeCooldownFill started={dodgeStarted} cooldown={dodgeCooldown} />
           </span>
         </button>
         <button type="button" className="touch-btn touch-btn-hit" data-held={taper.held || undefined} {...taper.handlers}>

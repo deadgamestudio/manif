@@ -74,3 +74,23 @@ describe("vanDoors", () => {
     });
   });
 });
+
+describe("target priority (#14, the black bloc)", () => {
+  const weighted = (id: string, x: number, priority: number): ProtesterView => ({ ...at(id, x, 0), priority });
+
+  test("a priority target is chased first among protesters at similar distances", () => {
+    expect(pickTarget(origin, [at("a", 5, 0), weighted("bb", 6.5, 1.4)], 20, null, 3)).toBe("bb");
+  });
+
+  test("a weight, not an absolute rule: a far one does not pull the bot off a near one", () => {
+    expect(pickTarget(origin, [at("a", 3, 0), weighted("bb", 15, 1.4)], 20, null, 3)).toBe("a");
+  });
+
+  test("never one out of sight", () => {
+    expect(pickTarget(origin, [weighted("bb", 21, 1.4)], 20, null, 3)).toBeNull();
+  });
+
+  test("priority 1 or absent is the plain nearest", () => {
+    expect(pickTarget(origin, [weighted("a", 5, 1), at("b", 4, 0)], 20, null, 3)).toBe("b");
+  });
+});

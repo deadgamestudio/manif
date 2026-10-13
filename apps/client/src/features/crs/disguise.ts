@@ -1,4 +1,4 @@
-import { MAX_HP, PlayerStatus, ThrowableKind, type PlayerShape } from "@manif/shared";
+import { ARCHETYPE_IDS, PlayerStatus, ThrowableKind, archetypeStats, type PlayerShape } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
 
 /**
@@ -6,8 +6,10 @@ import { net } from "../../shared/net/index.ts";
  * (`state.crs`), so this builds the player-shaped view PlayerAvatar and
  * HealthBar draw from: its position, facing, name and fire from the bot, and
  * the rest as a healthy protester with empty hands. It coughs in tear gas
- * like everyone else, so the gas does not give it away either. One reused
- * object per BAC, refreshed on each read (read it from useFrame).
+ * like everyone else, so the gas does not give it away either. It dresses
+ * as one of the archetypes (#14), picked from its id, so every client sees
+ * the same costume, at that archetype's full HP. One reused object per BAC,
+ * refreshed on each read (read it from useFrame).
  */
 const views = new Map<string, PlayerShape>();
 
@@ -16,13 +18,14 @@ export function disguiseSource(id: string): PlayerShape | undefined {
   if (!c) return undefined;
   let v = views.get(id);
   if (!v) {
+    const archetype = disguiseArchetype(id);
     v = {
       x: 0,
       z: 0,
       rotation: 0,
       name: "",
       down: false,
-      hp: MAX_HP,
+      hp: archetypeStats(archetype).maxHp,
       status: PlayerStatus.Free,
       stateLeft: 0,
       dodging: false,
@@ -33,6 +36,7 @@ export function disguiseSource(id: string): PlayerShape | undefined {
       onFire: false,
       fireHold: 0,
       carriedBy: "",
+      archetype,
     };
     views.set(id, v);
   }
@@ -44,6 +48,13 @@ export function disguiseSource(id: string): PlayerShape | undefined {
   v.onFire = c.onFire;
   v.gassed = inGas(c.x, c.z);
   return v;
+}
+
+/** The archetype a BAC dresses as (#14): any of them, the same on every client (a hash of its id). */
+export function disguiseArchetype(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return ARCHETYPE_IDS[h % ARCHETYPE_IDS.length] ?? 0;
 }
 
 /** Drop the cached view of a BAC that revealed itself or left. */
