@@ -112,6 +112,8 @@ export function PlayerAvatar({
   const [hop] = useState(() => new HopArc());
   /** Height of the carried pose (#11), eased up when picked up and down when dropped. */
   const carryLift = useRef(0);
+  /** The name tag and bars above the head, lifted with the carried pose. */
+  const overhead = useRef<Group>(null);
   /** The archetype drawn (#14). It only changes in the lobby, so a re-render then is fine. */
   const [archetype, setArchetype] = useState(() => source(id)?.archetype ?? 0);
   const look = archetypeLook(archetype);
@@ -172,6 +174,7 @@ export function PlayerAvatar({
     const carried = !!p.carriedBy && !lying;
     carryLift.current += ((carried ? CARRY_LIFT : 0) - carryLift.current) * damp(CARRY_LIFT_RATE, dt);
     if (carryLift.current < 1e-3) carryLift.current = 0;
+    if (overhead.current) overhead.current.position.y = carryLift.current;
     // Ragdoll (#26) if a slot is free: the capsule hides and stays upright meanwhile.
     const ragdolling = ragdoll.update(dt, lying, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id), drawnLift);
     t.visible = !ragdolling;
@@ -318,13 +321,16 @@ export function PlayerAvatar({
           </mesh>
         ))}
       </group>
-      <NameTag name={name} isLocal={isLocal} y={HEIGHT + 0.55} />
-      {/* The local player's HP is in the HUD. */}
-      {!isLocal && <HealthBar id={id} y={HEIGHT + 0.95} source={source} />}
-      {/* Over everyone, the local player included: help is coming (#10). */}
-      <RescueBar id={id} y={HEIGHT + 1.25} />
-      {/* Lighting a prop or patting someone out (#16). */}
-      <FireHoldBar id={id} y={HEIGHT + 1.25} />
+      {/* Rides up with the carried pose (#11), so a carried player's tag sits above the carrier's instead of on it. */}
+      <group ref={overhead}>
+        <NameTag name={name} isLocal={isLocal} y={HEIGHT + 0.55} />
+        {/* The local player's HP is in the HUD. */}
+        {!isLocal && <HealthBar id={id} y={HEIGHT + 0.95} source={source} />}
+        {/* Over everyone, the local player included: help is coming (#10). */}
+        <RescueBar id={id} y={HEIGHT + 1.25} />
+        {/* Lighting a prop or patting someone out (#16). */}
+        <FireHoldBar id={id} y={HEIGHT + 1.25} />
+      </group>
     </group>
   );
 }

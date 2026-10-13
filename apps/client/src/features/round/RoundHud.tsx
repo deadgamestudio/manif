@@ -1,15 +1,25 @@
 import { useRound } from "./useRound.ts";
 import { clock } from "./text.ts";
 
+/** Under this many seconds the timer turns red. */
+const LOW = 30;
+/** Under this many it also pulses. */
+const CRITICAL = 10;
+
 /**
- * Top of the screen while marching (#12): the round timer and the cortège's
- * progress from the start to the Préfecture.
+ * The round timer and the cortège's progress from the start to the Préfecture
+ * (#12): bottom centre on a keyboard, top centre on touch, clear of the stick.
  */
 export function RoundHud() {
   const { timeLeft, progress } = useRound();
   return (
     <div className="round-hud">
-      <div className="round-timer" data-low={timeLeft <= 30 || undefined} aria-label="Temps restant">
+      <div
+        className="round-timer"
+        data-low={timeLeft <= LOW || undefined}
+        data-critical={(timeLeft > 0 && timeLeft <= CRITICAL) || undefined}
+        aria-label="Temps restant"
+      >
         {clock(timeLeft)}
       </div>
       <div
@@ -20,9 +30,9 @@ export function RoundHud() {
         aria-valuemax={100}
         aria-valuenow={progress}
       >
-        <div className="round-progress-fill" style={{ width: `${progress}%` }} />
-        <span className="round-progress-end">Préfecture</span>
+        <div className="round-progress-fill" style={{ transform: `scaleX(${Math.max(0, Math.min(100, progress)) / 100})` }} />
       </div>
+      <span className="round-progress-end">Préfecture</span>
     </div>
   );
 }

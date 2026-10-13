@@ -42,10 +42,14 @@ export function HealthHud({ localId }: { localId: string | null }) {
 
   return (
     <div className="hud-health">
-      <div className="hud-hp" role="meter" aria-label="Points de vie" aria-valuemin={0} aria-valuemax={maxHp} aria-valuenow={hp}>
-        <div className="hud-hp-fill" style={{ width: `${ratio * 100}%` }} data-low={ratio <= 0.3 || undefined} />
-        <span className="hud-hp-text">
-          {hp}/{maxHp}
+      <div className="hud-hp-row">
+        <div className="hud-hp" role="meter" aria-label="Points de vie" aria-valuemin={0} aria-valuemax={maxHp} aria-valuenow={hp}>
+          <div className="hud-hp-fill" style={{ transform: `scaleX(${ratio})` }} data-low={ratio <= 0.3 || undefined} />
+        </div>
+        {/* Beside the bar, not inside it: a number squeezed into the bar was cut in half. */}
+        <span className="hud-hp-text" aria-hidden="true">
+          {hp}
+          <small>/{maxHp}</small>
         </span>
       </div>
       {label && <div className="hud-status">{label}</div>}
