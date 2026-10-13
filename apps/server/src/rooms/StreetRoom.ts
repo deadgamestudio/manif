@@ -1,5 +1,7 @@
 import { Room, type Client } from "@colyseus/core";
 import {
+  CARRY_DROP_PUSH,
+  CARRY_SPEED_FACTOR,
   CRS_BURN_DAMAGE,
   CRS_BURN_DAMAGE_INTERVAL,
   CRS_SPAWN_CLEARANCE,
@@ -48,6 +50,21 @@ import {
   wavesDue,
   pickFireAction,
   CrsStatus,
+  PICKUP_RANGE,
+  TEAMMATE_CRS_DAMAGE,
+  TEAMMATE_CRS_KNOCKBACK,
+  TEAMMATE_CRS_STUN,
+  TEAMMATE_PROP_DAMAGE,
+  TEAMMATE_REBOUND,
+  carryDropReason,
+  dropDirection,
+  flightContacts,
+  nearestItem,
+  pickCarryTarget,
+  pickInteract,
+  teammateLaunch,
+  type CarrySubject,
+  type InteractChoice,
   type BurningView,
   type FireAction,
   type LightableView,
@@ -84,6 +101,7 @@ import { Rescues } from "../features/rescue/index.js";
 import { Throwables } from "../features/throwable/index.js";
 import { Gas } from "../features/gas/index.js";
 import { Fires } from "../features/fire/index.js";
+import { Carries } from "../features/carry/index.js";
 import { DEBUG_ROUND_ENABLED, RoundStats, parseDebugRound } from "../features/round/index.js";
 import { StreetState } from "./state.js";
 
@@ -167,6 +185,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * applies the damage, the panic speed and the props' HP.
    */
   private fires = new Fires(LEVEL.propSlots, this.state.fires);
+  /** Who carries whom, and the teammates in a throw's flight (#11). Server-only; `carriedBy` is synced on the carried player. */
+  private carry = new Carries();
   /** Scratch for the fire actions (#16), reused every tick. */
   private burningViews: BurningView[] = [];
   private lightable: LightableView[] = [];
@@ -252,14 +272,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.jump(client.sessionId);
     },
 
-    // Throw the carried item (#8) along the aim. Only a direction: the server
-    // re-normalizes it, checks the thrower, and flies the projectile itself.
+    // Throw the carried item (#8), or the carried teammate (#11), along the aim. Only a
+    // direction: the server re-normalizes it, checks the thrower, and flies the throw itself.
     [ClientMessage.Throw]: (client: Client, message: unknown) => {
       if (this.state.phase !== Phase.Marching) return;
       this.throwItem(client, message);
     },
 
-    // Interact (E), on press and on release. No target: the server picks it (#10 rescue, else #8 pick-up).
+    // Interact (E), on press and on release. No target: the server picks it (see `interact`).
     [ClientMessage.Interact]: (client: Client, message: unknown) => {
       if (this.state.phase !== Phase.Marching) return;
       const held = (message as Partial<InteractPayload> | null)?.held === true;
@@ -351,9 +371,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   override onLeave(client: Client) {
-    // What they carried falls where they stood (#8).
+    // What they carried falls where they stood (#8); so does a carried teammate (#11).
     const leaving = this.state.players.get(client.sessionId);
     if (leaving && isItemKind(leaving.carrying)) this.throwables.drop(leaving.carrying, leaving.x, leaving.z);
+    this.endCarry(client.sessionId);
+    // Mid-flight (#11): the flight goes with the body; nothing else points at it.
+    this.carry.remove(client.sessionId);
     this.state.players.delete(client.sessionId);
     this.moveInputs.delete(client.sessionId);
     this.meleeCooldowns.remove(client.sessionId);
@@ -396,6 +419,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   private resetStreet() {
     this.rescues.clear();
+    // Nobody carried or flying (#11).
+    this.carry.clear();
     this.props.reset(this.state.props);
     this.fires.reset();
     this.crs.clear();
@@ -417,6 +442,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       player.gassed = false;
       player.onFire = false;
       player.fireHold = 0;
+      player.carriedBy = "";
       this.moveInputs.set(sessionId, { x: 0, z: 0 });
     });
     this.front = 0;
@@ -525,6 +551,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const player = this.state.players.get(id);
     // Arrested protesters are in the van, out of reach.
     if (!player || player.status === PlayerStatus.Arrested) return null;
+    // A carrier or a carried teammate who is hit, even lightly: the carry ends at once (#11).
+    if (this.carry.inCarry(id)) this.endCarry(id);
     const res = this.bodies.impulse(id, player, dirX, dirZ, strength, mode);
     if (!res || res.strength === 0) return res;
     if (res.knockedDown) this.roundStats.add(id, "knockdowns");
@@ -550,7 +578,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   /** A CRS grabs a free protester (#5); arrested when `duration` (default GRAB_DURATION) ends unless rescued. */
   grabPlayer(id: string, duration?: number): boolean {
     const player = this.state.players.get(id);
-    return player ? this.healths.grab(id, player, this.now, duration) : false;
+    // Held overhead or flying through the air (#11): out of a CRS's reach.
+    if (!player || this.carry.isCarried(id) || this.carry.isFlying(id)) return false;
+    if (!this.healths.grab(id, player, this.now, duration)) return false;
+    // A grabbed carrier drops their teammate at once.
+    this.endCarry(id);
+    return true;
   }
 
   /**
@@ -563,9 +596,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     return player ? this.healths.rescue(id, player, this.now) : false;
   }
 
-  /** May act (attack #4, throw and pick up #8, dodge #9, rescue #10): free and not knocked down. */
+  /** May act (attack #4, throw and pick up #8, dodge #9, rescue #10): free, not knocked down and not carried (#11). */
   hasControl(id: string): boolean {
-    return this.healths.canAct(id) && this.bodies.hasControl(id);
+    return this.healths.canAct(id) && this.bodies.hasControl(id) && !this.carry.isCarried(id);
   }
 
   /**
@@ -577,7 +610,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private attack(client: Client) {
     const id = client.sessionId;
     const player = this.state.players.get(id);
-    if (!player || !this.hasControl(id)) return;
+    // A carrier's hands are full (#11): the click throws instead (the client sends a throw).
+    if (!player || !this.hasControl(id) || this.carry.isCarrying(id)) return;
     if (!this.meleeCooldowns.tryStart(id, this.now)) return;
 
     // The swinger already played it locally.
@@ -632,8 +666,15 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private throwItem(client: Client, message: unknown) {
     const id = client.sessionId;
     const player = this.state.players.get(id);
-    if (!player || !this.hasControl(id) || !isItemKind(player.carrying)) return;
+    if (!player || !this.hasControl(id)) return;
     const m = (message ?? {}) as Partial<ThrowPayload>;
+    // Carrying a teammate (#11): they are what flies.
+    const mate = this.carry.carriedOf(id);
+    if (mate !== null) {
+      this.throwTeammate(client, player, mate, Number(m.x), Number(m.z));
+      return;
+    }
+    if (!isItemKind(player.carrying)) return;
     const dir = aimDirection(Number(m.x), Number(m.z), player.rotation);
     if (!this.throwables.launch(id, player.carrying, player.x, player.z, dir.x, dir.z)) return;
     player.carrying = ThrowableKind.None;
@@ -641,6 +682,62 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // The thrower already played the arm swing locally.
     const swing: SwingEvent = { id };
     this.broadcast(ServerMessage.Swing, swing, { except: client });
+  }
+
+  /**
+   * Throw the carried teammate (#11) along the aim: they leave the carrier's
+   * hands as a knocked-down body in the air (`launchBody`), from the carrier's
+   * spot, and hit CRS and props on the way (`stepFlights`). The carrier turns
+   * to face the throw.
+   */
+  private throwTeammate(client: Client, player: Player, mateId: string, aimX: number, aimZ: number) {
+    const id = client.sessionId;
+    const mate = this.state.players.get(mateId);
+    const l = teammateLaunch(aimX, aimZ, player.rotation);
+    this.carry.release(id);
+    if (!mate) return;
+    mate.carriedBy = "";
+    const facing = Math.atan2(l.dirX, l.dirZ);
+    this.bodies.hold(mateId, mate, player.x, player.z, facing);
+    const res = this.bodies.launch(mateId, mate, l.dirX, l.dirZ, l.speed, l.flight, l.down);
+    if (!res) return;
+    this.carry.startFlight(mateId, id, mate.x, mate.z, res.dirX, res.dirZ);
+    player.rotation = facing;
+    this.roundStats.add(id, "teammatesThrown");
+    this.roundStats.add(mateId, "knockdowns");
+    // The flailing flight: every client's ragdoll kicks along the throw.
+    const event: ImpulseEvent = { id: mateId, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: true };
+    this.broadcast(ServerMessage.Impulse, event);
+    const swing: SwingEvent = { id };
+    this.broadcast(ServerMessage.Swing, swing, { except: client });
+  }
+
+  /**
+   * End the carry `id` is in (#11), either side: the carried teammate lands
+   * where they are (on the carrier's spot) and stumbles off with a small push,
+   * along `dir` or in a random direction. A no-op outside a carry.
+   */
+  private endCarry(id: string, dir?: Vec2) {
+    const pair = this.carry.release(id);
+    if (!pair) return;
+    const mateId = pair[1];
+    const mate = this.state.players.get(mateId);
+    if (!mate) return;
+    mate.carriedBy = "";
+    const d = dir ?? dropDirection(Math.random());
+    this.applyImpulse(mateId, d.x, d.z, CARRY_DROP_PUSH, "never");
+  }
+
+  /** Pick up teammate `mateId` (#11), chosen by `interactChoice`. */
+  private pickUpTeammate(id: string, mateId: string) {
+    const mate = this.state.players.get(mateId);
+    if (!mate || !this.carry.pickUp(id, mateId, this.now)) return;
+    mate.carriedBy = id;
+    // Whatever they were doing stops: a hold on E, a rescue in progress.
+    this.rescues.hold(mateId, false);
+    this.fires.hold(mateId, false);
+    const player = this.state.players.get(id);
+    if (player) this.bodies.hold(mateId, mate, player.x, player.z, player.rotation);
   }
 
   /** A thrown item stopped on a prop or a CRS (#8): the row in THROWABLE_TYPES says what it does. */
@@ -690,7 +787,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   jump(id: string): boolean {
     const player = this.state.players.get(id);
-    if (!player || !this.hasControl(id)) return false;
+    // A carrier stays on the ground (#11): too heavy to hop.
+    if (!player || !this.hasControl(id) || this.carry.isCarrying(id)) return false;
     if (!this.jumpCooldowns.ready(id, this.now)) return false;
     if (!this.bodies.jump(id, player)) return false;
     this.jumpCooldowns.start(id, this.now);
@@ -698,28 +796,75 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   /**
-   * Interact key (E) pressed or released. On a press, a grabbed teammate in
-   * RESCUE_RANGE has priority (#10): the press starts holding, and the rescue
-   * itself runs in `step` for as long as the key stays down. Then a burning
-   * teammate to pat out (#16, a hold too). Otherwise (#8) the press picks up
-   * the nearest item within PICKUP_RANGE, empty-handed and with control only.
-   * Last, holding on next to a bin or a car lights it (#16, see `fireAction`).
+   * Interact key (E) pressed or released. What a press does is `pickInteract`
+   * (#11), one priority for the server and the client hints:
+   * 1. A carrier puts their teammate down, in front of them (#11), and nothing else.
+   * 2. A grabbed teammate in RESCUE_RANGE (#10): the press starts holding, and
+   *    the rescue itself runs in `step` for as long as the key stays down.
+   * 3. A burning teammate to pat out (#16, a hold too).
+   * 4. The nearest item within PICKUP_RANGE is picked up (#8), empty-handed only.
+   * 5. A free teammate in CARRY_RANGE is picked up (#11), empty-handed only
+   *    (after an item: reaching for a pavé never lifts a friend by mistake).
+   * 6. Holding on next to a bin or a car lights it (#16, see `fireAction`).
    * Holding is recorded even with nobody in range, so pressing E and then
-   * walking up to a grabbed teammate works too.
+   * walking up to a grabbed teammate works too. Nothing without control.
    */
   interact(id: string, held: boolean) {
     const player = this.state.players.get(id);
     if (!player) return;
+    if (held && this.carry.isCarrying(id)) {
+      this.rescues.hold(id, false);
+      this.fires.hold(id, false);
+      if (this.hasControl(id)) this.endCarry(id, { x: Math.sin(player.rotation), z: Math.cos(player.rotation) });
+      return;
+    }
     this.rescues.hold(id, held);
     // Fire (#16): patting out a burning teammate, or lighting a prop, is a hold that runs in `step`.
     this.fires.hold(id, held);
-    if (!held || player.carrying !== ThrowableKind.None || !this.hasControl(id)) return;
+    if (!held || !this.hasControl(id)) return;
+    const choice = this.interactChoice(id);
+    if (choice?.kind === "carry") this.pickUpTeammate(id, choice.target);
+    else if (choice?.kind === "pickUp") {
+      const kind = this.throwables.pickUp(player, player.carrying);
+      if (kind !== ThrowableKind.None) player.carrying = kind;
+    }
+  }
+
+  /** What an interact press by `id` does right now (see `interact`), or null. */
+  private interactChoice(id: string): InteractChoice | null {
+    const player = this.state.players.get(id);
     const self = this.protesterView(id);
-    if (!self || pickRescueTarget(self, this.allProtesterViews()) !== null) return;
-    // A burning teammate in reach comes before picking up (lighting comes after: it is a hold, a pick-up is the press).
-    if (this.fireAction(id)?.kind === "putOut") return;
-    const kind = this.throwables.pickUp(player, player.carrying);
-    if (kind !== ThrowableKind.None) player.carrying = kind;
+    const me = this.carrySubject(id);
+    if (!player || !self || !me) return null;
+    const others: CarrySubject[] = [];
+    for (const pid of this.state.players.keys()) {
+      const s = this.carrySubject(pid);
+      if (s) others.push(s);
+    }
+    return pickInteract({
+      carryingTeammate: this.carry.isCarrying(id),
+      rescue: pickRescueTarget(self, this.allProtesterViews()),
+      fire: this.fireAction(id),
+      teammate: pickCarryTarget(me, others),
+      item: player.carrying === ThrowableKind.None ? nearestItem(player, this.throwables.ground.entries(), PICKUP_RANGE) : null,
+    });
+  }
+
+  /** Protester `id` as the carry rules see them (#11). */
+  private carrySubject(id: string): CarrySubject | undefined {
+    const p = this.state.players.get(id);
+    if (!p) return undefined;
+    return {
+      id,
+      x: p.x,
+      z: p.z,
+      status: p.status,
+      down: p.down,
+      onFire: p.onFire,
+      item: p.carrying,
+      carried: this.carry.isCarried(id),
+      carrying: this.carry.isCarrying(id),
+    };
   }
 
   /**
@@ -769,6 +914,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    *    movement. One no longer free drops what they carry (#8).
    *    Tear gas (#7) hurts and slows whoever a cloud reaches, and a fire
    *    (#16) sets alight whoever stands in it, here too.
+   *    Then carries (#11): drops, and each carried teammate onto their
+   *    carrier; thrown teammates hit the CRS and props they flew into.
    * 3. Thrown items (#8) fly, after the protesters moved and before the CRS,
    *    so a stunned bot lets go on this very tick. Then gas canisters (#7)
    *    fly and land, and clouds that have run their time go.
@@ -795,7 +942,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       dt,
       (id) => this.protesterView(id),
       () => this.allProtesterViews(),
-      (id) => this.hasControl(id),
+      // A carrier's hands are full (#11).
+      (id) => this.hasControl(id) && !this.carry.isCarrying(id),
       (targetId, rescuerId) => {
         if (!this.pullFree(targetId)) return false;
         this.roundStats.add(rescuerId, "rescues");
@@ -814,7 +962,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const rescue = player.status === PlayerStatus.Grabbed ? this.rescues.percent(sessionId) : 0;
       if (player.rescue !== rescue) player.rescue = rescue;
       // Only free protesters walk; the others keep their knockback slide (a KO'd body still flies).
-      const free = this.healths.canMove(sessionId);
+      // A carried teammate (#11) is held overhead: no walking, placed on the carrier after this loop.
+      const carried = this.carry.isCarried(sessionId);
+      const free = this.healths.canMove(sessionId) && !carried;
       // Grabbed or KO mid-dodge (#9): the burst stops at once.
       if (!free && player.dodging) this.bodies.endDodge(sessionId, player);
       // Grabbed or KO mid-hop (#45): down at once, landing clear of what it was over.
@@ -827,12 +977,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const fire = this.fires.burn(sessionId, player, PLAYER_RADIUS, canBurn, this.now);
       if (fire.damage > 0) this.damagePlayer(sessionId, fire.damage);
       const held = free ? (this.moveInputs.get(sessionId) ?? NO_INPUT) : NO_INPUT;
-      const speed = gas.speed * fire.speed;
+      // A carrier walks slower (#11).
+      const speed = gas.speed * fire.speed * (this.carry.isCarrying(sessionId) ? CARRY_SPEED_FACTOR : 1);
       const input = speed === 1 ? held : { x: held.x * speed, z: held.z * speed };
       // Walk (or dodge) from the held input (ignored while down) plus knockback
       // velocity, collided against the street (sub-stepped, bounces off walls).
       // Free and KO'd protesters bump into raised shields (#6); grabbed ones are dragged, arrested ones are in the van.
       const solid = player.status === PlayerStatus.Free || player.status === PlayerStatus.Ko;
+      if (carried) return;
       const res = this.bodies.step(sessionId, player, input, dt, solid ? crowd : this.props.world);
       // A head-on dodge into a wall or prop bonks (#9): tip the avatar backwards like a hit.
       if (res?.bonk) {
@@ -840,6 +992,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         this.broadcast(ServerMessage.Impulse, event);
       }
     });
+    // Carries (#11): drops (timer, carrier hit or no longer free), then each carried teammate onto their carrier.
+    this.stepCarries();
+    // Thrown teammates (#11) hit the CRS and props they fly into, before the CRS step, so a floored bot lets go on this tick.
+    this.stepFlights();
     this.throwables.step(
       dt,
       this.props.world,
@@ -862,21 +1018,89 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const shields = this.crs.shieldContacts();
     if (shields.length > 0) {
       this.state.players.forEach((player, sessionId) => {
-        if (player.status === PlayerStatus.Free || player.status === PlayerStatus.Ko) this.bodies.separate(sessionId, player, shields);
+        // A carried teammate (#11) rides on their carrier, who is pushed out instead.
+        if ((player.status === PlayerStatus.Free || player.status === PlayerStatus.Ko) && !this.carry.isCarried(sessionId)) {
+          this.bodies.separate(sessionId, player, shields);
+        }
       });
       this.crs.syncViews();
     }
   }
 
   /**
+   * Carries (#11), once a tick after the protesters moved: a carry ends when
+   * `carryDropReason` says so (held too long, the carrier down, grabbed or
+   * KO, the carried player KO, either gone); otherwise the carried teammate
+   * is put on the carrier's spot, facing the same way.
+   */
+  private stepCarries() {
+    for (const [carrierId, mateId, held] of this.carry.all(this.now)) {
+      const carrier = this.state.players.get(carrierId);
+      const mate = this.state.players.get(mateId);
+      if (carryDropReason(carrier, mate, held) !== null || !carrier || !mate) {
+        this.endCarry(carrierId);
+        continue;
+      }
+      this.bodies.hold(mateId, mate, carrier.x, carrier.z, carrier.rotation);
+    }
+  }
+
+  /**
+   * Thrown teammates in flight (#11): every standing CRS and every intact,
+   * non-hoppable prop the body swept past this tick (see `flightContacts`) is
+   * hit once per flight. A CRS takes damage, a heavy knockback along the
+   * throw and a stun (it lets go of any grab; it counts towards breaking a
+   * shield line like a pavé), and the body bounces back off the first one. A
+   * prop takes damage and may break. A body that landed or left ends its flight.
+   */
+  private stepFlights() {
+    const flights = this.carry.allFlights();
+    if (flights.length === 0) return;
+    const targets: ProjectileTarget<"prop" | "crs">[] = [];
+    for (const t of this.props.targets()) {
+      const kind = this.props.slot(t.id)?.kind;
+      // In the air: over bins, like a hop (#45).
+      if (kind && !PROP_TYPES[kind].hoppable) targets.push({ id: t.id, kind: "prop", shape: t.shape });
+    }
+    for (const t of this.crs.meleeTargets()) {
+      const bot = this.crs.get(t.id);
+      // Over a CRS lying on the ground, like a hop.
+      if (bot && bot.body.downTime <= 0) targets.push({ id: t.id, kind: "crs", shape: t.shape });
+    }
+    for (const [id, f] of flights) {
+      const body = this.bodies.get(id);
+      if (!body || !this.state.players.has(id)) {
+        this.carry.endFlight(id);
+        continue;
+      }
+      for (const t of flightContacts(f, body, PLAYER_RADIUS, targets)) {
+        if (f.hit.has(t.id)) continue;
+        f.hit.add(t.id);
+        if (t.kind === "prop") {
+          this.damageProp(f.by, t.id, TEAMMATE_PROP_DAMAGE, body.x, body.z);
+          continue;
+        }
+        const res = this.crs.strike(t.id, f.dirX, f.dirZ, TEAMMATE_CRS_DAMAGE, TEAMMATE_CRS_KNOCKBACK, TEAMMATE_CRS_STUN, this.now);
+        if (!res) continue;
+        this.announceCrsHit(f.by, t.id, res, body.x, body.z);
+        if (!f.bounced) this.bodies.rebound(id, TEAMMATE_REBOUND);
+        f.bounced = true;
+      }
+      f.x = body.x;
+      f.z = body.z;
+      if (!this.bodies.isFlying(id)) this.carry.endFlight(id);
+    }
+  }
+
+  /**
    * Fire (#16): what holding interact does for protester `id` right now, or
-   * null: nothing when they can't act or a grabbed teammate is in rescue
-   * reach (#10 first), else pat out the nearest burning teammate, else light
-   * the nearest prop that can burn.
+   * null: nothing when they can't act, carry a teammate (#11) or a grabbed
+   * teammate is in rescue reach (#10 first), else pat out the nearest burning
+   * teammate, else light the nearest prop that can burn.
    */
   private fireAction(id: string): FireAction | null {
     const self = this.protesterView(id);
-    if (!self || !this.hasControl(id) || pickRescueTarget(self, this.allProtesterViews()) !== null) return null;
+    if (!self || !this.hasControl(id) || this.carry.isCarrying(id) || pickRescueTarget(self, this.allProtesterViews()) !== null) return null;
     this.burningViews.length = 0;
     this.state.players.forEach((p, pid) => {
       if (p.onFire) this.burningViews.push({ id: pid, x: p.x, z: p.z, onFire: true });

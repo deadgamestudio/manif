@@ -22,7 +22,7 @@ const jump = () => net.sendJump();
  * They send the same messages as the keyboard. Left half: a floating stick
  * that appears where the thumb lands. Right thumb: Taper (hit, or throw along
  * the stick), Esquive (dodge, with its cooldown), Sauter (hop, #45) and
- * Action (pick up, held to rescue; lit when it would do something). Each control follows its own
+ * Action (pick up an item or a teammate (#11), held to rescue; lit when it would do something). Carrying a teammate, Taper throws them. Each control follows its own
  * finger, so walking and hitting at once works.
  */
 export function TouchControls({ localId, players }: { localId: string | null; players: readonly LobbyPlayer[] }) {

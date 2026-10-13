@@ -7,6 +7,8 @@ import {
   isAirborne,
   isDodging,
   isDown,
+  isFlying,
+  launchBody,
   moveCircle,
   resolveShieldContacts,
   startDodge,
@@ -162,6 +164,56 @@ export class Bodies {
     if (view.z !== body.z) view.z = body.z;
     if (view.dodging) view.dodging = false;
     if (view.airborne) view.airborne = false;
+  }
+
+  /**
+   * Hold a carried teammate (#11) at (x, z), the carrier's spot, facing
+   * `rotation`: no collision (the carrier stands there), no velocity, no dodge
+   * or hop. Mirrors into `view`.
+   */
+  hold(id: string, view: BodyView, x: number, z: number, rotation: number): void {
+    const body = this.bodies.get(id);
+    if (!body) return;
+    body.x = x;
+    body.z = z;
+    body.vx = 0;
+    body.vz = 0;
+    endDodge(body);
+    endJump(body);
+    body.landPending = false;
+    if (view.x !== x) view.x = x;
+    if (view.z !== z) view.z = z;
+    if (view.rotation !== rotation) view.rotation = rotation;
+    if (view.dodging) view.dodging = false;
+    if (view.airborne) view.airborne = false;
+  }
+
+  /**
+   * Throw a body (#11) from where it is: see `launchBody`. Mirrors `down`
+   * and `airborne` into `view`. Null for an unknown id or an invalid throw.
+   */
+  launch(id: string, view: BodyView, dirX: number, dirZ: number, speed: number, flight: number, down: number): ImpulseResult | null {
+    const body = this.bodies.get(id);
+    if (!body) return null;
+    const res = launchBody(body, dirX, dirZ, speed, flight, down);
+    view.down = isDown(body);
+    view.airborne = isAirborne(body);
+    view.dodging = false;
+    return res;
+  }
+
+  /** In a throw's flight (#11). */
+  isFlying(id: string): boolean {
+    const body = this.bodies.get(id);
+    return body ? isFlying(body) : false;
+  }
+
+  /** Bounce a flying body back off something it hit (#11): its velocity reversed and scaled by `factor`. */
+  rebound(id: string, factor: number): void {
+    const body = this.bodies.get(id);
+    if (!body) return;
+    body.vx *= -factor;
+    body.vz *= -factor;
   }
 
   /**

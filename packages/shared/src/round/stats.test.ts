@@ -27,7 +27,11 @@ describe("roundAwards", () => {
     expect(roundAwards([player("A", { firesLit: 2 })])).toEqual([{ title: "Pyromane du dimanche", name: "A", value: 2, unit: "feux allumés" }]);
   });
 
-    test("a tie goes to the first player", () => {
+  test("throwing teammates (#11) earns its own award", () => {
+    expect(roundAwards([player("A", { teammatesThrown: 3 })])).toEqual([{ title: "Catapulte humaine", name: "A", value: 3, unit: "camarades lancés" }]);
+  });
+
+  test("a tie goes to the first player", () => {
     expect(roundAwards([player("A", { arrests: 2 }), player("B", { arrests: 2 })])[0]!.name).toBe("A");
   });
 });

@@ -14,6 +14,7 @@ import {
   type RescueSubject,
 } from "@manif/shared";
 import { net, type LobbyPlayer } from "../../shared/net/index.ts";
+import { carryTargetFor } from "../carry/index.ts";
 import { FIRE_TEXT } from "./fireVisuals.tsx";
 
 /** How often the prompt looks around, in ms (like the rescue prompt). */
@@ -31,7 +32,8 @@ const FLAMMABLE: readonly (LightableView & { kind: string })[] = STREET_LEVEL.pr
  */
 export function fireActionFor(localId: string, players: readonly LobbyPlayer[]): FireAction | null {
   const me = net.getPlayer(localId);
-  if (!me || me.status !== PlayerStatus.Free || me.down) return null;
+  // Carried, or carrying a teammate (#11): hands busy.
+  if (!me || me.status !== PlayerStatus.Free || me.down || me.carriedBy || net.getCarried(localId) !== null) return null;
   const subjects: RescueSubject[] = [];
   const burning: BurningView[] = [];
   for (const p of players) {
@@ -50,7 +52,10 @@ export function fireActionFor(localId: string, players: readonly LobbyPlayer[]):
           const prop = net.getProp(p.id);
           return prop !== undefined && prop.hp > 0 && !prop.charred && !fires.includes(p.id);
         });
-  return pickFireAction({ id: localId, x: me.x, z: me.z }, PLAYER_RADIUS, burning, lightable);
+  const action = pickFireAction({ id: localId, x: me.x, z: me.z }, PLAYER_RADIUS, burning, lightable);
+  // A teammate in reach comes before lighting (#11): the press picks them up.
+  if (action?.kind === "light" && carryTargetFor(localId, players) !== null) return null;
+  return action;
 }
 
 /** The line to show, from the live state. Empty when there is nothing to say. `key` is "E" or "Action". */

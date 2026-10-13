@@ -48,10 +48,15 @@ export interface Body extends Vec2 {
   jumpTime: number;
   /** The hop ended (timer, knock-down, grab): the next step pushes the body out of whatever it came down on. */
   landPending: boolean;
+  /**
+   * Thrown by a teammate (#11): the air time in `jumpTime` is a flight, which
+   * being down does not cut short (a hop ends when the body is floored). Cleared on landing.
+   */
+  flying: boolean;
 }
 
 export function createBody(x: number, z: number): Body {
-  return { x, z, vx: 0, vz: 0, downTime: 0, immuneTime: 0, dodgeTime: 0, dodgeX: 0, dodgeZ: 0, jumpTime: 0, landPending: false };
+  return { x, z, vx: 0, vz: 0, downTime: 0, immuneTime: 0, dodgeTime: 0, dodgeX: 0, dodgeZ: 0, jumpTime: 0, landPending: false, flying: false };
 }
 
 /** In the air (#45): a hop is under way. */
@@ -76,9 +81,41 @@ export function startJump(body: Body, duration = JUMP_DURATION): boolean {
  * (see `landBody`). A no-op on the ground.
  */
 export function endJump(body: Body): void {
+  body.flying = false;
   if (!isAirborne(body)) return;
   body.jumpTime = 0;
   body.landPending = true;
+}
+
+/** In a throw's flight (#11): airborne and down. */
+export function isFlying(body: Body): boolean {
+  return body.flying && isAirborne(body);
+}
+
+/**
+ * Throw a body (#11): it flies along (dirX, dirZ) at `speed` m/s (capped at
+ * MAX_KNOCKBACK_SPEED; it replaces any knockback velocity), down for
+ * `flight` + `down` seconds whatever its immunity, and airborne for the first
+ * `flight` seconds, so it passes over hoppable shapes (bins, fallen CRS) like
+ * a hop. Any dodge or hop under way ends. The step's sub-stepped collision
+ * keeps it out of walls whatever the speed; it lands like a hop (`landBody`).
+ * Null for an invalid direction or speed (nothing changes).
+ */
+export function launchBody(body: Body, dirX: number, dirZ: number, speed: number, flight: number, down: number): ImpulseResult | null {
+  const len = Math.hypot(dirX, dirZ);
+  if (!Number.isFinite(len) || len < 1e-6 || !Number.isFinite(speed) || speed <= 0 || !(flight >= 0) || !(down >= 0)) return null;
+  const nx = dirX / len;
+  const nz = dirZ / len;
+  const s = Math.min(speed, MAX_KNOCKBACK_SPEED);
+  body.vx = nx * s;
+  body.vz = nz * s;
+  endDodge(body);
+  body.downTime = Math.max(body.downTime, flight + down, 1e-3);
+  body.immuneTime = 0;
+  body.jumpTime = flight;
+  body.landPending = false;
+  body.flying = flight > 0;
+  return { dirX: nx, dirZ: nz, strength: s, knockedDown: true };
 }
 
 /**
@@ -267,7 +304,8 @@ export function stepBody(
   const control = hasControl(body);
   if (!control) {
     endDodge(body);
-    endJump(body);
+    // A throw's flight (#11) is down by design; a hop is cut short.
+    if (!body.flying) endJump(body);
   }
   const dodging = isDodging(body);
   const dodgeSpeed = walkSpeed * DODGE_SPEED_FACTOR;
@@ -300,6 +338,7 @@ export function stepBody(
     if (body.jumpTime <= 1e-9) {
       body.jumpTime = 0;
       body.landPending = true;
+      body.flying = false;
     }
   }
   const landed = body.landPending;

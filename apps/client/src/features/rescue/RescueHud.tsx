@@ -12,7 +12,8 @@ const POLL_MS = 100;
  */
 export function rescueTarget(localId: string, players: readonly LobbyPlayer[]): string | null {
   const me = net.getPlayer(localId);
-  if (!me || me.status !== PlayerStatus.Free || me.down) return null;
+  // Carried overhead, or hands full of a teammate (#11): no rescue.
+  if (!me || me.status !== PlayerStatus.Free || me.down || me.carriedBy || net.getCarried(localId) !== null) return null;
   const subjects: RescueSubject[] = [];
   for (const p of players) {
     const s = net.getPlayer(p.id);
