@@ -12,10 +12,12 @@ export interface RoundPlayerStats {
   knockdowns: number;
   propsBroken: number;
   crsOut: number;
+  /** Props this player set on fire by hand (#16; spreading does not count). */
+  firesLit: number;
 }
 
 export function emptyStats(): RoundPlayerStats {
-  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0 };
+  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0 };
 }
 
 /** Payload of `ServerMessage.RoundEnd`. */
@@ -43,6 +45,7 @@ const AWARDS: readonly { stat: keyof RoundPlayerStats; title: string; unit: stri
   { stat: "rescues", title: "Ange gardien du cortège", unit: "camarades libérés" },
   { stat: "propsBroken", title: "Ennemi du mobilier urbain", unit: "trucs cassés" },
   { stat: "crsOut", title: "Terreur des CRS", unit: "CRS au tapis" },
+  { stat: "firesLit", title: "Pyromane du dimanche", unit: "feux allumés" },
 ];
 
 /**

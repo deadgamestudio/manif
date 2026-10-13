@@ -78,7 +78,11 @@ export interface ClientMessagePayloads {
 export type DebugRoundPayload =
   | { action: "teleport"; progress: number }
   | { action: "time"; seconds: number }
-  | { action: "hold" };
+  | { action: "hold" }
+  /** #16: put out every fire and burning body within `radius` of yourself, like a hose (#17) would. */
+  | { action: "water"; radius: number }
+  /** #16: no CRS on the street and no more waves this round, for scripted tests that need a calm street. */
+  | { action: "calm" };
 
 /** Payload of `ClientMessage.Interact`: the key went down (true) or up (false). */
 export interface InteractPayload {

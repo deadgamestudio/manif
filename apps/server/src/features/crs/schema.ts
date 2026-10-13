@@ -20,6 +20,8 @@ export const Crs = schema(
     kind: t.uint8().default(CrsKind.Crs),
     /** In a formed shield line (#6): shield raised, solid to protesters. Slots and orders stay server-side. */
     formation: t.boolean(),
+    /** On fire (#16). The burn timer stays in the server's fire feature. */
+    onFire: t.boolean(),
   },
   "Crs",
 );

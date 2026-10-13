@@ -9,6 +9,8 @@ export const Prop = schema(
   {
     hp: t.uint8(),
     broken: t.boolean(),
+    /** Burnt out (#16): still in the way, never burns again. Cleared by the round reset. */
+    charred: t.boolean(),
   },
   "Prop",
 );

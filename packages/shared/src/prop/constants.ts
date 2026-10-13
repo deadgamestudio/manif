@@ -15,25 +15,29 @@ export interface PropType {
   broken: PropShapeDef | null;
   /** Pavés dropped when it breaks (#8 owns the pickup; see `StreetRoom.dropPaves`). */
   paves: number;
+  /** Can be set on fire (#16): bins and cars burn, glass and bus shelters do not. */
+  flammable: boolean;
 }
 
 export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
   // A wheelie bin: two whacks and the lid flies. Nothing left to stand behind.
-  bin: { maxHp: 2, intact: { type: "circle", r: 0.5 }, broken: null, paves: 0 },
+  bin: { maxHp: 2, intact: { type: "circle", r: 0.5 }, broken: null, paves: 0, flammable: true },
   // The glass shatters; the frame and bench stay.
   bus_shelter: {
     maxHp: 4,
     intact: { type: "box", halfX: 0.6, halfZ: 1.6 },
     broken: { type: "box", halfX: 0.6, halfZ: 1.6 },
     paves: 2,
+    flammable: false,
   },
   // A shop front: once smashed you can step into the gap.
-  shop_window: { maxHp: 3, intact: { type: "box", halfX: 0.5, halfZ: 1.5 }, broken: null, paves: 1 },
+  shop_window: { maxHp: 3, intact: { type: "box", halfX: 0.5, halfZ: 1.5 }, broken: null, paves: 1, flammable: false },
   // A burnt-out car is still a car.
   car: {
     maxHp: 6,
     intact: { type: "box", halfX: 1, halfZ: 2.1 },
     broken: { type: "box", halfX: 1, halfZ: 2.1 },
     paves: 1,
+    flammable: true,
   },
 };

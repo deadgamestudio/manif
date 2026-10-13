@@ -20,6 +20,7 @@ import {
   recordLineHit,
   stepLine,
   isDown,
+  burnCrs,
   pickSpawn,
   stepCrs,
   strikeCrs,
@@ -79,6 +80,10 @@ export class CrsSquad {
   private readonly lineBehaviours = new WeakMap<ShieldLine, CrsBehaviour>();
   /** Reused every tick: the raised shields protesters collide with. */
   private readonly contacts: ShieldContact[] = [];
+  /** What bots keep away from without it being solid (#16: fire zones), as a world (same bounds). */
+  private hazards: CollisionWorld | null = null;
+  /** The world plus the hazards: the navigation grid and shield line slots are laid against it. */
+  private readonly avoid: { -readonly [K in keyof CollisionWorld]: CollisionWorld[K] };
 
   constructor(
     private readonly level: Level,
@@ -88,9 +93,10 @@ export class CrsSquad {
   ) {
     // One grid for every unit type, cleared for the widest of them.
     const clearance = Math.max(...Object.values(CRS_STATS).map((s) => s.radius));
-    this.nav = new NavGrid(world, clearance);
+    this.avoid = { ...world };
+    this.nav = new NavGrid(this.avoid, clearance);
     this.vans = vanDoors(level);
-    this.ctx = { world, nav: this.nav, vans: this.vans, bots: this.bots, now: 0, dt: 0 };
+    this.ctx = { world, avoid: this.avoid, nav: this.nav, vans: this.vans, bots: this.bots, now: 0, dt: 0 };
   }
 
   get size(): number {
@@ -103,7 +109,23 @@ export class CrsSquad {
 
   /** The collision world changed (a prop broke): re-rasterize the navigation grid. */
   worldChanged(): void {
-    this.nav.rebuild(this.world);
+    const h = this.hazards;
+    this.avoid.bounds = this.world.bounds;
+    this.avoid.boxes = h && h.boxes.length > 0 ? [...this.world.boxes, ...h.boxes] : this.world.boxes;
+    this.avoid.circles = h && h.circles.length > 0 ? [...this.world.circles, ...h.circles] : this.world.circles;
+    this.nav.rebuild(this.avoid);
+  }
+
+  /**
+   * Places bots keep away from although they are not solid (#16: the fire
+   * zones), or null for none. Bots path around them and shield lines lay
+   * their slots clear of them, from the next tick. Rebuilds the grid.
+   */
+  setHazards(hazards: CollisionWorld | null): void {
+    this.hazards = hazards;
+    this.worldChanged();
+    // A fire lit or gone on someone's route: everyone re-paths on their next step.
+    for (const bot of this.bots) bot.path = null;
   }
 
   /** Remove every bot. */
@@ -125,7 +147,7 @@ export class CrsSquad {
    */
   spawnLine(x: number, z: number, size = LINE_SIZE, facing?: Vec2, kind: CrsKind = CrsKind.Crs): ShieldLine | null {
     const dir = facing ?? this.towardsCortege();
-    const slots = lineSlots(this.world, { x, z }, dir, size, CRS_STATS[kind].radius);
+    const slots = lineSlots(this.avoid, { x, z }, dir, size, CRS_STATS[kind].radius);
     const members: CrsBot[] = [];
     for (const slot of slots) {
       const bot = this.spawn(slot.x, slot.z, kind);
@@ -235,6 +257,31 @@ export class CrsSquad {
   private recordLineDamage(bot: CrsBot, hpBefore: number, damage: number, now: number): void {
     const line = this.lineOf.get(bot.id);
     if (line && hpBefore > 0) recordLineHit(line, Math.min(hpBefore, damage), now);
+  }
+
+  /** Every bot, out or not (read-only: fire #16 checks who stands in it). */
+  get all(): readonly Readonly<CrsBot>[] {
+    return this.bots;
+  }
+
+  /**
+   * Fire damage on bot `id` (#16): HP off, no push, no stun. Returns true if
+   * it took the bot out. Counts towards breaking its shield line like any hit.
+   */
+  burn(id: string, damage: number, now: number): boolean {
+    const bot = this.byId.get(id);
+    if (!bot) return false;
+    const hpBefore = bot.hp;
+    const out = burnCrs(bot, damage, now);
+    this.recordLineDamage(bot, hpBefore, damage, now);
+    const view = this.views.get(id);
+    if (view) this.mirror(bot, view);
+    return out;
+  }
+
+  /** The synced view of bot `id`, for the fields other features write (fire #16: `onFire`). */
+  view(id: string): Crs | undefined {
+    return this.views.get(id);
   }
 
   /** Stun bot `id` (a pavé, #8). It lets go of any grab on its next tick. */

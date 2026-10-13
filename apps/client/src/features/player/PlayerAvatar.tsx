@@ -8,6 +8,7 @@ import { HealthBar } from "../health/index.ts";
 import { RescueBar } from "../rescue/index.ts";
 import { CarriedItem } from "../throwable/index.ts";
 import { COUGH_ANGLE, COUGH_SPEED } from "../gas/index.ts";
+import { BodyFire, FireHoldBar, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
 import { NameTag } from "./NameTag.tsx";
 
 const CAPSULE_LENGTH = 1;
@@ -129,11 +130,21 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
     // Grabbed: flail side to side (the drag itself is the CRS's, #5). In tear
     // gas (#7): a slower, lopsided cough wobble.
     const grabbed = p.status === PlayerStatus.Grabbed;
-    const coughing = !grabbed && !lying && p.gassed;
-    flail.current = grabbed ? flail.current + dt * FLAIL_SPEED : coughing ? flail.current + dt * COUGH_SPEED : 0;
-    y.rotation.z = grabbed
-      ? Math.sin(flail.current) * FLAIL_ANGLE
-      : coughing
+    // On fire (#16): a frantic flail, wider and faster than a grab.
+    const burning = !lying && p.onFire;
+    const coughing = !grabbed && !burning && !lying && p.gassed;
+    flail.current = burning
+      ? flail.current + dt * ON_FIRE_FLAIL_SPEED
+      : grabbed
+        ? flail.current + dt * FLAIL_SPEED
+        : coughing
+          ? flail.current + dt * COUGH_SPEED
+          : 0;
+    y.rotation.z = burning
+      ? Math.sin(flail.current) * ON_FIRE_FLAIL_ANGLE
+      : grabbed
+        ? Math.sin(flail.current) * FLAIL_ANGLE
+        : coughing
         ? (Math.sin(flail.current) + 0.5 * Math.sin(flail.current * 2.3)) * COUGH_ANGLE
         : 0;
     // Swing (#4): raise the arm, then smash it down in front. The local one
@@ -192,6 +203,8 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
             {/* The item in hand (#8); the swing throws it. */}
             <CarriedItem id={id} />
           </group>
+          {/* The bum on fire (#16). */}
+          <BodyFire isOnFire={() => net.getPlayer(id)?.onFire === true} />
           {/* Small nose so facing direction is visible. */}
           <mesh position={[0, HEIGHT * 0.7, PLAYER_RADIUS]} castShadow>
             <boxGeometry args={[0.2, 0.2, 0.3]} />
@@ -220,6 +233,8 @@ export function PlayerAvatar({ id, name, isLocal }: { id: string; name: string; 
       {!isLocal && <HealthBar id={id} y={HEIGHT + 0.95} />}
       {/* Over everyone, the local player included: help is coming (#10). */}
       <RescueBar id={id} y={HEIGHT + 1.25} />
+      {/* Lighting a prop or patting someone out (#16). */}
+      <FireHoldBar id={id} y={HEIGHT + 1.25} />
     </group>
   );
 }

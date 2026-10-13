@@ -5,7 +5,7 @@ import { TICK_DT } from "../net/index.js";
 import { KNOCKDOWN_THRESHOLD, applyImpulse, circleOverlaps, createBody, isDown, stepBody, type Body, type CollisionWorld } from "../physics/index.js";
 import { PLAYER_RADIUS, PLAYER_SPEED } from "../player/index.js";
 import { GAS_SLOW } from "../gas/index.js";
-import { createCrsBot, hitCrs, stepCrs, steerTo, strikeCrs, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
+import { burnCrs, createCrsBot, hitCrs, stepCrs, steerTo, strikeCrs, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import { CRS_STATS, CrsKind, CrsStatus } from "./constants.js";
 import { NavGrid } from "./nav.js";
 import { vanDoors, type ProtesterView } from "./targeting.js";
@@ -408,6 +408,17 @@ describe("a thrown item hitting a CRS (#8)", () => {
     expect(bot.status).toBe(CrsStatus.Out);
     expect(isDown(bot.body)).toBe(true);
     expect(strikeCrs(bot, 1, 0, 1, 1, 1.5, 0.1)).toBeNull();
+  });
+
+  test("fire (#16): HP off with no push or stun; at 0 it is out", () => {
+    const bot = createCrsBot("crs-1", CrsKind.Crs, 0, 0);
+    expect(burnCrs(bot, 1, 0)).toBe(false);
+    expect(bot.hp).toBe(STATS.maxHp - 1);
+    expect(bot.status).toBe(CrsStatus.Active);
+    expect(bot.body.vx === 0 && bot.body.vz === 0 && !isDown(bot.body)).toBe(true);
+    expect(burnCrs(bot, STATS.maxHp, 1)).toBe(true);
+    expect(bot.status).toBe(CrsStatus.Out);
+    expect(burnCrs(bot, 1, 2)).toBe(false);
   });
 });
 

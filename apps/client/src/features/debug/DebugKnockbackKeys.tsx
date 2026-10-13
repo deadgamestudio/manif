@@ -33,6 +33,8 @@ const ROUND_KEYS: Record<string, DebugRoundPayload> = {
   KeyP: { action: "teleport", progress: 1 },
   /** Cut the round timer to 10 s (#12), to see the timeout. */
   KeyT: { action: "time", seconds: 10 },
+  /** Throw water around you (#16), standing in for the pompiers' hose (#17): fires and burning bodies within 4 go out. */
+  KeyY: { action: "water", radius: 4 },
 };
 
 export function DebugKnockbackKeys() {
@@ -55,7 +57,7 @@ export function DebugKnockbackKeys() {
   return (
     <div className="hud-debug">
       debug : K te renverse · J te pousse · L renverse le plus proche · H te blesse (−{DEBUG_DAMAGE}) · G te fait
-      attraper · P saute à la Préfecture · T coupe le chrono à 10 s
+      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour
     </div>
   );
 }

@@ -29,6 +29,10 @@ export const Player = schema(
     carrying: t.uint8().default(0),
     /** In tear gas (#7): coughing and slowed. Exposure timers stay server-side in the gas feature. */
     gassed: t.boolean(),
+    /** Bum on fire (#16): flailing, faster, losing HP. The burn timer stays in the server's fire feature. */
+    onFire: t.boolean(),
+    /** Holding interact to light a prop or pat out a teammate (#16): 0..100 of the hold, 0 otherwise. */
+    fireHold: t.uint8().default(0),
   },
   "Player",
 );
