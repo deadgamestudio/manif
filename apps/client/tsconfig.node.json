@@ -1,7 +1,7 @@
 {
   // The code that runs in Bun or Node, not in the browser: the Vite config,
-  // the SEO plugin and its tests (seo/), the scripts (og:render), and the unit
-  // tests beside the browser code (src/**/*.test.ts). It gets
+  // the SEO plugin and its tests (seo/), the scripts (og:render), and the
+  // unit tests beside the game code (src/**/*.test.ts). It gets
   // Bun's and Node's globals, which tsconfig.json's browser code must not see.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
