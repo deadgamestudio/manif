@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MAX_PLAYERS, RoundResult } from "@manif/shared";
+import { MAX_PLAYERS, RoundResult, canStart } from "@manif/shared";
 import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
 import { LastRound, useRound } from "../round/index.ts";
 import { ArchetypeBadge, ArchetypePicker } from "../archetype/index.ts";
 import { SoundControl } from "../audio/index.ts";
 import { RenameField } from "./RenameField.tsx";
+import { StartControls } from "./StartControls.tsx";
+import { readyCount } from "./readyText.ts";
 import "./lobby.css";
 
 /**
@@ -24,6 +26,9 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
   // Your own roster line turns into a name field (#61).
   const [renaming, setRenaming] = useState(false);
   const stopRenaming = useCallback(() => setRenaming(false), []);
+  // The ready check (#62): the same rule the server applies to Start.
+  const check = canStart(snap.players, snap.hostId ?? "");
+  const readyLabel = readyCount(check.ready, check.required);
 
   return (
     <main className="screen lobby">
@@ -48,6 +53,7 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
               Le cortège{" "}
               <span className="count">
                 {snap.players.length}/{MAX_PLAYERS}
+                {readyLabel && ` · ${readyLabel}`}
               </span>
             </h2>
             <ul className="roster">
@@ -78,6 +84,7 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
                       </button>
                     )}
                     {p.id === snap.hostId && <span className="tag tag-host">📣 orga</span>}
+                    {p.ready && p.id !== snap.hostId && <span className="tag tag-ready">prêt·e</span>}
                     {mine && <span className="tag">toi</span>}
                   </li>
                 );
@@ -97,15 +104,14 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
           </section>
 
           <div className="lobby-go">
-            {isHost ? (
-              <button type="button" className="btn btn-primary btn-start" onClick={() => net.start()}>
-                {rematch ? "On y retourne !" : "C'est parti, on marche !"}
-              </button>
-            ) : (
-              <p className="waiting">
-                On attend que <b>{host?.name ?? "l'orga"}</b> lance le cortège…
-              </p>
-            )}
+            <StartControls
+              isHost={isHost}
+              me={me}
+              hostName={host?.name ?? "l'orga"}
+              check={check}
+              players={snap.players}
+              rematch={rematch}
+            />
           </div>
 
           <button type="button" className="btn btn-ghost lobby-leave" onClick={() => net.leave()}>

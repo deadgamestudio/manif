@@ -40,6 +40,8 @@ export interface PlayerShape {
   carriedBy: string;
   /** The archetype picked in the lobby (#14), an `Archetype`. Read its stats with `archetypeStats`, never a local copy. */
   archetype: number;
+  /** Marked ready in the lobby (#62). Ignored for the host; false for everyone once the march starts. */
+  ready: boolean;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */

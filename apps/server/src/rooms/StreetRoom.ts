@@ -117,6 +117,10 @@ import {
   renameAllowedAt,
   type RenamePayload,
   type RenameRefusedEvent,
+  canSetReady,
+  canStart,
+  type ReadyPayload,
+  type StartPayload,
 } from "@manif/shared";
 import { Bodies, DEBUG_KNOCKBACK_ENABLED, planDebugKnockback } from "../features/physics/index.js";
 import { DEBUG_HEALTH_ENABLED, Healths, parseDebugHealth } from "../features/health/index.js";
@@ -409,9 +413,30 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       }
     },
 
-    // Game rule: only the host starts, and only from `waiting` (the lobby screen).
-    [ClientMessage.Start]: (client: Client) => {
-      if (client.sessionId !== this.state.hostId || this.state.phase !== Phase.Waiting) return;
+    // Ready check (#62): only a boolean, only in the lobby, only your own flag. The host's is
+    // ignored by the start rule, so the server doesn't store one (no stale "prêt·e" tag).
+    [ClientMessage.Ready]: (client: Client, message: unknown) => {
+      if (!canSetReady(this.state.phase)) return;
+      const ready = (message as Partial<ReadyPayload> | null)?.ready;
+      if (typeof ready !== "boolean" || client.sessionId === this.state.hostId) return;
+      const player = this.state.players.get(client.sessionId);
+      if (!player || player.ready === ready) return;
+      player.ready = ready;
+    },
+
+    // Game rule: only the host starts, and only from `waiting` (the lobby screen). The phase check
+    // comes first, so a second Start (the override racing the last "ready") is a no-op.
+    // #62: a plain Start waits for everyone who must be ready; `force` (host only) goes anyway.
+    [ClientMessage.Start]: (client: Client, message: unknown) => {
+      if (this.state.phase !== Phase.Waiting || client.sessionId !== this.state.hostId) return;
+      const force = (message as Partial<StartPayload> | null)?.force === true;
+      const players = Array.from(this.state.players.entries(), ([id, p]) => ({ id, ready: p.ready }));
+      const check = canStart(players, this.state.hostId, force);
+      if (!check.ok) {
+        console.log(`[street ${this.roomId}] start refused: ${check.notReady.length} not ready`);
+        return;
+      }
+      if (force && check.notReady.length) console.log(`[street ${this.roomId}] forced start (${check.notReady.length} not ready)`);
       this.startMarch();
     },
 
@@ -533,6 +558,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.brigade.remove(client.sessionId);
     if (this.state.hostId === client.sessionId) {
       this.state.hostId = pickHost(Array.from(this.joinOrder, ([id, joinedAt]) => ({ id, joinedAt })));
+      // #62: the new host's own ready flag no longer counts; clear it so no stale tag stays.
+      const newHost = this.state.players.get(this.state.hostId);
+      if (newHost) newHost.ready = false;
       if (this.state.hostId) console.log(`[street ${this.roomId}] host -> ${this.state.hostId}`);
     }
     console.log(`[street ${this.roomId}] leave ${client.sessionId}`);
@@ -546,6 +574,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.brigade.resetTuning();
     this.roundHeld = false;
     this.roundStats.clear();
+    // #62: everyone lands back in the next lobby not ready.
+    for (const player of this.state.players.values()) player.ready = false;
     this.updateFront();
     this.syncRound();
     console.log(`[street ${this.roomId}] start (${this.state.players.size} players)`);

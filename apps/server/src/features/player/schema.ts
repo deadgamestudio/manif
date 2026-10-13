@@ -42,6 +42,11 @@ export const Player = schema(
      * Only the id is synced: every stat comes from it and the shared table, on the server and the client alike.
      */
     archetype: t.uint8().default(DEFAULT_ARCHETYPE),
+    /**
+     * Ready for the next march (#62), set by the player in the lobby. False for a fresh player and for
+     * everyone once the march starts; the host's own flag is ignored by the start rule.
+     */
+    ready: t.boolean().default(false),
   },
   "Player",
 );

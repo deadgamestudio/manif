@@ -4,8 +4,19 @@ import type { RoundEndEvent } from "../round/index.js";
 /** Message type names sent from client to server. */
 export const ClientMessage = {
   Move: "move",
-  /** Host only: from `waiting` (the lobby screen), start the march (#12). No payload. */
+  /**
+   * Host only: from `waiting` (the lobby screen), start the march (#12).
+   * Refused while someone who must be ready isn't (#62, `canStart`), unless
+   * the payload is `{ force: true }` (the host's "Lancer quand même").
+   */
   Start: "start",
+  /**
+   * Mark yourself ready, or not, in the lobby (#62): `{ ready: boolean }`.
+   * Only a boolean, only in `waiting`, only for the sender. The host's flag
+   * is ignored (pressing Start is their "ready"). Everyone is reset to not
+   * ready when the march starts.
+   */
+  Ready: "ready",
   /**
    * Pick an archetype (#14) in the lobby. Only the id: the server looks the
    * stats up in the shared table. Ignored outside `waiting` (locked during the
@@ -80,7 +91,8 @@ export interface MoveInput {
 
 export interface ClientMessagePayloads {
   [ClientMessage.Move]: MoveInput;
-  [ClientMessage.Start]: undefined;
+  [ClientMessage.Start]: StartPayload | undefined;
+  [ClientMessage.Ready]: ReadyPayload;
   [ClientMessage.PickArchetype]: PickArchetypePayload;
   [ClientMessage.Rename]: RenamePayload;
   [ClientMessage.Attack]: undefined;
@@ -126,6 +138,16 @@ export type DebugRoundPayload =
 /** Payload of `ClientMessage.PickArchetype`: an `Archetype` id. */
 export interface PickArchetypePayload {
   archetype: number;
+}
+
+/** Payload of `ClientMessage.Start` (#62): `force` starts even with players not ready. Host only. */
+export interface StartPayload {
+  force?: boolean;
+}
+
+/** Payload of `ClientMessage.Ready` (#62). */
+export interface ReadyPayload {
+  ready: boolean;
 }
 
 /** Payload of `ClientMessage.Rename`: the name as typed. The server cleans it. */
