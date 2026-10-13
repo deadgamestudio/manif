@@ -142,6 +142,9 @@ const propSlots: PropSlot[] = [
   prop("car-1", "car", -5.5, 32),
   prop("car-2", "car", 5, -14),
   prop("car-3", "car", -6, -70),
+  // Market stalls (#15), flush against the facades: smash one for tomatoes.
+  prop("stall-1", "market_stall", 8.7, 70),
+  prop("stall-2", "market_stall", -8.7, -35),
 ];
 
 /** CRS spawn points (#5): in the side-street gaps and ahead in the street. The round's waves (#12) pick the ones ahead of the cortège. */
@@ -186,6 +189,25 @@ const items: LevelItem[] = [
   { x: 1, z: -62 },
 ].map((p) => ({ kind: ThrowableKind.Pave, ...p }));
 
+/** Dog poo on the pavement (#15): a trap for anyone who walks on it, protester or CRS, until someone picks it up. Never in the start zone. */
+const poos: LevelItem[] = [
+  { x: 5, z: 77 },
+  { x: -5.5, z: 61 },
+  { x: -3, z: 28 },
+  { x: 4, z: 3 },
+  { x: -5, z: -17 },
+  { x: 3, z: -44 },
+  { x: -2, z: -66 },
+].map((p) => ({ kind: ThrowableKind.Crotte, ...p }));
+
+/** Trottinettes parked along the street (#15): one by the start to try, then a few further down. */
+const trottinettes: LevelItem[] = [
+  { x: 6, z: 84 },
+  { x: -7.5, z: 18 },
+  { x: 6, z: -36 },
+  { x: -7, z: -77 },
+].map((p) => ({ kind: ThrowableKind.Trottinette, ...p }));
+
 export const STREET_LEVEL: Level = {
   id: "street",
   bounds: { minX: -HALF_WIDTH, maxX: HALF_WIDTH, minZ: END_Z, maxZ: START_Z },
@@ -197,5 +219,5 @@ export const STREET_LEVEL: Level = {
   propSlots,
   crsSpawns,
   lineSpawns,
-  items,
+  items: [...items, ...poos, ...trottinettes],
 };

@@ -20,6 +20,9 @@ import {
   recordLineHit,
   stepLine,
   isDown,
+  isSplatted,
+  isStinky,
+  CRS_EFFECTS,
   burnCrs,
   pickSpawn,
   stepCrs,
@@ -31,9 +34,11 @@ import {
   type CrsBehaviour,
   type CrsBot,
   type CrsContext,
+  type CrsEffect,
   type CrsHitResult,
   type CrsHost,
   type ImpulseResult,
+  type KnockdownMode,
   type LineStepResult,
   type ShieldContact,
   type ShieldLine,
@@ -314,6 +319,20 @@ export class CrsSquad {
     return this.views.get(id);
   }
 
+  /**
+   * A thrown item's status on bot `id` (#15: a tomato splats, a dog poo
+   * stinks) for `duration` from `now`. A second one refreshes the timer. False
+   * for an unknown or out bot.
+   */
+  affect(id: string, effect: CrsEffect, duration: number, now: number): boolean {
+    const bot = this.byId.get(id);
+    if (!bot || !CRS_EFFECTS[effect](bot, now, duration)) return false;
+    this.ctx.now = now;
+    const view = this.views.get(id);
+    if (view) this.mirror(bot, view);
+    return true;
+  }
+
   /** Stun bot `id` (a pavé, #8). It lets go of any grab on its next tick. */
   stun(id: string, now: number, duration?: number): boolean {
     const bot = this.byId.get(id);
@@ -336,10 +355,10 @@ export class CrsSquad {
    * A heavy push floors it, so it lets go and lies down for a moment. Null for
    * an unknown or out bot. The room broadcasts the result.
    */
-  push(id: string, dirX: number, dirZ: number, strength: number): ImpulseResult | null {
+  push(id: string, dirX: number, dirZ: number, strength: number, mode?: KnockdownMode): ImpulseResult | null {
     const bot = this.byId.get(id);
     if (!bot || bot.status === CrsStatus.Out) return null;
-    const res = applyImpulse(bot.body, dirX, dirZ, strength);
+    const res = applyImpulse(bot.body, dirX, dirZ, strength, mode);
     const view = this.views.get(id);
     if (view) this.mirror(bot, view);
     return res;
@@ -423,6 +442,11 @@ export class CrsSquad {
     if (view.down !== down) view.down = down;
     const formation = this.lineOf.get(bot.id)?.formed === true && bot.status !== CrsStatus.Out;
     if (view.formation !== formation) view.formation = formation;
+    // #15: the timers stay here; only whether each is on is synced.
+    const splatted = isSplatted(bot, this.ctx.now);
+    if (view.splatted !== splatted) view.splatted = splatted;
+    const stinky = isStinky(bot, this.ctx.now);
+    if (view.stinky !== stinky) view.stinky = stinky;
   }
 
   /** Mirror every bot now (after the room moved some, e.g. a member pushed back by a pinned protester). */

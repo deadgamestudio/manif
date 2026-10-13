@@ -11,7 +11,13 @@
  * 3. A throw spawns a `Projectile` at the thrower, along the aim.
  * 4. `stepProjectile` moves it each tick with a swept test (no tunnelling):
  *    it stops on the first wall, prop or CRS, or falls at max range.
- * 5. Wherever it stops, it lies on the ground again: items are never used up.
+ * 5. Wherever it stops, it lies on the ground again, unless its row says it
+ *    is used up (`afterCrs` / `afterMiss`: a tomato splats, #15).
+ *
+ * #15 adds, still table-driven: per-kind ground caps, items that go through
+ * several CRS (`pierce`, each CRS hit once per throw), status effects on the
+ * CRS hit (`effect`, applied by the room), and slippery items on the ground
+ * (`SlipGuards`).
  *
  * Protesters are never targets (no friendly fire, no self-hits, v1).
  */
@@ -23,6 +29,8 @@ import {
   DROP_GAP,
   MAX_GROUND_ITEMS,
   PICKUP_RANGE,
+  SLIP_CLEAR,
+  SLIP_RANGE,
   THROWABLE_TYPES,
   ThrowableKind,
   type ItemKind,
@@ -45,12 +53,14 @@ export interface GroundItemsHooks {
 }
 
 /**
- * Items lying on the ground, oldest first. At most `cap` of them: dropping one
- * more removes the oldest, so broken props can't fill the street and a pavé
- * that leaves a hand never just vanishes.
+ * Items lying on the ground, oldest first. At most `cap` of them, and at most
+ * `groundCap` of each kind (#15, e.g. 20 tomatoes): dropping one more removes
+ * the oldest of that kind, then the oldest overall, so broken props can't
+ * fill the street and a pavé that leaves a hand never just vanishes.
  */
 export class GroundItems {
   private readonly items = new Map<string, GroundItem>();
+  private readonly counts = new Map<ItemKind, number>();
   private counter = 0;
 
   constructor(
@@ -70,13 +80,30 @@ export class GroundItems {
     return this.items.entries();
   }
 
+  /** How many of `kind` lie on the ground. */
+  count(kind: ItemKind): number {
+    return this.counts.get(kind) ?? 0;
+  }
+
+  /** The slippery ones (#15 dog poo), for `SlipGuards.check`. */
+  *slippery(): Generator<[string, GroundItem]> {
+    for (const entry of this.items) if (THROWABLE_TYPES[entry[1].kind].slippery) yield entry;
+  }
+
   clear(): void {
     for (const id of this.items.keys()) this.hooks?.removed(id);
     this.items.clear();
+    this.counts.clear();
   }
 
   /** Put an item on the ground at (x, z). Returns its id. */
   drop(kind: ItemKind, x: number, z: number): string {
+    const kindCap = Math.max(1, THROWABLE_TYPES[kind].groundCap);
+    while (this.count(kind) >= kindCap) {
+      const oldest = this.oldest(kind);
+      if (oldest === null) break;
+      this.remove(oldest);
+    }
     while (this.items.size >= this.cap) {
       const oldest = this.items.keys().next().value;
       if (oldest === undefined) break;
@@ -85,8 +112,14 @@ export class GroundItems {
     const id = `item-${++this.counter}`;
     const item: GroundItem = { kind, x, z };
     this.items.set(id, item);
+    this.counts.set(kind, this.count(kind) + 1);
     this.hooks?.added(id, item);
     return id;
+  }
+
+  private oldest(kind: ItemKind): string | null {
+    for (const [id, item] of this.items) if (item.kind === kind) return id;
+    return null;
   }
 
   /**
@@ -107,7 +140,11 @@ export class GroundItems {
   }
 
   private remove(id: string): void {
-    if (this.items.delete(id)) this.hooks?.removed(id);
+    const item = this.items.get(id);
+    if (!item) return;
+    this.items.delete(id);
+    this.counts.set(item.kind, this.count(item.kind) - 1);
+    this.hooks?.removed(id);
   }
 }
 
@@ -164,11 +201,15 @@ export interface Projectile extends Vec2 {
   dirZ: number;
   /** Distance left before it falls. */
   left: number;
+  /** Targets already hit this throw (#15): a piercing item hits each one once, never once per tick. */
+  hits: Set<string>;
+  /** Piercing targets (CRS) hit so far; at the row's `pierce` it stops. */
+  struck: number;
 }
 
 /** Spawn a projectile at (x, z) flying along the unit direction (dirX, dirZ). */
 export function createProjectile(id: string, kind: ItemKind, by: string, x: number, z: number, dirX: number, dirZ: number): Projectile {
-  return { id, kind, by, x, z, dirX, dirZ, left: THROWABLE_TYPES[kind].range };
+  return { id, kind, by, x, z, dirX, dirZ, left: THROWABLE_TYPES[kind].range, hits: new Set(), struck: 0 };
 }
 
 /** Something a projectile can hit and affect: an intact prop or a CRS (as in melee). */
@@ -177,16 +218,34 @@ export interface ProjectileTarget<K extends string = string> {
   /** What it is, for the caller ("prop", "crs"...). */
   kind: K;
   shape: PropShape;
+  /**
+   * A piercing item (#15, `pierce` > 1) may go through it (a CRS). Not
+   * pierceable (a prop), it always stops the item.
+   */
+  pierceable?: boolean;
 }
 
+/** Targets a piercing item went through this tick (#15), in order; the caller applies each hit like a stop. Only present when not empty. */
+type Passed<K extends string> = { passed?: ProjectileTarget<K>[] };
+
 export type ProjectileStep<K extends string = string> =
-  | { type: "flying" }
+  | ({ type: "flying" } & Passed<K>)
   /** Hit a target: the caller applies damage, stun and knockback. */
-  | { type: "hit"; target: ProjectileTarget<K>; x: number; z: number }
+  | ({ type: "hit"; target: ProjectileTarget<K>; x: number; z: number } & Passed<K>)
   /** Stopped by a wall, an obstacle, a broken prop's remains or the street edge. */
-  | { type: "blocked"; x: number; z: number }
+  | ({ type: "blocked"; x: number; z: number } & Passed<K>)
   /** Reached max range and fell. */
-  | { type: "landed"; x: number; z: number };
+  | ({ type: "landed"; x: number; z: number } & Passed<K>);
+
+/**
+ * Whether a projectile that stopped lies on the ground again (true) or is
+ * used up (#15: a tomato splats; a dog poo that hit a CRS is gone, one that
+ * missed lies there as a trap). `hitCrs`: it hit at least one CRS this throw.
+ */
+export function landsAfterStop(kind: ItemKind, hitCrs: boolean): boolean {
+  const t = THROWABLE_TYPES[kind];
+  return (hitCrs ? t.afterCrs : t.afterMiss) === "ground";
+}
 
 /** How far short of a contact the item stops, so it lies just outside what it hit. */
 const CONTACT_BACKOFF = 0.02;
@@ -237,6 +296,10 @@ export function wallEntry(a: Vec2, b: Vec2, world: CollisionWorld, r: number): n
  * the way wins; a target and an obstacle touched at the same point (an intact
  * prop is both) count as the target. The item stops just short of it.
  *
+ * Piercing (#15): a target already hit this throw is ignored. A pierceable
+ * target hit before the row's `pierce` count is reached is passed through
+ * (listed in `passed`, in order); the one that reaches the count stops it.
+ *
  * `world` is everything that blocks (static level, props in their current
  * shape, street bounds); `targets` are what a hit affects (intact props, CRS).
  */
@@ -246,27 +309,27 @@ export function stepProjectile<K extends string>(
   world: CollisionWorld,
   targets: Iterable<ProjectileTarget<K>>,
 ): ProjectileStep<K> {
-  const r = THROWABLE_TYPES[p.kind].radius;
-  const dist = Math.max(0, Math.min(THROWABLE_TYPES[p.kind].speed * dt, p.left));
+  const type = THROWABLE_TYPES[p.kind];
+  const r = type.radius;
+  const dist = Math.max(0, Math.min(type.speed * dt, p.left));
   const a: Vec2 = { x: p.x, z: p.z };
   const b: Vec2 = { x: p.x + p.dirX * dist, z: p.z + p.dirZ * dist };
 
   const wallT = wallEntry(a, b, world, r);
 
-  let hit: ProjectileTarget<K> | null = null;
-  let hitT = Infinity;
+  // Every target touched before the first wall, nearest first (ties: the order given).
+  const touched: { t: number; target: ProjectileTarget<K> }[] = [];
   for (const target of targets) {
+    if (p.hits.has(target.id)) continue;
     const s = target.shape;
     const grown: PropShape =
       s.type === "box"
         ? { type: "box", x: s.x, z: s.z, halfX: s.halfX + r, halfZ: s.halfZ + r }
         : { type: "circle", x: s.x, z: s.z, r: s.r + r };
     const t = segmentEntry(a, b, grown);
-    if (t !== null && t < hitT) {
-      hitT = t;
-      hit = target;
-    }
+    if (t !== null && t <= wallT) touched.push({ t, target });
   }
+  touched.sort((u, v) => u.t - v.t);
 
   const stopAt = (t: number) => {
     const travelled = Math.max(0, dist * t - CONTACT_BACKOFF);
@@ -275,22 +338,30 @@ export function stepProjectile<K extends string>(
     p.left = 0;
   };
 
-  if (hit && hitT <= wallT) {
-    stopAt(hitT);
-    return { type: "hit", target: hit, x: p.x, z: p.z };
+  const passed: ProjectileTarget<K>[] = [];
+  const out = <S extends ProjectileStep<K>>(step: S): S => (passed.length > 0 ? { ...step, passed } : step);
+  for (const { t, target } of touched) {
+    p.hits.add(target.id);
+    if (target.pierceable === true) p.struck++;
+    if (target.pierceable === true && p.struck < type.pierce) {
+      passed.push(target);
+      continue;
+    }
+    stopAt(t);
+    return out({ type: "hit", target, x: p.x, z: p.z });
   }
   if (wallT <= 1) {
     stopAt(wallT);
-    return { type: "blocked", x: p.x, z: p.z };
+    return out({ type: "blocked", x: p.x, z: p.z });
   }
   p.x = b.x;
   p.z = b.z;
   p.left -= dist;
   if (p.left <= 1e-9) {
     p.left = 0;
-    return { type: "landed", x: p.x, z: p.z };
+    return out({ type: "landed", x: p.x, z: p.z });
   }
-  return { type: "flying" };
+  return out({ type: "flying" });
 }
 
 /**
@@ -310,4 +381,61 @@ export function dropSpots(shape: PropShape, count: number, world: CollisionWorld
     out.push({ x: res.x, z: res.z });
   }
   return out;
+}
+
+/**
+ * Slipping on what lies on the ground (#15 dog poo): who steps on what. Each
+ * body remembers the item it last slipped on and cannot slip on that one
+ * again until it has got SLIP_CLEAR away from it, so a body getting up on a poo (or
+ * pushed back onto it) does not go down again at once. Bodies in the air
+ * (#45 hop, #11 thrown), already down, or in their get-up immunity (#2)
+ * never slip.
+ */
+export interface SlipBody extends Vec2 {
+  airborne: boolean;
+  down: boolean;
+  /** Get-up immunity (#2): could not be knocked down anyway. */
+  immune: boolean;
+}
+
+export class SlipGuards {
+  /** Per body id: the item it last slipped on, until it steps off it. */
+  private readonly lastSlip = new Map<string, string>();
+
+  /**
+   * Body `id` at `body`: the id of the slippery item it slips on now, or
+   * null. A slip is recorded at once (the caller knocks the body down).
+   * `items` are the slippery items lying on the ground.
+   */
+  check(id: string, body: SlipBody, items: Iterable<[string, Vec2]>, range = SLIP_RANGE, clear = SLIP_CLEAR): string | null {
+    const last = this.lastSlip.get(id);
+    let lastStillUnder = false;
+    let hit: string | null = null;
+    let hitD = range * range + 1e-9;
+    for (const [itemId, item] of items) {
+      const d = (item.x - body.x) ** 2 + (item.z - body.z) ** 2;
+      if (itemId === last) {
+        // Wider to step off than to step on: getting up beside it, or shuffling about, doesn't count.
+        if (d <= clear * clear) lastStillUnder = true;
+        continue;
+      }
+      if (d < hitD) {
+        hitD = d;
+        hit = itemId;
+      }
+    }
+    // Stepped off it (or it was picked up): that one can trip them again.
+    if (last !== undefined && !lastStillUnder) this.lastSlip.delete(id);
+    if (body.airborne || body.down || body.immune || hit === null) return null;
+    this.lastSlip.set(id, hit);
+    return hit;
+  }
+
+  remove(id: string): void {
+    this.lastSlip.delete(id);
+  }
+
+  clear(): void {
+    this.lastSlip.clear();
+  }
 }

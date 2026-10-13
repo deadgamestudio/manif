@@ -4,9 +4,21 @@ import { STREET_LEVEL as L } from "../level/index.js";
 import { TICK_DT } from "../net/index.js";
 import { KNOCKDOWN_THRESHOLD, circleOverlaps, type CollisionWorld } from "../physics/index.js";
 import { propCollisionWorld, propShape } from "../prop/index.js";
-import { MAX_GROUND_ITEMS, PICKUP_RANGE, THROWABLE_TYPES, ThrowableKind, type ItemKind } from "./constants.js";
+import {
+  MAX_GROUND_ITEMS,
+  PICKUP_RANGE,
+  SLIP_CLEAR,
+  SLIP_RANGE,
+  THROWABLE_TYPES,
+  ThrowableKind,
+  carrySpeedOf,
+  type ItemKind,
+} from "./constants.js";
 import {
   GroundItems,
+  SlipGuards,
+  landsAfterStop,
+  type SlipBody,
   aimDirection,
   createProjectile,
   dropSpots,
@@ -26,8 +38,15 @@ const OPEN: CollisionWorld = { bounds: { minX: -50, maxX: 50, minZ: -50, maxZ: 5
 describe("throwables table", () => {
   test("every kind has sane numbers; a pavé floors a CRS", () => {
     for (const t of Object.values(THROWABLE_TYPES)) {
-      for (const v of [t.radius, t.speed, t.range, t.propDamage, t.crsDamage, t.knockback]) expect(v).toBeGreaterThan(0);
-      expect(t.stun).toBeGreaterThanOrEqual(0);
+      for (const v of [t.radius, t.speed, t.range]) expect(v).toBeGreaterThan(0);
+      // #15: a tomato or a poo does no harm at all; only the status it leaves.
+      for (const v of [t.propDamage, t.crsDamage, t.knockback, t.stun, t.effectTime]) expect(v).toBeGreaterThanOrEqual(0);
+      expect(Number.isInteger(t.pierce) && t.pierce >= 1).toBe(true);
+      expect(t.groundCap).toBeGreaterThanOrEqual(1);
+      expect(t.groundCap).toBeLessThanOrEqual(MAX_GROUND_ITEMS);
+      expect(t.carrySpeed).toBeGreaterThan(0);
+      expect(t.carrySpeed).toBeLessThanOrEqual(1);
+      if (t.effect !== null) expect(t.effectTime).toBeGreaterThan(0);
     }
     // Kinds are synced as a uint8, and 0 means empty hands.
     for (const k of Object.keys(THROWABLE_TYPES).map(Number)) {
@@ -242,5 +261,209 @@ describe("street items", () => {
       expect(isItemKind(item.kind as ItemKind)).toBe(true);
       expect(circleOverlaps(world, item.x, item.z, 0.3)).toBe(false);
     }
+  });
+});
+
+const TOMATE = ThrowableKind.Tomate;
+const CROTTE = ThrowableKind.Crotte;
+const TROT = ThrowableKind.Trottinette;
+
+describe("more throwables (#15): the table", () => {
+  test("a tomato is light, fast and far; a poo short; a trottinette heavy, slow and short", () => {
+    const pave = THROWABLE_TYPES[PAVE];
+    const tom = THROWABLE_TYPES[TOMATE];
+    const poo = THROWABLE_TYPES[CROTTE];
+    const trot = THROWABLE_TYPES[TROT];
+    expect(tom.speed).toBeGreaterThan(pave.speed);
+    expect(tom.range).toBeGreaterThan(pave.range);
+    expect(poo.range).toBeLessThan(pave.range);
+    expect(trot.speed).toBeLessThan(pave.speed);
+    expect(trot.range).toBeLessThan(pave.range);
+    expect(trot.knockback).toBeGreaterThan(pave.knockback);
+    expect(trot.knockback).toBeGreaterThanOrEqual(KNOCKDOWN_THRESHOLD);
+    expect(trot.pierce).toBeGreaterThan(1);
+    for (const t of [tom, poo]) expect(t.crsDamage + t.knockback + t.stun + t.propDamage).toBe(0);
+  });
+
+  test("carrying a trottinette slows you; the light ones don't", () => {
+    expect(carrySpeedOf(TROT)).toBeLessThan(1);
+    for (const k of [ThrowableKind.None, PAVE, TOMATE, CROTTE, 99]) expect(carrySpeedOf(k)).toBe(1);
+  });
+
+  test("what is left once it stops: a tomato always splats, a poo that hit is gone but a miss lies there, the rest land", () => {
+    expect(landsAfterStop(TOMATE, true)).toBe(false);
+    expect(landsAfterStop(TOMATE, false)).toBe(false);
+    expect(landsAfterStop(CROTTE, true)).toBe(false);
+    expect(landsAfterStop(CROTTE, false)).toBe(true);
+    for (const k of [PAVE, TROT] as const) {
+      expect(landsAfterStop(k, true)).toBe(true);
+      expect(landsAfterStop(k, false)).toBe(true);
+    }
+  });
+});
+
+describe("ground caps per kind (#15)", () => {
+  test("one tomato over its cap removes the oldest tomato, never another kind", () => {
+    const removed: string[] = [];
+    const items = new GroundItems({ added: () => {}, removed: (id) => removed.push(id) });
+    const pave = items.drop(PAVE, 0, 0);
+    const cap = THROWABLE_TYPES[TOMATE].groundCap;
+    const toms: string[] = [];
+    for (let i = 0; i < cap; i++) toms.push(items.drop(TOMATE, i, 1));
+    expect(items.count(TOMATE)).toBe(cap);
+    expect(removed).toEqual([]);
+    items.drop(TOMATE, 99, 1);
+    expect(items.count(TOMATE)).toBe(cap);
+    expect(removed).toEqual([toms[0]!]);
+    expect(items.get(pave)).toBeDefined();
+  });
+
+  test("every kind holds at its own cap however many are dropped, under the room-wide cap", () => {
+    const items = new GroundItems();
+    for (const k of [TOMATE, CROTTE, TROT] as const) for (let i = 0; i < 100; i++) items.drop(k, i, 0);
+    for (const k of [TOMATE, CROTTE, TROT] as const) expect(items.count(k)).toBe(THROWABLE_TYPES[k].groundCap);
+    expect(items.size).toBeLessThanOrEqual(MAX_GROUND_ITEMS);
+  });
+
+  test("picking one up and clearing keep the counts right", () => {
+    const items = new GroundItems();
+    items.drop(CROTTE, 0, 0);
+    items.drop(CROTTE, 5, 0);
+    expect(items.pickUp({ x: 0, z: 0 }, ThrowableKind.None)).toBe(CROTTE);
+    expect(items.count(CROTTE)).toBe(1);
+    expect([...items.slippery()].length).toBe(1);
+    items.clear();
+    expect(items.count(CROTTE)).toBe(0);
+  });
+
+  test("only slippery kinds are listed as traps", () => {
+    const items = new GroundItems();
+    items.drop(PAVE, 0, 0);
+    items.drop(TOMATE, 0, 0);
+    items.drop(TROT, 0, 0);
+    const poo = items.drop(CROTTE, 0, 0);
+    expect([...items.slippery()].map(([id]) => id)).toEqual([poo]);
+  });
+});
+
+describe("trottinette piercing (#15)", () => {
+  /** A row of CRS across the throw, each one `gap` apart along +x. */
+  const row = (n: number, from = 3, gap = 1.2): ProjectileTarget<"crs">[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `crs-${i + 1}`,
+      kind: "crs" as const,
+      pierceable: true,
+      shape: { type: "circle" as const, x: from + i * gap, z: 0, r: 0.45 },
+    }));
+
+  /** Fly tick by tick, collecting every CRS hit in order. */
+  const flyAll = (p: Projectile, targets: (tick: number) => ProjectileTarget<"crs">[], world = OPEN) => {
+    const hits: string[] = [];
+    for (let i = 0; i < 10 / TICK_DT; i++) {
+      const res = stepProjectile(p, TICK_DT, world, targets(i));
+      for (const t of res.passed ?? []) hits.push(t.id);
+      if (res.type === "hit") hits.push(res.target.id);
+      if (res.type !== "flying") return { res, hits };
+    }
+    throw new Error("still flying");
+  };
+
+  test("goes through a row of CRS, hitting each once, and stops on the last one it may hit", () => {
+    const pierce = THROWABLE_TYPES[TROT].pierce;
+    const p = createProjectile("p", TROT, "me", 0, 0, 1, 0);
+    const { res, hits } = flyAll(p, () => row(pierce + 2));
+    expect(hits).toEqual(row(pierce).map((t) => t.id));
+    expect(res.type).toBe("hit");
+    if (res.type === "hit") expect(res.target.id).toBe(`crs-${pierce}`);
+  });
+
+  test("two CRS in one tick: both are hit, in order", () => {
+    const p = createProjectile("p", TROT, "me", 0, 0, 1, 0);
+    const res = stepProjectile(p, 0.5, OPEN, row(2, 3, 1).reverse());
+    expect(res.type).toBe("flying");
+    expect((res.passed ?? []).map((t) => t.id)).toEqual(["crs-1", "crs-2"]);
+  });
+
+  test("a CRS it is inside of (or that slid along with it) is never hit twice, whatever the ticks", () => {
+    // The CRS is knocked along the throw faster than the trottinette and stays in its path every tick.
+    const p = createProjectile("p", TROT, "me", 0, 0, 1, 0);
+    let struck = false;
+    const moving = (): ProjectileTarget<"crs">[] => {
+      struck ||= p.hits.size > 0;
+      // Standing at x = 2 until hit, then always just ahead of the trottinette, in its way.
+      const x = struck ? p.x + 0.3 : 2;
+      return [{ id: "crs-1", kind: "crs", pierceable: true, shape: { type: "circle", x, z: 0, r: 0.45 } }];
+    };
+    const { hits } = flyAll(p, moving);
+    expect(hits).toEqual(["crs-1"]);
+  });
+
+  test("a pavé still stops on the first CRS", () => {
+    const p = createProjectile("p", PAVE, "me", 0, 0, 1, 0);
+    const { res, hits } = flyAll(p, () => row(3));
+    expect(hits).toEqual(["crs-1"]);
+    expect(res.type).toBe("hit");
+  });
+
+  test("a prop or a wall stops a trottinette (only CRS are gone through)", () => {
+    const prop: ProjectileTarget<"crs"> = { id: "bin-1", kind: "crs", shape: { type: "circle", x: 3, z: 0, r: 0.5 } };
+    const p = createProjectile("p", TROT, "me", 0, 0, 1, 0);
+    const res = stepProjectile(p, 1, OPEN, [prop, ...row(1, 5)]);
+    expect(res.type).toBe("hit");
+    if (res.type === "hit") expect(res.target.id).toBe("bin-1");
+    const wall: CollisionWorld = { ...OPEN, boxes: [{ x: 4, z: 0, halfX: 0.5, halfZ: 3 }] };
+    const q = createProjectile("q", TROT, "me", 0, 0, 1, 0);
+    const blocked = flyAll(q, () => row(2, 3, 2), wall);
+    expect(blocked.res.type).toBe("blocked");
+    expect(blocked.hits).toEqual(["crs-1"]);
+  });
+});
+
+describe("slipping on dog poo (#15)", () => {
+  const body = (x: number, z: number, over: Partial<SlipBody> = {}): SlipBody => ({ x, z, airborne: false, down: false, immune: false, ...over });
+  const poo: [string, { x: number; z: number }][] = [["poo-1", { x: 0, z: 0 }]];
+
+  test("stepping on it slips; walking past it doesn't", () => {
+    const g = new SlipGuards();
+    expect(g.check("a", body(SLIP_RANGE + 0.05, 0), poo)).toBeNull();
+    expect(g.check("a", body(SLIP_RANGE - 0.05, 0), poo)).toBe("poo-1");
+  });
+
+  test("in the air (a hop, a thrown teammate) nobody slips; nor already down, nor in get-up immunity", () => {
+    const g = new SlipGuards();
+    for (const over of [{ airborne: true }, { down: true }, { immune: true }]) expect(g.check("a", body(0, 0, over), poo)).toBeNull();
+    // Landing on it afterwards does slip.
+    expect(g.check("a", body(0, 0), poo)).toBe("poo-1");
+  });
+
+  test("just got up on the same poo: no second slip until they step off it", () => {
+    const g = new SlipGuards();
+    expect(g.check("a", body(0, 0), poo)).toBe("poo-1");
+    // Down, then up again (immunity over) still standing on it: nothing.
+    expect(g.check("a", body(0.1, 0, { down: true }), poo)).toBeNull();
+    expect(g.check("a", body(0.1, 0), poo)).toBeNull();
+    expect(g.check("a", body(0.2, 0.1), poo)).toBeNull();
+    // Shuffling about beside it: still nothing.
+    expect(g.check("a", body(SLIP_CLEAR - 0.1, 0), poo)).toBeNull();
+    expect(g.check("a", body(0, 0), poo)).toBeNull();
+    // Off it, then back on: slips again.
+    expect(g.check("a", body(SLIP_CLEAR + 0.1, 0), poo)).toBeNull();
+    expect(g.check("a", body(0, 0), poo)).toBe("poo-1");
+  });
+
+  test("the guard is per body and per poo: someone else slips, and a second poo trips them", () => {
+    const g = new SlipGuards();
+    const two: [string, { x: number; z: number }][] = [...poo, ["poo-2", { x: 0.3, z: 0 }]];
+    expect(g.check("a", body(0, 0), two)).toBe("poo-1");
+    expect(g.check("b", body(0, 0), two)).toBe("poo-1");
+    expect(g.check("a", body(0.3, 0), two)).toBe("poo-2");
+  });
+
+  test("a poo picked up from under them frees the guard", () => {
+    const g = new SlipGuards();
+    expect(g.check("a", body(0, 0), poo)).toBe("poo-1");
+    expect(g.check("a", body(0, 0), [])).toBeNull();
+    const again: [string, { x: number; z: number }][] = [["poo-9", { x: 0, z: 0 }]];
+    expect(g.check("a", body(0, 0), again)).toBe("poo-9");
   });
 });

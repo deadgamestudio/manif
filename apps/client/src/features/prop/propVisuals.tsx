@@ -142,6 +142,64 @@ function Car({ broken }: { broken: boolean }) {
   );
 }
 
+function MarketStall({ broken }: { broken: boolean }) {
+  // A trestle table of tomato crates under a striped awning (#15). Long side along the street (Z).
+  const [w, d] = footprint(PROP_TYPES.market_stall.intact);
+  if (broken) {
+    // The table folded flat, crates spilled.
+    return (
+      <group>
+        <mesh position={[0, 0.06, 0]} rotation-z={0.15} receiveShadow>
+          <boxGeometry args={[w * 0.9, 0.08, d * 0.9]} />
+          <meshStandardMaterial color="#8d6e63" />
+        </mesh>
+        <mesh position={[w * 0.3, 0.02, d * 0.25]} rotation-x={-Math.PI / 2}>
+          <planeGeometry args={[w * 0.9, d * 0.6]} />
+          <meshStandardMaterial color="#e53935" side={DoubleSide} />
+        </mesh>
+      </group>
+    );
+  }
+  const tableY = 0.8;
+  const awningY = 2.1;
+  const legs: [number, number][] = [
+    [-w / 2 + 0.08, -d / 2 + 0.08],
+    [w / 2 - 0.08, -d / 2 + 0.08],
+    [-w / 2 + 0.08, d / 2 - 0.08],
+    [w / 2 - 0.08, d / 2 - 0.08],
+  ];
+  return (
+    <group>
+      <mesh position-y={tableY} castShadow receiveShadow>
+        <boxGeometry args={[w, 0.08, d]} />
+        <meshStandardMaterial color="#a1887f" />
+      </mesh>
+      {/* Crates of tomatoes. */}
+      {[-1, 0, 1].map((k) => (
+        <mesh key={k} position={[0, tableY + 0.14, (k * d) / 3.2]} castShadow>
+          <boxGeometry args={[w * 0.7, 0.2, d / 3.6]} />
+          <meshStandardMaterial color="#d62a1e" />
+        </mesh>
+      ))}
+      {legs.map(([x, z], i) => (
+        <mesh key={i} position={[x, awningY / 2, z]} castShadow>
+          <boxGeometry args={[0.06, awningY, 0.06]} />
+          <meshStandardMaterial color="#5d4037" />
+        </mesh>
+      ))}
+      {/* The awning, tilted towards the street. */}
+      <mesh position-y={awningY} rotation-z={0.2} castShadow>
+        <boxGeometry args={[w * 1.25, 0.04, d * 1.1]} />
+        <meshStandardMaterial color="#f5f5f5" />
+      </mesh>
+      <mesh position={[0, awningY + 0.03, 0]} rotation-z={0.2}>
+        <boxGeometry args={[w * 1.26, 0.04, d * 0.35]} />
+        <meshStandardMaterial color="#c62828" />
+      </mesh>
+    </group>
+  );
+}
+
 export const PROP_LOOKS: Readonly<Record<PropKind, PropLook>> = {
   bin: {
     intact: () => <Bin broken={false} />,
@@ -163,5 +221,10 @@ export const PROP_LOOKS: Readonly<Record<PropKind, PropLook>> = {
     broken: () => <Car broken />,
     debris: { y: 1, count: 30, colors: ["#c62828", "#212121", "#a5d8ff", "#9e9e9e"], size: 0.22, speed: 7 },
     alarm: true,
+  },
+  market_stall: {
+    intact: () => <MarketStall broken={false} />,
+    broken: () => <MarketStall broken />,
+    debris: { y: 1.2, count: 24, colors: ["#d62a1e", "#e53935", "#8d6e63", "#f5f5f5"], size: 0.16, speed: 6 },
   },
 };

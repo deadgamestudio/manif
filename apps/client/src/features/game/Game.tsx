@@ -63,9 +63,9 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         <CarryHud localId={snap.sessionId} players={snap.players} touch={touch} />
         <div className="hud-help">Emmenez au moins la moitié du cortège jusqu'à la Préfecture avant la fin du chrono.</div>
         {touch ? (
-          <div className="hud-help">Joystick pour marcher · Taper pour frapper ou lancer · Sauter par-dessus poubelles et CRS à terre · Esquive pour plonger · Action pour ramasser (un pavé ou un·e camarade, Taper pour le·la lancer), maintenue pour libérer, éteindre un·e camarade ou mettre le feu</div>
+          <div className="hud-help">Joystick pour marcher · Taper pour frapper ou lancer · Sauter par-dessus poubelles et CRS à terre · Esquive pour plonger · Action pour ramasser (un pavé, une tomate, une crotte, une trottinette ou un·e camarade, Taper pour le·la lancer), maintenue pour libérer, éteindre un·e camarade ou mettre le feu · gare aux crottes, ça glisse</div>
         ) : (
-          <div>WASD / flèches pour marcher · clic pour taper · Espace pour sauter par-dessus une poubelle ou un CRS à terre (et esquiver la matraque) · Maj pour plonger · E pour ramasser un pavé ou soulever un·e camarade, clic pour le·la lancer vers la souris · E (maintenu) pour libérer, éteindre un·e camarade ou mettre le feu à une poubelle ou une voiture · sors vite des lacrymos (Maj pour plonger dehors)</div>
+          <div>WASD / flèches pour marcher · clic pour taper · Espace pour sauter par-dessus une poubelle ou un CRS à terre (et esquiver la matraque) · Maj pour plonger · E pour ramasser un pavé, une tomate, une crotte ou une trottinette, ou soulever un·e camarade, clic pour le·la lancer vers la souris · E (maintenu) pour libérer, éteindre un·e camarade ou mettre le feu à une poubelle ou une voiture · sors vite des lacrymos (Maj pour plonger dehors) · regarde où tu marches, les crottes, ça glisse</div>
         )}
         {import.meta.env.DEV && <DebugKnockbackKeys />}
         <button type="button" className="hud-leave" onClick={() => net.leave()}>

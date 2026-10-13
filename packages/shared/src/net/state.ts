@@ -81,6 +81,10 @@ export interface CrsShape {
   formation: boolean;
   /** On fire (#16). */
   onFire: boolean;
+  /** A tomato on the visor (#15): stumbling, missing its swings. */
+  splatted: boolean;
+  /** Hit by a dog poo (#15): the other CRS keep away. */
+  stinky: boolean;
 }
 
 /** An item lying on the ground (#8), keyed by a server-made id. */

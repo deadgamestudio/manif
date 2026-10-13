@@ -31,6 +31,13 @@ describe("roundAwards", () => {
     expect(roundAwards([player("A", { teammatesThrown: 3 })])).toEqual([{ title: "Catapulte humaine", name: "A", value: 3, unit: "camarades lancés" }]);
   });
 
+  test("tomatoes and poo on CRS, and slipping on poo (#15), earn their own awards", () => {
+    expect(roundAwards([player("A", { splats: 4 }), player("B", { slips: 2 })])).toEqual([
+      { title: "Primeur de combat", name: "A", value: 4, unit: "CRS repeints ou parfumés" },
+      { title: "Pied dans la crotte", name: "B", value: 2, unit: "glissades" },
+    ]);
+  });
+
   test("a tie goes to the first player", () => {
     expect(roundAwards([player("A", { arrests: 2 }), player("B", { arrests: 2 })])[0]!.name).toBe("A");
   });

@@ -22,6 +22,10 @@ export const Crs = schema(
     formation: t.boolean(),
     /** On fire (#16). The burn timer stays in the server's fire feature. */
     onFire: t.boolean(),
+    /** A tomato on the visor (#15): stumbling and missing. The timer stays in `CrsBot.splatUntil`. */
+    splatted: t.boolean(),
+    /** Hit by a dog poo (#15): the others keep away. The timer stays in `CrsBot.stinkUntil`. */
+    stinky: t.boolean(),
   },
   "Crs",
 );

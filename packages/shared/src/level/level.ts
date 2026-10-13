@@ -14,7 +14,7 @@ export type BoxKind = "building" | "wall" | "kiosk" | "barrier" | "van" | "prefe
 export type CircleKind = "bollard" | "tree" | "lamp";
 
 /** Breakable prop types (#4 owns their HP, shapes and state). */
-export type PropKind = "bin" | "bus_shelter" | "shop_window" | "car";
+export type PropKind = "bin" | "bus_shelter" | "shop_window" | "car" | "market_stall";
 
 export interface BoxObstacle extends BoxShape {
   id: string;
@@ -44,7 +44,7 @@ export interface PropSlot {
   rotation: number;
 }
 
-/** An item lying on the ground when the march starts (#8: pavés). */
+/** An item lying on the ground when the march starts (#8: pavés; #15: dog poo, trottinettes). */
 export interface LevelItem extends Vec2 {
   kind: ItemKind;
 }

@@ -1,7 +1,7 @@
 /*
  * PLACEHOLDER LOOKS for throwables (#8). Flat-coloured primitives, all in this
  * one file, so a real model (Jordan's) can replace a kind here without
- * touching the views. #15 adds a row per new kind (tomato, dog poo...).
+ * touching the views. One row per kind: pavé (#8), tomate, crotte, trottinette (#15).
  */
 import type { ReactNode } from "react";
 import { THROWABLE_TYPES, ThrowableKind, type ItemKind } from "@manif/shared";
@@ -29,8 +29,76 @@ function Pave() {
   );
 }
 
+function Tomate() {
+  // A ripe tomato with a green stalk (#15).
+  const r = THROWABLE_TYPES[ThrowableKind.Tomate].radius * 1.4;
+  return (
+    <group>
+      <mesh position-y={r} castShadow>
+        <sphereGeometry args={[r, 12, 8]} />
+        <meshStandardMaterial color="#d62a1e" roughness={0.45} />
+      </mesh>
+      <mesh position-y={r * 2}>
+        <cylinderGeometry args={[r * 0.12, r * 0.18, r * 0.35, 6]} />
+        <meshStandardMaterial color="#2e7d32" />
+      </mesh>
+    </group>
+  );
+}
+
+/** Blobs of the dog poo (#15): x, y, z offsets and radius, as fractions of its size. */
+const POO_BLOBS: readonly (readonly [number, number, number, number])[] = [
+  [0, 0.35, 0, 0.5],
+  [0.15, 0.75, 0.05, 0.38],
+  [0.05, 1.05, 0, 0.26],
+];
+
+function Crotte() {
+  // A cartoon swirl: three stacked brown blobs.
+  const s = THROWABLE_TYPES[ThrowableKind.Crotte].radius * 2.2;
+  return (
+    <group>
+      {POO_BLOBS.map(([x, y, z, r], i) => (
+        <mesh key={i} position={[x * s, y * s * 0.6, z * s]} castShadow>
+          <sphereGeometry args={[r * s, 10, 8]} />
+          <meshStandardMaterial color="#5b3a1e" roughness={0.6} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function Trottinette() {
+  // An e-scooter lying down: a thin deck, a stem, two little wheels (#15). Drawn along local Z.
+  const len = THROWABLE_TYPES[ThrowableKind.Trottinette].radius * 3.4;
+  const wheel = 0.09;
+  return (
+    <group>
+      <mesh position-y={wheel + 0.03} castShadow>
+        <boxGeometry args={[0.16, 0.05, len]} />
+        <meshStandardMaterial color="#3fb950" roughness={0.5} />
+      </mesh>
+      {/* The stem, folded down along the deck. */}
+      <mesh position={[0.1, wheel + 0.06, len * 0.15]} castShadow>
+        <boxGeometry args={[0.05, 0.05, len * 0.8]} />
+        <meshStandardMaterial color="#2b2b2b" />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[0, wheel, (side * len) / 2]} rotation-z={Math.PI / 2} castShadow>
+          <cylinderGeometry args={[wheel, wheel, 0.06, 12]} />
+          <meshStandardMaterial color="#111111" />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export const THROWABLE_LOOKS: Readonly<Record<ItemKind, ThrowableLook>> = {
   [ThrowableKind.Pave]: { model: () => <Pave />, flightY: 1.2, arcHeight: 1.4, spin: 12, handY: -0.8 },
+  [ThrowableKind.Tomate]: { model: () => <Tomate />, flightY: 1.3, arcHeight: 1.8, spin: 9, handY: -0.75 },
+  [ThrowableKind.Crotte]: { model: () => <Crotte />, flightY: 1.2, arcHeight: 1.2, spin: 14, handY: -0.75 },
+  // Held up over the head, end over end in the air.
+  [ThrowableKind.Trottinette]: { model: () => <Trottinette />, flightY: 1.1, arcHeight: 0.8, spin: 7, handY: -0.65 },
 };
 
 /** The look of a synced kind, or null for "nothing" and unknown kinds. */
