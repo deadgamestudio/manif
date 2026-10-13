@@ -11,7 +11,9 @@ the players walking it, synced through the server. Players swing (Space or
 click) to smash breakable props: bins, bus shelters, shop windows and cars.
 CRS riot police bots chase the nearest protester, hit them with batons, grab
 them and drag them to the police vans; protesters can hit them back, or dodge
-(Shift) with a short burst of speed that has a 3 s cooldown.
+(Shift) with a short burst of speed that has a 3 s cooldown. A teammate being
+dragged away can be rescued: hold E next to them for a second (or floor the CRS
+holding them) and they are free, with a moment of grab immunity.
 
 ## Layout
 
@@ -27,16 +29,18 @@ Inside each one, code is grouped by feature:
 apps/client/src/
   app/        main.tsx, App.tsx, styles.css
   features/   home/ lobby/ game/ level/ player/ health/ movement/ melee/ (attack input) prop/ (props, debris)
-              crs/ (police bot avatars) dodge/ (dodge key, cooldown HUD) debug/ (dev-only keys)
+              crs/ (police bot avatars) dodge/ (dodge key, cooldown HUD) interact/ (E key)
+              rescue/ (rescue bar, HUD prompt) debug/ (dev-only keys)
   shared/     net/ (connection, invite link)  iso/ (camera maths)
 apps/server/src/
   app/        server bootstrap
   features/   player/ (Player Schema)  physics/ (knockback bodies)  health/ (HP and arrest timers)
               melee/ (swing cooldowns)  prop/ (Prop Schema, prop HP, the room's collision world)
               crs/ (Crs Schema, CrsSquad: the bots, spawning, syncing)  dodge/ (dodge cooldowns)
+              rescue/ (who holds interact, rescue progress)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
-  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/   (each with an index.ts)
+  net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ rescue/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -77,13 +81,13 @@ Run the built server with `bun run --cwd apps/server start`.
 | Tune knockback (drag, friction, knockdown threshold, down time, get-up immunity, wall bounce) | `packages/shared/src/physics/constants.ts` |
 | Change knockback kinematics (impulses, integration, bounce, down timer) | `packages/shared/src/physics/body.ts`; the server side is `apps/server/src/features/physics/` |
 | Push a body from a new hit (melee, baton, pavé...) | `StreetRoom.applyImpulse(id, dirX, dirZ, strength, mode?)` in `apps/server/src/rooms/StreetRoom.ts` |
-| Tune HP, KO time, respawn delay, invulnerability, default drag time, respawn margin | `packages/shared/src/health/constants.ts` |
+| Tune HP, KO time, respawn delay, invulnerability, grab immunity after a rescue, default drag time, respawn margin | `packages/shared/src/health/constants.ts` |
 | Change the health state machine (free, grabbed, KO, arrested) | `packages/shared/src/health/health.ts`; respawn position in `health/respawn.ts` |
-| Hurt, grab or rescue a protester from a new system (melee, baton, gas, rescue...) | `StreetRoom.damagePlayer(id, amount)`, `grabPlayer(id, duration?)`, `rescuePlayer(id)`; check `hasControl(id)` before letting a player act |
+| Hurt, grab or free a protester from a new system (melee, baton, gas, a thrown teammate #11...) | `StreetRoom.damagePlayer(id, amount)`, `grabPlayer(id, duration?)`, `rescuePlayer(id)`; check `hasControl(id)` before letting a player act |
 | Tune melee reach, arc, cooldown, damage to props | `packages/shared/src/melee/constants.ts` |
 | Change the arc check, line of sight or cooldown rule | `packages/shared/src/melee/melee.ts` |
 | Tune a prop type (HP, intact and broken collision shape, pavés dropped) | `packages/shared/src/prop/constants.ts` |
-| Handle a swing on the server (targets, hit events), hit a new kind of target (#10 rescue) | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
+| Handle a swing on the server (targets, hit events), hit a new kind of target | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
 | Tune a police unit (speed, HP, sight, baton, grab, drag, stun, stagger) or add a unit type (#13) | The `CRS_STATS` table in `packages/shared/src/crs/constants.ts` (plus a look in `apps/client/src/features/crs/crsVisuals.tsx`) |
 | Change how many CRS start, the cap, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
 | Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
@@ -96,6 +100,10 @@ Run the built server with `bun run --cwd apps/server start`.
 | Tune the dodge (speed factor, duration, cooldown, bonk threshold and down time) | `packages/shared/src/dodge/constants.ts` |
 | Change the dodge burst (direction, wall bonk) or its cooldown rule | `startDodge` / `stepBody` in `packages/shared/src/physics/body.ts`; `dodgeDirection`, `dodgeReady` in `dodge/dodge.ts`; the server checks are in `StreetRoom.dodge()` |
 | Change the dodge key, its cooldown bar or its look | `apps/client/src/features/dodge/` (key, HUD); the lean, squash and dust puff are in `features/player/PlayerAvatar.tsx` |
+| Tune the rescue (hold time, range, knockback on the CRS and the freed protester) | `packages/shared/src/rescue/constants.ts` |
+| Change the rescue rules (target choice, progress, interrupts, several rescuers) | `packages/shared/src/rescue/rescue.ts`; the room applies them at the top of `StreetRoom.step()` and the release is `StreetRoom.pullFree()` |
+| Add something to the interact key (E), e.g. pick up a pavé (#8) | `StreetRoom.interact(id, held)` (a grabbed teammate in range has priority); the key is `apps/client/src/features/interact/` |
+| Change the rescue bar or the HUD prompt | `apps/client/src/features/rescue/` |
 | Change the attack keys | `apps/client/src/features/melee/useAttackInput.ts`; the swing animation is in `features/player/PlayerAvatar.tsx` |
 | Change the HP bar and status line | `apps/client/src/features/health/` (HUD and the bar above other players) |
 | Change the knocked-down look | `apps/client/src/features/player/PlayerAvatar.tsx` |

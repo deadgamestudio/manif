@@ -16,8 +16,15 @@ export const RESPAWN_INVULNERABILITY = 2;
 /** Default drag time from grab to arrest, unless rescued (#10). #5 owns the real drag and can pass its own. */
 export const GRAB_DURATION = 4;
 
-/** A protester rescued from a grab at 0 HP gets at least this much back (#10 may retune). */
+/** A protester rescued from a grab at 0 HP gets at least this much back (#10). */
 export const RESCUE_MIN_HP = 1;
+
+/**
+ * After a rescue (#10), or a CRS letting go because it was stunned or floored,
+ * grabs are ignored for this long, so the same CRS cannot grab again the next
+ * tick. Hits still land.
+ */
+export const GRAB_IMMUNITY = 1.5;
 
 /** Respawn this far (world units) behind the rearmost free protester. */
 export const RESPAWN_MARGIN = 4;

@@ -10,7 +10,7 @@
  * A refused transition returns the same object, so callers can compare with
  * `===`. The server applies them; nothing here knows about Schema or clocks.
  */
-import { GRAB_DURATION, KO_DURATION, MAX_HP, RESCUE_MIN_HP, RESPAWN_DELAY, RESPAWN_INVULNERABILITY } from "./constants.js";
+import { GRAB_DURATION, GRAB_IMMUNITY, KO_DURATION, MAX_HP, RESCUE_MIN_HP, RESPAWN_DELAY, RESPAWN_INVULNERABILITY } from "./constants.js";
 
 /** Synced as a uint8 (`Player.status`). */
 export const PlayerStatus = {
@@ -32,6 +32,8 @@ export interface Health {
   until: number;
   /** Room time until which hits and grabs are ignored (after a respawn). */
   invulnerableUntil: number;
+  /** Room time until which grabs only are ignored (after a rescue, #10). */
+  grabImmuneUntil: number;
 }
 
 /** Which status changes the machine allows. Anything else is refused. */
@@ -48,7 +50,7 @@ export function canTransition(from: PlayerStatus, to: PlayerStatus): boolean {
 
 /** A fresh protester: free, full HP, no invulnerability. */
 export function createHealth(): Health {
-  return { hp: MAX_HP, status: PlayerStatus.Free, until: 0, invulnerableUntil: 0 };
+  return { hp: MAX_HP, status: PlayerStatus.Free, until: 0, invulnerableUntil: 0, grabImmuneUntil: 0 };
 }
 
 /** Only free protesters walk. Their move input is ignored otherwise. */
@@ -63,6 +65,11 @@ export function canAct(h: Health): boolean {
 
 export function isInvulnerable(h: Health, now: number): boolean {
   return now < h.invulnerableUntil;
+}
+
+/** Whether a grab would be refused for immunity: just respawned, or just rescued (#10). */
+export function isGrabImmune(h: Health, now: number): boolean {
+  return isInvulnerable(h, now) || now < h.grabImmuneUntil;
 }
 
 /** Whether hits can hurt this protester right now. */
@@ -91,26 +98,28 @@ export function damage(h: Health, amount: number, now: number): Health {
 
 /**
  * A CRS grabs a free protester (#5): it is dragged for `duration` seconds,
- * then arrested unless rescued. Refused unless free, and during respawn
- * invulnerability.
+ * then arrested unless rescued. Refused unless free, during respawn
+ * invulnerability, and during the grab immunity after a rescue.
  */
 export function grab(h: Health, now: number, duration = GRAB_DURATION): Health {
-  if (!canTransition(h.status, PlayerStatus.Grabbed) || isInvulnerable(h, now)) return h;
+  if (!canTransition(h.status, PlayerStatus.Grabbed) || isGrabImmune(h, now)) return h;
   return { ...h, status: PlayerStatus.Grabbed, until: now + Math.max(0, duration) };
 }
 
 /**
- * Freed from a grab by a teammate (#10). Keeps its HP, but at least
- * RESCUE_MIN_HP so a protester grabbed at 0 HP does not come back "free and dead".
+ * Freed from a grab (#10): pulled out by a teammate, or let go by a CRS that
+ * was stunned or floored. Keeps its HP, but at least RESCUE_MIN_HP so a
+ * protester grabbed at 0 HP does not come back "free and dead", and cannot be
+ * grabbed again for GRAB_IMMUNITY.
  */
-export function rescue(h: Health): Health {
+export function rescue(h: Health, now: number): Health {
   if (h.status !== PlayerStatus.Grabbed) return h;
-  return { ...h, status: PlayerStatus.Free, until: 0, hp: Math.max(h.hp, RESCUE_MIN_HP) };
+  return { ...h, status: PlayerStatus.Free, until: 0, hp: Math.max(h.hp, RESCUE_MIN_HP), grabImmuneUntil: now + GRAB_IMMUNITY };
 }
 
 /** Back in the street: free, full HP, briefly invulnerable. */
 export function respawn(now: number): Health {
-  return { hp: MAX_HP, status: PlayerStatus.Free, until: 0, invulnerableUntil: now + RESPAWN_INVULNERABILITY };
+  return { hp: MAX_HP, status: PlayerStatus.Free, until: 0, invulnerableUntil: now + RESPAWN_INVULNERABILITY, grabImmuneUntil: 0 };
 }
 
 /** What a tick changed, so the room can react (place the body on respawn, announce arrests...). */

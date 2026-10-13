@@ -23,6 +23,8 @@ export const Player = schema(
     stateLeft: t.uint8(),
     /** In a dodge burst (#9). The cooldown and burst timer stay server-side in the physics and dodge features. */
     dodging: t.boolean(),
+    /** While grabbed: a teammate's rescue progress (#10), 0..100. 0 otherwise. Progress per rescuer stays server-side. */
+    rescue: t.uint8().default(0),
   },
   "Player",
 );
