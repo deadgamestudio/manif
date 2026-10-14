@@ -1,0 +1,172 @@
+[
+  {
+    "asset": "crs",
+    "status": "PASS",
+    "triangles": 2722,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "guard-idle",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0305,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9045,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "formation-walk",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.388,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8632,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "shield-raise",
+        "frames": [
+          1.0,
+          25.0
+        ],
+        "loop": false,
+        "seam_m": 0.381037,
+        "maximum_motion_m": 0.381,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9045,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "shield-shove",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.2347,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9045,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "baton-swing",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.9203,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9045,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-splatted",
+    "status": "PASS",
+    "triangles": 2866,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "guard-idle",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0305,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9045,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "formation-walk",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.388,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8632,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "visor-wipe",
+        "frames": [
+          1.0,
+          61.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.9067,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9044,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-grenadier",
+    "status": "PASS",
+    "triangles": 2354,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "guard-idle",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0305,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9045,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "formation-walk",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.388,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8632,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "canister-throw",
+        "frames": [
+          1.0,
+          37.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.1284,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9036,
+        "finite_each_frame": true
+      }
+    ]
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "asset": "debris-barricade-intact",
+  "label": "Barricade — intact",
+  "state": "intact",
+  "triangles": 396,
+  "budget": 1500,
+  "dimensions_m": [
+    3.0,
+    0.94,
+    1.2
+  ],
+  "bounds_min": [
+    -1.5,
+    -0.47,
+    0.0
+  ],
+  "bounds_max": [
+    1.5,
+    0.47,
+    1.2
+  ],
+  "requested_dimensions_m": [
+    3,
+    1,
+    1.2
+  ],
+  "mesh_count": 1,
+  "notes": "Assemblage stylisé de planches et tôle ; aucune collision ni feu actif.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

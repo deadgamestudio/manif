@@ -1,0 +1,32 @@
+{
+  "asset": "bollard-level",
+  "label": "Borne du niveau",
+  "state": "intact",
+  "triangles": 184,
+  "budget": 800,
+  "dimensions_m": [
+    1.0,
+    1.0,
+    0.9
+  ],
+  "bounds_min": [
+    -0.5,
+    -0.5,
+    0.0
+  ],
+  "bounds_max": [
+    0.5,
+    0.5,
+    0.9
+  ],
+  "requested_dimensions_m": [
+    1,
+    1,
+    0.9
+  ],
+  "mesh_count": 1,
+  "notes": "Borne massive correspondant au rayon de collision 0,5 m demandé, distincte du potelet de trottoir fin.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

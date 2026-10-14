@@ -1,0 +1,28 @@
+{
+  "asset": "tomato-splat-ground",
+  "label": "Éclaboussure de tomate",
+  "state": "intact",
+  "triangles": 92,
+  "budget": 300,
+  "dimensions_m": [
+    0.34296,
+    0.27318,
+    0.004
+  ],
+  "bounds_min": [
+    -0.16226,
+    -0.13038,
+    0.0
+  ],
+  "bounds_max": [
+    0.1807,
+    0.1428,
+    0.004
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Petit mesh plat pour sol ; à décaler du sol et supprimer après un délai dans le moteur.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

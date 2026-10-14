@@ -1,0 +1,126 @@
+[
+  {
+    "asset": "lyceen-hoodie",
+    "source_asset": "personnages-v02/lyceen-hoodie",
+    "clips": [
+      {
+        "name": "light-fire",
+        "duration_seconds": 2.5,
+        "loop": false
+      },
+      {
+        "name": "gas-stagger",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "tomato-stumble",
+        "duration_seconds": 1.75,
+        "loop": false
+      },
+      {
+        "name": "overhead-toss",
+        "duration_seconds": 1.6666666666666667,
+        "loop": false
+      },
+      {
+        "name": "ko-collapse",
+        "duration_seconds": 2.0,
+        "loop": false
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent",
+    "source_asset": "personnages-v02/lyceenne-coupe-vent",
+    "clips": [
+      {
+        "name": "light-fire",
+        "duration_seconds": 2.5,
+        "loop": false
+      },
+      {
+        "name": "gas-stagger",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "tomato-stumble",
+        "duration_seconds": 1.75,
+        "loop": false
+      },
+      {
+        "name": "overhead-toss",
+        "duration_seconds": 1.6666666666666667,
+        "loop": false
+      },
+      {
+        "name": "ko-collapse",
+        "duration_seconds": 2.0,
+        "loop": false
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot",
+    "source_asset": "personnages-v02/lyceen-maillot",
+    "clips": [
+      {
+        "name": "light-fire",
+        "duration_seconds": 2.5,
+        "loop": false
+      },
+      {
+        "name": "gas-stagger",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "tomato-stumble",
+        "duration_seconds": 1.75,
+        "loop": false
+      },
+      {
+        "name": "overhead-toss",
+        "duration_seconds": 1.6666666666666667,
+        "loop": false
+      },
+      {
+        "name": "ko-collapse",
+        "duration_seconds": 2.0,
+        "loop": false
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat",
+    "source_asset": "personnages-v02/lyceenne-sweat",
+    "clips": [
+      {
+        "name": "light-fire",
+        "duration_seconds": 2.5,
+        "loop": false
+      },
+      {
+        "name": "gas-stagger",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "tomato-stumble",
+        "duration_seconds": 1.75,
+        "loop": false
+      },
+      {
+        "name": "overhead-toss",
+        "duration_seconds": 1.6666666666666667,
+        "loop": false
+      },
+      {
+        "name": "ko-collapse",
+        "duration_seconds": 2.0,
+        "loop": false
+      }
+    ]
+  }
+]

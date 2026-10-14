@@ -1,0 +1,178 @@
+[
+  {
+    "asset": "etage-pierre-2m",
+    "source": "rue-test-v02/modules/etage-pierre-2m",
+    "sha256": "7191d82619d9202a369da643750f64a11720d5eced2efede16ec376eb240fef0",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 544,
+    "embedded_textures": true
+  },
+  {
+    "asset": "etage-balcon-2m",
+    "source": "rue-test-v02/modules/etage-balcon-2m",
+    "sha256": "4c4ea649d35118d72fb8c441e5e6ba9ac7deb16acddef188f93c8c1475310ec2",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 660,
+    "embedded_textures": true
+  },
+  {
+    "asset": "etage-brique-2m",
+    "source": "rue-test-v02/modules/etage-brique-2m",
+    "sha256": "17c4e0332e4a480ca9b050cb9a2b637540a748f3f7e420bebd0693c35830b8ff",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 496,
+    "embedded_textures": true
+  },
+  {
+    "asset": "porte-immeuble-2m",
+    "source": "rue-test-v02/modules/porte-immeuble-2m",
+    "sha256": "2390a3c54e3fa90a00b06bc0ae2b61d1efc7219da765342ee7a3890b0ab66a0c",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 444,
+    "embedded_textures": true
+  },
+  {
+    "asset": "toit-mansarde-2m",
+    "source": "rue-test-v02/modules/toit-mansarde-2m",
+    "sha256": "efdb728f0d5871ebf7950f7719799e28909bbc6b6eb20ac60ddf3a38537b51a8",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 168,
+    "embedded_textures": true
+  },
+  {
+    "asset": "facade-shop-2m",
+    "source": "lot-pilote-v04/facade-shop-2m",
+    "sha256": "239b94e22925d9abeb6c346802c7592e3865d29f5efe5dbef8cb6afc95a01a68",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 973,
+    "embedded_textures": true
+  },
+  {
+    "asset": "pave",
+    "source": "lot-pilote-v04/pave",
+    "sha256": "5960dedb68a2a4e70a450da5be3a1dae6bb5ba135af5b54f74f8ba3253a7ffae",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 108,
+    "embedded_textures": true
+  },
+  {
+    "asset": "crs-shield",
+    "source": "lot-pilote-v04/crs-shield",
+    "sha256": "b12fb67de05a5149568eb8b4ef421c9fb728e86dfca7d9ca658e40cb70cfa1b6",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 608,
+    "embedded_textures": true
+  },
+  {
+    "asset": "lyceen-hoodie",
+    "source": "personnages-v02/lyceen-hoodie",
+    "sha256": "eb43fd949de77e8d35844b3453bbd5409e34f35ae76b3066f307ad5e851792a2",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 2942,
+    "embedded_textures": true
+  },
+  {
+    "asset": "lyceenne-coupe-vent",
+    "source": "personnages-v02/lyceenne-coupe-vent",
+    "sha256": "f366ab4333816944a483d642c7ca3407c1c27f1c6ac36166ffafbe5f2c42fd86",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 2950,
+    "embedded_textures": true
+  },
+  {
+    "asset": "lyceen-maillot",
+    "source": "personnages-v02/lyceen-maillot",
+    "sha256": "99d7c202e8b64023758b73a37d52f7d08b0ef32a355c66ed0fb13ecc6b0f9135",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 2942,
+    "embedded_textures": true
+  },
+  {
+    "asset": "lyceenne-sweat",
+    "source": "personnages-v02/lyceenne-sweat",
+    "sha256": "4e77778013734a09df24a5d3868ba2a9bbf8945d65ce562f0cd4234fce4e9e91",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 2950,
+    "embedded_textures": true
+  },
+  {
+    "asset": "carton-nos-voix",
+    "source": "personnages-v02/accessoires/carton-nos-voix",
+    "sha256": "bebd0f3d14777c45958dcd7d6f255ee14fff20019c35f9fa2110cfc5ecb7a058",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 170,
+    "embedded_textures": true
+  },
+  {
+    "asset": "carton-avenir",
+    "source": "personnages-v02/accessoires/carton-avenir",
+    "sha256": "2832ea94cff2270c9174210f301d5bed64bb237bb29c63cc9bbd3f085f22f420",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 183,
+    "embedded_textures": true
+  },
+  {
+    "asset": "tomato",
+    "source": "objets-a-lancer-v01/tomato",
+    "sha256": "d1e3c157ff62e9e27b6c5e4b8cad9efbf1b8986db3a42e2b010981d294146abe",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 180,
+    "embedded_textures": true
+  },
+  {
+    "asset": "dog-poo",
+    "source": "objets-a-lancer-v01/dog-poo",
+    "sha256": "f8f0658bf2422c9503ff61a7f8a18d4909f9d0d497650d11f2743b9721481788",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 284,
+    "embedded_textures": true
+  },
+  {
+    "asset": "trottinette",
+    "source": "objets-a-lancer-v01/trottinette",
+    "sha256": "da294751c93e85fc051235bf1c93b88687129ea1418b29c78bf302913070c606",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 276,
+    "embedded_textures": true
+  },
+  {
+    "asset": "tear-gas-canister",
+    "source": "objets-a-lancer-v01/tear-gas-canister",
+    "sha256": "f411c88d7b15d62d764c469a01fb0fd387a4032a982937e6a28c31bb174018ea",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 232,
+    "embedded_textures": true
+  },
+  {
+    "asset": "megaphone",
+    "source": "modelisation-v03/objets/megaphone",
+    "sha256": "6e0409072f3ebb70d4829e8d968be72cde092386b25f0ef525693f39ac691bc8",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 1640,
+    "embedded_textures": true
+  },
+  {
+    "asset": "cone-chantier",
+    "source": "modelisation-v03/objets/cone-chantier",
+    "sha256": "d266677efb133b1bbc38918109c81ecedef13654e45c46b8b71f74421da599b9",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 488,
+    "embedded_textures": true
+  },
+  {
+    "asset": "chaise-terrasse",
+    "source": "modelisation-v03/objets/chaise-terrasse",
+    "sha256": "7fd72ec52d8c7ecd108889308ae985b7233cd8ad4be79ab4e0ebf64946efdd1e",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 1464,
+    "embedded_textures": true
+  },
+  {
+    "asset": "cagette-bois",
+    "source": "modelisation-v03/objets/cagette-bois",
+    "sha256": "86cf0cafee61c90b3c8729666df501579932ae925a216bcb8e3c0a95792ad0a1",
+    "copied_glb_and_blend_identically": true,
+    "triangles": 1196,
+    "embedded_textures": true
+  }
+]

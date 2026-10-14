@@ -1,0 +1,39 @@
+[
+  {
+    "asset": "brav-m-rider",
+    "source_asset": "production-v1/police/brav-m-rider",
+    "clips": [
+      {
+        "name": "riding",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "fall-off",
+        "duration_seconds": 2.0,
+        "loop": false
+      }
+    ]
+  },
+  {
+    "asset": "brav-m-passenger",
+    "source_asset": "production-v1/police/brav-m-passenger",
+    "clips": [
+      {
+        "name": "riding",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "fall-off",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "dismount",
+        "duration_seconds": 2.5,
+        "loop": false
+      }
+    ]
+  }
+]

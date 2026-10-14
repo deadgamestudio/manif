@@ -1,0 +1,32 @@
+{
+  "asset": "crosswalk",
+  "label": "Passage piéton",
+  "state": "intact",
+  "triangles": 216,
+  "budget": 300,
+  "dimensions_m": [
+    17.5,
+    4.0,
+    0.006
+  ],
+  "bounds_min": [
+    -8.75,
+    -2.0,
+    0.0
+  ],
+  "bounds_max": [
+    8.75,
+    2.0,
+    0.006
+  ],
+  "requested_dimensions_m": [
+    18,
+    4,
+    0.006
+  ],
+  "mesh_count": 1,
+  "notes": "",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

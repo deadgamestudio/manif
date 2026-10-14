@@ -1,0 +1,14 @@
+{
+  "asset": "protester-cgt",
+  "label": "protester-cgt",
+  "triangles": 2352,
+  "budget": 3000,
+  "bone_count": 19,
+  "body_mesh_count": 1,
+  "accessory_mesh_count": 2,
+  "skin_palette_cell": 6,
+  "same_default_skin_for_every_archetype": true,
+  "notes": "Nouvelle tenue sur squelette approuvé ; accessoires attachés aux os nommés. Couleur de peau unique de démonstration, indépendante de la tenue, case palette 6. Tous les profils étudiants précédents sont conservés séparément.",
+  "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+  "integration": "not integrated"
+}

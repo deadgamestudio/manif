@@ -1,0 +1,28 @@
+{
+  "asset": "debris-car-door",
+  "label": "Débris — car-door",
+  "state": "debris",
+  "triangles": 88,
+  "budget": 150,
+  "dimensions_m": [
+    0.75,
+    0.6,
+    0.068
+  ],
+  "bounds_min": [
+    -0.375,
+    -0.3,
+    0.0
+  ],
+  "bounds_max": [
+    0.375,
+    0.3,
+    0.068
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Débris cosmétique à instancier localement ; physique non fournie.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

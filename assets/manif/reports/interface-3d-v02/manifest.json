@@ -1,0 +1,83 @@
+[
+  {
+    "asset": "hp-0",
+    "triangles": 24,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État fixe de la barre de vie. Largeur de remplissage à piloter dans le client ; ne pas multiplier les fichiers pour les pourcentages intermédiaires.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "hp-25",
+    "triangles": 36,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État fixe de la barre de vie. Largeur de remplissage à piloter dans le client ; ne pas multiplier les fichiers pour les pourcentages intermédiaires.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "hp-50",
+    "triangles": 36,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État fixe de la barre de vie. Largeur de remplissage à piloter dans le client ; ne pas multiplier les fichiers pour les pourcentages intermédiaires.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "hp-75",
+    "triangles": 36,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État fixe de la barre de vie. Largeur de remplissage à piloter dans le client ; ne pas multiplier les fichiers pour les pourcentages intermédiaires.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "hp-100",
+    "triangles": 36,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État fixe de la barre de vie. Largeur de remplissage à piloter dans le client ; ne pas multiplier les fichiers pour les pourcentages intermédiaires.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "status-grabbed",
+    "triangles": 52,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État de personnage, face +Z glTF. À combiner avec la barre de vie ; durée, visibilité et attache à gérer dans le jeu.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "status-arrested",
+    "triangles": 588,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État de personnage, face +Z glTF. À combiner avec la barre de vie ; durée, visibilité et attache à gérer dans le jeu.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "status-ko",
+    "triangles": 444,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État de personnage, face +Z glTF. À combiner avec la barre de vie ; durée, visibilité et attache à gérer dans le jeu.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "player-foot-ring",
+    "triangles": 536,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Marqueur au sol horizontal, rayon 0,48 m, ouverture et flèche vers +Z glTF.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  }
+]

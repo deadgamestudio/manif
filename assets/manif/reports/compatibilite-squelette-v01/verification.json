@@ -1,0 +1,35 @@
+[
+  {
+    "target": "animations-police-v01/crs/crs.glb",
+    "clip_source": "animations-police-v01/crs/crs.glb",
+    "clip": "formation-walk",
+    "same_action_datablock": true,
+    "retargeting": false,
+    "rest_matrix_max_error": 0.0,
+    "lowest_body_vertex_m": 1.4924482456990518e-05,
+    "motion_m": 0.38798813960005407,
+    "status": "PASS"
+  },
+  {
+    "target": "animations-manifestants-v03/lyceen-hoodie/lyceen-hoodie.glb",
+    "clip_source": "animations-police-v01/crs/crs.glb",
+    "clip": "formation-walk",
+    "same_action_datablock": true,
+    "retargeting": false,
+    "rest_matrix_max_error": 5.841255187988281e-06,
+    "lowest_body_vertex_m": 1.3811871212965343e-05,
+    "motion_m": 0.37935472215725224,
+    "status": "PASS"
+  },
+  {
+    "target": "animations-pompier-v01/firefighter/firefighter.glb",
+    "clip_source": "animations-police-v01/crs/crs.glb",
+    "clip": "formation-walk",
+    "same_action_datablock": true,
+    "retargeting": false,
+    "rest_matrix_max_error": 7.271766662597656e-06,
+    "lowest_body_vertex_m": 1.4862681382510345e-05,
+    "motion_m": 0.4035687579059802,
+    "status": "PASS"
+  }
+]

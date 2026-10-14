@@ -1,0 +1,50 @@
+[
+  {
+    "asset": "police-van-interior",
+    "status": "PASS",
+    "triangles": 1924,
+    "dimensions_at_start_blender_m": [
+      2.4000000953674316,
+      4.996000051498413,
+      2.3949999809265137
+    ],
+    "duration_seconds": 0,
+    "motion_m": 0.0,
+    "loop_seam_m": 0.0,
+    "finite_all_frames": true,
+    "floor_clear": true,
+    "textures_embedded": true
+  },
+  {
+    "asset": "police-van-open-interior",
+    "status": "PASS",
+    "triangles": 1924,
+    "dimensions_at_start_blender_m": [
+      3.07244873046875,
+      6.00499701499939,
+      2.3949999809265137
+    ],
+    "duration_seconds": 0,
+    "motion_m": 0.0,
+    "loop_seam_m": 0.0,
+    "finite_all_frames": true,
+    "floor_clear": true,
+    "textures_embedded": true
+  },
+  {
+    "asset": "police-van-doors",
+    "status": "PASS",
+    "triangles": 1924,
+    "dimensions_at_start_blender_m": [
+      2.4000000953674316,
+      4.996000051498413,
+      2.3949999809265137
+    ],
+    "duration_seconds": 2,
+    "motion_m": 1.8253672086657435,
+    "loop_seam_m": 1.8253672086657435,
+    "finite_all_frames": true,
+    "floor_clear": true,
+    "textures_embedded": true
+  }
+]

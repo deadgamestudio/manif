@@ -1,0 +1,62 @@
+{
+  "assets": [
+    {
+      "asset": "chimney-pair",
+      "file": "chimney-pair/chimney-pair.glb",
+      "status": "PASS",
+      "triangles": 352,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "roof-dormer",
+      "file": "roof-dormer/roof-dormer.glb",
+      "status": "PASS",
+      "triangles": 124,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "roof-mansard-2m",
+      "file": "roof-mansard-2m/roof-mansard-2m.glb",
+      "status": "PASS",
+      "triangles": 280,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "roof-zinc-2m",
+      "file": "roof-zinc-2m/roof-zinc-2m.glb",
+      "status": "PASS",
+      "triangles": 152,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "side-alley-backdrop",
+      "file": "side-alley-backdrop/side-alley-backdrop.glb",
+      "status": "PASS",
+      "triangles": 324,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "side-alley-ground-6m",
+      "file": "side-alley-ground-6m/side-alley-ground-6m.glb",
+      "status": "PASS",
+      "triangles": 180,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    }
+  ],
+  "source": "Blender GLB reimport",
+  "engine_tests": "NOT RUN",
+  "animation_quality": "draft clips only; not full issue animation set",
+  "collision_tests": "NOT RUN"
+}

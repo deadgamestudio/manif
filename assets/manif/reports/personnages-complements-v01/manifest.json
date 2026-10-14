@@ -1,0 +1,34 @@
+[
+  {
+    "asset": "gendarme-mobile",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "idle",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "walk",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "commissaire",
+    "source_asset": "production-v1/personnages/protester-neutral",
+    "clips": [
+      {
+        "name": "idle",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "walk",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      }
+    ]
+  }
+]

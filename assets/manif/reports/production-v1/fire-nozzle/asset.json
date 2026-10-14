@@ -1,0 +1,39 @@
+{
+  "asset": "fire-nozzle",
+  "label": "Lance de pompier",
+  "state": "intact",
+  "triangles": 132,
+  "budget": 300,
+  "dimensions_m": [
+    0.084,
+    0.177,
+    0.52
+  ],
+  "bounds_min": [
+    -0.042,
+    -0.042,
+    0.0
+  ],
+  "bounds_max": [
+    0.042,
+    0.135,
+    0.52
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Accessoire à attacher à la main ; réorienter son axe Z Blender vers la cible.",
+  "sockets": {
+    "grip": [
+      0,
+      0,
+      0.21
+    ],
+    "water-outlet": [
+      0,
+      0,
+      0.52
+    ]
+  },
+  "integration": "not integrated",
+  "physics": false
+}

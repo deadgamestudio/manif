@@ -1,0 +1,32 @@
+{
+  "asset": "start-wall",
+  "label": "Estrade et banderole de départ",
+  "state": "intact",
+  "triangles": 145,
+  "budget": 2500,
+  "dimensions_m": [
+    32.0,
+    2.0,
+    2.0
+  ],
+  "bounds_min": [
+    -16.0,
+    -1.0,
+    0.0
+  ],
+  "bounds_max": [
+    16.0,
+    1.0,
+    2.0
+  ],
+  "requested_dimensions_m": [
+    32,
+    2,
+    2
+  ],
+  "mesh_count": 1,
+  "notes": "Fermeture du niveau derrière le départ ; surface d’estrade non jouable sans collision fournie par le niveau.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

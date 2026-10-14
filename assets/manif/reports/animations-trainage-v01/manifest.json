@@ -1,0 +1,130 @@
+[
+  {
+    "asset": "lyceen-hoodie",
+    "source_asset": "personnages-v02/lyceen-hoodie",
+    "clips": [
+      {
+        "name": "grabbed",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "dragged-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-drag-lyceen-hoodie",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "grab-ankles",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "drag-backward",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent",
+    "source_asset": "personnages-v02/lyceenne-coupe-vent",
+    "clips": [
+      {
+        "name": "grabbed",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "dragged-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-drag-lyceenne-coupe-vent",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "grab-ankles",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "drag-backward",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot",
+    "source_asset": "personnages-v02/lyceen-maillot",
+    "clips": [
+      {
+        "name": "grabbed",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "dragged-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-drag-lyceen-maillot",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "grab-ankles",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "drag-backward",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat",
+    "source_asset": "personnages-v02/lyceenne-sweat",
+    "clips": [
+      {
+        "name": "grabbed",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "dragged-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-drag-lyceenne-sweat",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "grab-ankles",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "drag-backward",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  }
+]

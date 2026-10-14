@@ -1,0 +1,92 @@
+[
+  {
+    "asset": "teargas-cloud",
+    "triangles": 720,
+    "duration_seconds": 2.0,
+    "loop": true,
+    "description": "Volumes opaques stylisés animés. Pour des bords transparents, utiliser les planches PNG ; opacité et diffusion à régler dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "smoke-column",
+    "triangles": 720,
+    "duration_seconds": 2.0,
+    "loop": true,
+    "description": "Volumes opaques stylisés animés. Pour des bords transparents, utiliser les planches PNG ; opacité et diffusion à régler dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "stink-cloud",
+    "triangles": 720,
+    "duration_seconds": 2.0,
+    "loop": true,
+    "description": "Volumes opaques stylisés animés. Pour des bords transparents, utiliser les planches PNG ; opacité et diffusion à régler dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "impact-puff",
+    "triangles": 560,
+    "duration_seconds": 0.75,
+    "loop": false,
+    "description": "Volumes opaques stylisés animés. Pour des bords transparents, utiliser les planches PNG ; opacité et diffusion à régler dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "flame-loop",
+    "triangles": 240,
+    "duration_seconds": 2.0,
+    "loop": true,
+    "description": "Flammes en volumes à attacher à la source. La variante fessier est un effet comique, sans dégâts ni logique inclus.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "bum-flames",
+    "triangles": 144,
+    "duration_seconds": 2.0,
+    "loop": true,
+    "description": "Flammes en volumes à attacher à la source. La variante fessier est un effet comique, sans dégâts ni logique inclus.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "water-jet",
+    "triangles": 240,
+    "duration_seconds": 2.0,
+    "loop": true,
+    "description": "Jet orienté vers -Y Blender, donc +Z glTF. Placer son origine sur water-outlet de la lance ; trajectoire décorative fixe.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "bonk-stars",
+    "triangles": 108,
+    "duration_seconds": 2.0,
+    "loop": true,
+    "description": "Trois étoiles à attacher au-dessus de la tête. Les collisions et la durée d’étourdissement sont gérées par le jeu.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "tomato-splat",
+    "triangles": 192,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Éclaboussure en relief, face vers -Y Blender. Projection/décal et alignement surface à réaliser dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "hit-flash",
+    "triangles": 36,
+    "duration_seconds": 0.5,
+    "loop": false,
+    "description": "Étoile de contact ponctuelle, 0,5 seconde. Ne pas boucler en jeu.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  }
+]

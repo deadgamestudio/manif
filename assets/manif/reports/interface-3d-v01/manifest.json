@@ -1,0 +1,101 @@
+[
+  {
+    "asset": "status-health",
+    "triangles": 28,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Icône en volume, face -Y Blender / +Z glTF. Caméra, échelle écran et attache à gérer dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "status-rescue",
+    "triangles": 44,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Icône en volume, face -Y Blender / +Z glTF. Caméra, échelle écran et attache à gérer dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "status-fire",
+    "triangles": 28,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Icône en volume, face -Y Blender / +Z glTF. Caméra, échelle écran et attache à gérer dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "status-gas",
+    "triangles": 240,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Icône en volume, face -Y Blender / +Z glTF. Caméra, échelle écran et attache à gérer dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "status-stunned",
+    "triangles": 36,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Icône en volume, face -Y Blender / +Z glTF. Caméra, échelle écran et attache à gérer dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "held-item-marker",
+    "triangles": 52,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Icône en volume, face -Y Blender / +Z glTF. Caméra, échelle écran et attache à gérer dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "local-player-marker",
+    "triangles": 8,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Icône en volume, face -Y Blender / +Z glTF. Caméra, échelle écran et attache à gérer dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "progress-25",
+    "triangles": 720,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État fixe de progression. Référence visuelle ; interpolation continue à construire dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "progress-50",
+    "triangles": 864,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État fixe de progression. Référence visuelle ; interpolation continue à construire dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "progress-75",
+    "triangles": 1008,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État fixe de progression. Référence visuelle ; interpolation continue à construire dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "progress-100",
+    "triangles": 1152,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "État fixe de progression. Référence visuelle ; interpolation continue à construire dans le moteur.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  }
+]

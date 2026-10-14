@@ -1,0 +1,32 @@
+{
+  "asset": "shop-window-broken",
+  "label": "Vitrine brisée",
+  "state": "broken",
+  "triangles": 236,
+  "budget": 1500,
+  "dimensions_m": [
+    4.0,
+    0.3,
+    3.0
+  ],
+  "bounds_min": [
+    -2.0,
+    -0.15,
+    0.0
+  ],
+  "bounds_max": [
+    2.0,
+    0.15,
+    3.0
+  ],
+  "requested_dimensions_m": [
+    4,
+    0.3,
+    3
+  ],
+  "mesh_count": 1,
+  "notes": "Vitrine indépendante à placer à 0,4 m devant la façade ; orientation des slots à gérer lors de l’intégration.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

@@ -1,0 +1,32 @@
+{
+  "asset": "market-stall-broken",
+  "label": "Étal cassé",
+  "state": "broken",
+  "triangles": 588,
+  "budget": 1500,
+  "dimensions_m": [
+    3.0,
+    1.95,
+    1.19
+  ],
+  "bounds_min": [
+    -1.5,
+    -0.975,
+    0.0
+  ],
+  "bounds_max": [
+    1.5,
+    0.975,
+    1.19
+  ],
+  "requested_dimensions_m": [
+    3,
+    2,
+    2.4
+  ],
+  "mesh_count": 1,
+  "notes": "Caisses et tomates de décor ; drops à générer avec tomato.glb. Version brisée sans auvent.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

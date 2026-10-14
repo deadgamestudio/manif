@@ -1,0 +1,28 @@
+{
+  "asset": "side-alley-backdrop",
+  "label": "Fond de ruelle",
+  "state": "intact",
+  "triangles": 324,
+  "budget": 1000,
+  "dimensions_m": [
+    6.0,
+    0.32,
+    4.0
+  ],
+  "bounds_min": [
+    -3.0,
+    -0.12,
+    0.0
+  ],
+  "bounds_max": [
+    3.0,
+    0.2,
+    4.0
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Décor de fond 6 m × 4 m, placé au-delà de la zone jouable. Ne doit pas masquer une sortie jouable. Séparé du sol et des bâtiments pour permettre leur occultation.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

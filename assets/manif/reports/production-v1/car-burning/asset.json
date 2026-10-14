@@ -1,0 +1,43 @@
+{
+  "asset": "car-burning",
+  "label": "Voiture — burning",
+  "state": "burning",
+  "triangles": 836,
+  "budget": 1500,
+  "dimensions_m": [
+    1.8,
+    4.2,
+    1.48
+  ],
+  "bounds_min": [
+    -0.9,
+    -2.1,
+    0.0
+  ],
+  "bounds_max": [
+    0.9,
+    2.1,
+    1.48
+  ],
+  "requested_dimensions_m": [
+    1.8,
+    4.2,
+    1.5
+  ],
+  "mesh_count": 1,
+  "notes": "Hatchback stylisée ; bris représenté par retrait partiel des vitres, tôles cabossées. burning utilise le corps intact et des attaches FX.",
+  "sockets": {
+    "fx-fire": [
+      0,
+      0.35,
+      1.2
+    ],
+    "alarm-light": [
+      0,
+      -0.95,
+      1.4
+    ]
+  },
+  "integration": "not integrated",
+  "physics": false
+}

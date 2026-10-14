@@ -1,0 +1,14 @@
+{
+  "light-fire": {
+    "ignite_suggested_frame": 40,
+    "fps": 24
+  },
+  "overhead-toss": {
+    "release_suggested_frame": 20,
+    "fps": 24
+  },
+  "tomato-stumble": {
+    "impact_suggested_frame": 3,
+    "fps": 24
+  }
+}

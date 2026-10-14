@@ -1,0 +1,583 @@
+{
+  "assets": [
+    {
+      "asset": "bac-armband",
+      "file": "bac-armband/bac-armband.glb",
+      "status": "PASS",
+      "triangles": 88,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "bin-broken",
+      "file": "bin-broken/bin-broken.glb",
+      "status": "PASS",
+      "triangles": 526,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "bin-burning",
+      "file": "bin-burning/bin-burning.glb",
+      "status": "PASS",
+      "triangles": 852,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "bin-charred",
+      "file": "bin-charred/bin-charred.glb",
+      "status": "PASS",
+      "triangles": 526,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "bin-intact",
+      "file": "bin-intact/bin-intact.glb",
+      "status": "PASS",
+      "triangles": 852,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "bollard-level",
+      "file": "bollard-level/bollard-level.glb",
+      "status": "PASS",
+      "triangles": 184,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "brav-m-motorbike",
+      "file": "brav-m-motorbike/brav-m-motorbike.glb",
+      "status": "PASS",
+      "triangles": 1648,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "bus-shelter-broken",
+      "file": "bus-shelter-broken/bus-shelter-broken.glb",
+      "status": "PASS",
+      "triangles": 316,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "bus-shelter-intact",
+      "file": "bus-shelter-intact/bus-shelter-intact.glb",
+      "status": "PASS",
+      "triangles": 400,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "car-broken",
+      "file": "car-broken/car-broken.glb",
+      "status": "PASS",
+      "triangles": 836,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "car-burning",
+      "file": "car-burning/car-burning.glb",
+      "status": "PASS",
+      "triangles": 836,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "car-charred",
+      "file": "car-charred/car-charred.glb",
+      "status": "PASS",
+      "triangles": 836,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "car-intact",
+      "file": "car-intact/car-intact.glb",
+      "status": "PASS",
+      "triangles": 836,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "construction-wall-6-5",
+      "file": "construction-wall-6-5/construction-wall-6-5.glb",
+      "status": "PASS",
+      "triangles": 652,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "construction-wall-7",
+      "file": "construction-wall-7/construction-wall-7.glb",
+      "status": "PASS",
+      "triangles": 664,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "crosswalk",
+      "file": "crosswalk/crosswalk.glb",
+      "status": "PASS",
+      "triangles": 216,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "debris-barricade-burning",
+      "file": "debris-barricade-burning/debris-barricade-burning.glb",
+      "status": "PASS",
+      "triangles": 396,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "debris-barricade-charred",
+      "file": "debris-barricade-charred/debris-barricade-charred.glb",
+      "status": "PASS",
+      "triangles": 396,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "debris-barricade-intact",
+      "file": "debris-barricade-intact/debris-barricade-intact.glb",
+      "status": "PASS",
+      "triangles": 396,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "debris-bin-lid",
+      "file": "debris-bin-lid/debris-bin-lid.glb",
+      "status": "PASS",
+      "triangles": 88,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "debris-car-door",
+      "file": "debris-car-door/debris-car-door.glb",
+      "status": "PASS",
+      "triangles": 88,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "debris-glass",
+      "file": "debris-glass/debris-glass.glb",
+      "status": "PASS",
+      "triangles": 60,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "debris-metal-panel",
+      "file": "debris-metal-panel/debris-metal-panel.glb",
+      "status": "PASS",
+      "triangles": 56,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "debris-plastic",
+      "file": "debris-plastic/debris-plastic.glb",
+      "status": "PASS",
+      "triangles": 60,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "facade-corner-2m",
+      "file": "facade-corner-2m/facade-corner-2m.glb",
+      "status": "PASS",
+      "triangles": 116,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "fire-hose",
+      "file": "fire-hose/fire-hose.glb",
+      "status": "PASS",
+      "triangles": 168,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "fire-nozzle",
+      "file": "fire-nozzle/fire-nozzle.glb",
+      "status": "PASS",
+      "triangles": 132,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "fire-truck",
+      "file": "fire-truck/fire-truck.glb",
+      "status": "PASS",
+      "triangles": 3416,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "fire-truck-open",
+      "file": "fire-truck-open/fire-truck-open.glb",
+      "status": "PASS",
+      "triangles": 3416,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "ground-asphalt",
+      "file": "ground-asphalt/ground-asphalt.glb",
+      "status": "PASS",
+      "triangles": 12,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "lamp-post-level",
+      "file": "lamp-post-level/lamp-post-level.glb",
+      "status": "PASS",
+      "triangles": 252,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "market-stall-broken",
+      "file": "market-stall-broken/market-stall-broken.glb",
+      "status": "PASS",
+      "triangles": 588,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "market-stall-intact",
+      "file": "market-stall-intact/market-stall-intact.glb",
+      "status": "PASS",
+      "triangles": 720,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "newspaper-kiosk",
+      "file": "newspaper-kiosk/newspaper-kiosk.glb",
+      "status": "PASS",
+      "triangles": 857,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "pavement-kit",
+      "file": "pavement-kit/pavement-kit.glb",
+      "status": "PASS",
+      "triangles": 56,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "firefighter",
+      "file": "personnages/firefighter/firefighter.glb",
+      "status": "PASS",
+      "triangles": 2426,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "protester-black-bloc",
+      "file": "personnages/protester-black-bloc/protester-black-bloc.glb",
+      "status": "PASS",
+      "triangles": 2418,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "protester-bobo",
+      "file": "personnages/protester-bobo/protester-bobo.glb",
+      "status": "PASS",
+      "triangles": 2386,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "protester-cgt",
+      "file": "personnages/protester-cgt/protester-cgt.glb",
+      "status": "PASS",
+      "triangles": 2352,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "protester-gilet-jaune",
+      "file": "personnages/protester-gilet-jaune/protester-gilet-jaune.glb",
+      "status": "PASS",
+      "triangles": 2242,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "protester-neutral",
+      "file": "personnages/protester-neutral/protester-neutral.glb",
+      "status": "PASS",
+      "triangles": 2242,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "protester-retraite",
+      "file": "personnages/protester-retraite/protester-retraite.glb",
+      "status": "PASS",
+      "triangles": 2574,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "protester-tracksuit",
+      "file": "personnages/protester-tracksuit/protester-tracksuit.glb",
+      "status": "PASS",
+      "triangles": 2462,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "brav-m-passenger",
+      "file": "police/brav-m-passenger/brav-m-passenger.glb",
+      "status": "PASS",
+      "triangles": 2254,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 4,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "brav-m-rider",
+      "file": "police/brav-m-rider/brav-m-rider.glb",
+      "status": "PASS",
+      "triangles": 2254,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 4,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "crs",
+      "file": "police/crs/crs.glb",
+      "status": "PASS",
+      "triangles": 2722,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 5,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "crs-grenadier",
+      "file": "police/crs-grenadier/crs-grenadier.glb",
+      "status": "PASS",
+      "triangles": 2354,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "crs-splatted",
+      "file": "police/crs-splatted/crs-splatted.glb",
+      "status": "PASS",
+      "triangles": 2866,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 3,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "police-baton",
+      "file": "police-baton/police-baton.glb",
+      "status": "PASS",
+      "triangles": 88,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "police-van",
+      "file": "police-van/police-van.glb",
+      "status": "PASS",
+      "triangles": 1800,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "police-van-open",
+      "file": "police-van-open/police-van-open.glb",
+      "status": "PASS",
+      "triangles": 1800,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "prefecture",
+      "file": "prefecture/prefecture.glb",
+      "status": "PASS",
+      "triangles": 2752,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "prefecture-forecourt",
+      "file": "prefecture-forecourt/prefecture-forecourt.glb",
+      "status": "PASS",
+      "triangles": 1520,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "road-dash",
+      "file": "road-dash/road-dash.glb",
+      "status": "PASS",
+      "triangles": 12,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "shop-window-broken",
+      "file": "shop-window-broken/shop-window-broken.glb",
+      "status": "PASS",
+      "triangles": 236,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "shop-window-intact",
+      "file": "shop-window-intact/shop-window-intact.glb",
+      "status": "PASS",
+      "triangles": 320,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "side-street-barrier",
+      "file": "side-street-barrier/side-street-barrier.glb",
+      "status": "PASS",
+      "triangles": 932,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "start-wall",
+      "file": "start-wall/start-wall.glb",
+      "status": "PASS",
+      "triangles": 145,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "start-zone",
+      "file": "start-zone/start-zone.glb",
+      "status": "PASS",
+      "triangles": 114,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": true
+    },
+    {
+      "asset": "tomato-splat-ground",
+      "file": "tomato-splat-ground/tomato-splat-ground.glb",
+      "status": "PASS",
+      "triangles": 92,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    },
+    {
+      "asset": "tree-level",
+      "file": "tree-level/tree-level.glb",
+      "status": "PASS",
+      "triangles": 396,
+      "textures_embedded": true,
+      "dimensions_match": true,
+      "requested_gabarit_respected": false
+    }
+  ],
+  "source": "Blender GLB reimport",
+  "engine_tests": "NOT RUN",
+  "animation_quality": "draft clips only; not full issue animation set",
+  "collision_tests": "NOT RUN"
+}

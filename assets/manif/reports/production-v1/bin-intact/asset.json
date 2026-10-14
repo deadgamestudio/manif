@@ -1,0 +1,28 @@
+{
+  "asset": "bin-intact",
+  "label": "Poubelle — intact",
+  "state": "intact",
+  "triangles": 852,
+  "budget": 1500,
+  "dimensions_m": [
+    0.505,
+    0.5705,
+    0.999
+  ],
+  "bounds_min": [
+    -0.2525,
+    -0.2775,
+    0.0
+  ],
+  "bounds_max": [
+    0.2525,
+    0.293,
+    0.999
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Dimensions réalistes du modèle déjà validé conservées. burning réutilise intact avec repère de feu ; effet animé à intégrer.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

@@ -1,0 +1,28 @@
+{
+  "asset": "fire-hose",
+  "label": "Tuyau de pompier — segment",
+  "state": "intact",
+  "triangles": 168,
+  "budget": 400,
+  "dimensions_m": [
+    3.02031,
+    0.57947,
+    0.084
+  ],
+  "bounds_min": [
+    -1.50824,
+    -0.19023,
+    0.003
+  ],
+  "bounds_max": [
+    1.51207,
+    0.38924,
+    0.087
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Segment statique de décor. Un tuyau animé doit être reconstruit ou déformé par le moteur ; ce mesh ne simule pas un câble.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "pair": "lyceen-hoodie",
+    "clip": "grab-ankles",
+    "max_wrist_target_error_m": 1.1660044375520977e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie",
+    "clip": "drag-backward",
+    "max_wrist_target_error_m": 7.774708520305867e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent",
+    "clip": "grab-ankles",
+    "max_wrist_target_error_m": 4.700460229430764e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent",
+    "clip": "drag-backward",
+    "max_wrist_target_error_m": 6.143906154658885e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot",
+    "clip": "grab-ankles",
+    "max_wrist_target_error_m": 5.661078221565763e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot",
+    "clip": "drag-backward",
+    "max_wrist_target_error_m": 1.32016215066808e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat",
+    "clip": "grab-ankles",
+    "max_wrist_target_error_m": 3.7799711306922897e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat",
+    "clip": "drag-backward",
+    "max_wrist_target_error_m": 5.4517889391322725e-06,
+    "status": "PASS"
+  }
+]

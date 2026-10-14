@@ -1,0 +1,28 @@
+{
+  "asset": "facade-corner-2m",
+  "label": "Angle de façade modulaire",
+  "state": "intact",
+  "triangles": 116,
+  "budget": 1000,
+  "dimensions_m": [
+    2.015,
+    2.0,
+    3.0
+  ],
+  "bounds_min": [
+    -1.0,
+    -0.08,
+    0.0
+  ],
+  "bounds_max": [
+    1.015,
+    1.92,
+    3.0
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Angle avec travée de 2 m ; à combiner avec les modules de façade existants. Étages séparables.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

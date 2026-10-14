@@ -1,0 +1,32 @@
+{
+  "asset": "prefecture",
+  "label": "Préfecture",
+  "state": "intact",
+  "triangles": 2752,
+  "budget": 10000,
+  "dimensions_m": [
+    36.0,
+    14.0,
+    14.0
+  ],
+  "bounds_min": [
+    -18.0,
+    -7.0,
+    0.0
+  ],
+  "bounds_max": [
+    18.0,
+    7.0,
+    14.0
+  ],
+  "requested_dimensions_m": [
+    36,
+    14,
+    14
+  ],
+  "mesh_count": 1,
+  "notes": "Bâtiment objectif et marches. Intérieur non modélisé ; occultation/collisions à gérer au niveau.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

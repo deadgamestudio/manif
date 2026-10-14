@@ -1,0 +1,28 @@
+{
+  "asset": "roof-dormer",
+  "label": "Lucarne indépendante",
+  "state": "intact",
+  "triangles": 124,
+  "budget": 1000,
+  "dimensions_m": [
+    1.15,
+    1.12,
+    1.28
+  ],
+  "bounds_min": [
+    -0.575,
+    -0.56,
+    -0.03
+  ],
+  "bounds_max": [
+    0.575,
+    0.56,
+    1.25
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Ajouter sur le pan visible d’un toit. Lucarne simple à vitre opaque stylisée ; placement vertical à ajuster au pan, aucune découpe automatique de toiture.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

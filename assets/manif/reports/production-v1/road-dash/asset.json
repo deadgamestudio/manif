@@ -1,0 +1,32 @@
+{
+  "asset": "road-dash",
+  "label": "Marquage central",
+  "state": "intact",
+  "triangles": 12,
+  "budget": 50,
+  "dimensions_m": [
+    0.24,
+    2.0,
+    0.006
+  ],
+  "bounds_min": [
+    -0.12,
+    -1.0,
+    0.0
+  ],
+  "bounds_max": [
+    0.12,
+    1.0,
+    0.006
+  ],
+  "requested_dimensions_m": [
+    0.24,
+    2,
+    0.006
+  ],
+  "mesh_count": 1,
+  "notes": "À espacer tous les 4 m selon l’issue ; projection/décalage anti-z-fighting à gérer dans le moteur.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

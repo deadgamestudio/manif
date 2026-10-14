@@ -1,0 +1,39 @@
+{
+  "asset": "water-cannon-truck",
+  "label": "Camion canon à eau",
+  "state": "intact",
+  "triangles": 2568,
+  "budget": 6000,
+  "dimensions_m": [
+    2.5,
+    8.895,
+    3.45564
+  ],
+  "bounds_min": [
+    -1.25,
+    -4.495,
+    0.0
+  ],
+  "bounds_max": [
+    1.25,
+    4.4,
+    3.45564
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 3,
+  "notes": "Élément later de l’inventaire. Gabarit proposé environ 2,5 × 9 × 3,5 m ; trois meshes séparés, tourelle et lance avec pivots. Aucun tir, conducteur ni collision.",
+  "sockets": {
+    "water-outlet": [
+      0,
+      -1.82,
+      3.38
+    ],
+    "driver": [
+      -0.58,
+      -3.1,
+      1.4
+    ]
+  },
+  "integration": "not integrated",
+  "physics": false
+}

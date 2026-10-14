@@ -1,0 +1,402 @@
+[
+  {
+    "asset": "lyceen-hoodie",
+    "clips": [
+      {
+        "name": "idle",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "walk",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "panic-run",
+        "duration_seconds": 0.8333333333333334,
+        "loop": true
+      },
+      {
+        "name": "pick-up",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "throw",
+        "duration_seconds": 1.5,
+        "loop": false
+      },
+      {
+        "name": "celebrate",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carry-light",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "carry-heavy",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carry-overhead",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carried-overhead",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "air-flail",
+        "duration_seconds": 1.0,
+        "loop": true
+      },
+      {
+        "name": "knockdown",
+        "duration_seconds": 1.25,
+        "loop": false
+      },
+      {
+        "name": "get-up",
+        "duration_seconds": 2.5,
+        "loop": false
+      },
+      {
+        "name": "clumsy-dive",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "melee-swing",
+        "duration_seconds": 1.25,
+        "loop": false
+      },
+      {
+        "name": "gas-cough",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "rescue-pull",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "pat-out",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "on-fire-run",
+        "duration_seconds": 0.8333333333333334,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent",
+    "clips": [
+      {
+        "name": "idle",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "walk",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "panic-run",
+        "duration_seconds": 0.8333333333333334,
+        "loop": true
+      },
+      {
+        "name": "pick-up",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "throw",
+        "duration_seconds": 1.5,
+        "loop": false
+      },
+      {
+        "name": "celebrate",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carry-light",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "carry-heavy",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carry-overhead",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carried-overhead",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "air-flail",
+        "duration_seconds": 1.0,
+        "loop": true
+      },
+      {
+        "name": "knockdown",
+        "duration_seconds": 1.25,
+        "loop": false
+      },
+      {
+        "name": "get-up",
+        "duration_seconds": 2.5,
+        "loop": false
+      },
+      {
+        "name": "clumsy-dive",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "melee-swing",
+        "duration_seconds": 1.25,
+        "loop": false
+      },
+      {
+        "name": "gas-cough",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "rescue-pull",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "pat-out",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "on-fire-run",
+        "duration_seconds": 0.8333333333333334,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot",
+    "clips": [
+      {
+        "name": "idle",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "walk",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "panic-run",
+        "duration_seconds": 0.8333333333333334,
+        "loop": true
+      },
+      {
+        "name": "pick-up",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "throw",
+        "duration_seconds": 1.5,
+        "loop": false
+      },
+      {
+        "name": "celebrate",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carry-light",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "carry-heavy",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carry-overhead",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carried-overhead",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "air-flail",
+        "duration_seconds": 1.0,
+        "loop": true
+      },
+      {
+        "name": "knockdown",
+        "duration_seconds": 1.25,
+        "loop": false
+      },
+      {
+        "name": "get-up",
+        "duration_seconds": 2.5,
+        "loop": false
+      },
+      {
+        "name": "clumsy-dive",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "melee-swing",
+        "duration_seconds": 1.25,
+        "loop": false
+      },
+      {
+        "name": "gas-cough",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "rescue-pull",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "pat-out",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "on-fire-run",
+        "duration_seconds": 0.8333333333333334,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat",
+    "clips": [
+      {
+        "name": "idle",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "walk",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "panic-run",
+        "duration_seconds": 0.8333333333333334,
+        "loop": true
+      },
+      {
+        "name": "pick-up",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "throw",
+        "duration_seconds": 1.5,
+        "loop": false
+      },
+      {
+        "name": "celebrate",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carry-light",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "carry-heavy",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carry-overhead",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "carried-overhead",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "air-flail",
+        "duration_seconds": 1.0,
+        "loop": true
+      },
+      {
+        "name": "knockdown",
+        "duration_seconds": 1.25,
+        "loop": false
+      },
+      {
+        "name": "get-up",
+        "duration_seconds": 2.5,
+        "loop": false
+      },
+      {
+        "name": "clumsy-dive",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "melee-swing",
+        "duration_seconds": 1.25,
+        "loop": false
+      },
+      {
+        "name": "gas-cough",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "rescue-pull",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "pat-out",
+        "duration_seconds": 1.3333333333333333,
+        "loop": true
+      },
+      {
+        "name": "on-fire-run",
+        "duration_seconds": 0.8333333333333334,
+        "loop": true
+      }
+    ]
+  }
+]

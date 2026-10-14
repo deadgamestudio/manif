@@ -1,0 +1,796 @@
+{
+  "date": "2026-10-13",
+  "inventory": [
+    {
+      "section": "Characters",
+      "item": "Protester base body",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "protester-neutral"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "Bobo gaucho",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "protester-bobo",
+        "trottinette"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "Mec de cité",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "protester-tracksuit"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "Gilet jaune",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "protester-gilet-jaune"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "Black bloc",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "protester-black-bloc"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "Syndicaliste CGT",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "protester-cgt"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "Étudiant·e",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "lyceen-hoodie",
+        "lyceenne-coupe-vent",
+        "lyceen-maillot",
+        "lyceenne-sweat",
+        "carton-nos-voix",
+        "carton-avenir"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "Retraité·e",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "protester-retraite"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "CRS",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Bouclier, matraque, visière propre/tachée ; poses statiques lowered/raised incluses, pas de marche de formation.",
+      "assets": [
+        "crs",
+        "crs-splatted",
+        "crs-shield",
+        "police-baton"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "CRS grenadier",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "crs-grenadier"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "BRAV-M rider and passenger",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Modèles à pied + pose assise sous forme de clip statique riding ; contacts mains/guidon et transitions à ajuster.",
+      "assets": [
+        "brav-m-rider",
+        "brav-m-passenger"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "BAC",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Brassard seul ; utiliser exactement un manifestant existant, aucune silhouette BAC spécifique.",
+      "assets": [
+        "bac-armband"
+      ]
+    },
+    {
+      "section": "Characters",
+      "item": "Gendarme mobile",
+      "priority": "later",
+      "status": "Hors lot v1 — plus tard",
+      "note": "Non engagé dans cette passe v1."
+    },
+    {
+      "section": "Characters",
+      "item": "Commissaire",
+      "priority": "later",
+      "status": "Hors lot v1 — plus tard",
+      "note": "Non engagé dans cette passe v1."
+    },
+    {
+      "section": "Characters",
+      "item": "Pompier",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "firefighter",
+        "fire-hose",
+        "fire-nozzle"
+      ]
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Idle (with per-archetype flavour later: filming, waving a flag)",
+      "priority": "v1",
+      "status": "Ébauche disponible",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Walk",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Sprint / panic run",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Dodge: clumsy dive",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Melee swing",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Throw (pavé, item, teammate)",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Pick up from the ground",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Carry an item, light and heavy (trottinette slows you)",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Carry a teammate overhead / be carried",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Thrown flight: flailing in the air",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Grabbed / dragged by the ankles",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "CRS grab and drag",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Knocked down and get up",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "KO collapse",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "On fire: flailing run",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Hold interact: rescue tug of war, light a fire, pat out a teammate",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Coughing / staggering in gas",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Splatted stumble, wiping the visor",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Police baton swing",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Shield-line march and shove",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Canister throw",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "BRAV-M: riding, passenger jumps off, falling off the bike",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "BAC reveal: putting the armband on",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Pompier hose spray",
+      "priority": "v1",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Win: bouncing on the Préfecture steps",
+      "priority": "later",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Animations (on the shared rig)",
+      "item": "Lose: being stuffed into a van",
+      "priority": "later",
+      "status": "À animer pour le jeu",
+      "note": "La livraison contient seulement les trois boucles de travail repos/revendication/déséquilibre et des poses statiques BRAV-M/CRS."
+    },
+    {
+      "section": "Vehicles",
+      "item": "Police van",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "police-van",
+        "police-van-open"
+      ]
+    },
+    {
+      "section": "Vehicles",
+      "item": "BRAV-M motorbike",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "brav-m-motorbike"
+      ]
+    },
+    {
+      "section": "Vehicles",
+      "item": "Fire truck",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "fire-truck",
+        "fire-truck-open"
+      ]
+    },
+    {
+      "section": "Vehicles",
+      "item": "Water cannon truck",
+      "priority": "later",
+      "status": "Hors lot v1 — plus tard",
+      "note": "Non engagé dans cette passe v1."
+    },
+    {
+      "section": "Level and environment",
+      "item": "Facade blocks",
+      "priority": "v1",
+      "status": "Kit livré, assemblage du niveau restant",
+      "note": "Modules de 2 m et angle. Les 10 blocs de street.ts ne sont pas assemblés dans cette livraison.",
+      "assets": [
+        "etage-pierre-2m",
+        "etage-balcon-2m",
+        "etage-brique-2m",
+        "porte-immeuble-2m",
+        "toit-mansarde-2m",
+        "facade-corner-2m",
+        "facade-shop-2m"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Side-street barrier",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "side-street-barrier"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Start wall",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "start-wall"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Préfecture",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "prefecture"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Préfecture forecourt dressing",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "prefecture-forecourt"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Newspaper kiosk",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "newspaper-kiosk"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Construction wall",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "construction-wall-7",
+        "construction-wall-6-5"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Bollard",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "bollard-level"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Tree",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "tree-level"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Lamp post",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "lamp-post-level"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Ground: asphalt",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "ground-asphalt"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Ground: pavement",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Modules fournis ; placement et répétition dans street.ts restent à faire.",
+      "assets": [
+        "pavement-kit"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Road markings",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Modules fournis ; placement et répétition dans street.ts restent à faire.",
+      "assets": [
+        "road-dash",
+        "crosswalk"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Start zone marking",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "start-zone"
+      ]
+    },
+    {
+      "section": "Level and environment",
+      "item": "Side-street stubs",
+      "priority": "later",
+      "status": "Hors lot v1 — plus tard",
+      "note": "Non engagé dans cette passe v1."
+    },
+    {
+      "section": "Level and environment",
+      "item": "Roof dressing",
+      "priority": "later",
+      "status": "Hors lot v1 — plus tard",
+      "note": "Non engagé dans cette passe v1."
+    },
+    {
+      "section": "Breakable props (#4, #15, #16)",
+      "item": "Bin",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "États séparés ; burning réutilise la géométrie intacte avec repère FX. Feu et fumée non fournis.",
+      "assets": [
+        "bin-intact",
+        "bin-broken",
+        "bin-burning",
+        "bin-charred"
+      ]
+    },
+    {
+      "section": "Breakable props (#4, #15, #16)",
+      "item": "Bus shelter",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "bus-shelter-intact",
+        "bus-shelter-broken"
+      ]
+    },
+    {
+      "section": "Breakable props (#4, #15, #16)",
+      "item": "Shop window",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "shop-window-intact",
+        "shop-window-broken"
+      ]
+    },
+    {
+      "section": "Breakable props (#4, #15, #16)",
+      "item": "Car",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "États séparés ; burning réutilise la géométrie intacte avec repère FX. Feu et fumée non fournis.",
+      "assets": [
+        "car-intact",
+        "car-broken",
+        "car-burning",
+        "car-charred"
+      ]
+    },
+    {
+      "section": "Breakable props (#4, #15, #16)",
+      "item": "Market stall",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "market-stall-intact",
+        "market-stall-broken"
+      ]
+    },
+    {
+      "section": "Breakable props (#4, #15, #16)",
+      "item": "Debris barricade",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "États séparés ; burning réutilise la géométrie intacte avec repère FX. Feu et fumée non fournis.",
+      "assets": [
+        "debris-barricade-intact",
+        "debris-barricade-burning",
+        "debris-barricade-charred"
+      ]
+    },
+    {
+      "section": "Breakable props (#4, #15, #16)",
+      "item": "Debris chunks",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "debris-glass",
+        "debris-plastic",
+        "debris-bin-lid",
+        "debris-metal-panel",
+        "debris-car-door"
+      ]
+    },
+    {
+      "section": "Throwables and items (#7, #8, #15)",
+      "item": "Pavé",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "10 × 10 × 8 cm, taille approuvée par le commanditaire ; écart conservé avec la suggestion d’exagération de l’issue.",
+      "assets": [
+        "pave"
+      ]
+    },
+    {
+      "section": "Throwables and items (#7, #8, #15)",
+      "item": "Tomato",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "tomato"
+      ]
+    },
+    {
+      "section": "Throwables and items (#7, #8, #15)",
+      "item": "Dog poo",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "dog-poo"
+      ]
+    },
+    {
+      "section": "Throwables and items (#7, #8, #15)",
+      "item": "Trottinette",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "trottinette"
+      ]
+    },
+    {
+      "section": "Throwables and items (#7, #8, #15)",
+      "item": "Tear gas canister",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "tear-gas-canister"
+      ]
+    },
+    {
+      "section": "Throwables and items (#7, #8, #15)",
+      "item": "Held-item sockets",
+      "priority": "v1",
+      "status": "Base livrée, intégration restante",
+      "note": "Sockets mains et overhead présents sur le squelette commun."
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "Tear gas cloud",
+      "priority": "v1",
+      "status": "À réaliser dans le moteur",
+      "note": "Shader/particules/effet écran non fourni par le lot de modèles."
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "Gas screen tint",
+      "priority": "v1",
+      "status": "À réaliser dans le moteur",
+      "note": "Shader/particules/effet écran non fourni par le lot de modèles."
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "Fire and flames",
+      "priority": "v1",
+      "status": "À réaliser dans le moteur",
+      "note": "Shader/particules/effet écran non fourni par le lot de modèles."
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "Smoke",
+      "priority": "v1",
+      "status": "À réaliser dans le moteur",
+      "note": "Shader/particules/effet écran non fourni par le lot de modèles."
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "On-fire bum flames",
+      "priority": "v1",
+      "status": "À réaliser dans le moteur",
+      "note": "Shader/particules/effet écran non fourni par le lot de modèles."
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "Water jet",
+      "priority": "v1",
+      "status": "À réaliser dans le moteur",
+      "note": "Shader/particules/effet écran non fourni par le lot de modèles."
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "Tomato splat",
+      "priority": "v1",
+      "status": "Modèle(s) livré(s), intégration restante",
+      "note": "Sources Blender et GLB dans le catalogue.",
+      "assets": [
+        "tomato-splat-ground",
+        "crs-splatted"
+      ]
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "Stink cloud",
+      "priority": "v1",
+      "status": "À réaliser dans le moteur",
+      "note": "Shader/particules/effet écran non fourni par le lot de modèles."
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "Impact puffs, hit flash, bonk stars",
+      "priority": "v1",
+      "status": "À réaliser dans le moteur",
+      "note": "Shader/particules/effet écran non fourni par le lot de modèles."
+    },
+    {
+      "section": "Effects (mostly shaders and particles, not models)",
+      "item": "Dodge trail",
+      "priority": "later",
+      "status": "À réaliser dans le moteur",
+      "note": "Shader/particules/effet écran non fourni par le lot de modèles."
+    },
+    {
+      "section": "UI bits in 3D",
+      "item": "Name tag",
+      "priority": "done-in-issue",
+      "status": "Déclaré fait dans l’issue",
+      "note": "Statut du texte GitHub, pas revérifié dans le code pendant ce lot."
+    },
+    {
+      "section": "UI bits in 3D",
+      "item": "Overhead HP bar and status icon",
+      "priority": "v1",
+      "status": "À réaliser dans le client",
+      "note": "Sprites, marqueurs et progressions dynamiques non inclus."
+    },
+    {
+      "section": "UI bits in 3D",
+      "item": "Rescue progress ring",
+      "priority": "v1",
+      "status": "À réaliser dans le client",
+      "note": "Sprites, marqueurs et progressions dynamiques non inclus."
+    },
+    {
+      "section": "UI bits in 3D",
+      "item": "Held-item indicator",
+      "priority": "v1",
+      "status": "À réaliser dans le client",
+      "note": "Sprites, marqueurs et progressions dynamiques non inclus."
+    },
+    {
+      "section": "UI bits in 3D",
+      "item": "Local player marker",
+      "priority": "v1",
+      "status": "À réaliser dans le client",
+      "note": "Sprites, marqueurs et progressions dynamiques non inclus."
+    }
+  ],
+  "issue_complete": false
+}

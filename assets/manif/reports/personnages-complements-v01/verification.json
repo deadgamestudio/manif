@@ -1,0 +1,30 @@
+{
+  "assets": [
+    {
+      "asset": "commissaire",
+      "file": "commissaire/commissaire.glb",
+      "status": "PASS",
+      "triangles": 2402,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 2,
+      "finite_animated_geometry": true
+    },
+    {
+      "asset": "gendarme-mobile",
+      "file": "gendarme-mobile/gendarme-mobile.glb",
+      "status": "PASS",
+      "triangles": 2210,
+      "textures_embedded": true,
+      "skeleton_matches_approved": true,
+      "normalized_weights": true,
+      "draft_clips": 2,
+      "finite_animated_geometry": true
+    }
+  ],
+  "source": "Blender GLB reimport",
+  "engine_tests": "NOT RUN",
+  "animation_quality": "draft clips only; not full issue animation set",
+  "collision_tests": "NOT RUN"
+}

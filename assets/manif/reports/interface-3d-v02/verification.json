@@ -1,0 +1,83 @@
+[
+  {
+    "asset": "hp-0",
+    "status": "PASS",
+    "triangles": 24,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "hp-25",
+    "status": "PASS",
+    "triangles": 36,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "hp-50",
+    "status": "PASS",
+    "triangles": 36,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "hp-75",
+    "status": "PASS",
+    "triangles": 36,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "hp-100",
+    "status": "PASS",
+    "triangles": 36,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "status-grabbed",
+    "status": "PASS",
+    "triangles": 52,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "status-arrested",
+    "status": "PASS",
+    "triangles": 588,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "status-ko",
+    "status": "PASS",
+    "triangles": 444,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "player-foot-ring",
+    "status": "PASS",
+    "triangles": 536,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  }
+]

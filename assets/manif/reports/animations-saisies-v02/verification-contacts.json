@@ -1,0 +1,146 @@
+[
+  {
+    "pair": "lyceen-hoodie-collar",
+    "clip": "seize",
+    "max_wrist_target_error_m": 6.052679671002241e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-collar",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 5.939122264368869e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-collar",
+    "clip": "seize",
+    "max_wrist_target_error_m": 9.060606816224433e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-collar",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 8.527009655294304e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-collar",
+    "clip": "seize",
+    "max_wrist_target_error_m": 6.606301086289521e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-collar",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 7.79053977882657e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-collar",
+    "clip": "seize",
+    "max_wrist_target_error_m": 6.793084910459182e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-collar",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 7.881658100355741e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-arm",
+    "clip": "seize",
+    "max_wrist_target_error_m": 2.9923312639525814e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-arm",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 5.357292404850374e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-arm",
+    "clip": "seize",
+    "max_wrist_target_error_m": 1.1720158773546652e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-arm",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 2.7124739911534457e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-arm",
+    "clip": "seize",
+    "max_wrist_target_error_m": 6.945873521663307e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-arm",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 6.659570172591066e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-arm",
+    "clip": "seize",
+    "max_wrist_target_error_m": 3.71009177537368e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-arm",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 6.445076932885341e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-leg",
+    "clip": "seize",
+    "max_wrist_target_error_m": 6.0016403785031935e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-leg",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 1.126418387497674e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-leg",
+    "clip": "seize",
+    "max_wrist_target_error_m": 3.353555903044992e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-leg",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 9.91151271673285e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-leg",
+    "clip": "seize",
+    "max_wrist_target_error_m": 2.3746262742872346e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-leg",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 1.0751835770653049e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-leg",
+    "clip": "seize",
+    "max_wrist_target_error_m": 7.734621366422959e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-leg",
+    "clip": "hold-loop",
+    "max_wrist_target_error_m": 6.723710401462601e-07,
+    "status": "PASS"
+  }
+]

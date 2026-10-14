@@ -1,0 +1,101 @@
+[
+  {
+    "asset": "status-health",
+    "status": "PASS",
+    "triangles": 28,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "status-rescue",
+    "status": "PASS",
+    "triangles": 44,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "status-fire",
+    "status": "PASS",
+    "triangles": 28,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "status-gas",
+    "status": "PASS",
+    "triangles": 240,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "status-stunned",
+    "status": "PASS",
+    "triangles": 36,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "held-item-marker",
+    "status": "PASS",
+    "triangles": 52,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "local-player-marker",
+    "status": "PASS",
+    "triangles": 8,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "progress-25",
+    "status": "PASS",
+    "triangles": 720,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "progress-50",
+    "status": "PASS",
+    "triangles": 864,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "progress-75",
+    "status": "PASS",
+    "triangles": 1008,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "progress-100",
+    "status": "PASS",
+    "triangles": 1152,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  }
+]

@@ -1,0 +1,386 @@
+[
+  {
+    "asset": "lyceen-hoodie-collar",
+    "source_asset": "personnages-v02/lyceen-hoodie",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-hoodie-collar",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent-collar",
+    "source_asset": "personnages-v02/lyceenne-coupe-vent",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-coupe-vent-collar",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot-collar",
+    "source_asset": "personnages-v02/lyceen-maillot",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-maillot-collar",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat-collar",
+    "source_asset": "personnages-v02/lyceenne-sweat",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-sweat-collar",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-hoodie-arm",
+    "source_asset": "personnages-v02/lyceen-hoodie",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-hoodie-arm",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent-arm",
+    "source_asset": "personnages-v02/lyceenne-coupe-vent",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-coupe-vent-arm",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot-arm",
+    "source_asset": "personnages-v02/lyceen-maillot",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-maillot-arm",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat-arm",
+    "source_asset": "personnages-v02/lyceenne-sweat",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-sweat-arm",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-hoodie-leg",
+    "source_asset": "personnages-v02/lyceen-hoodie",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-hoodie-leg",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent-leg",
+    "source_asset": "personnages-v02/lyceenne-coupe-vent",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-coupe-vent-leg",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot-leg",
+    "source_asset": "personnages-v02/lyceen-maillot",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-maillot-leg",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat-leg",
+    "source_asset": "personnages-v02/lyceenne-sweat",
+    "clips": [
+      {
+        "name": "seized",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "held-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-sweat-leg",
+    "source_asset": "production-v1/police/crs",
+    "clips": [
+      {
+        "name": "seize",
+        "duration_seconds": 2.0,
+        "loop": false
+      },
+      {
+        "name": "hold-loop",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      }
+    ]
+  }
+]

@@ -1,0 +1,2213 @@
+[
+  {
+    "asset": "bac-armband",
+    "label": "Brassard POLICE",
+    "state": "intact",
+    "triangles": 88,
+    "budget": 700,
+    "dimensions_m": [
+      0.148,
+      0.155,
+      0.1
+    ],
+    "bounds_min": [
+      -0.074,
+      -0.081,
+      0.0
+    ],
+    "bounds_max": [
+      0.074,
+      0.074,
+      0.1
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "BAC réutilise les modèles manifestants inchangés. Brassard à attacher à upper_arm ; adapter sa taille à la manche.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "bac-armband",
+    "category": "accessoires",
+    "new": true
+  },
+  {
+    "asset": "bin-broken",
+    "label": "Poubelle — broken",
+    "state": "broken",
+    "triangles": 526,
+    "budget": 1500,
+    "dimensions_m": [
+      0.478,
+      0.543,
+      0.988
+    ],
+    "bounds_min": [
+      -0.239,
+      -0.25,
+      0.0
+    ],
+    "bounds_max": [
+      0.239,
+      0.293,
+      0.988
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Dimensions réalistes du modèle déjà validé conservées. burning réutilise intact avec repère de feu ; effet animé à intégrer.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "bin-broken",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "bin-burning",
+    "label": "Poubelle — burning",
+    "state": "burning",
+    "triangles": 852,
+    "budget": 1500,
+    "dimensions_m": [
+      0.505,
+      0.5705,
+      0.999
+    ],
+    "bounds_min": [
+      -0.2525,
+      -0.2775,
+      0.0
+    ],
+    "bounds_max": [
+      0.2525,
+      0.293,
+      0.999
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Dimensions réalistes du modèle déjà validé conservées. burning réutilise intact avec repère de feu ; effet animé à intégrer.",
+    "sockets": {
+      "fx-fire": [
+        0,
+        0,
+        0.85
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "bin-burning",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "bin-charred",
+    "label": "Poubelle — charred",
+    "state": "charred",
+    "triangles": 526,
+    "budget": 1500,
+    "dimensions_m": [
+      0.478,
+      0.543,
+      0.988
+    ],
+    "bounds_min": [
+      -0.239,
+      -0.25,
+      0.0
+    ],
+    "bounds_max": [
+      0.239,
+      0.293,
+      0.988
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Dimensions réalistes du modèle déjà validé conservées. burning réutilise intact avec repère de feu ; effet animé à intégrer.",
+    "sockets": {
+      "fx-fire": [
+        0,
+        0,
+        0.85
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "bin-charred",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "bin-intact",
+    "label": "Poubelle — intact",
+    "state": "intact",
+    "triangles": 852,
+    "budget": 1500,
+    "dimensions_m": [
+      0.505,
+      0.5705,
+      0.999
+    ],
+    "bounds_min": [
+      -0.2525,
+      -0.2775,
+      0.0
+    ],
+    "bounds_max": [
+      0.2525,
+      0.293,
+      0.999
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Dimensions réalistes du modèle déjà validé conservées. burning réutilise intact avec repère de feu ; effet animé à intégrer.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "bin-intact",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "bollard-level",
+    "label": "Borne du niveau",
+    "state": "intact",
+    "triangles": 184,
+    "budget": 800,
+    "dimensions_m": [
+      1.0,
+      1.0,
+      0.9
+    ],
+    "bounds_min": [
+      -0.5,
+      -0.5,
+      0.0
+    ],
+    "bounds_max": [
+      0.5,
+      0.5,
+      0.9
+    ],
+    "requested_dimensions_m": [
+      1,
+      1,
+      0.9
+    ],
+    "mesh_count": 1,
+    "notes": "Borne massive correspondant au rayon de collision 0,5 m demandé, distincte du potelet de trottoir fin.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "bollard-level",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "brav-m-motorbike",
+    "label": "Moto BRAV-M",
+    "state": "parked",
+    "triangles": 1648,
+    "budget": 6000,
+    "dimensions_m": [
+      0.79,
+      2.08,
+      1.2
+    ],
+    "bounds_min": [
+      -0.395,
+      -1.04,
+      -0.0
+    ],
+    "bounds_max": [
+      0.395,
+      1.04,
+      1.2
+    ],
+    "requested_dimensions_m": [
+      0.8,
+      2.1,
+      1.2
+    ],
+    "mesh_count": 1,
+    "notes": "Même mesh pour roulage, stationnement et chute par transformation. Roues non animées ; deux repères pour les passagers.",
+    "sockets": {
+      "rider": [
+        0,
+        0.1,
+        0.98
+      ],
+      "passenger": [
+        0,
+        0.52,
+        1.0
+      ],
+      "handle-left": [
+        -0.3,
+        -0.49,
+        1.12
+      ],
+      "handle-right": [
+        0.3,
+        -0.49,
+        1.12
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "brav-m-motorbike",
+    "category": "vehicules",
+    "new": true
+  },
+  {
+    "asset": "bus-shelter-broken",
+    "label": "Abribus brisé",
+    "state": "broken",
+    "triangles": 316,
+    "budget": 1500,
+    "dimensions_m": [
+      4.0,
+      1.49257,
+      2.5
+    ],
+    "bounds_min": [
+      -2.0,
+      -0.75,
+      0.0
+    ],
+    "bounds_max": [
+      2.0,
+      0.74257,
+      2.5
+    ],
+    "requested_dimensions_m": [
+      4,
+      1.5,
+      2.5
+    ],
+    "mesh_count": 1,
+    "notes": "Vitrage stylisé opaque pour un atlas unique ; grands panneaux retirés dans l’état brisé.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "bus-shelter-broken",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "bus-shelter-intact",
+    "label": "Abribus intact",
+    "state": "intact",
+    "triangles": 400,
+    "budget": 1500,
+    "dimensions_m": [
+      4.0,
+      1.49257,
+      2.5
+    ],
+    "bounds_min": [
+      -2.0,
+      -0.75,
+      0.0
+    ],
+    "bounds_max": [
+      2.0,
+      0.74257,
+      2.5
+    ],
+    "requested_dimensions_m": [
+      4,
+      1.5,
+      2.5
+    ],
+    "mesh_count": 1,
+    "notes": "Vitrage stylisé opaque pour un atlas unique ; grands panneaux retirés dans l’état brisé.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "bus-shelter-intact",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "car-broken",
+    "label": "Voiture — broken",
+    "state": "broken",
+    "triangles": 836,
+    "budget": 1500,
+    "dimensions_m": [
+      1.8,
+      4.2,
+      1.48
+    ],
+    "bounds_min": [
+      -0.9,
+      -2.1,
+      0.0
+    ],
+    "bounds_max": [
+      0.9,
+      2.1,
+      1.48
+    ],
+    "requested_dimensions_m": [
+      1.8,
+      4.2,
+      1.5
+    ],
+    "mesh_count": 1,
+    "notes": "Hatchback stylisée ; bris représenté par retrait partiel des vitres, tôles cabossées. burning utilise le corps intact et des attaches FX.",
+    "sockets": {
+      "alarm-light": [
+        0,
+        -0.95,
+        1.4
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "car-broken",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "car-burning",
+    "label": "Voiture — burning",
+    "state": "burning",
+    "triangles": 836,
+    "budget": 1500,
+    "dimensions_m": [
+      1.8,
+      4.2,
+      1.48
+    ],
+    "bounds_min": [
+      -0.9,
+      -2.1,
+      0.0
+    ],
+    "bounds_max": [
+      0.9,
+      2.1,
+      1.48
+    ],
+    "requested_dimensions_m": [
+      1.8,
+      4.2,
+      1.5
+    ],
+    "mesh_count": 1,
+    "notes": "Hatchback stylisée ; bris représenté par retrait partiel des vitres, tôles cabossées. burning utilise le corps intact et des attaches FX.",
+    "sockets": {
+      "fx-fire": [
+        0,
+        0.35,
+        1.2
+      ],
+      "alarm-light": [
+        0,
+        -0.95,
+        1.4
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "car-burning",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "car-charred",
+    "label": "Voiture — charred",
+    "state": "charred",
+    "triangles": 836,
+    "budget": 1500,
+    "dimensions_m": [
+      1.8,
+      4.2,
+      1.48
+    ],
+    "bounds_min": [
+      -0.9,
+      -2.1,
+      0.0
+    ],
+    "bounds_max": [
+      0.9,
+      2.1,
+      1.48
+    ],
+    "requested_dimensions_m": [
+      1.8,
+      4.2,
+      1.5
+    ],
+    "mesh_count": 1,
+    "notes": "Hatchback stylisée ; bris représenté par retrait partiel des vitres, tôles cabossées. burning utilise le corps intact et des attaches FX.",
+    "sockets": {
+      "fx-fire": [
+        0,
+        0.35,
+        1.2
+      ],
+      "alarm-light": [
+        0,
+        -0.95,
+        1.4
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "car-charred",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "car-intact",
+    "label": "Voiture — intact",
+    "state": "intact",
+    "triangles": 836,
+    "budget": 1500,
+    "dimensions_m": [
+      1.8,
+      4.2,
+      1.48
+    ],
+    "bounds_min": [
+      -0.9,
+      -2.1,
+      0.0
+    ],
+    "bounds_max": [
+      0.9,
+      2.1,
+      1.48
+    ],
+    "requested_dimensions_m": [
+      1.8,
+      4.2,
+      1.5
+    ],
+    "mesh_count": 1,
+    "notes": "Hatchback stylisée ; bris représenté par retrait partiel des vitres, tôles cabossées. burning utilise le corps intact et des attaches FX.",
+    "sockets": {
+      "alarm-light": [
+        0,
+        -0.95,
+        1.4
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "car-intact",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "construction-wall-6-5",
+    "label": "Palissade 6.5 m",
+    "state": "intact",
+    "triangles": 652,
+    "budget": 1500,
+    "dimensions_m": [
+      6.5,
+      1.0,
+      1.6
+    ],
+    "bounds_min": [
+      -3.25,
+      -0.5,
+      0.0
+    ],
+    "bounds_max": [
+      3.25,
+      0.5,
+      1.6
+    ],
+    "requested_dimensions_m": [
+      6.5,
+      1,
+      1.6
+    ],
+    "mesh_count": 1,
+    "notes": "",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "construction-wall-6-5",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "construction-wall-7",
+    "label": "Palissade 7 m",
+    "state": "intact",
+    "triangles": 664,
+    "budget": 1500,
+    "dimensions_m": [
+      7.0,
+      1.0,
+      1.6
+    ],
+    "bounds_min": [
+      -3.5,
+      -0.5,
+      0.0
+    ],
+    "bounds_max": [
+      3.5,
+      0.5,
+      1.6
+    ],
+    "requested_dimensions_m": [
+      7,
+      1,
+      1.6
+    ],
+    "mesh_count": 1,
+    "notes": "",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "construction-wall-7",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "crosswalk",
+    "label": "Passage piéton",
+    "state": "intact",
+    "triangles": 216,
+    "budget": 300,
+    "dimensions_m": [
+      17.5,
+      4.0,
+      0.006
+    ],
+    "bounds_min": [
+      -8.75,
+      -2.0,
+      0.0
+    ],
+    "bounds_max": [
+      8.75,
+      2.0,
+      0.006
+    ],
+    "requested_dimensions_m": [
+      18,
+      4,
+      0.006
+    ],
+    "mesh_count": 1,
+    "notes": "",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "crosswalk",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "debris-barricade-burning",
+    "label": "Barricade — burning",
+    "state": "burning",
+    "triangles": 396,
+    "budget": 1500,
+    "dimensions_m": [
+      3.0,
+      0.94,
+      1.2
+    ],
+    "bounds_min": [
+      -1.5,
+      -0.47,
+      0.0
+    ],
+    "bounds_max": [
+      1.5,
+      0.47,
+      1.2
+    ],
+    "requested_dimensions_m": [
+      3,
+      1,
+      1.2
+    ],
+    "mesh_count": 1,
+    "notes": "Assemblage stylisé de planches et tôle ; aucune collision ni feu actif.",
+    "sockets": {
+      "fx-fire": [
+        0,
+        0,
+        0.65
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "debris-barricade-burning",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "debris-barricade-charred",
+    "label": "Barricade — charred",
+    "state": "charred",
+    "triangles": 396,
+    "budget": 1500,
+    "dimensions_m": [
+      3.0,
+      0.94,
+      1.2
+    ],
+    "bounds_min": [
+      -1.5,
+      -0.47,
+      0.0
+    ],
+    "bounds_max": [
+      1.5,
+      0.47,
+      1.2
+    ],
+    "requested_dimensions_m": [
+      3,
+      1,
+      1.2
+    ],
+    "mesh_count": 1,
+    "notes": "Assemblage stylisé de planches et tôle ; aucune collision ni feu actif.",
+    "sockets": {
+      "fx-fire": [
+        0,
+        0,
+        0.65
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "debris-barricade-charred",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "debris-barricade-intact",
+    "label": "Barricade — intact",
+    "state": "intact",
+    "triangles": 396,
+    "budget": 1500,
+    "dimensions_m": [
+      3.0,
+      0.94,
+      1.2
+    ],
+    "bounds_min": [
+      -1.5,
+      -0.47,
+      0.0
+    ],
+    "bounds_max": [
+      1.5,
+      0.47,
+      1.2
+    ],
+    "requested_dimensions_m": [
+      3,
+      1,
+      1.2
+    ],
+    "mesh_count": 1,
+    "notes": "Assemblage stylisé de planches et tôle ; aucune collision ni feu actif.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "debris-barricade-intact",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "debris-bin-lid",
+    "label": "Débris — bin-lid",
+    "state": "debris",
+    "triangles": 88,
+    "budget": 150,
+    "dimensions_m": [
+      0.46,
+      0.46,
+      0.09
+    ],
+    "bounds_min": [
+      -0.23,
+      -0.23,
+      0.0
+    ],
+    "bounds_max": [
+      0.23,
+      0.23,
+      0.09
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Débris cosmétique à instancier localement ; physique non fournie.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "debris-bin-lid",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "debris-car-door",
+    "label": "Débris — car-door",
+    "state": "debris",
+    "triangles": 88,
+    "budget": 150,
+    "dimensions_m": [
+      0.75,
+      0.6,
+      0.068
+    ],
+    "bounds_min": [
+      -0.375,
+      -0.3,
+      0.0
+    ],
+    "bounds_max": [
+      0.375,
+      0.3,
+      0.068
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Débris cosmétique à instancier localement ; physique non fournie.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "debris-car-door",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "debris-glass",
+    "label": "Débris — glass",
+    "state": "debris",
+    "triangles": 60,
+    "budget": 150,
+    "dimensions_m": [
+      0.21235,
+      0.16239,
+      0.032
+    ],
+    "bounds_min": [
+      -0.11458,
+      -0.08056,
+      0.012
+    ],
+    "bounds_max": [
+      0.09777,
+      0.08183,
+      0.044
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Débris cosmétique à instancier localement ; physique non fournie.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "debris-glass",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "debris-metal-panel",
+    "label": "Débris — metal-panel",
+    "state": "debris",
+    "triangles": 56,
+    "budget": 150,
+    "dimensions_m": [
+      0.5,
+      0.3025,
+      0.07
+    ],
+    "bounds_min": [
+      -0.25,
+      -0.15,
+      0.0
+    ],
+    "bounds_max": [
+      0.25,
+      0.1525,
+      0.07
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Débris cosmétique à instancier localement ; physique non fournie.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "debris-metal-panel",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "debris-plastic",
+    "label": "Débris — plastic",
+    "state": "debris",
+    "triangles": 60,
+    "budget": 150,
+    "dimensions_m": [
+      0.21235,
+      0.16239,
+      0.032
+    ],
+    "bounds_min": [
+      -0.11458,
+      -0.08056,
+      0.012
+    ],
+    "bounds_max": [
+      0.09777,
+      0.08183,
+      0.044
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Débris cosmétique à instancier localement ; physique non fournie.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "debris-plastic",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "facade-corner-2m",
+    "label": "Angle de façade modulaire",
+    "state": "intact",
+    "triangles": 116,
+    "budget": 1000,
+    "dimensions_m": [
+      2.015,
+      2.0,
+      3.0
+    ],
+    "bounds_min": [
+      -1.0,
+      -0.08,
+      0.0
+    ],
+    "bounds_max": [
+      1.015,
+      1.92,
+      3.0
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Angle avec travée de 2 m ; à combiner avec les modules de façade existants. Étages séparables.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "facade-corner-2m",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "fire-hose",
+    "label": "Tuyau de pompier — segment",
+    "state": "intact",
+    "triangles": 168,
+    "budget": 400,
+    "dimensions_m": [
+      3.02031,
+      0.57947,
+      0.084
+    ],
+    "bounds_min": [
+      -1.50824,
+      -0.19023,
+      0.003
+    ],
+    "bounds_max": [
+      1.51207,
+      0.38924,
+      0.087
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Segment statique de décor. Un tuyau animé doit être reconstruit ou déformé par le moteur ; ce mesh ne simule pas un câble.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "fire-hose",
+    "category": "accessoires",
+    "new": true
+  },
+  {
+    "asset": "fire-nozzle",
+    "label": "Lance de pompier",
+    "state": "intact",
+    "triangles": 132,
+    "budget": 300,
+    "dimensions_m": [
+      0.084,
+      0.177,
+      0.52
+    ],
+    "bounds_min": [
+      -0.042,
+      -0.042,
+      0.0
+    ],
+    "bounds_max": [
+      0.042,
+      0.135,
+      0.52
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Accessoire à attacher à la main ; réorienter son axe Z Blender vers la cible.",
+    "sockets": {
+      "grip": [
+        0,
+        0,
+        0.21
+      ],
+      "water-outlet": [
+        0,
+        0,
+        0.52
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "fire-nozzle",
+    "category": "accessoires",
+    "new": true
+  },
+  {
+    "asset": "fire-truck",
+    "label": "Camion de pompiers",
+    "state": "parked",
+    "triangles": 3416,
+    "budget": 6000,
+    "dimensions_m": [
+      2.5,
+      7.9775,
+      3.2
+    ],
+    "bounds_min": [
+      -1.25,
+      -4.0,
+      0.0
+    ],
+    "bounds_max": [
+      1.25,
+      3.9775,
+      3.2
+    ],
+    "requested_dimensions_m": [
+      2.5,
+      8,
+      3.2
+    ],
+    "mesh_count": 1,
+    "notes": "Portes ouvertes en variante statique ; véhicule neutre. Aucun jet d’eau ni conduite animée.",
+    "sockets": {
+      "driver": [
+        -0.6,
+        -2.7,
+        1.5
+      ],
+      "hose-outlet": [
+        1.2,
+        2.6,
+        1.0
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "fire-truck",
+    "category": "vehicules",
+    "new": true
+  },
+  {
+    "asset": "fire-truck-open",
+    "label": "Camion de pompiers ouvert",
+    "state": "doors-open",
+    "triangles": 3416,
+    "budget": 6000,
+    "dimensions_m": [
+      2.5,
+      7.9775,
+      3.2
+    ],
+    "bounds_min": [
+      -1.25,
+      -4.0,
+      0.0
+    ],
+    "bounds_max": [
+      1.25,
+      3.9775,
+      3.2
+    ],
+    "requested_dimensions_m": [
+      2.5,
+      8,
+      3.2
+    ],
+    "mesh_count": 1,
+    "notes": "Portes ouvertes en variante statique ; véhicule neutre. Aucun jet d’eau ni conduite animée.",
+    "sockets": {
+      "driver": [
+        -0.6,
+        -2.7,
+        1.5
+      ],
+      "hose-outlet": [
+        1.2,
+        2.6,
+        1.0
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "fire-truck-open",
+    "category": "vehicules",
+    "new": true
+  },
+  {
+    "asset": "ground-asphalt",
+    "label": "Chaussée 24 × 200 m",
+    "state": "intact",
+    "triangles": 12,
+    "budget": 100,
+    "dimensions_m": [
+      24.0,
+      200.0,
+      0.05
+    ],
+    "bounds_min": [
+      -12.0,
+      -100.0,
+      -0.05
+    ],
+    "bounds_max": [
+      12.0,
+      100.0,
+      0.0
+    ],
+    "requested_dimensions_m": [
+      24,
+      200,
+      0.05
+    ],
+    "mesh_count": 1,
+    "notes": "Surface de marche z=0, épaisseur sous le sol ; origine au centre. Assombrir dans le moteur selon éclairage.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "ground-asphalt",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "lamp-post-level",
+    "label": "Lampadaire 5 m",
+    "state": "intact",
+    "triangles": 252,
+    "budget": 800,
+    "dimensions_m": [
+      1.0,
+      1.0,
+      5.0
+    ],
+    "bounds_min": [
+      -0.5,
+      -0.5,
+      0.0
+    ],
+    "bounds_max": [
+      0.5,
+      0.5,
+      5.0
+    ],
+    "requested_dimensions_m": [
+      1,
+      1,
+      5
+    ],
+    "mesh_count": 1,
+    "notes": "",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "lamp-post-level",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "market-stall-broken",
+    "label": "Étal cassé",
+    "state": "broken",
+    "triangles": 588,
+    "budget": 1500,
+    "dimensions_m": [
+      3.0,
+      1.95,
+      1.19
+    ],
+    "bounds_min": [
+      -1.5,
+      -0.975,
+      0.0
+    ],
+    "bounds_max": [
+      1.5,
+      0.975,
+      1.19
+    ],
+    "requested_dimensions_m": [
+      3,
+      2,
+      2.4
+    ],
+    "mesh_count": 1,
+    "notes": "Caisses et tomates de décor ; drops à générer avec tomato.glb. Version brisée sans auvent.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "market-stall-broken",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "market-stall-intact",
+    "label": "Étal intact",
+    "state": "intact",
+    "triangles": 720,
+    "budget": 1500,
+    "dimensions_m": [
+      3.0,
+      2.0,
+      2.4
+    ],
+    "bounds_min": [
+      -1.5,
+      -1.0,
+      0.0
+    ],
+    "bounds_max": [
+      1.5,
+      1.0,
+      2.4
+    ],
+    "requested_dimensions_m": [
+      3,
+      2,
+      2.4
+    ],
+    "mesh_count": 1,
+    "notes": "Caisses et tomates de décor ; drops à générer avec tomato.glb. Version brisée sans auvent.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "market-stall-intact",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "newspaper-kiosk",
+    "label": "Kiosque à journaux",
+    "state": "intact",
+    "triangles": 857,
+    "budget": 2000,
+    "dimensions_m": [
+      2.0,
+      2.0,
+      2.6
+    ],
+    "bounds_min": [
+      -1.0,
+      -1.0,
+      0.0
+    ],
+    "bounds_max": [
+      1.0,
+      1.0,
+      2.6
+    ],
+    "requested_dimensions_m": [
+      2,
+      2,
+      2.6
+    ],
+    "mesh_count": 1,
+    "notes": "Kiosque parisien vert, silhouettes de couvertures sans marque.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "newspaper-kiosk",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "pavement-kit",
+    "label": "Trottoir et bordure",
+    "state": "intact",
+    "triangles": 56,
+    "budget": 300,
+    "dimensions_m": [
+      2.0,
+      3.0,
+      0.18
+    ],
+    "bounds_min": [
+      -1.0,
+      -1.5,
+      0.0
+    ],
+    "bounds_max": [
+      1.0,
+      1.5,
+      0.18
+    ],
+    "requested_dimensions_m": [
+      2,
+      3,
+      0.18
+    ],
+    "mesh_count": 1,
+    "notes": "Tuile à répéter autour des blocs du niveau ; ne constitue pas à elle seule le sol complet.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "pavement-kit",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "firefighter",
+    "label": "firefighter",
+    "triangles": 2426,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 2,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Nouvelle tenue sur squelette approuvé ; accessoires attachés aux os nommés. Couleur de peau unique de démonstration, indépendante de la tenue, case palette 6. Tous les profils étudiants précédents sont conservés séparément.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "folder": "personnages/firefighter",
+    "category": "personnages",
+    "new": true
+  },
+  {
+    "asset": "protester-black-bloc",
+    "label": "protester-black-bloc",
+    "triangles": 2418,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 1,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Nouvelle tenue sur squelette approuvé ; accessoires attachés aux os nommés. Couleur de peau unique de démonstration, indépendante de la tenue, case palette 6. Tous les profils étudiants précédents sont conservés séparément.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "folder": "personnages/protester-black-bloc",
+    "category": "personnages",
+    "new": true
+  },
+  {
+    "asset": "protester-bobo",
+    "label": "protester-bobo",
+    "triangles": 2386,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 2,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Nouvelle tenue sur squelette approuvé ; accessoires attachés aux os nommés. Couleur de peau unique de démonstration, indépendante de la tenue, case palette 6. Tous les profils étudiants précédents sont conservés séparément.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "folder": "personnages/protester-bobo",
+    "category": "personnages",
+    "new": true
+  },
+  {
+    "asset": "protester-cgt",
+    "label": "protester-cgt",
+    "triangles": 2352,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 2,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Nouvelle tenue sur squelette approuvé ; accessoires attachés aux os nommés. Couleur de peau unique de démonstration, indépendante de la tenue, case palette 6. Tous les profils étudiants précédents sont conservés séparément.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "folder": "personnages/protester-cgt",
+    "category": "personnages",
+    "new": true
+  },
+  {
+    "asset": "protester-gilet-jaune",
+    "label": "protester-gilet-jaune",
+    "triangles": 2242,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 0,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Nouvelle tenue sur squelette approuvé ; accessoires attachés aux os nommés. Couleur de peau unique de démonstration, indépendante de la tenue, case palette 6. Tous les profils étudiants précédents sont conservés séparément.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "folder": "personnages/protester-gilet-jaune",
+    "category": "personnages",
+    "new": true
+  },
+  {
+    "asset": "protester-neutral",
+    "label": "protester-neutral",
+    "triangles": 2242,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 0,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Nouvelle tenue sur squelette approuvé ; accessoires attachés aux os nommés. Couleur de peau unique de démonstration, indépendante de la tenue, case palette 6. Tous les profils étudiants précédents sont conservés séparément.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "folder": "personnages/protester-neutral",
+    "category": "personnages",
+    "new": true
+  },
+  {
+    "asset": "protester-retraite",
+    "label": "protester-retraite",
+    "triangles": 2574,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 3,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Nouvelle tenue sur squelette approuvé ; accessoires attachés aux os nommés. Couleur de peau unique de démonstration, indépendante de la tenue, case palette 6. Tous les profils étudiants précédents sont conservés séparément.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "folder": "personnages/protester-retraite",
+    "category": "personnages",
+    "new": true
+  },
+  {
+    "asset": "protester-tracksuit",
+    "label": "protester-tracksuit",
+    "triangles": 2462,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 2,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Nouvelle tenue sur squelette approuvé ; accessoires attachés aux os nommés. Couleur de peau unique de démonstration, indépendante de la tenue, case palette 6. Tous les profils étudiants précédents sont conservés séparément.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "folder": "personnages/protester-tracksuit",
+    "category": "personnages",
+    "new": true
+  },
+  {
+    "asset": "brav-m-passenger",
+    "label": "brav-m-passenger",
+    "triangles": 2254,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 2,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Ã‰quipement sÃ©parÃ© fixÃ© aux os ; squelette partagÃ©. Les clips inclus restent les trois Ã©bauches communes. Formation, lancer et conduite Ã  animer dans le moteur. Poses statiques supplÃ©mentaires exportÃ©es comme clips : riding. Transitions, contact moto/sol et dÃ©placement non animÃ©s.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "triangles_source_before_reexport": 2258,
+    "clip_count": 4,
+    "pose_variants": [
+      "riding"
+    ],
+    "folder": "police/brav-m-passenger",
+    "category": "police",
+    "new": true
+  },
+  {
+    "asset": "brav-m-rider",
+    "label": "brav-m-rider",
+    "triangles": 2254,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 2,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Ã‰quipement sÃ©parÃ© fixÃ© aux os ; squelette partagÃ©. Les clips inclus restent les trois Ã©bauches communes. Formation, lancer et conduite Ã  animer dans le moteur. Poses statiques supplÃ©mentaires exportÃ©es comme clips : riding. Transitions, contact moto/sol et dÃ©placement non animÃ©s.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "triangles_source_before_reexport": 2258,
+    "clip_count": 4,
+    "pose_variants": [
+      "riding"
+    ],
+    "folder": "police/brav-m-rider",
+    "category": "police",
+    "new": true
+  },
+  {
+    "asset": "crs",
+    "label": "crs",
+    "triangles": 2722,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 4,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Ã‰quipement sÃ©parÃ© fixÃ© aux os ; squelette partagÃ©. Les clips inclus restent les trois Ã©bauches communes. Formation, lancer et conduite Ã  animer dans le moteur. Poses statiques supplÃ©mentaires exportÃ©es comme clips : shield-lowered, shield-raised. Transitions, contact moto/sol et dÃ©placement non animÃ©s.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "triangles_source_before_reexport": 2726,
+    "clip_count": 5,
+    "pose_variants": [
+      "shield-lowered",
+      "shield-raised"
+    ],
+    "folder": "police/crs",
+    "category": "police",
+    "new": true
+  },
+  {
+    "asset": "crs-grenadier",
+    "label": "crs-grenadier",
+    "triangles": 2354,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 3,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Ã‰quipement sÃ©parÃ© fixÃ© aux os ; squelette partagÃ©. Les clips inclus restent les trois Ã©bauches communes. Formation, lancer et conduite Ã  animer dans le moteur.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "triangles_source_before_reexport": 2358,
+    "folder": "police/crs-grenadier",
+    "category": "police",
+    "new": true
+  },
+  {
+    "asset": "crs-splatted",
+    "label": "crs-splatted",
+    "triangles": 2866,
+    "budget": 3000,
+    "bone_count": 19,
+    "body_mesh_count": 1,
+    "accessory_mesh_count": 5,
+    "skin_palette_cell": 6,
+    "same_default_skin_for_every_archetype": true,
+    "notes": "Ã‰quipement sÃ©parÃ© fixÃ© aux os ; squelette partagÃ©. Les clips inclus restent les trois Ã©bauches communes. Formation, lancer et conduite Ã  animer dans le moteur.",
+    "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+    "integration": "not integrated",
+    "triangles_source_before_reexport": 2870,
+    "folder": "police/crs-splatted",
+    "category": "police",
+    "new": true
+  },
+  {
+    "asset": "police-baton",
+    "label": "Matraque cartoon",
+    "state": "intact",
+    "triangles": 88,
+    "budget": 300,
+    "dimensions_m": [
+      0.072,
+      0.072,
+      0.45
+    ],
+    "bounds_min": [
+      -0.036,
+      -0.036,
+      0.0
+    ],
+    "bounds_max": [
+      0.036,
+      0.036,
+      0.45
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Accessoire séparé ; attacher à hand_R ou hand_L.",
+    "sockets": {
+      "grip": [
+        0,
+        0,
+        0.07
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "police-baton",
+    "category": "accessoires",
+    "new": true
+  },
+  {
+    "asset": "police-van",
+    "label": "Fourgon de police",
+    "state": "parked",
+    "triangles": 1800,
+    "budget": 6000,
+    "dimensions_m": [
+      2.4,
+      4.99751,
+      2.4
+    ],
+    "bounds_min": [
+      -1.2,
+      -2.5,
+      0.0
+    ],
+    "bounds_max": [
+      1.2,
+      2.49751,
+      2.4
+    ],
+    "requested_dimensions_m": [
+      2.4,
+      5,
+      2.4
+    ],
+    "mesh_count": 1,
+    "notes": "Portes arrière en état séparé ; ouverture stylisée contenue dans le gabarit. Pas de conduite ni arrestation animée.",
+    "sockets": {
+      "driver": [
+        -0.55,
+        -1.35,
+        1.05
+      ],
+      "rear-entry": [
+        0,
+        2.4,
+        0.45
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "police-van",
+    "category": "vehicules",
+    "new": true
+  },
+  {
+    "asset": "police-van-open",
+    "label": "Fourgon de police ouvert",
+    "state": "doors-open",
+    "triangles": 1800,
+    "budget": 6000,
+    "dimensions_m": [
+      2.4,
+      4.99751,
+      2.4
+    ],
+    "bounds_min": [
+      -1.2,
+      -2.5,
+      0.0
+    ],
+    "bounds_max": [
+      1.2,
+      2.49751,
+      2.4
+    ],
+    "requested_dimensions_m": [
+      2.4,
+      5,
+      2.4
+    ],
+    "mesh_count": 1,
+    "notes": "Portes arrière en état séparé ; ouverture stylisée contenue dans le gabarit. Pas de conduite ni arrestation animée.",
+    "sockets": {
+      "driver": [
+        -0.55,
+        -1.35,
+        1.05
+      ],
+      "rear-entry": [
+        0,
+        2.4,
+        0.45
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "police-van-open",
+    "category": "vehicules",
+    "new": true
+  },
+  {
+    "asset": "prefecture",
+    "label": "Préfecture",
+    "state": "intact",
+    "triangles": 2752,
+    "budget": 10000,
+    "dimensions_m": [
+      36.0,
+      14.0,
+      14.0
+    ],
+    "bounds_min": [
+      -18.0,
+      -7.0,
+      0.0
+    ],
+    "bounds_max": [
+      18.0,
+      7.0,
+      14.0
+    ],
+    "requested_dimensions_m": [
+      36,
+      14,
+      14
+    ],
+    "mesh_count": 1,
+    "notes": "Bâtiment objectif et marches. Intérieur non modélisé ; occultation/collisions à gérer au niveau.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "prefecture",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "prefecture-forecourt",
+    "label": "Grilles et drapeaux du parvis",
+    "state": "intact",
+    "triangles": 1520,
+    "budget": 2500,
+    "dimensions_m": [
+      17.666,
+      8.0,
+      4.2
+    ],
+    "bounds_min": [
+      -8.833,
+      -4.0,
+      0.0
+    ],
+    "bounds_max": [
+      8.833,
+      4.0,
+      4.2
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Habillage de la zone 18 × 8 m. Grilles statiques ; ouverture et déclenchement de victoire non fournis.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "prefecture-forecourt",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "road-dash",
+    "label": "Marquage central",
+    "state": "intact",
+    "triangles": 12,
+    "budget": 50,
+    "dimensions_m": [
+      0.24,
+      2.0,
+      0.006
+    ],
+    "bounds_min": [
+      -0.12,
+      -1.0,
+      0.0
+    ],
+    "bounds_max": [
+      0.12,
+      1.0,
+      0.006
+    ],
+    "requested_dimensions_m": [
+      0.24,
+      2,
+      0.006
+    ],
+    "mesh_count": 1,
+    "notes": "À espacer tous les 4 m selon l’issue ; projection/décalage anti-z-fighting à gérer dans le moteur.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "road-dash",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "shop-window-broken",
+    "label": "Vitrine brisée",
+    "state": "broken",
+    "triangles": 236,
+    "budget": 1500,
+    "dimensions_m": [
+      4.0,
+      0.3,
+      3.0
+    ],
+    "bounds_min": [
+      -2.0,
+      -0.15,
+      0.0
+    ],
+    "bounds_max": [
+      2.0,
+      0.15,
+      3.0
+    ],
+    "requested_dimensions_m": [
+      4,
+      0.3,
+      3
+    ],
+    "mesh_count": 1,
+    "notes": "Vitrine indépendante à placer à 0,4 m devant la façade ; orientation des slots à gérer lors de l’intégration.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "shop-window-broken",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "shop-window-intact",
+    "label": "Vitrine intact",
+    "state": "intact",
+    "triangles": 320,
+    "budget": 1500,
+    "dimensions_m": [
+      4.0,
+      0.3,
+      3.0
+    ],
+    "bounds_min": [
+      -2.0,
+      -0.15,
+      0.0
+    ],
+    "bounds_max": [
+      2.0,
+      0.15,
+      3.0
+    ],
+    "requested_dimensions_m": [
+      4,
+      0.3,
+      3
+    ],
+    "mesh_count": 1,
+    "notes": "Vitrine indépendante à placer à 0,4 m devant la façade ; orientation des slots à gérer lors de l’intégration.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "shop-window-intact",
+    "category": "cassables",
+    "new": true
+  },
+  {
+    "asset": "side-street-barrier",
+    "label": "Barrage de rue latérale",
+    "state": "intact",
+    "triangles": 932,
+    "budget": 1500,
+    "dimensions_m": [
+      1.0,
+      5.935,
+      1.2
+    ],
+    "bounds_min": [
+      -0.5,
+      -2.935,
+      0.0
+    ],
+    "bounds_max": [
+      0.5,
+      3.0,
+      1.2
+    ],
+    "requested_dimensions_m": [
+      1,
+      6,
+      1.2
+    ],
+    "mesh_count": 1,
+    "notes": "Gabarit long de 6 m selon street.ts ; orientation longitudinale Y Blender, donc Z glTF.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "side-street-barrier",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "start-wall",
+    "label": "Estrade et banderole de départ",
+    "state": "intact",
+    "triangles": 145,
+    "budget": 2500,
+    "dimensions_m": [
+      32.0,
+      2.0,
+      2.0
+    ],
+    "bounds_min": [
+      -16.0,
+      -1.0,
+      0.0
+    ],
+    "bounds_max": [
+      16.0,
+      1.0,
+      2.0
+    ],
+    "requested_dimensions_m": [
+      32,
+      2,
+      2
+    ],
+    "mesh_count": 1,
+    "notes": "Fermeture du niveau derrière le départ ; surface d’estrade non jouable sans collision fournie par le niveau.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "start-wall",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "start-zone",
+    "label": "Marquage de départ 14 × 12 m",
+    "state": "intact",
+    "triangles": 114,
+    "budget": 1200,
+    "dimensions_m": [
+      14.0,
+      12.0,
+      0.02
+    ],
+    "bounds_min": [
+      -7.0,
+      -6.0,
+      0.0
+    ],
+    "bounds_max": [
+      7.0,
+      6.0,
+      0.02
+    ],
+    "requested_dimensions_m": [
+      14,
+      12,
+      0.6
+    ],
+    "mesh_count": 1,
+    "notes": "Marquage de sol et texte couché au sol ; léger décalage vertical anti-z-fighting.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "start-zone",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "tomato-splat-ground",
+    "label": "Éclaboussure de tomate",
+    "state": "intact",
+    "triangles": 92,
+    "budget": 300,
+    "dimensions_m": [
+      0.34296,
+      0.27318,
+      0.004
+    ],
+    "bounds_min": [
+      -0.16226,
+      -0.13038,
+      0.0
+    ],
+    "bounds_max": [
+      0.1807,
+      0.1428,
+      0.004
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Petit mesh plat pour sol ; à décaler du sol et supprimer après un délai dans le moteur.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "tomato-splat-ground",
+    "category": "accessoires",
+    "new": true
+  },
+  {
+    "asset": "tree-level",
+    "label": "Arbre du niveau",
+    "state": "intact",
+    "triangles": 396,
+    "budget": 800,
+    "dimensions_m": [
+      3.30424,
+      3.1703,
+      5.716
+    ],
+    "bounds_min": [
+      -1.64973,
+      -1.69616,
+      0.0
+    ],
+    "bounds_max": [
+      1.65451,
+      1.47414,
+      5.716
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 2,
+    "notes": "Tronc : rayon au sol 0,7 m, hauteur 4,5 m. Couronne séparée, environ 1,8 m de rayon, masquable par le client. Collision du feuillage non incluse.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false,
+    "folder": "tree-level",
+    "category": "decors",
+    "new": true
+  },
+  {
+    "asset": "etage-pierre-2m",
+    "label": "etage-pierre-2m",
+    "triangles": 544,
+    "folder": "reprises/etage-pierre-2m",
+    "category": "decors",
+    "new": false,
+    "source": "rue-test-v02/modules/etage-pierre-2m",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "etage-balcon-2m",
+    "label": "etage-balcon-2m",
+    "triangles": 660,
+    "folder": "reprises/etage-balcon-2m",
+    "category": "decors",
+    "new": false,
+    "source": "rue-test-v02/modules/etage-balcon-2m",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "etage-brique-2m",
+    "label": "etage-brique-2m",
+    "triangles": 496,
+    "folder": "reprises/etage-brique-2m",
+    "category": "decors",
+    "new": false,
+    "source": "rue-test-v02/modules/etage-brique-2m",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "porte-immeuble-2m",
+    "label": "porte-immeuble-2m",
+    "triangles": 444,
+    "folder": "reprises/porte-immeuble-2m",
+    "category": "decors",
+    "new": false,
+    "source": "rue-test-v02/modules/porte-immeuble-2m",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "toit-mansarde-2m",
+    "label": "toit-mansarde-2m",
+    "triangles": 168,
+    "folder": "reprises/toit-mansarde-2m",
+    "category": "decors",
+    "new": false,
+    "source": "rue-test-v02/modules/toit-mansarde-2m",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "facade-shop-2m",
+    "label": "facade-shop-2m",
+    "triangles": 973,
+    "folder": "reprises/facade-shop-2m",
+    "category": "decors",
+    "new": false,
+    "source": "lot-pilote-v04/facade-shop-2m",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "pave",
+    "label": "pave",
+    "triangles": 108,
+    "folder": "reprises/pave",
+    "category": "accessoires",
+    "new": false,
+    "source": "lot-pilote-v04/pave",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "crs-shield",
+    "label": "crs-shield",
+    "triangles": 608,
+    "folder": "reprises/crs-shield",
+    "category": "accessoires",
+    "new": false,
+    "source": "lot-pilote-v04/crs-shield",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "lyceen-hoodie",
+    "label": "lyceen-hoodie",
+    "triangles": 2942,
+    "folder": "reprises/lyceen-hoodie",
+    "category": "personnages",
+    "new": false,
+    "source": "personnages-v02/lyceen-hoodie",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "lyceenne-coupe-vent",
+    "label": "lyceenne-coupe-vent",
+    "triangles": 2950,
+    "folder": "reprises/lyceenne-coupe-vent",
+    "category": "personnages",
+    "new": false,
+    "source": "personnages-v02/lyceenne-coupe-vent",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "lyceen-maillot",
+    "label": "lyceen-maillot",
+    "triangles": 2942,
+    "folder": "reprises/lyceen-maillot",
+    "category": "personnages",
+    "new": false,
+    "source": "personnages-v02/lyceen-maillot",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "lyceenne-sweat",
+    "label": "lyceenne-sweat",
+    "triangles": 2950,
+    "folder": "reprises/lyceenne-sweat",
+    "category": "personnages",
+    "new": false,
+    "source": "personnages-v02/lyceenne-sweat",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "carton-nos-voix",
+    "label": "carton-nos-voix",
+    "triangles": 170,
+    "folder": "reprises/carton-nos-voix",
+    "category": "accessoires",
+    "new": false,
+    "source": "personnages-v02/accessoires/carton-nos-voix",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "carton-avenir",
+    "label": "carton-avenir",
+    "triangles": 183,
+    "folder": "reprises/carton-avenir",
+    "category": "accessoires",
+    "new": false,
+    "source": "personnages-v02/accessoires/carton-avenir",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "tomato",
+    "label": "tomato",
+    "triangles": 180,
+    "folder": "reprises/tomato",
+    "category": "accessoires",
+    "new": false,
+    "source": "objets-a-lancer-v01/tomato",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "dog-poo",
+    "label": "dog-poo",
+    "triangles": 284,
+    "folder": "reprises/dog-poo",
+    "category": "accessoires",
+    "new": false,
+    "source": "objets-a-lancer-v01/dog-poo",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "trottinette",
+    "label": "trottinette",
+    "triangles": 276,
+    "folder": "reprises/trottinette",
+    "category": "accessoires",
+    "new": false,
+    "source": "objets-a-lancer-v01/trottinette",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "tear-gas-canister",
+    "label": "tear-gas-canister",
+    "triangles": 232,
+    "folder": "reprises/tear-gas-canister",
+    "category": "accessoires",
+    "new": false,
+    "source": "objets-a-lancer-v01/tear-gas-canister",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "megaphone",
+    "label": "megaphone",
+    "triangles": 1640,
+    "folder": "reprises/megaphone",
+    "category": "accessoires",
+    "new": false,
+    "source": "modelisation-v03/objets/megaphone",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "cone-chantier",
+    "label": "cone-chantier",
+    "triangles": 488,
+    "folder": "reprises/cone-chantier",
+    "category": "accessoires",
+    "new": false,
+    "source": "modelisation-v03/objets/cone-chantier",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "chaise-terrasse",
+    "label": "chaise-terrasse",
+    "triangles": 1464,
+    "folder": "reprises/chaise-terrasse",
+    "category": "accessoires",
+    "new": false,
+    "source": "modelisation-v03/objets/chaise-terrasse",
+    "unchanged_copy": true
+  },
+  {
+    "asset": "cagette-bois",
+    "label": "cagette-bois",
+    "triangles": 1196,
+    "folder": "reprises/cagette-bois",
+    "category": "accessoires",
+    "new": false,
+    "source": "modelisation-v03/objets/cagette-bois",
+    "unchanged_copy": true
+  }
+]
