@@ -1,13 +1,19 @@
 /*
- * PLACEHOLDER LOOK for the fire truck (#17): a red box with a cab, four
- * cylinder wheels, a ladder on the roof and blue lights that flash while it
- * is parked. Primitives only, all in this file, so a real model (Jordan's)
- * replaces it here without touching TrucksView. Drawn nose towards +Z, at the
- * synced size (TRUCK_LENGTH x TRUCK_WIDTH).
+ * LOOK of the fire truck (#17): Jordan's model (#28), closed while it drives
+ * and with its lockers open while parked, or until it has loaded (or if it
+ * failed) a placeholder: a red box with a cab, four cylinder wheels and a
+ * ladder on the roof. Both have blue lights that flash while it is parked.
+ * Drawn nose towards +Z, all in this file, so TrucksView only places it.
+ *
+ * The model is 8 m long, the bays are laid out for TRUCK_LENGTH (5.2 m): it
+ * is drawn at its own size with its nose where the placeholder's is, so it
+ * never pokes past the barrier into the street; the extra length runs back
+ * down the side street. Nothing collides with a truck.
  */
 import type { RefObject } from "react";
-import type { MeshStandardMaterial } from "three";
+import { Vector3, type MeshStandardMaterial } from "three";
 import { TRUCK_LENGTH, TRUCK_WIDTH } from "@manif/shared";
+import { MODELS, modelBounds, useGltf, useStaticModel } from "../models/index.ts";
 
 const RED = "#c62828";
 const CAB_RED = "#b71c1c";
@@ -30,8 +36,45 @@ export const TRUCK_LOOK = {
   lightOff: 0.1,
 } as const;
 
-/** The truck itself. `lights` are the two roof lights' materials, flashed by TrucksView. */
-export function TruckModel({ lights }: { lights: RefObject<(MeshStandardMaterial | null)[]> }) {
+type Lights = RefObject<(MeshStandardMaterial | null)[]>;
+
+/** The two blue lights flashed by TrucksView, just over the model's own on its cab roof (model frame, nose +Z). */
+const MODEL_LIGHTS: readonly [number, number, number][] = [
+  [-0.79, 3.06, 2.5],
+  [0.79, 3.06, 2.5],
+];
+
+/** The truck itself, closed or open (`parked`). `lights` are the two roof lights' materials, flashed by TrucksView. */
+export function TruckModel({ lights, parked }: { lights: Lights; parked: boolean }) {
+  const url = parked ? MODELS.props.fireTruckOpen : MODELS.props.fireTruck;
+  const gltf = useGltf(url);
+  const copy = useStaticModel(url);
+  if (!gltf || !copy) return <TruckPlaceholder lights={lights} />;
+  const b = modelBounds(gltf);
+  const centre = b.getCenter(new Vector3());
+  // Nose on the placeholder's nose, centred across.
+  const offset: [number, number, number] = [-centre.x, -b.min.y, L / 2 - b.max.z];
+  return (
+    <group position={offset}>
+      <primitive object={copy} dispose={null} />
+      {MODEL_LIGHTS.map((at, i) => (
+        <mesh key={i} position={at}>
+          <boxGeometry args={[0.32, 0.3, 0.38]} />
+          <meshStandardMaterial
+            ref={(m) => {
+              lights.current[i] = m;
+            }}
+            color={LIGHT}
+            emissive={LIGHT}
+            emissiveIntensity={TRUCK_LOOK.lightOff}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function TruckPlaceholder({ lights }: { lights: Lights }) {
   const bodyLen = L - CAB_LEN;
   return (
     <group>

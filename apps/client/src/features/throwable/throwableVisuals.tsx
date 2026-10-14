@@ -1,10 +1,16 @@
 /*
- * PLACEHOLDER LOOKS for throwables (#8). Flat-coloured primitives, all in this
- * one file, so a real model (Jordan's) can replace a kind here without
- * touching the views. One row per kind: pavé (#8), tomate, crotte, trottinette (#15).
+ * LOOKS for throwables (#8): Jordan's models (#28), and flat-coloured
+ * placeholders drawn until they have loaded (or if they fail). All in this
+ * one file, so the views (on the ground, in flight, in hand) never change.
+ * One row per kind: pavé (#8), tomate, crotte, trottinette (#15).
+ *
+ * The models are life-size (a 10 cm pavé), far too small to read from the
+ * isometric camera, so each is scaled up to about its placeholder's size.
  */
 import type { ReactNode } from "react";
+import { Vector3 } from "three";
 import { THROWABLE_TYPES, ThrowableKind, type ItemKind } from "@manif/shared";
+import { MODELS, modelBounds, useGltf, useStaticModel } from "../models/index.ts";
 
 export interface ThrowableLook {
   /** The model, centred on the origin, resting on y = 0 when on the ground. */
@@ -93,12 +99,33 @@ function Trottinette() {
   );
 }
 
+/**
+ * Jordan's model of a throwable, standing on y = 0 and centred, `scale` times
+ * its own size; `fallback` until it has loaded, or if it failed. Every copy
+ * shares its geometry and materials (nothing changes them).
+ */
+function ThrowableModel({ url, scale, fallback }: { url: string; scale: number; fallback: ReactNode }) {
+  const gltf = useGltf(url);
+  const copy = useStaticModel(url);
+  if (!gltf || !copy) return <>{fallback}</>;
+  const b = modelBounds(gltf);
+  const centre = b.getCenter(new Vector3());
+  return (
+    <group scale={scale}>
+      <primitive object={copy} position={[-centre.x, -b.min.y, -centre.z]} dispose={null} />
+    </group>
+  );
+}
+
+const T = MODELS.throwables;
+
 export const THROWABLE_LOOKS: Readonly<Record<ItemKind, ThrowableLook>> = {
-  [ThrowableKind.Pave]: { model: () => <Pave />, flightY: 1.2, arcHeight: 1.4, spin: 12, handY: -0.8 },
-  [ThrowableKind.Tomate]: { model: () => <Tomate />, flightY: 1.3, arcHeight: 1.8, spin: 9, handY: -0.75 },
-  [ThrowableKind.Crotte]: { model: () => <Crotte />, flightY: 1.2, arcHeight: 1.2, spin: 14, handY: -0.75 },
-  // Held up over the head, end over end in the air.
-  [ThrowableKind.Trottinette]: { model: () => <Trottinette />, flightY: 1.1, arcHeight: 0.8, spin: 7, handY: -0.65 },
+  // 10 cm: drawn 3.5 times bigger, like its placeholder.
+  [ThrowableKind.Pave]: { model: () => <ThrowableModel url={T.pave} scale={3.5} fallback={<Pave />} />, flightY: 1.2, arcHeight: 1.4, spin: 12, handY: -0.8 },
+  [ThrowableKind.Tomate]: { model: () => <ThrowableModel url={T.tomato} scale={2.2} fallback={<Tomate />} />, flightY: 1.3, arcHeight: 1.8, spin: 9, handY: -0.75 },
+  [ThrowableKind.Crotte]: { model: () => <ThrowableModel url={T.dogPoo} scale={1.4} fallback={<Crotte />} />, flightY: 1.2, arcHeight: 1.2, spin: 14, handY: -0.75 },
+  // Parked upright on its stand, held up over the head, end over end in the air.
+  [ThrowableKind.Trottinette]: { model: () => <ThrowableModel url={T.trottinette} scale={1} fallback={<Trottinette />} />, flightY: 1.1, arcHeight: 0.8, spin: 7, handY: -0.65 },
 };
 
 /** The look of a synced kind, or null for "nothing" and unknown kinds. */
