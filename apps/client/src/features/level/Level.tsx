@@ -1,9 +1,12 @@
+import { useMemo } from "react";
 import { STREET_LEVEL, type BoxKind, type BoxObstacle, type CircleObstacle, type Level, type Rect } from "@manif/shared";
+import { BuildingsView, type BuildingSpec } from "./Buildings.tsx";
+import type { Point3 } from "./occlusion.ts";
 
 /*
  * Draws the level from the shared data: the same boxes and circles the server
  * collides with, so what you see is where you stop. Static: rendered once,
- * nothing here changes per frame.
+ * except the buildings, which fade when they hide someone (#80).
  */
 
 const BOX_COLORS: Record<BoxKind, readonly string[]> = {
@@ -19,8 +22,23 @@ const ASPHALT = "#4a4e55";
 const PAVEMENT = "#6b6f76";
 const MARKING = "#d8d8d0";
 
-export function LevelView({ level = STREET_LEVEL }: { level?: Level }) {
+export function LevelView({
+  level = STREET_LEVEL,
+  fadeTargets,
+}: {
+  level?: Level;
+  /** Where the characters that must stay visible are, read a few times a second (#80). */
+  fadeTargets?: () => readonly Point3[];
+}) {
   const b = level.bounds;
+  // Colours by index in the full box list, as before buildings were split out.
+  const buildings = useMemo(
+    () =>
+      level.boxes.flatMap((box, i): BuildingSpec[] =>
+        box.kind === "building" ? [{ box, color: pick(BOX_COLORS.building, i) }] : [],
+      ),
+    [level],
+  );
   return (
     <group>
       {/* Pavement beyond the street, under the buildings. */}
@@ -31,14 +49,17 @@ export function LevelView({ level = STREET_LEVEL }: { level?: Level }) {
       <ZoneMarks rect={level.destination} color="#e53935" />
       <CentreLine level={level} />
 
-      {level.boxes.map((box, i) => (
-        <BoxMesh key={box.id} box={box} index={i} />
-      ))}
+      <BuildingsView buildings={buildings} targets={fadeTargets} />
+      {level.boxes.map((box, i) => box.kind !== "building" && <BoxMesh key={box.id} box={box} index={i} />)}
       {level.circles.map((c) => (
         <CircleMesh key={c.id} c={c} />
       ))}
     </group>
   );
+}
+
+function pick(palette: readonly string[], index: number): string {
+  return palette[index % palette.length] ?? "#999999";
 }
 
 function grow(r: Rect, by: number): Rect {
@@ -118,8 +139,7 @@ function VanMesh({ box }: { box: BoxObstacle }) {
 
 function BoxMesh({ box, index }: { box: BoxObstacle; index: number }) {
   if (box.kind === "van") return <VanMesh box={box} />;
-  const palette = BOX_COLORS[box.kind];
-  const color = palette[index % palette.length] ?? "#999999";
+  const color = pick(BOX_COLORS[box.kind], index);
   return (
     <mesh position={[box.x, box.height / 2, box.z]} castShadow receiveShadow>
       <boxGeometry args={[box.halfX * 2, box.height, box.halfZ * 2]} />
