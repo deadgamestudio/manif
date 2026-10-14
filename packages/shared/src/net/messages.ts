@@ -80,18 +80,18 @@ export const ClientMessage = {
   Throw: "throw",
   /**
    * DEBUG, dev builds only: knock yourself or the nearest player over.
-   * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) give real hits.
+   * The server accepts it only when NODE_ENV is "development". Remove once CRS (#5) give real hits.
    */
   DebugKnockback: "debug:knockback",
   /**
    * DEBUG, dev builds only: hurt or grab yourself to see health and arrest (#3).
-   * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) exist.
+   * The server accepts it only when NODE_ENV is "development". Remove once CRS (#5) exist.
    */
   DebugHealth: "debug:health",
   /**
    * DEBUG, dev builds only (#12): jump down the street or cut the round timer,
    * to test waves, the win and the timeout without an 8-minute march.
-   * The server ignores it when NODE_ENV is "production".
+   * The server accepts it only when NODE_ENV is "development".
    */
   DebugRound: "debug:round",
 } as const;

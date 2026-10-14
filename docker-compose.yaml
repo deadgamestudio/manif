@@ -22,7 +22,7 @@ services:
     expose:
       - "2567"
     environment:
-      # production also refuses the debug knockback message.
+      # production: no debug messages (only "development" accepts them).
       NODE_ENV: production
       PORT: "2567"
       # Rustrak DSN for error tracking (public ingest key). A literal default,

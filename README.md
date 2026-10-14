@@ -146,7 +146,7 @@ everything.
 | `VITE_SERVER_URL` | client, build time | Game server address. Unset: `ws://<page host>:2567`. A path such as `/colyseus` means the page's own origin (production). See `apps/client/.env.example` |
 | `VITE_SENTRY_DSN` | client, build time | Error tracking (self-hosted Rustrak). Unset turns it off |
 | `PORT` | server | Listening port, default `2567` |
-| `NODE_ENV` | server | `production` refuses the dev-only debug messages |
+| `NODE_ENV` | server | `development` (set by `bun run dev`) is the only value that accepts the debug messages; unset or anything else refuses them. A built server run by hand for scripted checks needs `NODE_ENV=development` |
 | `SENTRY_DSN` | server | Error tracking. Unset turns it off |
 | `SCORE_DB_PATH` | server | SQLite file for the lasting scores. Unset (the dev default): round scores only. A missing folder is created; an unreadable file is logged and the game carries on without it |
 | `MANIF_MAX_ROOMS` | server | Most lobbies alive at once on the server, default `100`. Past it, creating a lobby is refused until one ends. Each visitor also has a small creation budget (`apps/server/src/features/lobby/`) |

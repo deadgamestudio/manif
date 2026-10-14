@@ -167,6 +167,7 @@ import { bankEntries, hashToken, newDeviceToken, scoreStore } from "../features/
 import { HealAuras } from "../features/archetype/index.js";
 import { Bots, DIAG_ENABLED, TickStats, leftovers } from "../features/bot/index.js";
 import { CreateLimit, DEFAULT_CREATE_LIMIT, UNKNOWN_VISITOR, maxRoomsFromEnv, visitorKey } from "../features/lobby/index.js";
+import { MessageBudget, gateMessages } from "../features/net/index.js";
 import { StreetState } from "./state.js";
 
 /**
@@ -185,6 +186,10 @@ const TOO_MANY_LOBBIES = 429;
 const SERVER_FULL = 503;
 /** How long a seat is held before its client connects. A new lobby nobody reaches is disposed then. */
 const SEAT_RESERVATION_SECONDS = 10;
+/** All messages one client may send in a second before Colyseus disconnects it (see `maxMessagesPerSecond`). */
+const MAX_MESSAGES_PER_SECOND = 400;
+/** Close code for a client disconnected for flooding (4011-4999 are free for the app). */
+const CLOSE_TOO_MANY_MESSAGES = 4029;
 
 // The level is static shared data, imported by the client too. It is not synced.
 const LEVEL = STREET_LEVEL;
@@ -430,8 +435,17 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private joinCounter = 0;
   /** When each player's last rename was processed (#61), wall-clock ms, for the rate limit. Server-only. */
   private lastRename = new Map<string, number>();
+  /** Per-client, per-type message budget: excess is dropped, a client that keeps flooding is disconnected. */
+  private messageBudget = new MessageBudget();
+  /**
+   * A hard ceiling on all messages from one client in a second, checked by
+   * Colyseus before decoding them: past it the client is disconnected. Far
+   * above the per-type budget, so only a flood reaches it.
+   */
+  override maxMessagesPerSecond = MAX_MESSAGES_PER_SECOND;
 
-  override messages = {
+  // Every handler runs only within the sender's budget (see `allowMessage`).
+  override messages = gateMessages({
     // Input only: the client says where it wants to go, the server moves it.
     // Re-normalize so a tampered client can't move faster than PLAYER_SPEED.
     // Still recorded while knocked down or not free, so the held direction applies on getting up
@@ -626,7 +640,19 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         } else if (cmd?.action === "brigade") this.brigade.tune(cmd);
       },
     }),
-  };
+  }, (client: Client, type: string) => this.allowMessage(client, type));
+
+  /** Is this message within the sender's budget? Over it: dropped; far over, again and again: disconnected. */
+  private allowMessage(client: Client, type: string): boolean {
+    const verdict = this.messageBudget.take(client.sessionId, type, Date.now());
+    if (verdict === "ok") return true;
+    if (verdict === "kick") {
+      console.log(`[street ${this.roomId}] ${client.sessionId} disconnected: too many messages`);
+      this.messageBudget.remove(client.sessionId);
+      client.leave(CLOSE_TOO_MANY_MESSAGES);
+    }
+    return false;
+  }
 
   /** Who created this lobby, for the creation budget. Null until the creation is accepted. */
   private creator: string | null = null;
@@ -692,6 +718,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   override onLeave(client: Client) {
+    this.messageBudget.remove(client.sessionId);
     this.removePlayer(client.sessionId);
     console.log(`[street ${this.roomId}] leave ${client.sessionId}`);
   }

@@ -3,8 +3,8 @@
 
 import { HEAVY_IMPULSE, MAX_KNOCKBACK_SPEED, type DebugKnockbackPayload, type Vec2 } from "@manif/shared";
 
-/** The debug message is only accepted outside production. */
-export const DEBUG_KNOCKBACK_ENABLED = process.env.NODE_ENV !== "production";
+/** The debug message is only accepted when NODE_ENV is exactly "development" (bun run dev sets it); anything else, unset included, refuses it. */
+export const DEBUG_KNOCKBACK_ENABLED = process.env.NODE_ENV === "development";
 
 export interface DebugKnockbackPlan {
   targetId: string;

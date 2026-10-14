@@ -43,7 +43,7 @@ two disagree. For what each mechanic feels like in play, see
   knocks it down (synced `down` flag) for a moment: input is ignored, then it
   gets up with a short immunity. Each hit is broadcast as an `impulse` event so
   clients tip the avatar the right way. In dev builds, K / J / L in the street
-  trigger a debug knockback (the server refuses it when `NODE_ENV=production`).
+  trigger a debug knockback (the server accepts it only when `NODE_ENV=development`).
 - Health (#3): each protester has HP (100) and a status: free, grabbed, KO or
   arrested. 0 HP means KO for 1.5 s, then arrested; after 10 s in the van they
   come back free with full HP behind the rearmost free protester, briefly

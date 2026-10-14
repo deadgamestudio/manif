@@ -93,4 +93,8 @@ through `apps/server/src/rooms/StreetRoom.ts`.
 | Change the homepage or the lobby screen | `apps/client/src/features/home/Home.tsx`, `features/lobby/Lobby.tsx`, `app/styles.css` |
 | Change name rules, default funny names, host hand-over order, max players | `packages/shared/src/lobby/lobby.ts`, `lobby/constants.ts` |
 | Change lobby rules (who is host, who can start) | `apps/server/src/rooms/StreetRoom.ts` |
+| Change how many lobbies a visitor or the server may have | `apps/server/src/features/lobby/` (`createLimit.ts`: the budgets; `visitor.ts`: who the visitor is, from the proxy headers). The room checks it in `onAuth`/`onCreate`; `MANIF_MAX_ROOMS` sets the server cap |
+| Change how many messages a client may send | `apps/server/src/features/net/budget.ts` (per type, per second); the hard ceiling is `MAX_MESSAGES_PER_SECOND` in `StreetRoom.ts` |
+| Change the security headers (CSP and friends) | `apps/client/Caddyfile`, the `(security_headers)` snippet. A new external host the page loads from needs adding to the CSP |
+| Change what error reports carry | `apps/client/src/app/errorReport.ts` (client), `Sentry.init` in `apps/server/src/app/index.ts` (server) |
 | Change the name tags above avatars | `apps/client/src/features/player/NameTag.tsx` |
