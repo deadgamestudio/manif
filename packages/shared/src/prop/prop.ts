@@ -1,7 +1,8 @@
 /**
  * Breakable props (#4): HP, breaking, and the collision shape of a prop in its
  * current state. Pure functions over plain data; the server applies them and
- * syncs only `hp` and `broken`. Position, type and size come from the level.
+ * syncs only `hp` and `broken`. Position, type and size come from the level,
+ * except for the shops, which the server generates each round and syncs (#83).
  */
 import type { BoxShape, CircleShape, CollisionWorld } from "../physics/index.js";
 import { levelWorld, type Level, type PropSlot } from "../level/index.js";
@@ -33,12 +34,13 @@ export function applyPropDamage(prop: PropState, amount: number): { state: PropS
 
 /**
  * World-space shape of a prop, intact or broken; null when it is walkable.
- * Collision boxes are axis-aligned, so rotation is rounded to a quarter turn
- * (a quarter turn swaps the half extents).
+ * An intact prop with its own `footprint` (a generated shop, #83) collides as
+ * that box rather than its kind's. Collision boxes are axis-aligned, so
+ * rotation is rounded to a quarter turn (a quarter turn swaps the half extents).
  */
 export function propShape(slot: PropSlot, broken: boolean): PropShape | null {
   const type = PROP_TYPES[slot.kind];
-  const def: PropShapeDef | null = broken ? type.broken : type.intact;
+  const def: PropShapeDef | null = broken ? type.broken : slot.footprint ? { type: "box", ...slot.footprint } : type.intact;
   if (!def) return null;
   // Only flagged when true, so the shapes of other props stay as they were.
   const hop = type.hoppable ? { hoppable: true } : {};
@@ -55,15 +57,20 @@ export function propShape(slot: PropSlot, broken: boolean): PropShape | null {
 }
 
 /**
- * The level's static obstacles plus every prop in its current state. Rebuild
- * it whenever a prop changes (the server does on each break), so a broken
- * shop window really becomes walkable.
+ * The level's static obstacles plus every prop in its current state: the
+ * level's own slots, or `slots` when given (the server passes them along
+ * with the round's shops, #83). Rebuild it whenever a prop changes (the
+ * server does on each break), so a broken shop really becomes walkable.
  */
-export function propCollisionWorld(level: Level, isBroken: (id: string) => boolean): CollisionWorld {
+export function propCollisionWorld(
+  level: Level,
+  isBroken: (id: string) => boolean,
+  slots: Iterable<PropSlot> = level.propSlots,
+): CollisionWorld {
   const base = levelWorld(level);
   const boxes: BoxShape[] = [...base.boxes];
   const circles: CircleShape[] = [...base.circles];
-  for (const slot of level.propSlots) {
+  for (const slot of slots) {
     const shape = propShape(slot, isBroken(slot.id));
     if (shape?.type === "box") boxes.push(shape);
     else if (shape?.type === "circle") circles.push(shape);

@@ -55,7 +55,7 @@ describe("shapes", () => {
 });
 
 describe("lighting", () => {
-  const slots = [slot("bin", "bin", 0, 0), slot("car", "car", 10, 0), slot("shelter", "bus_shelter", 20, 0), slot("window", "shop_window", 30, 0)];
+  const slots = [slot("bin", "bin", 0, 0), slot("car", "car", 10, 0), slot("shelter", "bus_shelter", 20, 0), slot("window", "boulangerie", 30, 0)];
 
   test("bins and cars light; shop windows and bus shelters never", () => {
     const field = new FireField(slots);

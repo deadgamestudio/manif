@@ -81,5 +81,5 @@ export const FIRE_TEXT = {
   putOut: (key: string, name: string) => `Maintiens ${key} pour éteindre ${name} !`,
   light: (key: string, what: string) => `Maintiens ${key} pour mettre le feu ${what}`,
   /** What a prop kind is called in the prompt. */
-  kinds: { bin: "à la poubelle", car: "à la voiture", bus_shelter: "à l'abribus", shop_window: "à la vitrine", market_stall: "à l'étal" } as Record<string, string>,
+  kinds: { bin: "à la poubelle", car: "à la voiture", bus_shelter: "à l'abribus", market_stall: "à l'étal" } as Record<string, string>,
 } as const;

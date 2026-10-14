@@ -58,8 +58,12 @@ two disagree. For what each mechanic feels like in play, see
   facing (or that the facing line meets within 1.2), unless a static wall or
   obstacle is in between. Each swing takes 1 HP; at 0 the prop breaks. Only
   `hp` and `broken` are synced per prop (`state.props`, keyed by level prop
-  id); position and type come from the level. A broken prop switches to its
-  broken collision shape (none for bins and shop windows) on the next tick.
+  id); position and type come from the level. The shops are the exception
+  (#83): the server generates them at each round reset (`generateShops`) and
+  syncs each one whole (kind, side, place, width, depth, height, look seed),
+  and every side builds the same collision box from it (`shopFootprint`). A
+  broken prop switches to its broken collision shape (none for bins and
+  shops) on the next tick.
   `swing` and `hit` are broadcast events, not state. Debris is local to each
   client and never collides. Props reset between rounds.
 - CRS bots (#5): `state.crs` holds only `x`, `z`, `rotation`, `hp`, `status`

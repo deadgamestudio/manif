@@ -58,6 +58,19 @@ describe("street level data", () => {
     }
   });
 
+  test("every building block has its facade (#83), matching the box", () => {
+    const buildings = L.boxes.filter((b) => b.kind === "building");
+    expect(L.facades.length).toBe(buildings.length);
+    for (const f of L.facades) {
+      const b = buildings.find((o) => Math.sign(o.x) === f.side && o.z - o.halfZ === f.minZ && o.z + o.halfZ === f.maxZ);
+      expect(b).toBeDefined();
+      if (!b) continue;
+      expect(Math.abs(b.x) - b.halfX).toBe(f.face);
+      expect(b.halfX * 2).toBe(f.depth);
+      expect(b.height).toBe(f.height);
+    }
+  });
+
   test("ids are unique", () => {
     const ids = [...L.boxes, ...L.circles, ...L.propSlots].map((o) => o.id);
     expect(new Set(ids).size).toBe(ids.length);

@@ -67,7 +67,6 @@ export const COUNTDOWN_FROM = 10;
 const BREAK_SOUND: Record<PropKind, SoundName> = {
   bin: "bin",
   bus_shelter: "glass",
-  shop_window: "glass",
   car: "car",
   market_stall: "wood",
   // The shops dealt each round (#68): glass fronts, and the bank's metal shutters.
@@ -83,7 +82,6 @@ const BREAK_SOUND: Record<PropKind, SoundName> = {
 const HIT_SOUND: Record<PropKind, SoundName> = {
   bin: "bin",
   bus_shelter: "shield",
-  shop_window: "shield",
   car: "metal",
   market_stall: "wood",
   boulangerie: "shield",

@@ -1,5 +1,5 @@
 import { ThrowableKind } from "../throwable/index.js";
-import type { BoxKind, BoxObstacle, CircleKind, CircleObstacle, Level, LevelItem, PropKind, PropSlot } from "./level.js";
+import type { BoxKind, BoxObstacle, CircleKind, CircleObstacle, Facade, Level, LevelItem, PropKind, PropSlot } from "./level.js";
 
 /*
  * The street: about 20 wide between the facades and 200 long, running along Z.
@@ -132,20 +132,10 @@ const circles: CircleObstacle[] = [
   circle("lamp-5", "lamp", 7, -40, 0.5, 5),
 ];
 
-/** Shop slots (#68), [x, z], from the start to the Préfecture. */
-const SHOP_FRONTS: ReadonlyArray<readonly [number, number]> = [
-  [-9.6, 78.5],
-  [9.1, 63],
-  [-8.6, 53],
-  [-8.6, 45],
-  [9.1, 42.5],
-  [9.6, 26],
-  [-9.6, 14],
-  [-9.6, 5],
-  [8.6, -16],
-  [8.6, -30],
-  [-9.1, -42],
-  [9.6, -62],
+/** Where shops are built in (#83): the street side of every building block. */
+const facades: Facade[] = [
+  ...LEFT.map(([minZ, maxZ, inner, h]): Facade => ({ side: -1, minZ, maxZ, face: inner, depth: FAR - inner, height: h })),
+  ...RIGHT.map(([minZ, maxZ, inner, h]): Facade => ({ side: 1, minZ, maxZ, face: inner, depth: FAR - inner, height: h })),
 ];
 
 /** Where breakable props go (#4). Their shapes and HP are in `prop/constants.ts`. */
@@ -159,11 +149,7 @@ const propSlots: PropSlot[] = [
   prop("bin-6", "bin", 8.5, -10),
   prop("shelter-1", "bus_shelter", 7.9, 58),
   prop("shelter-2", "bus_shelter", -7.8, -48),
-  // Shop fronts (#68), flush against the facades, clear of the side streets,
-  // vans, stalls and bus shelters. Each round deals every one a kind of shop
-  // (prop/shops.ts); they all share one footprint. A shop's front (+X locally)
-  // faces the street, so the right-hand ones are turned round.
-  ...SHOP_FRONTS.map(([x, z], i) => prop(`shop-${i + 1}`, "shop_window", x, z, x > 0 ? Math.PI : 0)),
+  // No shops here: each round builds new ones into the facades (#83, `generateShops` in prop/).
   prop("car-1", "car", -5.5, 32),
   prop("car-2", "car", 5, -14),
   prop("car-3", "car", -6, -70),
@@ -242,6 +228,7 @@ export const STREET_LEVEL: Level = {
   boxes,
   circles,
   propSlots,
+  facades,
   crsSpawns,
   lineSpawns,
   items: [...items, ...poos, ...trottinettes],

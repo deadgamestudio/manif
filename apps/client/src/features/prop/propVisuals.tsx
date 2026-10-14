@@ -6,9 +6,8 @@
  */
 import type { ReactNode } from "react";
 import { DoubleSide } from "three";
-import { PROP_TYPES, type PropKind, type PropShapeDef } from "@manif/shared";
+import { PROP_TYPES, type PropKind, type PropShapeDef, type ShopKind } from "@manif/shared";
 import type { DebrisBurst } from "./debris.ts";
-import { SHOP_LOOKS } from "./shopVisuals.tsx";
 
 /** Footprint (full width along X, full depth along Z) of a shape. */
 function footprint(def: PropShapeDef): [number, number] {
@@ -91,34 +90,6 @@ function BusShelter({ broken }: { broken: boolean }) {
   );
 }
 
-function ShopWindow({ broken }: { broken: boolean }) {
-  const [w, d] = footprint(PROP_TYPES.shop_window.intact);
-  const h = 2.4;
-  return (
-    <group>
-      {/* Dark shop interior behind the glass. */}
-      <mesh position={[0, h / 2, 0]}>
-        <boxGeometry args={[w * 0.6, h, d]} />
-        <meshStandardMaterial color="#263238" />
-      </mesh>
-      {/* Sill and lintel. */}
-      <mesh position={[0, 0.15, 0]} castShadow>
-        <boxGeometry args={[w, 0.3, d]} />
-        <meshStandardMaterial color="#795548" />
-      </mesh>
-      <mesh position={[0, h, 0]} castShadow>
-        <boxGeometry args={[w, 0.25, d]} />
-        <meshStandardMaterial color="#d84315" />
-      </mesh>
-      {!broken && (
-        <mesh position={[0, h / 2 + 0.07, 0]}>
-          <boxGeometry args={[w, h - 0.4, d - 0.1]} />
-          <meshStandardMaterial {...GLASS} />
-        </mesh>
-      )}
-    </group>
-  );
-}
 
 function Car({ broken }: { broken: boolean }) {
   const [w, d] = footprint(PROP_TYPES.car.intact);
@@ -201,7 +172,10 @@ function MarketStall({ broken }: { broken: boolean }) {
   );
 }
 
-export const PROP_LOOKS: Readonly<Record<PropKind, PropLook>> = {
+/** The props the level places itself; shops are generated each round and drawn by ShopView (#83). */
+export type LevelPropKind = Exclude<PropKind, ShopKind>;
+
+export const PROP_LOOKS: Readonly<Record<LevelPropKind, PropLook>> = {
   bin: {
     intact: () => <Bin broken={false} />,
     broken: () => <Bin broken />,
@@ -211,11 +185,6 @@ export const PROP_LOOKS: Readonly<Record<PropKind, PropLook>> = {
     intact: () => <BusShelter broken={false} />,
     broken: () => <BusShelter broken />,
     debris: { y: 1.8, count: 28, colors: ["#a5d8ff", "#e3f2fd", "#81d4fa"], size: 0.16, speed: 6 },
-  },
-  shop_window: {
-    intact: () => <ShopWindow broken={false} />,
-    broken: () => <ShopWindow broken />,
-    debris: { y: 1.6, count: 26, colors: ["#a5d8ff", "#e3f2fd", "#81d4fa"], size: 0.15, speed: 6 },
   },
   car: {
     intact: () => <Car broken={false} />,
@@ -228,6 +197,4 @@ export const PROP_LOOKS: Readonly<Record<PropKind, PropLook>> = {
     broken: () => <MarketStall broken />,
     debris: { y: 1.2, count: 24, colors: ["#d62a1e", "#e53935", "#8d6e63", "#f5f5f5"], size: 0.16, speed: 6 },
   },
-  // The shops dealt each round (#68).
-  ...SHOP_LOOKS,
 };

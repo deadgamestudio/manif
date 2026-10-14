@@ -22,8 +22,9 @@ slapstick. The game itself is in French.
 - **The police.** CRS chase and grab protesters, form shield lines across the
   street and lob tear gas. Further down, a plain-clothes BAC slips into the
   cortège looking like one of you, and BRAV-M motorbike duos charge in.
-- **Fight back, or help out.** Smash bins, bus shelters and shops (a new mix
-  of boulangeries, cafés, banks and more every round),
+- **Fight back, or help out.** Smash bins, bus shelters and shops (big
+  storefronts in the facades, laid out afresh every round with a new mix of
+  boulangeries, cafés, banks and more),
   throw the pavés (and tomatoes, dog poo, trottinettes, even a teammate),
   dodge, hop over things, and pull a grabbed friend free before the van.
 - **Fire and pompiers.** Set a bin or a car alight. The fire spreads, anyone
@@ -124,7 +125,7 @@ row for nearly every number and rule in the game.
 | What the police bots decide | `packages/shared/src/crs/brain.ts`, `bac.ts`, `bravm.ts`, `line.ts` |
 | Round length, win rule, reinforcement waves | `packages/shared/src/round/constants.ts` |
 | Archetypes | `ARCHETYPES` in `packages/shared/src/archetype/constants.ts`; looks in `apps/client/src/features/archetype/archetypeVisuals.tsx` |
-| Shop kinds, signs and dealing rules | `PROP_TYPES` in `packages/shared/src/prop/constants.ts`, `SHOP_TYPES` in `prop/shops.ts`; looks in `apps/client/src/features/prop/shopVisuals.tsx` |
+| Shop kinds, signs, dealing rules and layout (sizes, clearances) | `PROP_TYPES` in `packages/shared/src/prop/constants.ts`, `SHOP_TYPES` and `SHOP_LAYOUT` in `prop/shops.ts`; looks in `apps/client/src/features/prop/shopVisuals.tsx` |
 | Throwables (pavé, tomate, crotte, trottinette) | `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts` |
 | Points per action and per-round caps | `ACTION_POINTS` in `packages/shared/src/score/constants.ts` |
 | Bot protesters | `BOT` in `packages/shared/src/bot/constants.ts`, `bot/brain.ts` |

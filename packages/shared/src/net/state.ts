@@ -63,8 +63,10 @@ export interface SyncedMap<V> {
 }
 
 /**
- * Runtime state of a breakable prop (#4), keyed by its id in the level data.
- * Position, type and size are not synced: read them from the shared level.
+ * Runtime state of a breakable prop (#4), keyed by its id: a level prop id, or
+ * a shop's id (#83). A level prop's position, type and size are not synced:
+ * read them from the shared level. A shop's are (the fields below `kind`),
+ * since the round generates them; `shopLotOf` turns them back into a `ShopLot`.
  */
 export interface PropShapeState {
   /** 0..PROP_TYPES[kind].maxHp. */
@@ -72,8 +74,18 @@ export interface PropShapeState {
   broken: boolean;
   /** Burnt out (#16): black, still in the way, never burns again. */
   charred: boolean;
-  /** A shop slot's dealt kind (#68): `shopCode(kind)`, 0 for any other prop. Changes only at a round reset. */
+  /** A shop's kind (#68): `shopCode(kind)`, 0 for any other prop. Changes only at a round reset. */
   kind: number;
+  /** A shop's side of the street (#83): -1 left, 1 right; 0 for any other prop. The rest are 0 too. */
+  side: number;
+  /** A shop's `ShopLot` fields (#83): centre along the street, width, facade, how far out, height, room depth, look seed. */
+  z: number;
+  width: number;
+  face: number;
+  out: number;
+  height: number;
+  interior: number;
+  style: number;
 }
 
 /**
