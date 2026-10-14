@@ -98,4 +98,5 @@ through `apps/server/src/rooms/StreetRoom.ts`.
 | Change how many messages a client may send | `apps/server/src/features/net/budget.ts` (per type, per second); the hard ceiling is `MAX_MESSAGES_PER_SECOND` in `StreetRoom.ts` |
 | Change the security headers (CSP and friends) | `apps/client/Caddyfile`, the `(security_headers)` snippet. A new external host the page loads from needs adding to the CSP |
 | Change what error reports carry | `apps/client/src/app/errorReport.ts` (client), `Sentry.init` in `apps/server/src/app/index.ts` (server) |
+| Fix the build failing with "three.js is in the entry chunk" | a module the homepage, lobby or `/aide` imports now imports something 3D: move that piece into a three-free file. The scene loads on demand from `apps/client/src/app/App.tsx` (`lazyModule.ts`); the check is `entryWithout3d` in `apps/client/vite.config.ts` |
 | Change the name tags above avatars | `apps/client/src/features/player/NameTag.tsx` |

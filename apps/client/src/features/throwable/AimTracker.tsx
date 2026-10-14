@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { clearAim, updateAim } from "./aim.ts";
+import { Plane, Raycaster, Vector3 } from "three";
+import { clearAim, setAim } from "./aim.ts";
+
+const ground = new Plane(new Vector3(0, 1, 0), 0);
+const raycaster = new Raycaster();
+const hit = new Vector3();
 
 /**
  * Keeps the throw aim (#8) on the mouse: each frame, the pointer projected on
@@ -32,7 +37,10 @@ export function AimTracker() {
   }, [canvas]);
 
   useFrame(({ pointer, camera }) => {
-    if (seen.current) updateAim(pointer, camera);
+    if (!seen.current) return;
+    // Project the pointer onto the ground plane.
+    raycaster.setFromCamera(pointer, camera);
+    if (raycaster.ray.intersectPlane(ground, hit)) setAim(hit.x, hit.z);
   });
   return null;
 }

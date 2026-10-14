@@ -1,16 +1,17 @@
-import { Vector3 } from "three";
-
 /** Classic isometric view: camera yawed 45° around Y, tilted ~35.26° down. */
 export const ISO_YAW = Math.PI / 4;
 export const ISO_PITCH = Math.atan(1 / Math.SQRT2); // ≈ 35.26°
 export const CAMERA_DISTANCE = 50;
 
-/** Offset from the followed target to the camera position. */
-export const CAMERA_OFFSET = new Vector3(
-  Math.sin(ISO_YAW) * Math.cos(ISO_PITCH),
-  Math.sin(ISO_PITCH),
-  Math.cos(ISO_YAW) * Math.cos(ISO_PITCH),
-).multiplyScalar(CAMERA_DISTANCE);
+/**
+ * Offset from the followed target to the camera position. A plain object, not
+ * a three.js Vector3, so this module stays out of the entry bundle (#88).
+ */
+export const CAMERA_OFFSET = {
+  x: Math.sin(ISO_YAW) * Math.cos(ISO_PITCH) * CAMERA_DISTANCE,
+  y: Math.sin(ISO_PITCH) * CAMERA_DISTANCE,
+  z: Math.cos(ISO_YAW) * Math.cos(ISO_PITCH) * CAMERA_DISTANCE,
+} as const;
 
 // Ground directions matching the screen. The camera sits at +X/+Z looking
 // towards -X/-Z, so "up the screen" is (-1, -1) on the (x, z) ground plane,

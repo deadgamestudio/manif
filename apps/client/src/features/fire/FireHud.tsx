@@ -16,7 +16,7 @@ import {
 import { net, type LobbyPlayer } from "../../shared/net/index.ts";
 import { inSentence, useKeyLabels } from "../controls/index.ts";
 import { carryTargetFor } from "../carry/index.ts";
-import { FIRE_TEXT } from "./fireVisuals.tsx";
+import { FIRE_TEXT } from "./fireText.ts";
 
 /** How often the prompt looks around, in ms (like the rescue prompt). */
 const POLL_MS = 100;
