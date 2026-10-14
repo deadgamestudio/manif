@@ -12,6 +12,9 @@ const FADE = 0.6;
 const BOUNCE = 0.35;
 const GROUND_FRICTION = 0.6;
 
+/** Jordan's debris pieces (#28). A piece without one is a little cube in its colour. */
+export type DebrisShape = "glass" | "plastic" | "metal" | "lid" | "door";
+
 export interface DebrisPiece {
   x: number;
   y: number;
@@ -24,7 +27,11 @@ export interface DebrisPiece {
   rz: number;
   spin: number;
   size: number;
+  /** How much bigger or smaller than the burst's typical piece, 0.5 to 1.5. */
+  vary: number;
   color: string;
+  /** The model it is drawn as, or null for a cube. */
+  shape: DebrisShape | null;
   /** Seconds left; 0 = free slot. */
   life: number;
 }
@@ -41,7 +48,9 @@ export const pieces: DebrisPiece[] = Array.from({ length: MAX_DEBRIS }, () => ({
   rz: 0,
   spin: 0,
   size: 0,
+  vary: 1,
   color: "#ffffff",
+  shape: null,
   life: 0,
 }));
 let cursor = 0;
@@ -53,6 +62,8 @@ export interface DebrisBurst {
   y: number;
   count: number;
   colors: readonly string[];
+  /** The models of the pieces, taken in turn like the colours ("cube" for a plain one). None: all cubes. */
+  shapes?: readonly (DebrisShape | "cube")[];
   /** Typical piece size, world units. */
   size: number;
   /** Horizontal launch speed, m/s. Goofy: big. */
@@ -76,8 +87,11 @@ export function spawnDebris(b: DebrisBurst): void {
     p.ry = Math.random() * Math.PI;
     p.rz = Math.random() * Math.PI;
     p.spin = (Math.random() - 0.5) * 20;
-    p.size = b.size * (0.5 + Math.random());
+    p.vary = 0.5 + Math.random();
+    p.size = b.size * p.vary;
     p.color = b.colors[i % b.colors.length] ?? "#ffffff";
+    const shape = b.shapes?.[i % b.shapes.length];
+    p.shape = shape === undefined || shape === "cube" ? null : shape;
     p.life = LIFETIME * (0.7 + Math.random() * 0.3);
   }
 }
@@ -110,6 +124,11 @@ export function stepDebris(dt: number): number {
 /** Scale of a piece: shrinks away during its last FADE seconds. */
 export function debrisScale(p: DebrisPiece): number {
   return p.life <= 0 ? 0 : p.size * Math.min(1, p.life / FADE);
+}
+
+/** Scale of a piece drawn as a model, which has its own size: just its variation, shrinking away the same way. */
+export function debrisModelScale(p: DebrisPiece): number {
+  return p.life <= 0 ? 0 : p.vary * Math.min(1, p.life / FADE);
 }
 
 export function clearDebris(): void {

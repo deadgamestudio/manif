@@ -1,10 +1,12 @@
-import { useMemo, useSyncExternalStore } from "react";
-import { STREET_LEVEL, type BoxKind, type BoxObstacle, type CircleObstacle, type Level, type Rect } from "@manif/shared";
-import type { Object3D } from "three";
+import { useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { STREET_LEVEL, type BoxKind, type BoxObstacle, type CircleKind, type CircleObstacle, type Level, type Rect } from "@manif/shared";
+import { Vector3, type Object3D } from "three";
 import { net } from "../../shared/net/index.ts";
-import { MODELS, fitToBox, useGltf, useStaticModel, type GLTF } from "../models/index.ts";
+import { MODELS, fitToBox, modelBounds, useGltf, useStaticModel, type GLTF } from "../models/index.ts";
 import { carveBlocks } from "./blocks.ts";
 import { BuildingsView, type BuildingSpec } from "./Buildings.tsx";
+import { InstancedModel } from "./InstancedModel.tsx";
+import { crosswalkPlacements, dashPlacements, pavementPlacements, type Placement } from "./scenery.ts";
 import type { Point3 } from "./occlusion.ts";
 import { RoomsView } from "./Rooms.tsx";
 
@@ -12,6 +14,14 @@ import { RoomsView } from "./Rooms.tsx";
  * Draws the level from the shared data: the same boxes and circles the server
  * collides with, so what you see is where you stop. Static: rendered once,
  * except the buildings, which fade when they hide someone (#80).
+ *
+ * Jordan's models (#28) dress it: each one stretched over its collision box
+ * (they are drawn to those sizes, so the stretch is about 1), and the repeated
+ * ones (trees, lamps, bollards, road dashes, crosswalks, pavement) as one
+ * instanced mesh per part. Until a model has loaded, or if it failed, the
+ * flat boxes and circles stand in. The buildings stay plain blocks for now:
+ * the fade needs one material per building, which the facade modules don't
+ * have yet.
  */
 
 const BOX_COLORS: Record<BoxKind, readonly string[]> = {
@@ -52,16 +62,17 @@ export function LevelView({
       <RectMesh rect={grow(b, 30)} y={-0.02} color={PAVEMENT} />
       {/* The walkable street: exactly the server bounds. */}
       <RectMesh rect={b} y={0} color={ASPHALT} />
-      <ZoneMarks rect={level.start} color="#43a047" />
+      <Pavements level={level} />
+      <StartZone rect={level.start} />
       <ZoneMarks rect={level.destination} color="#e53935" />
+      <Forecourt rect={level.destination} />
       <CentreLine level={level} />
+      <Crosswalks level={level} />
 
       <BuildingsView buildings={buildings} targets={fadeTargets} />
       <RoomsView rooms={rooms} />
       {level.boxes.map((box, i) => box.kind !== "building" && <BoxMesh key={box.id} box={box} index={i} />)}
-      {level.circles.map((c) => (
-        <CircleMesh key={c.id} c={c} />
-      ))}
+      <CirclesView circles={level.circles} />
     </group>
   );
 }
@@ -106,16 +117,45 @@ function ZoneMarks({ rect, color }: { rect: Rect; color: string }) {
   );
 }
 
-/** Dashed line down the middle of the street, between the start and the destination. */
+/** Dashed line down the middle of the street, between the start and the destination, broken by the crosswalks. */
 function CentreLine({ level }: { level: Level }) {
-  const dashes: number[] = [];
-  for (let z = level.destination.maxZ + 2; z < level.start.minZ - 2; z += 4) dashes.push(z);
+  const dashes = useMemo(() => dashPlacements(level), [level]);
+  const fallback = dashes.map((d) => <RectMesh key={d.z} rect={{ minX: -0.12, maxX: 0.12, minZ: d.z - 1, maxZ: d.z + 1 }} y={0.01} color={MARKING} />);
+  return <InstancedModel url={MODELS.scenery.roadDash} placements={dashes} y={0.005} fallback={fallback} receiveOnly />;
+}
+
+/** The pavement along each facade, kerb on the street side, its top just over the asphalt (most of its thickness is under the ground). */
+function Pavements({ level }: { level: Level }) {
+  const tiles = useMemo(() => pavementPlacements(level), [level]);
+  return <InstancedModel url={MODELS.scenery.pavementKit} placements={tiles} y={-0.15} receiveOnly />;
+}
+
+function Crosswalks({ level }: { level: Level }) {
+  const crossings = useMemo(() => crosswalkPlacements(level), [level]);
+  return <InstancedModel url={MODELS.scenery.crosswalk} placements={crossings} y={0.004} receiveOnly />;
+}
+
+/** The start zone: Jordan's "DÉPART" outline over the zone, or the green marks. */
+function StartZone({ rect }: { rect: Rect }) {
+  return <RectModel rect={rect} y={0.01} url={MODELS.scenery.startZone} fallback={<ZoneMarks rect={rect} color="#43a047" />} />;
+}
+
+/** The Préfecture's forecourt (gates and railings, nothing to collide with) over the destination zone. */
+function Forecourt({ rect }: { rect: Rect }) {
+  return <RectModel rect={rect} y={0} url={MODELS.scenery.prefectureForecourt} fallback={null} />;
+}
+
+/** A model laid over a rectangle of the ground, keeping its own height. */
+function RectModel({ rect, y, url, fallback }: { rect: Rect; y: number; url: string; fallback: ReactNode }) {
+  const gltf = useGltf(url);
+  const copy = useStaticModel(url);
+  if (!gltf || !copy) return <>{fallback}</>;
+  const h = modelBounds(gltf).getSize(new Vector3()).y;
+  const fit = fitToBox(gltf, [rect.maxX - rect.minX, h, rect.maxZ - rect.minZ]);
   return (
-    <>
-      {dashes.map((z) => (
-        <RectMesh key={z} rect={{ minX: -0.12, maxX: 0.12, minZ: z, maxZ: z + 2 }} y={0.01} color={MARKING} />
-      ))}
-    </>
+    <group position={[(rect.minX + rect.maxX) / 2, y, (rect.minZ + rect.maxZ) / 2]} scale={fit.scale}>
+      <primitive object={copy} position={fit.offset} dispose={null} />
+    </group>
   );
 }
 
@@ -174,15 +214,79 @@ function VanPlaceholder({ box }: { box: BoxObstacle }) {
   );
 }
 
+/** The model of a level box, or null for a plain block. Walls by their length: works-1 is 7 m, works-2 6.5 m. */
+function boxModelUrl(box: BoxObstacle): string | null {
+  switch (box.kind) {
+    case "kiosk":
+      return MODELS.scenery.newspaperKiosk;
+    case "barrier":
+      return MODELS.scenery.sideStreetBarrier;
+    case "prefecture":
+      return MODELS.scenery.prefecture;
+    case "wall":
+      if (box.id === "start-wall") return MODELS.scenery.startWall;
+      return Math.max(box.halfX, box.halfZ) * 2 >= 6.75 ? MODELS.scenery.constructionWall7 : MODELS.scenery.constructionWall6_5;
+    default:
+      return null;
+  }
+}
+
 function BoxMesh({ box, index }: { box: BoxObstacle; index: number }) {
   if (box.kind === "van") return <VanMesh box={box} />;
   const color = pick(BOX_COLORS[box.kind], index);
-  return (
+  const block = (
     <mesh position={[box.x, box.height / 2, box.z]} castShadow receiveShadow>
       <boxGeometry args={[box.halfX * 2, box.height, box.halfZ * 2]} />
       <meshStandardMaterial color={color} />
     </mesh>
   );
+  const url = boxModelUrl(box);
+  if (!url) return block;
+  // The barriers on the right-hand side turned round, so both sides show the same face to the street.
+  return <BoxModel box={box} url={url} yaw={box.kind === "barrier" && box.x > 0 ? Math.PI : 0} fallback={block} />;
+}
+
+/** Jordan's model stretched over a box (front +Z, the way the boxes are laid out), or `fallback`. */
+function BoxModel({ box, url, yaw, fallback }: { box: BoxObstacle; url: string; yaw: number; fallback: ReactNode }) {
+  const gltf = useGltf(url);
+  const copy = useStaticModel(url);
+  if (!gltf || !copy) return <>{fallback}</>;
+  const fit = fitToBox(gltf, [box.halfX * 2, box.height, box.halfZ * 2]);
+  return (
+    <group position={[box.x, 0, box.z]} rotation-y={yaw}>
+      <group scale={fit.scale}>
+        <primitive object={copy} position={fit.offset} dispose={null} />
+      </group>
+    </group>
+  );
+}
+
+const CIRCLE_MODELS: Readonly<Record<CircleKind, string>> = {
+  tree: MODELS.scenery.tree,
+  lamp: MODELS.scenery.lampPost,
+  bollard: MODELS.scenery.bollard,
+};
+
+/** Trees, lamp posts and bollards: one instanced model per kind, each kind falling back to its circles on its own. */
+function CirclesView({ circles }: { circles: readonly CircleObstacle[] }) {
+  const byKind = useMemo(() => {
+    const out = new Map<CircleKind, CircleObstacle[]>();
+    for (const c of circles) out.set(c.kind, [...(out.get(c.kind) ?? []), c]);
+    return [...out];
+  }, [circles]);
+  return (
+    <>
+      {byKind.map(([kind, list]) => (
+        <CircleKindView key={kind} kind={kind} list={list} />
+      ))}
+    </>
+  );
+}
+
+function CircleKindView({ kind, list }: { kind: CircleKind; list: readonly CircleObstacle[] }) {
+  const placements = useMemo(() => list.map((c): Placement => ({ x: c.x, z: c.z, yaw: 0 })), [list]);
+  const fallback = list.map((c) => <CircleMesh key={c.id} c={c} />);
+  return <InstancedModel url={CIRCLE_MODELS[kind]} placements={placements} fallback={fallback} />;
 }
 
 function CircleMesh({ c }: { c: CircleObstacle }) {
