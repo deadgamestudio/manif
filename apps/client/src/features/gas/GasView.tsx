@@ -3,7 +3,10 @@ import { useFrame } from "@react-three/fiber";
 import { CANISTER_FLIGHT_TIME, GAS_DURATION } from "@manif/shared";
 import type { Group, Material } from "three";
 import { net } from "../../shared/net/index.ts";
-import { CANISTER_LOOK, CLOUD_LOOK } from "./gasVisuals.tsx";
+import { useEffectModel } from "../effects/index.ts";
+import { MODELS, useStaticModel } from "../models/index.ts";
+import { cloudFade, cloudGrowth } from "./cloudShape.ts";
+import { CANISTER_LOOK, CANISTER_MODEL, CLOUD_LOOK, CLOUD_MODEL, CLOUD_RING } from "./gasVisuals.tsx";
 
 /**
  * Tear gas (#7): canisters in flight and clouds on the ground. Re-renders
@@ -31,6 +34,7 @@ function CanisterView({ id }: { id: string }) {
   const group = useRef<Group>(null);
   const spin = useRef<Group>(null);
   const c = net.getCanister(id);
+  const model = useStaticModel(MODELS.throwables.tearGasCanister);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -50,60 +54,109 @@ function CanisterView({ id }: { id: string }) {
   return (
     <group ref={group} position={[c.fromX, CANISTER_LOOK.flightY, c.fromZ]}>
       <group ref={spin}>
-        <mesh castShadow>
-          <cylinderGeometry args={[CANISTER_LOOK.radius, CANISTER_LOOK.radius, CANISTER_LOOK.length, 10]} />
-          <meshStandardMaterial color={CANISTER_LOOK.color} roughness={0.6} />
-        </mesh>
+        {model ? (
+          <group scale={CANISTER_MODEL.scale}>
+            <primitive object={model} position-y={-CANISTER_MODEL.centreY} dispose={null} />
+          </group>
+        ) : (
+          <mesh castShadow>
+            <cylinderGeometry args={[CANISTER_LOOK.radius, CANISTER_LOOK.radius, CANISTER_LOOK.length, 10]} />
+            <meshStandardMaterial color={CANISTER_LOOK.color} roughness={0.6} />
+          </mesh>
+        )}
       </group>
     </group>
   );
 }
 
-/** A gas cloud: puffs that grow in, bob and turn slowly, then fade out over its last seconds. */
+/**
+ * A gas cloud: Jordan's billows (or placeholder puffs while they load) that
+ * grow in, bob and turn slowly, then fade out over its last seconds. A ring
+ * on the ground marks exactly the gas radius the whole time.
+ */
 function CloudView({ id }: { id: string }) {
   const group = useRef<Group>(null);
   const materials = useRef<(Material | null)[]>([]);
+  const ring = useRef<(Material | null)[]>([]);
   /** performance.now() (ms) when it should be gone, fixed on the first frame from the synced time left. */
   const endsAt = useRef(0);
   const cloud = net.getGasCloud(id);
+  const model = useEffectModel(MODELS.effects.teargasCloud, { materials: "own", opacity: 0 });
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const g = group.current;
     const live = net.getGasCloud(id);
     if (!g || !live) return;
     const now = performance.now();
     if (endsAt.current === 0) endsAt.current = now + (live.left > 0 ? live.left : GAS_DURATION) * 1000;
     const age = (now - (net.getGasSeenAt("cloud", id) ?? now)) / 1000;
-    const grow = Math.min(1, age / CLOUD_LOOK.growIn);
-    // Ease out: a quick puff, then settling.
-    const s = live.radius * (0.25 + 0.75 * (1 - (1 - grow) ** 3));
-    g.scale.set(s, s, s);
+    const s = live.radius * cloudGrowth(age, CLOUD_LOOK.growIn);
     g.position.y = Math.sin(age * 1.7) * CLOUD_LOOK.bob;
     g.rotation.y = age * CLOUD_LOOK.turnSpeed;
-    const fade = Math.max(0, Math.min(1, (endsAt.current - now) / 1000 / CLOUD_LOOK.fadeOut));
-    const opacity = CLOUD_LOOK.opacity * fade;
-    for (const m of materials.current) if (m) m.opacity = opacity;
+    const fade = cloudFade((endsAt.current - now) / 1000, CLOUD_LOOK.fadeOut);
+    if (model) {
+      // The model's billows reach CLOUD_MODEL.reach at scale 1.
+      const k = s / CLOUD_MODEL.reach;
+      g.scale.set(k, k * CLOUD_MODEL.flatten, k);
+      model.setOpacity(CLOUD_MODEL.opacity * fade);
+      model.tick(dt);
+    } else {
+      g.scale.set(s, s, s);
+      for (const m of materials.current) if (m) m.opacity = CLOUD_LOOK.opacity * fade;
+    }
+    // The zone is the full radius from the start: the ring doesn't grow, it only fades in and out.
+    const shown = Math.min(1, age / 0.2) * fade;
+    if (ring.current[0]) ring.current[0].opacity = CLOUD_RING.ringOpacity * shown;
+    if (ring.current[1]) ring.current[1].opacity = CLOUD_RING.fillOpacity * shown;
   });
 
   if (!cloud) return null;
-  // Drawn at unit radius and scaled to the cloud's radius in useFrame.
   return (
     <group position={[cloud.x, 0, cloud.z]}>
+      <mesh rotation-x={-Math.PI / 2} position-y={CLOUD_RING.y} renderOrder={1}>
+        <ringGeometry args={[Math.max(0, cloud.radius - CLOUD_RING.width), cloud.radius, 48]} />
+        <meshBasicMaterial
+          ref={(m) => {
+            ring.current[0] = m;
+          }}
+          color={CLOUD_RING.color}
+          transparent
+          opacity={0}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh rotation-x={-Math.PI / 2} position-y={CLOUD_RING.y} renderOrder={1}>
+        <circleGeometry args={[Math.max(0, cloud.radius - CLOUD_RING.width), 48]} />
+        <meshBasicMaterial
+          ref={(m) => {
+            ring.current[1] = m;
+          }}
+          color={CLOUD_RING.color}
+          transparent
+          opacity={0}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Drawn at unit radius (the model at its own reach) and scaled to the cloud's radius in useFrame. */}
       <group ref={group} scale={0.01}>
-        {CLOUD_LOOK.puffs.map(([angle, dist, size], i) => (
-          <mesh key={i} position={[Math.sin(angle) * dist, size * CLOUD_LOOK.lift, Math.cos(angle) * dist]}>
-            <sphereGeometry args={[size, 12, 8]} />
-            <meshLambertMaterial
-              ref={(m) => {
-                materials.current[i] = m;
-              }}
-              color={CLOUD_LOOK.color}
-              transparent
-              opacity={0}
-              depthWrite={false}
-            />
-          </mesh>
-        ))}
+        {model ? (
+          <primitive object={model.copy} dispose={null} />
+        ) : (
+          CLOUD_LOOK.puffs.map(([angle, dist, size], i) => (
+            <mesh key={i} position={[Math.sin(angle) * dist, size * CLOUD_LOOK.lift, Math.cos(angle) * dist]}>
+              <sphereGeometry args={[size, 12, 8]} />
+              <meshLambertMaterial
+                ref={(m) => {
+                  materials.current[i] = m;
+                }}
+                color={CLOUD_LOOK.color}
+                transparent
+                opacity={0}
+                depthWrite={false}
+              />
+            </mesh>
+          ))
+        )}
       </group>
     </group>
   );

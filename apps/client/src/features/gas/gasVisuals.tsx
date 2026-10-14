@@ -18,6 +18,44 @@ export const CANISTER_LOOK = {
 } as const;
 
 /**
+ * Jordan's canister (#28), upright like the placeholder can: 0.25 m tall, so
+ * drawn a bit bigger to stay readable on a phone, centred on its middle so it
+ * tumbles about it.
+ */
+export const CANISTER_MODEL = {
+  scale: 1.3,
+  /** Half its height, metres, before the scale. */
+  centreY: 0.125,
+} as const;
+
+/**
+ * Jordan's cloud (#28): nine billows that swell and shrink in a 2 s loop,
+ * reaching about 1.05 m from the centre at scale 1 (measured over the clip).
+ * Scaled so that reach is the gas radius, a little flatter so a cloud 3 m
+ * wide doesn't become a 3 m tower, and see-through so the players inside
+ * stay visible.
+ */
+export const CLOUD_MODEL = {
+  reach: 1.05,
+  flatten: 0.7,
+  opacity: 0.55,
+} as const;
+
+/**
+ * The ground ring of the cloud: exactly the gas radius, so players read where
+ * the danger stops even when the billows shrink. A faint disc inside it.
+ */
+export const CLOUD_RING = {
+  color: "#7d9a5a",
+  /** Width of the ring, metres. */
+  width: 0.14,
+  ringOpacity: 0.7,
+  fillOpacity: 0.12,
+  /** Just above the street, under props. */
+  y: 0.03,
+} as const;
+
+/**
  * The cloud: a few translucent puffs that grow in when the canister lands,
  * drift a little, and fade out over the last seconds. Comic green-grey.
  */
