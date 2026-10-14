@@ -1,0 +1,96 @@
+# Where to change things (full table)
+
+The README has the short version. This is the long one: one row per thing you
+might want to tune or change, pointing at the file that holds it. Most numbers
+are in `packages/shared/src/<feature>/constants.ts`; most server wiring goes
+through `apps/server/src/rooms/StreetRoom.ts`.
+
+| To... | Edit |
+| --- | --- |
+| Tune speed, player radius | `packages/shared/src/player/constants.ts` |
+| Tune tick rate, room name, server port | `packages/shared/src/net/constants.ts` |
+| Change the street layout (walls, obstacles, start, Préfecture, prop slots) | `packages/shared/src/level/street.ts` |
+| Change the level format or level queries (progress, spawns) | `packages/shared/src/level/level.ts` |
+| Change collision (push-out, sliding, sub-steps, minimum wall thickness) | `packages/shared/src/physics/collision.ts` |
+| Tune knockback (drag, friction, knockdown threshold, down time, get-up immunity, wall bounce) | `packages/shared/src/physics/constants.ts` |
+| Change knockback kinematics (impulses, integration, bounce, down timer) | `packages/shared/src/physics/body.ts`; the server side is `apps/server/src/features/physics/` |
+| Tune the hop (time in the air, cooldown, drawn height, landing search) | `packages/shared/src/jump/constants.ts` |
+| Make a prop hoppable, or change what a hop clears | `hoppable` in `PROP_TYPES` (`packages/shared/src/prop/constants.ts`); fallen CRS are added as hoppable, soft circles by `CrsSquad.fallenCircles()`. The filter is `skipHoppable` in `physics/collision.ts`, the hop and its landing are `startJump` / `landBody` in `physics/body.ts`, and the baton miss is in `crsHost.batonHit` in `StreetRoom.ts` |
+| Push a body from a new hit (melee, baton, pavé...) | `StreetRoom.applyImpulse(id, dirX, dirZ, strength, mode?)` in `apps/server/src/rooms/StreetRoom.ts` |
+| Tune HP, KO time, respawn delay, invulnerability, grab immunity after a rescue, default drag time, respawn margin | `packages/shared/src/health/constants.ts` |
+| Change the health state machine (free, grabbed, KO, arrested) | `packages/shared/src/health/health.ts`; respawn position in `health/respawn.ts` |
+| Hurt, grab or free a protester from a new system (melee, baton, gas, a thrown teammate #11...) | `StreetRoom.damagePlayer(id, amount)`, `grabPlayer(id, duration?)`, `rescuePlayer(id)`; check `hasControl(id)` before letting a player act |
+| Tune melee reach, arc, cooldown, damage to props | `packages/shared/src/melee/constants.ts` |
+| Change the arc check, line of sight or cooldown rule | `packages/shared/src/melee/melee.ts` |
+| Tune a prop type (HP, intact and broken collision shape, what it drops: pavés, or tomatoes for a market stall) | `packages/shared/src/prop/constants.ts` |
+| Handle a swing on the server (targets, hit events), hit a new kind of target | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
+| Tune the bot protesters (#59): how weak they are, how often they act, where they keep in the cortège | The `BOT` table in `packages/shared/src/bot/constants.ts`; what they decide is `packages/shared/src/bot/brain.ts`, what the room does with it `StreetRoom.stepBots()` |
+| Check tick time or per-player leftovers on a dev server (#59) | Start the server with `MANIF_DIAG=1`: it logs the tick time every 5 s of march and the maps still keyed by a bot that left |
+| Tune a police unit (speed, HP, sight, baton, grab, drag, stun, stagger) or add a unit type (#13) | The `CRS_STATS` table in `packages/shared/src/crs/constants.ts`, the BAC's `disguise` and the BRAV-M's `bike` rows included (plus a look in `apps/client/src/features/crs/crsVisuals.tsx`) |
+| Change what a BAC or a BRAV-M does (#13) | `packages/shared/src/crs/bac.ts` (blend in, sidle up, reveal) and `crs/bravm.ts` (charge, drop, wait, leave, ram, dismount, knocked off); the squad's bookkeeping (passenger, wreck, reveal on any hit) in `apps/server/src/features/crs/squad.ts`. The disguised BAC is drawn by `PlayerAvatar` fed by `apps/client/src/features/crs/disguise.ts` |
+| Change which unit types each wave brings (#13) | `UNIT_STAGES` in `packages/shared/src/round/constants.ts`, next to `ROUND_WAVES` |
+| Change the cap on CRS, respawn delay, stuck detection | `packages/shared/src/crs/constants.ts` |
+| Tune the round (length, end screen time, win share, wipe rule) or the reinforcement waves (`ROUND_WAVES`: when, how many chasers, which lines) | `packages/shared/src/round/constants.ts` |
+| Change the round rules (phases, progress, win and lose order, wave spawn points, start spots clear of props) | `packages/shared/src/round/round.ts`; the room applies them in `StreetRoom.startMarch()`, `updateFront()`, `spawnWave()`, `stepRoundClock()` and `resetStreet()` |
+| Tune an archetype (#14: speed, max HP, drag time, rescue time, prop damage, throw range and spread, dodge cooldown, CRS target weight, heal and filming auras), rename one or add one | The `ARCHETYPES` table in `packages/shared/src/archetype/constants.ts` (aura radius there too; the rules, such as no aura stacking, in `archetype/archetype.ts`). Give a new one a look in `apps/client/src/features/archetype/archetypeVisuals.tsx`. Systems read the numbers through `StreetRoom.statsOf(id)`, never the id |
+| Change an archetype's look (clothes colour, placeholder props, lobby icon) | `apps/client/src/features/archetype/archetypeVisuals.tsx` (the one file for Jordan's models); the lobby menu is `ArchetypePicker.tsx` next to it |
+| Reset something new between rounds | `StreetRoom.resetStreet()` in `apps/server/src/rooms/StreetRoom.ts` (the round-live check compares the street after a reset with a fresh room) |
+| Change what sound plays when (#57), the crowd bed, the music, or the voice caps | `apps/client/src/features/audio/`: `cues.ts` turns server messages and state changes into sounds (tested in `cues.test.ts`), `sounds.ts` is the catalogue (file, gain, per-sound cap, pitch spread), `director.ts` runs it all, `synth.ts` makes the blips and stings in code. New files go in `apps/client/public/sounds/` (CC0 only) with a line in its `CREDITS.md` |
+| Change the round HUD, end screen or joke awards | `apps/client/src/features/round/`; the awards are `roundAwards` in `packages/shared/src/round/stats.ts`, the numbers are counted by `RoundStats` (`apps/server/src/features/round/`) |
+| Change the live Tab scoreboard (#63): its columns, look or how often it updates | Columns and status words: `apps/client/src/features/round/board.ts`; the panel, the Tab key and the phone's 📋 chip: `RoundBoard.tsx` and `board.css` beside it. The server sends `round:board` from `StreetRoom.sendBoard()`, throttled by `stepBoard` in `apps/server/src/features/round/board.ts` (once a second at most, only on change, only while marching); the rows are the same `RoundPlayerRow` as `round:end` |
+| Tune the scoring (#41): points per action, the per-round caps, the arrest penalty, the win and Préfecture bonuses, the leaderboard size | `ACTION_POINTS` and the bonuses in `packages/shared/src/score/constants.ts` (a stat counted in `RoundPlayerStats` scores once it has a row there); the rules are `actionPoints`, `addPoints` and `endBonus` in `score/score.ts` |
+| Score a new action (#41) | Count it with `roundStats.add(id, stat)` in `StreetRoom` (a new stat goes in `RoundPlayerStats`, `packages/shared/src/round/stats.ts`), then give it a row in `ACTION_POINTS`. The live score follows (`Player.score`, the Tab board, the end screen) |
+| Change the lasting totals (#41): the table, the ranking, banking, names | `apps/server/src/features/score/` (`store.ts`: SQLite through `node:sqlite`; `bank.ts`: who banks; `token.ts`: device tokens). The room banks once in `StreetRoom.endRound()`, sends the board from `sendLeaderboard()`, and identifies joiners in `identify()`. Which debug actions keep a round out of the totals: `taintsRound` in `features/round/debug.ts` |
+| Change the leaderboard placard or the HUD score | `apps/client/src/features/score/` (`Leaderboard.tsx`, `MyScore.tsx`, `score.css`); the token is kept by `apps/client/src/shared/net/token.ts` |
+| Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
+| Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |
+| Tune shield lines (size, spacing, shield reach, speed, engage range, how far they advance, clearance from the start zone, shove, what breaks them) | The `LINE_*` constants in `packages/shared/src/crs/constants.ts` |
+| Change shield line rules (slots against the level, advancing, stragglers, shove, break checks, collision with protesters) | `packages/shared/src/crs/line.ts` (`lineSlots`, `stepLine`, `checkBreak`, `resolveShieldContacts`) |
+| Spawn a shield line from a new system | `CrsSquad.spawnLine(x, z, size?, facing?, kind?)` in `apps/server/src/features/crs/squad.ts`; where lines can form is `lineSpawns` in `packages/shared/src/level/street.ts` |
+| Move or add CRS spawn points | `crsSpawns` in `packages/shared/src/level/street.ts` |
+| Spawn CRS from a new system, stun one, hit one with a thrown item (#8) | `CrsSquad.spawn(x, z, kind)`, `reinforceTo`, `stun(id, now)`, `strike(...)` in `apps/server/src/features/crs/squad.ts`, owned by `StreetRoom` |
+| Replace the placeholder CRS look (and the riot shield of a line) | `apps/client/src/features/crs/crsVisuals.tsx` (animation, shove thrust in `CrsAvatar.tsx`) |
+| Add a throwable kind (#15 added tomate, crotte, trottinette) | A `ThrowableKind` value and a row in `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts` (speed, range, damage, `pierce`, `effect`, what is left after a hit, carry speed, ground cap, `slippery`), and its look in `apps/client/src/features/throwable/throwableVisuals.tsx`. What a hit does is `StreetRoom.projectileHit()` |
+| Tune or add a status a thrown item leaves on a CRS (#15: splatted, stinky) | `packages/shared/src/crs/status.ts` (`CRS_EFFECTS`, the timers and their numbers); what each does to a bot is in `crs/brain.ts` (`act`, `backOff`, the wobble in `stepCrs`, the keep-away in `steerTo`); the look is the splat and `StinkCloud` in `apps/client/src/features/crs/crsVisuals.tsx` |
+| Tune slipping on dog poo (range, step-off distance, push) | `SLIP_*` in `packages/shared/src/throwable/constants.ts`; the rule is `SlipGuards` in `throwable/throwable.ts`, applied by `StreetRoom.slipProtesters()` / `slipCrs()` |
+| Tune pavés (speed, range, damage, knockback, stun), pick-up range, caps on items | `packages/shared/src/throwable/constants.ts` |
+| Change the pick-up, carry, aim or flight rules (swept collision, what stops a throw, where it lands) | `packages/shared/src/throwable/throwable.ts`; the server side is `apps/server/src/features/throwable/` and `StreetRoom.throwItem()` / `interact()` |
+| Tune tear gas (cloud radius and duration, damage, slow, linger, cap on clouds, squad interval, canister flight, throw range, group size, scatter) | `packages/shared/src/gas/constants.ts`; how often one bot throws is `gasCooldown` in `CRS_STATS` (0: that unit never throws) |
+| Change tear gas rules (who is in a cloud, walls, overlap, exposure and damage ticks, aim, canister flight, the cap) | `packages/shared/src/gas/gas.ts`; who throws when is `tryThrowGas` in `crs/brain.ts` (lone bots) and `lineThrower` in `crs/line.ts`; the server side is `apps/server/src/features/gas/` and the gas lines in `StreetRoom.step()` |
+| Replace the tear gas look (canister, cloud puffs, cough wobble, screen tint) | `apps/client/src/features/gas/gasVisuals.tsx` |
+| Tune fire (burn time, hurt zone, spread delay, cooldown and radius, cap, hold times, on-fire time, damage, panic speed) | `packages/shared/src/fire/constants.ts`; which prop kinds burn is `flammable` in `PROP_TYPES` (`prop/constants.ts`) |
+| Change fire rules (lighting, burn-down, charring, spread choice, the cap, the zone, putting out) | `packages/shared/src/fire/fire.ts` (`FireField`); bodies on fire in `fire/burn.ts`; the interact holds and their priority in `fire/hold.ts`; the server side is `apps/server/src/features/fire/` and `StreetRoom.stepFireHolds()`, `stepFires()`, `burnCrs()` |
+| Put a fire out from a new system (#17 pompiers' hose, #13 water cannon) or light one (#15 fumigène) | `StreetRoom.extinguishAt(x, z, radius)` (prop fires and burning bodies near a point), `extinguishProp(id)`, `putOutBody(id)`, `lightProp(id)`; the synced `state.fires` (by prop id: x, z, radius, intensity, left) is what to aim at. Dev builds: Y throws water around you; scripts can send `debug:round {action: "calm"}` to clear the CRS and the waves (`"clear"`: the bots only), and `{action: "crs", distance, kind, blend}` to drop one unit of any type in front of themselves |
+| Replace the fire look (flames, smoke, charred colour, bum on fire, hold bar) | `apps/client/src/features/fire/fireVisuals.tsx` |
+| Tune the pompiers (#17): hose reach, cone, push, water per second, the "accidental" CRS spray (`accidentalSprayChance`, 0 turns it off), truck delay, crew size, truck cap, when a second truck comes | The `CrsKind.Pompier` row of `CRS_STATS` in `packages/shared/src/crs/constants.ts` (`hose` and `brigade`); water needed per fire is `FIRE_SOAK` in `packages/shared/src/water/constants.ts` |
+| Change what pompiers decide (fire claims, nearest reachable fire, where they stand, when trucks come and go, the accidental spray) | `packages/shared/src/pompier/brigade.ts` (pure, tested); how they move is `pompier/behaviour.ts`; the server side (trucks, jobs, applying the water) is `apps/server/src/features/pompier/brigade.ts`, stepped from `StreetRoom.simulate()`. Pompiers are bots of `CrsKind.Pompier` in the CRS squad: `isPolice(kind)` tells them apart, `stats.invulnerable` keeps hits from hurting them. Dev builds: `debug:round {action: "brigade", delay, crew, spray, extra, soak}` tunes them for one round |
+| Reuse the water jet (#13 water cannon) | `packages/shared/src/water/jet.ts`: a `WaterJetStats` (range, cone, knockback, push interval, water per second), `aimJet`, `inJet`, `jetContact`, `jetPush`, `JetSoak`, `JetPushes`; `FireBrigade.spray()` shows how the room applies it; the look is `WaterJet` in `apps/client/src/features/water/` |
+| Replace the placeholder fire truck, pompier or water jet look | `apps/client/src/features/pompier/truckVisuals.tsx`, the pompier in `apps/client/src/features/crs/crsVisuals.tsx` (its ragdoll in `ragdoll/ragdollVisuals.tsx`), the jet in `apps/client/src/features/water/waterVisuals.ts` |
+| Put an item on the ground (a broken prop's pavés, a dropped carry) | `Throwables.drop(kind, x, z)` from `StreetRoom`; broken props go through `StreetRoom.dropItems(slot)` |
+| Move or add the pavés, dog poos and trottinettes lying on the street at the start, or the market stalls | `items`, `poos`, `trottinettes` and `propSlots` in `packages/shared/src/level/street.ts` |
+| Change the throw key or the mouse aim | `apps/client/src/features/melee/useAttackInput.ts` (a click throws while carrying), `apps/client/src/features/throwable/aim.ts` and `AimTracker.tsx` |
+| Replace a prop's placeholder look or its debris colours | `apps/client/src/features/prop/propVisuals.tsx` (debris simulation in `prop/debris.ts`) |
+| Tune the dodge (speed factor, duration, cooldown, bonk threshold and down time) | `packages/shared/src/dodge/constants.ts` |
+| Change the dodge burst (direction, wall bonk) or its cooldown rule | `startDodge` / `stepBody` in `packages/shared/src/physics/body.ts`; `dodgeDirection`, `dodgeReady` in `dodge/dodge.ts`; the server checks are in `StreetRoom.dodge()` |
+| Change the dodge key, its cooldown bar or its look | `apps/client/src/features/dodge/` (key, HUD); the lean, squash and dust puff are in `features/player/PlayerAvatar.tsx` |
+| Tune the rescue (hold time, range, knockback on the CRS and the freed protester) | `packages/shared/src/rescue/constants.ts` |
+| Change the rescue rules (target choice, progress, interrupts, several rescuers) | `packages/shared/src/rescue/rescue.ts`; the room applies them at the top of `StreetRoom.step()` and the release is `StreetRoom.pullFree()` |
+| Add something to the interact key (E) | The priority is `pickInteract` in `packages/shared/src/carry/carry.ts` (a carrier puts down; else rescue, pat out, pick up an item, pick up a teammate, light), used by `StreetRoom.interact(id, held)` and by the client prompts (`carryTargetFor`, `fireActionFor`, `useActionHint`); the key is `apps/client/src/features/interact/` |
+| Tune carrying and throwing teammates (range, carry time, carrier speed, throw speed, time in the air, what a hit does to CRS and props) | `packages/shared/src/carry/constants.ts` |
+| Change the carry rules (who can lift whom, drops, launch, what a flight hits) | `packages/shared/src/carry/carry.ts` and `launchBody` in `physics/body.ts`; the server side is `apps/server/src/features/carry/` and `StreetRoom.pickUpTeammate()`, `throwTeammate()`, `endCarry()`, `stepCarries()`, `stepFlights()` |
+| Change the carried pose or the carry prompts | `apps/client/src/features/carry/` (`carryVisuals.ts`, `CarryHud.tsx`); the pose is drawn in `features/player/PlayerAvatar.tsx` |
+| Change the rescue bar or the HUD prompt | `apps/client/src/features/rescue/` |
+| Change the attack keys | `apps/client/src/features/melee/useAttackInput.ts`; the swing animation is in `features/player/PlayerAvatar.tsx` |
+| Change the HP bar and status line | `apps/client/src/features/health/` (HUD and the bar above other players) |
+| Change the knocked-down look | `apps/client/src/features/player/PlayerAvatar.tsx` |
+| Change how the level is drawn | `apps/client/src/features/level/Level.tsx` |
+| Add unit tests | A `*.test.ts` next to the code it tests, e.g. `packages/shared/src/level/level.test.ts` (any package with a `test` script) |
+| Add a client → server message | `packages/shared/src/net/messages.ts`, then handle it in `apps/server/src/rooms/StreetRoom.ts` |
+| Add synced state | A Schema in the feature (e.g. `apps/server/src/features/player/schema.ts`), composed into the root state in `apps/server/src/rooms/state.ts`, and the matching plain type in `packages/shared/src/net/state.ts` |
+| Change the scene, camera, rendering | `apps/client/src/features/game/Scene.tsx`, `features/player/PlayerAvatar.tsx`, `shared/iso/iso.ts` |
+| Change keyboard movement | `apps/client/src/features/movement/useMoveInput.ts` |
+| Change the connection or state listeners | `apps/client/src/shared/net/net.ts` |
+| Change the homepage or the lobby screen | `apps/client/src/features/home/Home.tsx`, `features/lobby/Lobby.tsx`, `app/styles.css` |
+| Change name rules, default funny names, host hand-over order, max players | `packages/shared/src/lobby/lobby.ts`, `lobby/constants.ts` |
+| Change lobby rules (who is host, who can start) | `apps/server/src/rooms/StreetRoom.ts` |
+| Change the name tags above avatars | `apps/client/src/features/player/NameTag.tsx` |
