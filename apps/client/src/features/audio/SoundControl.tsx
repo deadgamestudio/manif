@@ -1,21 +1,19 @@
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { audio } from "./engine.ts";
 import { toggleAll, type SoundSettings } from "./settings.ts";
+import { useActions, useKeyLabels } from "../controls/index.ts";
 import "./audio.css";
 
-/** The mute shortcut. Read from `KeyboardEvent.key`, so it is the M key on AZERTY and QWERTY alike. */
+/**
+ * The default mute shortcut's name. The live one is in the keymap (#72): M on
+ * AZERTY and QWERTY alike by default, rebindable; typing in a field never mutes.
+ */
 export const MUTE_KEY_LABEL = "M";
+
+const MUTE = ["mute"] as const;
 
 function useSoundSettings(): SoundSettings {
   return useSyncExternalStore(audio.subscribeSettings, audio.getSettings);
-}
-
-/** Typing in a field (the name, the code) must not mute anything. */
-function typing(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-  if (target instanceof HTMLTextAreaElement) return !target.readOnly;
-  return target instanceof HTMLInputElement && !target.readOnly && target.type !== "range" && target.type !== "checkbox";
 }
 
 function SpeakerIcon({ muted }: { muted: boolean }) {
@@ -34,7 +32,7 @@ function SpeakerIcon({ muted }: { muted: boolean }) {
 /**
  * The sound button (#57): a speaker chip that opens one volume slider and
  * the two mutes (effects; music and ambience), remembered on this browser.
- * M mutes or brings back everything. `placement` "lobby" pins it to the top
+ * The mute key (M by default, #72) mutes or brings back everything. `placement` "lobby" pins it to the top
  * right of the lobby screen; "hud" sits in the HUD's corner, by the "?".
  */
 export function SoundControl({ placement, touch = false }: { placement: "hud" | "lobby"; touch?: boolean }) {
@@ -43,12 +41,14 @@ export function SoundControl({ placement, touch = false }: { placement: "hud" | 
   const panelId = useId();
   const allMuted = (settings.sfxMuted && settings.musicMuted) || settings.volume === 0;
 
+  const keys = useKeyLabels();
+  useActions(MUTE, (_, pressed) => {
+    if (pressed) audio.setSettings(toggleAll(audio.getSettings()));
+  });
+
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
-      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
-      if (e.key.toLowerCase() === "m") {
-        audio.setSettings(toggleAll(audio.getSettings()));
-      } else if (e.code === "Escape") setOpen(false);
+      if (e.code === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onDown);
     return () => window.removeEventListener("keydown", onDown);
@@ -67,7 +67,7 @@ export function SoundControl({ placement, touch = false }: { placement: "hud" | 
       aria-expanded={open}
       aria-controls={panelId}
       aria-label={allMuted ? "Son coupé : régler le son" : "Régler le son"}
-      title={touch ? "Son" : `Son (${MUTE_KEY_LABEL} pour couper)`}
+      title={touch ? "Son" : `Son (${keys.mute} pour couper)`}
       onClick={() => setOpen((o) => !o)}
     >
       <SpeakerIcon muted={allMuted} />
@@ -98,7 +98,7 @@ export function SoundControl({ placement, touch = false }: { placement: "hud" | 
       </label>
       {!touch && (
         <p className="sound-hint">
-          <kbd>{MUTE_KEY_LABEL}</kbd> coupe ou remet tout.
+          <kbd>{keys.mute}</kbd> coupe ou remet tout.
         </p>
       )}
     </section>

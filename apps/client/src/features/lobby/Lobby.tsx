@@ -4,6 +4,7 @@ import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
 import { LastRound, useRound } from "../round/index.ts";
 import { ArchetypeBadge, ArchetypePicker } from "../archetype/index.ts";
 import { SoundControl } from "../audio/index.ts";
+import { KeysControl } from "../controls/index.ts";
 import { Leaderboard } from "../score/index.ts";
 import { BotFill } from "./BotFill.tsx";
 import { RenameField } from "./RenameField.tsx";
@@ -37,6 +38,7 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
   return (
     <main className="screen lobby">
       <SoundControl placement="lobby" />
+      <KeysControl placement="lobby" />
       {/* The banner, picker and roster scroll; the action bar under them never does,
           so Start and the invite link stay on screen at any size. */}
       <div className="lobby-scroll">

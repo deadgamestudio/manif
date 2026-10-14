@@ -11,6 +11,7 @@ import {
   type DebugRoundPayload,
 } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
+import { actionFor, controls } from "../controls/index.ts";
 
 const KEYS: Record<string, DebugKnockbackPayload> = {
   /** Heavy hit on yourself: you fly forward and fall. */
@@ -37,10 +38,29 @@ const ROUND_KEYS: Record<string, DebugRoundPayload> = {
   KeyY: { action: "water", radius: 4 },
 };
 
+const DEBUG_CODES = [...Object.keys(KEYS), ...Object.keys(HEALTH_KEYS), ...Object.keys(ROUND_KEYS)];
+
+/** A debug key the player bound to an action (#72) is theirs: say so in the console, once per keymap. */
+let warnedFor: unknown = null;
+function warnCollisions() {
+  const km = controls.get();
+  if (km === warnedFor) return;
+  warnedFor = km;
+  for (const code of DEBUG_CODES) {
+    const action = actionFor(km, code);
+    if (action) console.warn(`[debug] ${code} est lié à « ${action} » dans les touches : la touche de debug est ignorée.`);
+  }
+}
+
 export function DebugKnockbackKeys() {
   useEffect(() => {
+    warnCollisions();
+    return controls.subscribe(warnCollisions);
+  }, []);
+
+  useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
-      if (e.repeat) return;
+      if (e.repeat || controls.isCapturing() || actionFor(controls.get(), e.code)) return;
       const knock = KEYS[e.code];
       const health = HEALTH_KEYS[e.code];
       const round = ROUND_KEYS[e.code];

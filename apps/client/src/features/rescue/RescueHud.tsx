@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { PlayerStatus, pickRescueTarget, type RescueSubject } from "@manif/shared";
 import { net, type LobbyPlayer } from "../../shared/net/index.ts";
+import { inSentence, useKeyLabels } from "../controls/index.ts";
 
 /** How often the prompt looks around, in ms. Positions change every frame; the prompt doesn't need to. */
 const POLL_MS = 100;
@@ -57,9 +58,11 @@ export function RescueHud({
 }) {
   const [text, setText] = useState("");
   const [meter, setMeter] = useState(-1);
+  // The player's own interact key (#72).
+  const keys = useKeyLabels();
   useEffect(() => {
     if (!localId) return undefined;
-    const key = touch ? "Action" : "E";
+    const key = touch ? "Action" : inSentence(keys.interact);
     const update = () => {
       setText(prompt(localId, players, key));
       setMeter(struggleMeter(localId));
@@ -67,7 +70,7 @@ export function RescueHud({
     update();
     const timer = window.setInterval(update, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [localId, players, touch]);
+  }, [localId, players, touch, keys]);
   if (!text && meter < 0) return null;
   return (
     <>
