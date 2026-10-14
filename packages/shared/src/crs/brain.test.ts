@@ -458,6 +458,16 @@ describe("only a weakened protester is grabbed (#70)", () => {
     expect(bots[0]!.status).toBe(CrsStatus.Grabbing);
   });
 
+  test("a weakened protester is not clubbed on the way in: the bot closes in and winds up (dodgeable)", () => {
+    const { host, run, addBot, bots } = setup();
+    addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, 3);
+    p.health = { ...p.health, hp: GRAB_HP_THRESHOLD - 10 };
+    expect(run(3, () => bots[0]!.windupId !== null)).toBe(true);
+    expect(host.batonHits).toEqual([]);
+    expect(p.view.down).toBe(false);
+  });
+
   test("isWeakened: low HP, or knocked over by anything but a baton", () => {
     const view = { id: "p", x: 0, z: 0, status: PlayerStatus.Free, down: false, hp: 100 };
     expect(isWeakened(view)).toBe(false);

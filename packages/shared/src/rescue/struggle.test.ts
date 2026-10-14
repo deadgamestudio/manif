@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { RESCUE_TIME, STRUGGLE_DRAIN, STRUGGLE_GRACE, STRUGGLE_RATE, STRUGGLE_TIME } from "./constants.js";
-import { STRUGGLE_PER_PRESS, createStruggle, isStruggleFree, stepStruggle, strugglePercent, strugglePress } from "./struggle.js";
+import { STRUGGLE_BURST, STRUGGLE_PER_PRESS, createStruggle, isStruggleFree, stepStruggle, strugglePercent, strugglePress } from "./struggle.js";
 
 /** Mash at `rate` presses a second for `seconds`, ticking the drain like the room (30 Hz). Returns when it broke free, or -1. */
 function mash(rate: number, seconds: number): number {
@@ -19,9 +19,15 @@ function mash(rate: number, seconds: number): number {
 }
 
 describe("struggling free (#70)", () => {
-  test("mashing at the counted rate fills the meter in STRUGGLE_TIME", () => {
+  test("mashing at the counted rate fills the meter in about STRUGGLE_TIME", () => {
     const freed = mash(STRUGGLE_RATE, 10);
-    expect(freed).toBeGreaterThan(STRUGGLE_TIME - 0.2);
+    // The burst lets the first couple of presses through at once: a hair under STRUGGLE_TIME.
+    expect(freed).toBeGreaterThan(STRUGGLE_TIME - STRUGGLE_BURST / STRUGGLE_RATE - 0.1);
+    expect(freed).toBeLessThan(STRUGGLE_TIME + 0.2);
+  });
+
+  test("mashing a bit faster than the rate still gets the full rate (a budget, not a minimum gap)", () => {
+    const freed = mash(STRUGGLE_RATE * 1.25, 10);
     expect(freed).toBeLessThan(STRUGGLE_TIME + 0.2);
   });
 
@@ -31,11 +37,14 @@ describe("struggling free (#70)", () => {
 
   test("mashing faster than STRUGGLE_RATE gains nothing (a macro is no better than a thumb)", () => {
     const fast = mash(STRUGGLE_RATE * 5, 10);
-    expect(fast).toBeGreaterThan(STRUGGLE_TIME - 0.2);
+    expect(fast).toBeGreaterThan(STRUGGLE_TIME - STRUGGLE_BURST / STRUGGLE_RATE - 0.1);
+    // A burst of presses at once: only the budget counts.
     const s = createStruggle();
-    expect(strugglePress(s, 1)).toBe(true);
+    let counted = 0;
+    for (let i = 0; i < 10; i++) if (strugglePress(s, 1)) counted++;
+    expect(counted).toBe(STRUGGLE_BURST);
+    expect(s.meter).toBeCloseTo(STRUGGLE_BURST * STRUGGLE_PER_PRESS, 9);
     expect(strugglePress(s, 1 + 0.5 / STRUGGLE_RATE)).toBe(false);
-    expect(s.meter).toBeCloseTo(STRUGGLE_PER_PRESS, 9);
     expect(strugglePress(s, 1 + 1 / STRUGGLE_RATE)).toBe(true);
   });
 

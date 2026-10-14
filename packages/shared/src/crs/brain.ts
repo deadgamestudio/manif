@@ -473,11 +473,14 @@ export function act(bot: CrsBot, target: ProtesterView, ctx: CrsContext, host: C
     }
     return gap <= s.grabReach;
   }
-  if (gap <= s.grabReach && now >= bot.grabReadyAt && canStartGrab(bot, target, host)) {
+  // A protester it could grab is not clubbed on the way in (#70): it closes in and winds up the grab, which
+  // they can see coming and dodge. The baton is for the healthy, and for a grab on cooldown (one just foiled).
+  const grabbable = now >= bot.grabReadyAt && canStartGrab(bot, target, host);
+  if (gap <= s.grabReach && grabbable) {
     startWindup(bot, target, now);
     return true;
   }
-  if (gap <= s.batonRange && now >= bot.batonReadyAt && host.canBeHurt(target.id)) {
+  if (gap <= s.batonRange && !grabbable && now >= bot.batonReadyAt && host.canBeHurt(target.id)) {
     bot.batonReadyAt = now + s.batonCooldown;
     if (dx !== 0 || dz !== 0) bot.rotation = Math.atan2(dx, dz);
     host.batonHit(bot.id, target.id, dx, dz, s.batonDamage, s.batonImpulse);
