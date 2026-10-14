@@ -16,6 +16,9 @@
  *   uniform and the helmet, and a fat, stubby, toy-coloured launcher held
  *   forward in the left hand. Clearly a toy: no realistic gun.
  * Sizes come from CRS_STATS (crsRadius), so what you see is what you bump into.
+ *
+ * Jordan's models (#28, policeModels.tsx) replace `render` once they are in;
+ * these looks stay as the stand-in while they load, or if a file fails.
  */
 import type { ReactNode, RefObject } from "react";
 import type { Group, MeshStandardMaterial } from "three";
@@ -46,6 +49,8 @@ export interface CrsLook {
   /** Body colour, flashed white on a hit (CrsAvatar resets it every frame). */
   color: string;
   render: (rig: CrsRig) => ReactNode;
+  /** Pieces still drawn over Jordan's model (#28): the LBD's toy launcher, which has no model yet. */
+  Keep?: (props: { rig: CrsRig }) => ReactNode;
   /**
    * Its floppy look while knocked down (#26); the primitives are in
    * ragdoll/ragdollVisuals.tsx. Null: it simply tips over (a bike).
@@ -88,8 +93,8 @@ export function StinkCloud({ group, height }: { group: RefObject<Group | null>; 
   );
 }
 
-/** The tomato splat on a visor (#15), at the visor's spot; CrsAvatar shows it. */
-function Splat({ group, radius, at }: { group: RefObject<Group | null>; radius: number; at: readonly [number, number, number] }) {
+/** The tomato splat on a visor (#15), at the visor's spot; CrsAvatar (or the model, on its head) shows it. */
+export function Splat({ group, radius, at }: { group: RefObject<Group | null>; radius: number; at: readonly [number, number, number] }) {
   return (
     <group ref={group} position={at} visible={false}>
       <mesh scale={[1, 0.75, 0.25]}>
@@ -396,8 +401,10 @@ export const LBD_MUZZLE = { x: -0.12, y: 1.09, z: 0.95 } as const;
  * orange band round the chest and an orange stripe over the helmet, the
  * left arm held forward on a chunky toy launcher (a fat orange tube with a
  * yellow muzzle ring and a yellow grip), the baton on the right as usual.
- * The arm and the launcher are posed forward inside `shieldArm`, which
- * CrsAvatar kicks up a little on a shot.
+ * The launcher is posed forward inside `shieldArm`, which CrsAvatar kicks
+ * up a little on a shot. It is in `keep`: with Jordan's model it is still
+ * drawn (no launcher model was delivered), and the laser still starts at
+ * LBD_MUZZLE.
  */
 function lbdLook(radius: number): CrsLook {
   const height = CAPSULE_LENGTH + radius * 2;
@@ -430,13 +437,30 @@ function lbdLook(radius: number): CrsLook {
           <meshStandardMaterial color="#9fb7d6" transparent opacity={0.6} />
         </mesh>
         <Splat group={rig.splat} radius={radius} at={[0, height - 0.28, radius * 0.76]} />
-        {/* Left arm held forward on the launcher (posed here: CrsAvatar only adds the recoil). */}
-        <group ref={rig.shieldArm} position={[-radius - 0.05, height * 0.62, 0.1]}>
-          <mesh position={[0.15, -0.1, 0.25]} rotation-y={0.5} castShadow>
-            <boxGeometry args={[0.15, 0.15, 0.55]} />
+        {/* Left arm held forward on the launcher. */}
+        <mesh position={[-radius + 0.1, height * 0.62 - 0.1, 0.35]} rotation-y={0.5} castShadow>
+          <boxGeometry args={[0.15, 0.15, 0.55]} />
+          <meshStandardMaterial color={CRS_UNIFORM} />
+        </mesh>
+        <group ref={rig.lineShield} visible={false} />
+        {/* Baton arm on the right, as a plain CRS (a slow, soft one). */}
+        <group ref={rig.batonArm} position={[radius + 0.08, height * 0.66, 0]}>
+          <mesh position-y={-0.3} castShadow>
+            <boxGeometry args={[0.15, 0.6, 0.15]} />
             <meshStandardMaterial color={CRS_UNIFORM} />
           </mesh>
-          {/* The launcher: a fat, short orange tube pointing forward... */}
+          <mesh position={[0, -0.6, 0.25]} rotation-x={Math.PI / 2} castShadow>
+            <cylinderGeometry args={[0.04, 0.04, 0.7, 8]} />
+            <meshStandardMaterial color="#111111" />
+          </mesh>
+        </group>
+      </>
+    ),
+    Keep: ({ rig }) => (
+      <>
+        {/* The launcher (posed here: CrsAvatar only adds the recoil). */}
+        <group ref={rig.shieldArm} position={[-radius - 0.05, height * 0.62, 0.1]}>
+          {/* A fat, short orange tube pointing forward... */}
           <mesh position={[LBD_MUZZLE.x + radius + 0.05, -0.12, 0.55]} rotation-x={Math.PI / 2} castShadow>
             <cylinderGeometry args={[0.13, 0.15, 0.55, 14]} />
             <meshStandardMaterial color={LAUNCHER} roughness={0.5} />
@@ -450,18 +474,6 @@ function lbdLook(radius: number): CrsLook {
           <mesh position={[LBD_MUZZLE.x + radius + 0.05, -0.28, 0.42]} rotation-x={0.3}>
             <boxGeometry args={[0.1, 0.22, 0.12]} />
             <meshStandardMaterial color={LAUNCHER_TRIM} roughness={0.4} />
-          </mesh>
-        </group>
-        <group ref={rig.lineShield} visible={false} />
-        {/* Baton arm on the right, as a plain CRS (a slow, soft one). */}
-        <group ref={rig.batonArm} position={[radius + 0.08, height * 0.66, 0]}>
-          <mesh position-y={-0.3} castShadow>
-            <boxGeometry args={[0.15, 0.6, 0.15]} />
-            <meshStandardMaterial color={CRS_UNIFORM} />
-          </mesh>
-          <mesh position={[0, -0.6, 0.25]} rotation-x={Math.PI / 2} castShadow>
-            <cylinderGeometry args={[0.04, 0.04, 0.7, 8]} />
-            <meshStandardMaterial color="#111111" />
           </mesh>
         </group>
       </>
