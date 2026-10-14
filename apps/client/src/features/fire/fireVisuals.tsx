@@ -35,6 +35,31 @@ export const FLAME_LOOK = {
   growIn: 0.5,
 } as const;
 
+/**
+ * Jordan's flames (#28): five flat tongues, flickering by their own clip,
+ * about 0.45 m from the centre and 1 m tall at scale 1. Scaled so they cover
+ * the placeholder cones' footprint (`spread` of the fire radius) and height
+ * (`height` of it, times the intensity factor).
+ */
+export const FLAME_MODEL = {
+  reach: 0.45,
+  tall: 1,
+  spread: 0.62,
+  height: 1.1,
+} as const;
+
+/**
+ * Jordan's smoke column (#28): billows rising about 2.3 m in a 2 s loop, dark
+ * grey. Drawn see-through (one material shared by every fire) so it doesn't
+ * hide the players behind it, on top of the flames, `scale` at full height.
+ */
+export const SMOKE_MODEL = {
+  scale: 1.2,
+  opacity: 0.6,
+  /** It starts this far up the flames (fraction of their height). */
+  from: 0.7,
+} as const;
+
 /** Black smoke puffs rising above a fire and fading, looped. */
 export const SMOKE_LOOK = {
   color: "#2b2b2b",
@@ -65,6 +90,16 @@ export const BODY_FLAME_LOOK = {
   color: "#ff7b00",
   core: "#ffe066",
   flickerSpeed: 18,
+} as const;
+
+/**
+ * Jordan's bum flames (#28): three small tongues, about 0.55 m tall, drawn at
+ * the first placeholder cone (the bum), a bit bigger so they show past the
+ * body on a phone. Its base sits 0.05 up.
+ */
+export const BODY_FLAME_MODEL = {
+  scale: 1.35,
+  baseY: 0.05,
 } as const;
 
 /** A burning body flails: faster and wider than a grabbed one (radians, per second). */

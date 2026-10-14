@@ -23,3 +23,22 @@ export const JET_LOOK = {
   /** How fast the jet grows to full length when turned on, and shrinks when off (per second, 0..1). */
   growRate: 6,
 } as const;
+
+/**
+ * Jordan's water jet (#28): twelve packets of water streaming along +Z from
+ * the nozzle, 2.38 m long and sagging 0.38 m at scale 1, one run of the 2 s
+ * loop. Stretched to the jet's range and to the placeholder's sag, so it ends
+ * where the faint cone (what the water reaches) ends, and thickened to read
+ * at phone size. Played faster on a short jet, so the water always flies at
+ * `speed`.
+ */
+export const JET_MODEL = {
+  length: 2.38,
+  sag: 0.38,
+  /** How long one packet takes from the nozzle to the end, seconds, as authored. */
+  loop: 2.04,
+  /** Sideways thickening of the packets (they are 0.1 m wide at scale 1). */
+  width: 4,
+  /** Metres per second. */
+  speed: 7,
+} as const;
