@@ -7,6 +7,7 @@ const row = (id: string, stats: Partial<ReturnType<typeof emptyStats>> = {}): Ro
   name: id,
   archetype: 0,
   ...emptyStats(),
+  score: 0,
   ...stats,
 });
 

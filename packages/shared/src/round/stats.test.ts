@@ -5,6 +5,7 @@ const player = (name: string, stats: Partial<ReturnType<typeof emptyStats>>): Ro
   id: name,
   name,
   ...emptyStats(),
+  score: 0,
   ...stats,
 });
 

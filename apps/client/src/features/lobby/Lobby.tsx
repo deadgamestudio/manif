@@ -4,6 +4,7 @@ import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
 import { LastRound, useRound } from "../round/index.ts";
 import { ArchetypeBadge, ArchetypePicker } from "../archetype/index.ts";
 import { SoundControl } from "../audio/index.ts";
+import { Leaderboard } from "../score/index.ts";
 import { RenameField } from "./RenameField.tsx";
 import { StartControls } from "./StartControls.tsx";
 import { readyCount } from "./readyText.ts";
@@ -48,6 +49,7 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
         <div className="placards">
           <ArchetypePicker current={me?.archetype ?? 0} />
 
+          <div className="lobby-side">
           <section className="placard placard-roster">
             <h2 className="placard-label">
               Le cortège{" "}
@@ -91,6 +93,10 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
               })}
             </ul>
           </section>
+
+          {/* #41: the lasting totals, under the roster. In the scrolling area, so Start never moves. */}
+          <Leaderboard />
+          </div>
         </div>
       </div>
 

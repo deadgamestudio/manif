@@ -206,6 +206,25 @@
   opacity: 0.35;
 }
 
+/* The round score (#41): the last column, the one that counts, in a hi-vis box. */
+.round-board-table td.round-board-num {
+  width: 11%;
+}
+
+.round-board-table td.round-board-score {
+  width: 14%;
+  white-space: nowrap;
+}
+
+.round-board-table td.round-board-score:not([data-zero]) {
+  color: var(--ink);
+  background: var(--hi-vis);
+}
+
+.round-board-table td.round-board-score[data-zero] {
+  opacity: 0.5;
+}
+
 /* Touch: the same placard, tighter, so eight rows fit on a phone. */
 .round-board[data-touch] {
   padding: 8px 10px 8px;
@@ -314,6 +333,10 @@
   .round-board[data-touch] td.round-board-num {
     width: 2.2em;
     font-size: 16px;
+  }
+
+  .round-board[data-touch] td.round-board-score {
+    width: 3em;
   }
 }
 

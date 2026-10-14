@@ -1,30 +1,43 @@
 import { roundAwards, type RoundAward, type RoundEndEvent } from "@manif/shared";
 
-/** One protester on the podium: who, what they marched as, and their awards. */
+/** One protester on the end screen: who, what they marched as, their points and their awards. */
 export interface Laureate {
   /** Session id: the key, since two players can share a name (#61). */
   id: string;
   name: string;
   archetype: number;
   isMe: boolean;
+  /** The round's points (#41). */
+  score: number;
+  /** Their lasting total with this round banked (#41); undefined when it wasn't. */
+  total: number | undefined;
   awards: RoundAward[];
 }
 
 /**
- * The awards grouped by protester (by id, not name), most awarded first (ties
- * keep the join order). The archetype comes from the round's player list.
+ * Every protester of the round, ranked by round score (#41), best first; ties
+ * keep the join order. The joke awards (#12) stay, grouped by player id.
  */
 export function laureates(players: RoundEndEvent["players"], localId: string | null): Laureate[] {
-  const byId = new Map<string, Laureate>();
+  const awards = new Map<string, RoundAward[]>();
   for (const award of roundAwards(players)) {
-    let l = byId.get(award.id);
-    if (!l) {
-      const p = players.find((q) => q.id === award.id);
-      l = { id: award.id, name: award.name, archetype: p?.archetype ?? 0, isMe: award.id === localId, awards: [] };
-      byId.set(award.id, l);
-    }
-    l.awards.push(award);
+    const list = awards.get(award.id);
+    if (list) list.push(award);
+    else awards.set(award.id, [award]);
   }
-  const order = (id: string) => players.findIndex((p) => p.id === id);
-  return [...byId.values()].sort((a, b) => b.awards.length - a.awards.length || order(a.id) - order(b.id));
+  return players
+    .map((p, order) => ({
+      order,
+      laureate: {
+        id: p.id,
+        name: p.name,
+        archetype: p.archetype ?? 0,
+        isMe: p.id === localId,
+        score: p.score ?? 0,
+        total: p.total,
+        awards: awards.get(p.id) ?? [],
+      },
+    }))
+    .sort((a, b) => b.laureate.score - a.laureate.score || a.order - b.order)
+    .map((x) => x.laureate);
 }

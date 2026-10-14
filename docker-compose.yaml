@@ -2,8 +2,9 @@
 #   client  Caddy on :80, the only service reachable from outside. Serves the
 #           static build and proxies /colyseus/* to the game server.
 #   server  The Colyseus game server (Node), on the internal network only.
-# No database: lobbies live in the server's memory, so a redeploy ends the
-# games in progress.
+# Lobbies live in the server's memory, so a redeploy ends the games in
+# progress. The lasting scores (#41) are a SQLite file on the `scores` named
+# volume, so they survive redeploys.
 #
 # On Coolify (https://manif.bazlab.si): give the `client` service the domain
 # on port 80; Coolify's proxy adds TLS in front. Leave `server` without a
@@ -27,6 +28,13 @@ services:
       # Rustrak DSN for error tracking (public ingest key). A literal default,
       # so it reaches the container even when Coolify passes no env.
       SENTRY_DSN: ${SENTRY_DSN:-https://d0c9bddd10f34714ac2833a55eaf7678@rustrack.bazlab.si/5}
+      # The lasting scores (#41), on the volume below. Unwritable or corrupt:
+      # the server logs it and runs with round scores only.
+      SCORE_DB_PATH: /data/manif.db
+    volumes:
+      # A named volume, so Coolify keeps it across redeploys. The image makes
+      # /data owned by nonroot, and a fresh volume takes that ownership.
+      - scores:/data
     # node polls GET /health (the image has no shell or wget).
     healthcheck:
       test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:2567/health',{signal:AbortSignal.timeout(3000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
@@ -55,3 +63,7 @@ services:
       timeout: 5s
       start_period: 5s
       retries: 3
+
+volumes:
+  # The lasting scores (#41). Deleting it resets every total to 0.
+  scores:

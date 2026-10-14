@@ -136,6 +136,11 @@ export function RoundBoard({
                     <span className="round-board-short">{c.short}</span>
                   </th>
                 ))}
+                {/* #41: the round score, last, like the total at the bottom of a bill. */}
+                <th scope="col" className="round-board-num round-board-score" title="Points de la manif">
+                  <span className="round-board-long">Points</span>
+                  <span className="round-board-short">Pts</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -169,6 +174,9 @@ export function RoundBoard({
                         {r.stats[c.stat]}
                       </td>
                     ))}
+                    <td className="round-board-num round-board-score" data-zero={r.score === 0 || undefined}>
+                      {r.score.toLocaleString("fr-FR")}
+                    </td>
                   </tr>
                 );
               })}

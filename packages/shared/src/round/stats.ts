@@ -22,18 +22,22 @@ export interface RoundPlayerStats {
   slips: number;
   /** Times this player was pushed by a pompier's hose (#17). */
   hosed: number;
+  /** HP this player's heal aura gave back to teammates (#14, the CGT; #41 scores it). */
+  hpHealed: number;
 }
 
 export function emptyStats(): RoundPlayerStats {
-  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0, teammatesThrown: 0, splats: 0, slips: 0, hosed: 0 };
+  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0, teammatesThrown: 0, splats: 0, slips: 0, hosed: 0, hpHealed: 0 };
 }
 
 /**
  * One protester's row, shared by the end screen and the live board (#63) so
  * they can't drift apart. `archetype` (#14): what they marched as this round,
- * an `Archetype`, for the end screen and future scoring (#41).
+ * an `Archetype`. `score` (#41): the round's points so far (see `score/`).
+ * `total` (#41, `round:end` only): the player's lasting total once this round
+ * is banked; absent when it wasn't (a bot, a debug round, no storage).
  */
-export type RoundPlayerRow = RoundPlayerStats & { id: string; name: string; archetype?: number };
+export type RoundPlayerRow = RoundPlayerStats & { id: string; name: string; archetype?: number; score: number; total?: number };
 
 /** Payload of `ServerMessage.RoundEnd`. */
 export interface RoundEndEvent {
@@ -41,6 +45,12 @@ export interface RoundEndEvent {
   /** How long the march lasted, in whole seconds. */
   seconds: number;
   players: RoundPlayerRow[];
+  /**
+   * Whether the round's points went into the lasting totals (#41): `saved`;
+   * `debug` when a dev-only debug action touched the round; `off` when the
+   * server has no working score storage (round-only scoring).
+   */
+  bank: "saved" | "debug" | "off";
 }
 
 /**
@@ -75,6 +85,7 @@ const AWARDS: readonly { stat: keyof RoundPlayerStats; title: string; unit: stri
   { stat: "splats", title: "Primeur de combat", unit: "CRS repeints ou parfumés" },
   { stat: "slips", title: "Pied dans la crotte", unit: "glissades" },
   { stat: "hosed", title: "Douche gratuite", unit: "coups de lance des pompiers" },
+  { stat: "hpHealed", title: "Cantine syndicale", unit: "PV rendus aux camarades" },
 ];
 
 /**

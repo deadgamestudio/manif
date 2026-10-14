@@ -1,7 +1,8 @@
 import { ARCHETYPES, RoundResult, archetypeOf } from "@manif/shared";
 import { archetypeLook } from "../archetype/index.ts";
+import { points } from "../score/index.ts";
 import { useRound } from "./useRound.ts";
-import { clock, resultText } from "./text.ts";
+import { bankText, clock, resultText } from "./text.ts";
 import { laureates, type Laureate } from "./podium.ts";
 
 function Badge({ archetype }: { archetype: number }) {
@@ -17,6 +18,16 @@ function Badge({ archetype }: { archetype: number }) {
   );
 }
 
+/** The round's points (#41), and the lasting total once banked. */
+function Score({ laureate }: { laureate: Laureate }) {
+  return (
+    <span className="podium-score">
+      <b>{points(laureate.score)}</b>
+      {laureate.total !== undefined && <span className="podium-total">total {points(laureate.total)}</span>}
+    </span>
+  );
+}
+
 function Step({ laureate, place }: { laureate: Laureate; place: number }) {
   return (
     <li className="podium-step" data-place={place} data-me={laureate.isMe || undefined}>
@@ -26,6 +37,7 @@ function Step({ laureate, place }: { laureate: Laureate; place: number }) {
           {laureate.isMe && <span className="podium-me"> (toi)</span>}
         </span>
         <Badge archetype={laureate.archetype} />
+        <Score laureate={laureate} />
       </div>
       <ul className="podium-awards">
         {laureate.awards.map((a) => (
@@ -46,9 +58,11 @@ function Step({ laureate, place }: { laureate: Laureate; place: number }) {
 
 /**
  * Over the frozen street once a round is decided (#12): win or lose, how long
- * it lasted and the joke awards on a small podium, until the room goes back
- * to the lobby. The awards come from ServerMessage.RoundEnd; a player who
- * joined during the end screen sees the result without them.
+ * it lasted, and every protester ranked by round score (#41) with their joke
+ * awards: the top three on a small podium, the others under it. Each shows
+ * their new lasting total once the round is banked. Everything comes from
+ * ServerMessage.RoundEnd; a player who joined during the end screen sees the
+ * result without it.
  */
 export function EndScreen({ localId }: { localId: string | null }) {
   const { result, timeLeft, end } = useRound();
@@ -58,6 +72,7 @@ export function EndScreen({ localId }: { localId: string | null }) {
   // Second on the left, first in the middle, third on the right.
   const podium = [top[1], top[0], top[2]].flatMap((l) => (l ? [{ l, place: top.indexOf(l) + 1 }] : []));
   const rest = ranked.slice(3);
+  const bankNote = end ? bankText(end.bank) : null;
   return (
     <div className="round-end" data-won={result === RoundResult.Won || undefined}>
       <section className="round-end-card" aria-labelledby="round-end-title">
@@ -66,22 +81,25 @@ export function EndScreen({ localId }: { localId: string | null }) {
         </h2>
         <p className="round-end-line">{line}</p>
         {end && <p className="round-end-time">Durée : {clock(end.seconds)}</p>}
+        {bankNote && <p className="round-end-bank">{bankNote}</p>}
         {podium.length > 0 && (
-          <ol className="podium" aria-label="Le palmarès">
+          <ol className="podium" aria-label="Le classement de la manif">
             {podium.map(({ l, place }) => (
               <Step key={l.id} laureate={l} place={place} />
             ))}
           </ol>
         )}
         {rest.length > 0 && (
-          <ul className="podium-rest">
-            {rest.map((l) => (
+          <ol className="podium-rest" start={4}>
+            {rest.map((l, i) => (
               <li key={l.id} data-me={l.isMe || undefined}>
+                <span className="podium-rest-rank">{i + 4}</span>
                 <Badge archetype={l.archetype} />
-                <span className="podium-name">{l.name}</span> : {l.awards.map((a) => a.title).join(", ")}
+                <span className="podium-name">{l.name}</span> <Score laureate={l} />
+                {l.awards.length > 0 && <span className="podium-rest-awards"> · {l.awards.map((a) => a.title).join(", ")}</span>}
               </li>
             ))}
-          </ul>
+          </ol>
         )}
         <p className="round-end-next" role="status">
           Retour au point de rendez-vous dans <b>{timeLeft} s</b> pour la prochaine manif…

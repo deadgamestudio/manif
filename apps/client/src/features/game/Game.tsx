@@ -72,7 +72,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
             {import.meta.env.DEV && <DebugKnockbackKeys />}
           </div>
         )}
-        {!ended && <RoundHud />}
+        {!ended && <RoundHud localId={snap.sessionId} />}
         <div className="hud-corner">
           <SoundControl placement="hud" touch={touch} />
           {!ended && <HelpMenu touch={touch} />}

@@ -24,7 +24,11 @@ COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY apps/server apps/server
 RUN cd packages/shared && bun run build \
- && cd ../../apps/server && bun run build
+ && cd ../../apps/server && bun run build \
+# The lasting scores' directory (#41), empty, copied into the final image
+# owned by nonroot: the distroless image has no shell to mkdir or chown, and a
+# fresh named volume mounted there takes this ownership.
+ && mkdir -p /out/data
 
 # Only the server's runtime dependencies (no tsx, typescript or client libs).
 FROM deps AS prod-deps
@@ -44,8 +48,12 @@ COPY --from=build /repo/packages/shared/package.json packages/shared/
 COPY --from=build /repo/packages/shared/dist packages/shared/dist
 COPY --from=build /repo/apps/server/package.json apps/server/
 COPY --from=build /repo/apps/server/dist apps/server/dist
+# The lasting totals (#41): one SQLite file (node:sqlite, built into Node) in
+# /data, where docker-compose.yaml mounts the `scores` volume. Nothing else
+# lives there, so the mount hides nothing. 65532 is distroless' nonroot.
+COPY --from=build --chown=65532:65532 /out/data /data
 # production also turns off the debug knockback message (features/physics/debug.ts).
-ENV NODE_ENV=production PORT=2567
+ENV NODE_ENV=production PORT=2567 SCORE_DB_PATH=/data/manif.db
 EXPOSE 2567
 USER nonroot
 # No shell or wget in the image: node itself polls the server's GET /health.

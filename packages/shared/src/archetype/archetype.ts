@@ -68,6 +68,25 @@ export function healRate(target: AuraSubject, healers: Iterable<AuraSubject>): n
 }
 
 /**
+ * Who gets the credit (#41) for the HP healed into `target`: the healer whose
+ * aura `healRate` picked (the best rate in reach), the nearest one on a tie.
+ * Null when no aura reaches it.
+ */
+export function bestHealer(target: AuraSubject, healers: Iterable<AuraSubject>): string | null {
+  let best: AuraSubject | null = null;
+  let bestD = Infinity;
+  for (const h of healers) {
+    if (h.id === target.id || h.stats.healAura <= 0 || !inAura(h, target)) continue;
+    const d = Math.hypot(h.x - target.x, h.z - target.z);
+    if (!best || h.stats.healAura > best.stats.healAura || (h.stats.healAura === best.stats.healAura && d < bestD)) {
+      best = h;
+      bestD = d;
+    }
+  }
+  return best ? best.id : null;
+}
+
+/**
  * The factor on the drag time of a protester grabbed at `target`: the
  * strongest filming aura in reach (the bobo's phone), the grabbed protester's
  * own included. Auras do not stack. 1 with none.
