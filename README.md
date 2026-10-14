@@ -147,6 +147,7 @@ everything.
 | `NODE_ENV` | server | `production` refuses the dev-only debug messages |
 | `SENTRY_DSN` | server | Error tracking. Unset turns it off |
 | `SCORE_DB_PATH` | server | SQLite file for the lasting scores. Unset (the dev default): round scores only. A missing folder is created; an unreadable file is logged and the game carries on without it |
+| `MANIF_MAX_ROOMS` | server | Most lobbies alive at once on the server, default `100`. Past it, creating a lobby is refused until one ends. Each visitor also has a small creation budget (`apps/server/src/features/lobby/`) |
 | `MANIF_DIAG` | server | `1` logs tick time during a march and anything still keyed by a bot that left |
 | `CLIENT_PORT` | local compose only | Port for `docker-compose.local.yaml`, default `8080` |
 

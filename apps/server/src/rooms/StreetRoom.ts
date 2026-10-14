@@ -1,4 +1,4 @@
-import { Room, type Client } from "@colyseus/core";
+import { Room, ServerError, type AuthContext, type Client } from "@colyseus/core";
 import {
   CARRY_DROP_PUSH,
   CARRY_SPEED_FACTOR,
@@ -166,7 +166,25 @@ import { DEBUG_ROUND_ENABLED, IDLE_BOARD, RoundStats, boardKey, parseDebugRound,
 import { bankEntries, hashToken, newDeviceToken, scoreStore } from "../features/score/index.js";
 import { HealAuras } from "../features/archetype/index.js";
 import { Bots, DIAG_ENABLED, TickStats, leftovers } from "../features/bot/index.js";
+import { CreateLimit, DEFAULT_CREATE_LIMIT, UNKNOWN_VISITOR, maxRoomsFromEnv, visitorKey } from "../features/lobby/index.js";
 import { StreetState } from "./state.js";
+
+/**
+ * The lobby creation budget, shared by every street on this process: per
+ * visitor, plus a cap on lobbies alive at once (MANIF_MAX_ROOMS). Joining a
+ * lobby never counts.
+ */
+const createLimit = new CreateLimit({ ...DEFAULT_CREATE_LIMIT, maxRooms: maxRoomsFromEnv(process.env.MANIF_MAX_ROOMS) });
+/**
+ * Where onAuth leaves the visitor key for onCreate. Written on every request,
+ * so whatever a client puts under this name is overwritten.
+ */
+const VISITOR_OPTION = "__visitor";
+/** HTTP statuses for a refused creation. Never 520-527: Cloudflare would replace the answer. */
+const TOO_MANY_LOBBIES = 429;
+const SERVER_FULL = 503;
+/** How long a seat is held before its client connects. A new lobby nobody reaches is disposed then. */
+const SEAT_RESERVATION_SECONDS = 10;
 
 // The level is static shared data, imported by the client too. It is not synced.
 const LEVEL = STREET_LEVEL;
@@ -610,7 +628,33 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     }),
   };
 
-  override onCreate() {
+  /** Who created this lobby, for the creation budget. Null until the creation is accepted. */
+  private creator: string | null = null;
+
+  /**
+   * Runs on every matchmaking request (create and join), before any room
+   * exists: it only notes who is asking, from the proxy headers. onCreate
+   * then decides whether that visitor may open a lobby.
+   */
+  static override async onAuth(_token: string, options: unknown, context: AuthContext): Promise<unknown> {
+    if (!options || typeof options !== "object" || Array.isArray(options)) return false;
+    (options as Record<string, unknown>)[VISITOR_OPTION] = visitorKey(context.headers);
+    return true;
+  }
+
+  override onCreate(options?: Record<string, unknown>) {
+    // Before anything else: too many lobbies from this visitor, or on the whole server.
+    const raw = options?.[VISITOR_OPTION];
+    const visitor = typeof raw === "string" && raw ? raw : UNKNOWN_VISITOR;
+    const check = createLimit.tryOpen(visitor, Date.now());
+    if (!check.ok) {
+      console.log(`[street] create refused (${check.reason}), ${createLimit.live} lobbies alive`);
+      throw check.reason === "server"
+        ? new ServerError(SERVER_FULL, "server full")
+        : new ServerError(TOO_MANY_LOBBIES, "too many lobbies");
+    }
+    this.creator = visitor;
+    this.seatReservationTimeout = SEAT_RESERVATION_SECONDS;
     // Invite only: reachable by joinById(code), never by joinOrCreate/join.
     void this.setPrivate(true);
     // A fresh room looks exactly like the street after a reset (#12).
@@ -640,6 +684,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     console.log(
       `[street ${this.roomId}] join ${client.sessionId} "${player.name}" (${this.clients.length}/${MAX_PLAYERS})`,
     );
+  }
+
+  override onDispose() {
+    if (this.creator !== null) createLimit.closed(this.creator);
+    this.creator = null;
   }
 
   override onLeave(client: Client) {

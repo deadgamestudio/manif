@@ -106,6 +106,9 @@ const SERVER_URL = resolveServerUrl();
  */
 const MATCHMAKE_INVALID_ROOM_ID = 522;
 const MATCHMAKE_ERROR_BEHIND_PROXY = 409;
+/** The server refused to create a lobby: this visitor made too many, or the server has too many. */
+const MATCHMAKE_TOO_MANY_LOBBIES = 429;
+const MATCHMAKE_SERVER_FULL = 503;
 
 /** Decoded state: the plain shape from shared, plus the decoder's ref marker. */
 type ClientState = StreetStateShape & IRef;
@@ -294,6 +297,9 @@ function describeJoinError(err: unknown): string {
     if (/locked/i.test(message)) return "Cette manif est complète (8 manifestants max). Lance la tienne !";
     return "Code inconnu, ou cette manif s'est déjà dispersée. Vérifie le code ou crée ta propre manif.";
   }
+  // The server's lobby creation limits (per visitor, then for the whole server).
+  if (code === MATCHMAKE_TOO_MANY_LOBBIES) return "Trop de manifs créées, réessaie dans un moment.";
+  if (code === MATCHMAKE_SERVER_FULL) return "Trop de manifs en cours sur le serveur, réessaie dans un moment.";
   if (err instanceof TypeError || /fetch|network|ECONNREFUSED|websocket/i.test(message)) {
     return "Impossible de joindre le serveur. Il fait peut-être grève ?";
   }
