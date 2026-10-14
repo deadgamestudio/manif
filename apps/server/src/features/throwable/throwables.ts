@@ -64,8 +64,9 @@ export class Throwables {
     for (const item of items) this.ground.drop(item.kind, item.x, item.z);
   }
 
-  drop(kind: ItemKind, x: number, z: number): void {
-    this.ground.drop(kind, x, z);
+  /** Put an item on the ground at (x, z). Returns its id. */
+  drop(kind: ItemKind, x: number, z: number): string {
+    return this.ground.drop(kind, x, z);
   }
 
   /** Interact by a protester at `holder` carrying `carrying`: the kind picked up, or None. */

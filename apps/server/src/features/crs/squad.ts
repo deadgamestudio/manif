@@ -62,6 +62,7 @@ import {
   type BallBody,
   type Level,
   type MeleeTarget,
+  type ShopRoom,
   type Vec2,
 } from "@manif/shared";
 import { Crs } from "./schema.js";
@@ -131,6 +132,11 @@ export class CrsSquad {
     private readonly behaviour?: CrsBehaviour,
     /** A knockback the squad gave a bot on its own (#13: riders knocked off a bike, the wreck), for the room to announce. */
     private readonly onImpulse?: (id: string, res: ImpulseResult) => void,
+    /**
+     * This round's shop rooms (#84): bots go in after a protester and drag them out square through the doorways.
+     * Held, not copied: the room hands over `Props.rooms`, which each layout refills in place.
+     */
+    rooms: readonly ShopRoom[] = [],
   ) {
     // One grid for every unit on foot, cleared for the widest of them.
     const clearance = Math.max(...Object.values(CRS_STATS).map((s) => s.radius));
@@ -140,7 +146,7 @@ export class CrsSquad {
     const bikeClearance = Math.max(clearance, ...Object.values(CRS_STATS).map((s) => s.bike?.radius ?? 0));
     this.bikeNav = new NavGrid(this.avoid, bikeClearance);
     this.vans = vanDoors(level);
-    this.ctx = { world, avoid: this.avoid, nav: this.nav, vans: this.vans, bots: this.bots, now: 0, dt: 0 };
+    this.ctx = { world, avoid: this.avoid, nav: this.nav, vans: this.vans, rooms, bots: this.bots, now: 0, dt: 0 };
     this.bikeCtx = { ...this.ctx, nav: this.bikeNav };
   }
 

@@ -37,7 +37,6 @@ import {
   isItemKind,
   pickRescueTarget,
   propShape,
-  levelWorld,
   meleeHits,
   nameOrDefault,
   normalizeMove,
@@ -161,7 +160,7 @@ import { MeleeCooldowns } from "../features/melee/index.js";
 import { DodgeCooldowns } from "../features/dodge/index.js";
 import { JumpCooldowns } from "../features/jump/index.js";
 import { Player } from "../features/player/index.js";
-import { Props } from "../features/prop/index.js";
+import { DEBUG_SHOP_ENABLED, Props, RoomLoot, debugShopSpot, parseDebugShop } from "../features/prop/index.js";
 import { CrsSquad, LbdShots } from "../features/crs/index.js";
 import { Rescues, Struggles } from "../features/rescue/index.js";
 import { Throwables } from "../features/throwable/index.js";
@@ -201,8 +200,6 @@ const CLOSE_TOO_MANY_MESSAGES = 4029;
 
 // The level is static shared data, imported by the client too. It is not synced.
 const LEVEL = STREET_LEVEL;
-/** What blocks a swing: the static walls and obstacles only, not props (#4). */
-const SWING_OBSTACLES = levelWorld(LEVEL);
 const NO_INPUT: MoveInput = { x: 0, z: 0 };
 
 /**
@@ -282,19 +279,25 @@ export class StreetRoom extends Room<{ state: StreetState }> {
 
   /**
    * Police bots (#5): full bot state server-side, synced fields in `state.crs`.
-   * They walk the same collision world as the protesters.
+   * They walk the same collision world as the protesters, and go into the
+   * shop rooms (#84, `props.rooms`) after them.
    */
   private crs = new CrsSquad(LEVEL, this.props.world, this.state.crs, undefined, (id, res) => {
     // Riders knocked off a bike, the wreck skidding away (#13): every client tips them the right way.
     if (res.strength === 0) return;
     const event: ImpulseEvent = { id, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
     this.broadcast(ServerMessage.Impulse, event);
-  });
+  }, this.props.rooms);
   /**
    * Throwables (#8): items on the ground and in flight, synced as
    * `state.items` and `state.projectiles`. The room applies what a hit does.
    */
   private throwables = new Throwables(this.state.items, this.state.projectiles);
+  /** The loot inside broken shops (#84), refilled once after it has all been taken. Server-only; the items are ordinary ground items. */
+  private roomLoot = new RoomLoot(
+    (kind, x, z) => this.throwables.drop(kind, x, z),
+    (id) => this.throwables.ground.get(id) !== undefined,
+  );
   /**
    * Tear gas (#7): canisters and clouds, synced as `state.canisters` and
    * `state.gas`, and who is coughing. The room applies the damage and the slow.
@@ -313,7 +316,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * in the CRS squad (`CrsKind.Pompier`), so they count towards MAX_CRS.
    * The room applies what their water does.
    */
-  private brigade = new FireBrigade(LEVEL, this.crs, this.props.world, SWING_OBSTACLES, this.state.trucks);
+  private brigade = new FireBrigade(LEVEL, this.crs, this.props.world, this.props.staticWorld, this.state.trucks);
   /** Scratch for the hose (#17), reused every tick. */
   private hoseTargets: HoseTarget[] = [];
   /** Jeun-Lac Moluchan (#85): the roll, his visit and his ring. Shown to the CRS only, never a player. */
@@ -620,6 +623,20 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         if (action) this.roundTainted = true;
         if (action === "damage") this.damagePlayer(client.sessionId, DEBUG_DAMAGE);
         else if (action === "grab") this.grabPlayer(client.sessionId);
+      },
+    }),
+
+    // DEBUG (#84): dev-only, break a shop and step into its room.
+    ...(DEBUG_SHOP_ENABLED && {
+      [ClientMessage.DebugShop]: (client: Client, message: unknown) => {
+        const player = this.state.players.get(client.sessionId);
+        if (this.state.phase !== Phase.Marching || !player) return;
+        const spot = debugShopSpot(this.props.shops, this.props.rooms, parseDebugShop(message), player);
+        if (!spot) return;
+        this.roundTainted = true;
+        if (this.props.hp(spot.id) > 0) this.damageProp(client.sessionId, spot.id, 1000, spot.x, spot.z);
+        this.bodies.place(client.sessionId, player, spot.x, spot.z);
+        player.rotation = spot.rotation;
       },
     }),
 
@@ -1030,6 +1047,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.crs.setHazards(null);
     this.fires.takeChanged();
     this.throwables.reset(LEVEL.items);
+    this.roomLoot.reset();
     // Dog poo (#15): nobody remembers slipping.
     this.slips.clear();
     this.gas.reset();
@@ -1479,14 +1497,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (swinger) this.broadcast(ServerMessage.Swing, swing, { except: swinger });
     else this.broadcast(ServerMessage.Swing, swing);
 
-    for (const hit of meleeHits(player, this.props.targets(), SWING_OBSTACLES)) {
+    for (const hit of meleeHits(player, this.props.targets(), this.props.staticWorld)) {
       this.damageProp(id, hit.id, MELEE_PROP_DAMAGE, hit.point.x, hit.point.z);
     }
     // CRS (#5): pushed away from the swinger, every third quick hit knocks one
     // over, and at 0 HP it is out. A knocked-down or out CRS lets go of its grab
     // on its next tick: the other way to free a grabbed teammate (#10), with the
     // same grab immunity as a rescue (CrsHost.release -> rescuePlayer).
-    for (const hit of meleeHits(player, this.crs.meleeTargets(), SWING_OBSTACLES)) {
+    for (const hit of meleeHits(player, this.crs.meleeTargets(), this.props.staticWorld)) {
       const res = this.crs.hit(hit.id, player.x, player.z, bot ? BOT_MELEE_CRS_DAMAGE : MELEE_CRS_DAMAGE, this.now);
       if (res) this.announceCrsHit(id, hit.id, res, hit.point.x, hit.point.z);
     }
@@ -1787,6 +1805,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const shape = propShape(slot, false);
     if (type.drops <= 0 || !shape) return;
     for (const spot of dropSpots(shape, type.drops, this.props.world)) this.throwables.drop(type.dropKind, spot.x, spot.z);
+    // #84: a shop's room gets its loot too.
+    const room = this.props.room(slot.id);
+    if (room) this.roomLoot.open(room, slot.kind, this.props.world);
   }
 
   /**
@@ -1964,6 +1985,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // Dog poo (#15): a handful at most (its ground cap), so every body against every poo is cheap.
     const poos = Array.from(this.throwables.slippery());
     if (poos.length > 0) this.slipProtesters(poos);
+    // #84: loot taken from a shop's room comes back once.
+    this.roomLoot.step(this.now);
     this.throwables.step(
       dt,
       this.props.world,

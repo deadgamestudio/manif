@@ -1,6 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { MapSchema } from "@colyseus/schema";
-import { PROP_TYPES, STREET_LEVEL, circleOverlaps, propShape, shopFootprint, shopKindOf, shopLotOf, shopSlot } from "@manif/shared";
+import {
+  PLAYER_RADIUS,
+  PROP_TYPES,
+  STREET_LEVEL,
+  carveLevel,
+  circleOverlaps,
+  propShape,
+  roomAt,
+  shopFootprint,
+  shopKindOf,
+  shopLotOf,
+  shopSlot,
+} from "@manif/shared";
 import { Props } from "./props.js";
 import { Prop } from "./schema.js";
 
@@ -75,5 +87,49 @@ describe("Props shops (#68, #83)", () => {
     for (const lot of first) expect(views.has(lot.id)).toBe(false);
     for (const lot of props.shops) expect(views.has(lot.id)).toBe(true);
     expect(views.size).toBe(STREET_LEVEL.propSlots.length + props.shops.length);
+  });
+});
+
+describe("Props shop rooms (#84)", () => {
+  test("each layout carves the blocks round the rooms, in the same world, static world and rooms objects", () => {
+    const props = new Props(STREET_LEVEL, mulberry32(4));
+    const views = new MapSchema<Prop>();
+    const { world, staticWorld, rooms } = props;
+    // Before any layout: the level as it is.
+    expect(staticWorld.boxes).toBe(STREET_LEVEL.boxes);
+    for (let round = 0; round < 3; round++) {
+      props.reset(views);
+      expect(props.world).toBe(world);
+      expect(props.staticWorld).toBe(staticWorld);
+      expect(props.rooms).toBe(rooms);
+      const carved = carveLevel(STREET_LEVEL, props.shops);
+      expect(rooms).toEqual(carved.rooms);
+      expect(staticWorld.boxes).toEqual(carved.level.boxes);
+      expect(staticWorld.circles).toBe(STREET_LEVEL.circles);
+      // No whole building with a shop left in either world: the pieces instead.
+      for (const room of rooms) {
+        expect(staticWorld.boxes.some((b) => (b as { id?: string }).id === room.building)).toBe(false);
+        expect(world.boxes.filter((b) => (b as { id?: string }).id === room.building)).toEqual([]);
+        expect(props.room(room.id)).toBe(room);
+      }
+      for (const b of carved.level.boxes) expect(world.boxes).toContainEqual(b);
+    }
+    expect(props.room("bin-1")).toBeUndefined();
+  });
+
+  test("an intact shop seals its room; once broken, a body fits anywhere in it", () => {
+    const props = new Props(STREET_LEVEL, mulberry32(5));
+    const views = new MapSchema<Prop>();
+    props.reset(views);
+    for (const lot of props.shops) {
+      const room = props.room(lot.id)!;
+      const doorstep = { x: room.door.x + room.side * (PLAYER_RADIUS + 0.1), z: room.door.z };
+      const deep = { x: room.door.x + room.side * (lot.interior - PLAYER_RADIUS - 0.05), z: room.door.z };
+      expect(circleOverlaps(props.world, doorstep.x, doorstep.z, PLAYER_RADIUS)).toBe(true);
+      props.damage(lot.id, 255, views.get(lot.id));
+      expect(circleOverlaps(props.world, doorstep.x, doorstep.z, PLAYER_RADIUS)).toBe(false);
+      expect(circleOverlaps(props.world, deep.x, deep.z, PLAYER_RADIUS)).toBe(false);
+      expect(roomAt(props.rooms, deep.x, deep.z)).toBe(room);
+    }
   });
 });

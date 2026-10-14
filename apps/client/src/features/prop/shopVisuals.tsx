@@ -8,15 +8,17 @@
  * middle of the shop, +X points out into the street, Z runs along the facade,
  * Y is up. The front stands at `shopFront(lot)`, the same plane the server
  * collides with, so what you see is what you bump into. Nothing is drawn
- * behind the facade (x < 0), where the building box hides it; the room
- * behind the front (`lot.interior`) is reserved for walk-in shops later.
+ * behind the facade (x < 0): the room there (`lot.interior`, #84) and the
+ * walls around it are the level's (`features/level`). Intact, the front
+ * closes the doorway from the ground to the sign band; broken, nothing but
+ * the sign band (the lintel) spans it, so the way in reads as open.
  *
  * Materials are shared per kind (and the common ones by every shop); every
  * mesh is one shared unit box, scaled.
  */
 import type { ReactNode } from "react";
 import { BoxGeometry, DoubleSide, MeshStandardMaterial, type Material } from "three";
-import { SHOP_LAYOUT, type ShopKind, type ShopLot } from "@manif/shared";
+import { SHOP_LAYOUT, SHOP_ROOM, type ShopKind, type ShopLot } from "@manif/shared";
 
 /** What a shop kind looks like, and how its sign is painted. */
 export interface ShopStyle {
@@ -203,7 +205,7 @@ export function Storefront({ lot, broken }: { lot: ShopLot; broken: boolean }): 
 
   // Pilasters at both ends, the stall riser and the sign band (the roof of a deep front).
   for (const z of [-(W - P) / 2, (W - P) / 2]) add(<B key={key()} at={[(F + 0.04) / 2, H / 2, z]} size={[F + 0.04, H, P]} m={m.front} />);
-  add(<B key={key()} at={[F / 2, winBottom / 2, 0]} size={[F, winBottom, winW]} m={m.riser} />);
+  if (!broken) add(<B key={key()} at={[F / 2, winBottom / 2, 0]} size={[F, winBottom, winW]} m={m.riser} />);
   add(<B key={key()} at={[(F + 0.1) / 2, H - FRAME.band / 2, 0]} size={[F + 0.1, FRAME.band, W]} m={m.fascia} />);
   // A thin cornice over the band.
   add(<B key={key()} at={[(F + 0.18) / 2, H + 0.04, 0]} size={[F + 0.18, 0.08, W + 0.1]} m={m.front} />);
@@ -224,8 +226,14 @@ export function Storefront({ lot, broken }: { lot: ShopLot; broken: boolean }): 
     }
     add(<Display key={key()} lot={lot} x={depth} winW={winW} />);
   } else {
-    // The glass is gone: a dark, wrecked shop.
-    add(<B key={key()} at={[0.02, winY, 0]} size={[0.04, winH, winW]} m={COMMON.dark} shadow={false} />);
+    // Smashed: the riser and the glass are gone and the doorway (the room's
+    // width, `SHOP_ROOM.frame` in from each end) is open into the room behind.
+    // Only stubs of the riser stay, in the strip between the doorway and the pilasters.
+    const stub = SHOP_ROOM.frame - P;
+    for (const side of [-1, 1]) {
+      const h = winBottom * (0.4 + rand() * 0.6);
+      add(<B key={key()} at={[F / 2, h / 2, side * (winW / 2 - stub / 2)]} size={[F, h, stub]} m={m.riser} />);
+    }
     if (depth > 0.1) add(<B key={key()} at={[depth / 2, 0.02, 0]} size={[depth, 0.04, winW]} m={COMMON.dark} shadow={false} />);
     // A tipped-over shelf and a few things on the floor, out on the pavement.
     add(<B key={key()} at={[F + 0.35, 0.25, -winW * 0.2]} size={[0.5, 0.5, 1.4]} m={COMMON.wreck} rot={[0, 0.4, 1.2]} />);
@@ -233,16 +241,17 @@ export function Storefront({ lot, broken }: { lot: ShopLot; broken: boolean }): 
       const z = (rand() - 0.5) * winW;
       add(<B key={key()} at={[F + 0.2 + rand() * 0.8, 0.08, z]} size={[0.25, 0.16, 0.3]} m={i % 2 ? m.inside : COMMON.wreck} rot={[0, rand() * 3, 0]} />);
     }
-    // Shards left in the frame, top and bottom.
+    // Shards still hanging from the top of the frame, and more on the ground.
     for (let i = 0; i < 6; i++) {
-      const top = i % 2 === 0;
       const z = -winW / 2 + 0.2 + rand() * (winW - 0.4);
       const h = 0.25 + rand() * 0.45;
-      add(<B key={key()} at={[glassX, top ? winTop - h / 2 : winBottom + h / 2, z]} size={[0.02, h, 0.18 + rand() * 0.3]} m={COMMON.shard} rot={[rand() - 0.5, 0, 0]} shadow={false} />);
+      const w = 0.18 + rand() * 0.3;
+      if (i % 2 === 0) add(<B key={key()} at={[glassX, winTop - h / 2, z]} size={[0.02, h, w]} m={COMMON.shard} rot={[rand() - 0.5, 0, 0]} shadow={false} />);
+      else add(<B key={key()} at={[F + 0.1 + rand() * 0.6, 0.015, z]} size={[h, 0.02, w]} m={COMMON.shard} rot={[0, rand() * 3, 0]} shadow={false} />);
     }
     if (s.shutter) {
-      // The shutter torn half off, hanging crooked.
-      add(<B key={key()} at={[glassX + 0.15, winTop - 0.5, winW * 0.15]} size={[0.05, 0.9, winW * 0.7]} m={COMMON.metal} rot={[0.3, 0, -0.2]} />);
+      // The shutter torn half off, hanging crooked from one end of the frame, high over the doorway.
+      add(<B key={key()} at={[glassX + 0.15, winTop - 0.3, winW * 0.32]} size={[0.05, 0.55, winW * 0.36]} m={COMMON.metal} rot={[0.35, 0, -0.2]} />);
     }
   }
 

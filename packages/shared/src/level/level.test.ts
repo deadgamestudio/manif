@@ -169,6 +169,18 @@ describe("walking the street", () => {
     }
   });
 
+  test("the facades and side-street barriers close the street at its sides, though the bounds reach behind them (#84)", () => {
+    for (let z = L.bounds.minZ + 1; z < L.bounds.maxZ - 1; z += 0.5) {
+      for (const side of [-1, 1]) {
+        let p = { x: 0, z };
+        if (circleOverlaps(world, p.x, p.z, PLAYER_RADIUS)) continue;
+        for (let tick = 0; tick < 400; tick++) p = moveCircle(world, p, side * step * 2, 0, PLAYER_RADIUS);
+        // The barriers' street face is at 11.5; nothing gets past it, or into a building.
+        expect(Math.abs(p.x)).toBeLessThanOrEqual(11.5 - PLAYER_RADIUS + 1e-6);
+      }
+    }
+  });
+
   test("random walks never end up inside anything", () => {
     const rand = mulberry32(7);
     let p = spawnPoint(L, PLAYER_RADIUS, rand);

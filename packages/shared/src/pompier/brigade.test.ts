@@ -163,8 +163,9 @@ describe("trucks", () => {
     const world = propCollisionWorld(STREET_LEVEL, () => false);
     const b = STREET_LEVEL.bounds;
     for (const bay of bays) {
-      // The truck never enters the street: its whole body is beyond the bounds.
-      expect(Math.abs(bay.park.x) - 2.6).toBeGreaterThan(b.maxX);
+      // The truck never enters the street: its whole body is beyond its side street's barrier.
+      const barrier = barriers.find((x) => x.id === bay.id)!;
+      expect(Math.abs(bay.park.x) - 2.6).toBeGreaterThan(Math.abs(barrier.x) + barrier.halfX);
       expect(inRect(b, bay.door.x, bay.door.z)).toBe(true);
       expect(circleOverlaps(world, bay.door.x, bay.door.z, POMPIER.radius)).toBe(false);
       // Facing the street.

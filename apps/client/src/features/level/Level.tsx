@@ -1,7 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { STREET_LEVEL, type BoxKind, type BoxObstacle, type CircleObstacle, type Level, type Rect } from "@manif/shared";
+import { net } from "../../shared/net/index.ts";
+import { carveBlocks } from "./blocks.ts";
 import { BuildingsView, type BuildingSpec } from "./Buildings.tsx";
 import type { Point3 } from "./occlusion.ts";
+import { RoomsView } from "./Rooms.tsx";
 
 /*
  * Draws the level from the shared data: the same boxes and circles the server
@@ -31,14 +34,16 @@ export function LevelView({
   fadeTargets?: () => readonly Point3[];
 }) {
   const b = level.bounds;
-  // Colours by index in the full box list, as before buildings were split out.
-  const buildings = useMemo(
-    () =>
-      level.boxes.flatMap((box, i): BuildingSpec[] =>
-        box.kind === "building" ? [{ box, color: pick(BOX_COLORS.building, i) }] : [],
-      ),
-    [level],
-  );
+  // Same array until a new layout arrives: carved once per round, never per frame.
+  const shops = useSyncExternalStore(net.subscribeShops, net.getShops);
+  const { buildings, rooms } = useMemo(() => {
+    const carved = carveBlocks(level, shops);
+    // Colours by index in the full box list, as before buildings were split out.
+    const specs = carved.blocks.map(
+      (block): BuildingSpec => ({ box: block.box, pieces: block.pieces, rooms: block.rooms, color: pick(BOX_COLORS.building, block.index) }),
+    );
+    return { buildings: specs, rooms: carved.rooms };
+  }, [level, shops]);
   return (
     <group>
       {/* Pavement beyond the street, under the buildings. */}
@@ -50,6 +55,7 @@ export function LevelView({
       <CentreLine level={level} />
 
       <BuildingsView buildings={buildings} targets={fadeTargets} />
+      <RoomsView rooms={rooms} />
       {level.boxes.map((box, i) => box.kind !== "building" && <BoxMesh key={box.id} box={box} index={i} />)}
       {level.circles.map((c) => (
         <CircleMesh key={c.id} c={c} />
