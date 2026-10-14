@@ -7,7 +7,9 @@ import {
   burnSpeedFactor,
   createBurn,
   createFireHold,
+  fireHp,
   fireIntensity,
+  flammableProps,
   fireSecondsLeft,
   holdRatio,
   interruptHold,
@@ -20,6 +22,8 @@ import {
   type FireAction,
   type FireEvent,
   type FireHold,
+  type FlammableProp,
+  type LightableView,
   type PropFire,
   type PropSlot,
   type Rect,
@@ -46,6 +50,8 @@ export class Fires {
   private readonly field: FireField;
   private readonly burns = new Map<string, BodyBurn>();
   private readonly holds = new Map<string, FireHold>();
+  /** The props that can ever burn, with their intact and wreck shapes. */
+  private readonly flammable: readonly FlammableProp[];
   /** A fire started or went out since the last `takeChanged()`: the bots' hazards need rebuilding. */
   private changed = false;
 
@@ -53,11 +59,13 @@ export class Fires {
     slots: readonly PropSlot[],
     private readonly views: MapSchema<FireView>,
   ) {
+    this.flammable = flammableProps(slots);
     this.field = new FireField(slots, {
       fireAdded: (f) => {
         const view = new FireView();
-        view.x = f.slot.x;
-        view.z = f.slot.z;
+        // Around the shape it burns: a wreck's is its broken one (#91).
+        view.x = f.shape.x;
+        view.z = f.shape.z;
         view.radius = boundingRadius(f.shape);
         view.intensity = fireIntensity(f);
         view.left = clampByte(fireSecondsLeft(f));
@@ -96,13 +104,29 @@ export class Fires {
     return this.field.isCharred(id);
   }
 
-  canIgnite(id: string, hp: number): boolean {
-    return this.field.canIgnite(id, hp);
+  canIgnite(id: string, hp: number, broken = false): boolean {
+    return this.field.canIgnite(id, hp, broken);
   }
 
-  /** Set prop `id` (with `hp` left) on fire. False if it can't burn now. */
-  ignite(id: string, hp: number): boolean {
-    return this.field.ignite(id, hp) !== null;
+  /** Set prop `id` (with `hp` left, or a wreck when `broken`, #91) on fire. False if it can't burn now. */
+  ignite(id: string, hp: number, broken = false): boolean {
+    return this.field.ignite(id, hp, broken) !== null;
+  }
+
+  /** The props that could be lit now, each with the shape it would burn around (intact, or its wreck), into `out`. */
+  lightable(hpOf: (id: string) => number, brokenOf: (id: string) => boolean, out: LightableView[]): LightableView[] {
+    out.length = 0;
+    for (const p of this.flammable) {
+      const broken = brokenOf(p.id);
+      const view = broken ? p.wreck : p.intact;
+      if (view && this.field.canIgnite(p.id, hpOf(p.id), broken)) out.push(view);
+    }
+    return out;
+  }
+
+  /** A burning prop's HP to mirror: its fuel rounded up, or 0 for a wreck (#91). */
+  hp(f: PropFire): number {
+    return fireHp(f);
   }
 
   /** Put prop `id`'s fire out. Returns the HP it has left, or null if it was not burning. */
@@ -115,10 +139,10 @@ export class Fires {
     return this.field.near(x, z, radius).map((f) => f.id);
   }
 
-  /** One tick of every fire (burn-down, spread). `hpOf` gives a prop's HP. */
-  step(dt: number, hpOf: (id: string) => number): FireEvent[] {
+  /** One tick of every fire (burn-down, spread). `hpOf` gives a prop's HP, `brokenOf` whether it is a wreck. */
+  step(dt: number, hpOf: (id: string) => number, brokenOf?: (id: string) => boolean): FireEvent[] {
     if (this.field.size === 0) return [];
-    return this.field.step(dt, hpOf);
+    return this.field.step(dt, hpOf, brokenOf);
   }
 
   /** True once after any fire started or went out (then false until the next change). */

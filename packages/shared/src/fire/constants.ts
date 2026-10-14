@@ -2,13 +2,18 @@
 // and the slapstick "bum on fire" status. Distances in world units, durations
 // in seconds of room time. Tuned for fun, not realism.
 
-/** How long a prop at full HP burns before it is charred. A prop with less HP left burns for less (same HP per second). */
+/**
+ * How long a prop at full HP burns before it is charred. A prop with less HP
+ * left burns for less (same HP per second). A wreck (a smashed car, #91)
+ * burns this long too, on its own fuel.
+ */
 export const FIRE_DURATION = 30;
 
 /**
  * The fire's zone reaches this far beyond the prop's edge: a body within it
  * catches fire. Small on purpose, so a knocked-down body is never stuck in it
  * for long. CRS treat the prop plus this as blocked (they path around it).
+ * A new fire's zone grows to this over FIRE_GROW_TIME (#91, `zoneGrowth`).
  */
 export const FIRE_REACH = 0.6;
 
@@ -24,7 +29,7 @@ export const FIRE_SPREAD_RADIUS = 3;
 /** Most props burning at once in a room. Lighting or spreading over the cap does nothing. */
 export const MAX_FIRES = 6;
 
-/** Flames start small for this long (intensity 2), then roar (3)... */
+/** Flames start small for this long (intensity 2), while the zone grows to full size, then roar (3)... */
 export const FIRE_GROW_TIME = 2;
 
 /** ...and die down (1) over their last seconds. */
@@ -33,7 +38,11 @@ export const FIRE_DYING_TIME = 4;
 /** Hold interact this long next to a flammable prop to light it (everyone has a lighter). */
 export const LIGHT_TIME = 1;
 
-/** A prop can be lit when the holder's edge is at most this far from the prop's edge. */
+/**
+ * A prop can be lit when the holder's edge is at most this far from the
+ * prop's edge. As far as FIRE_REACH, so the igniter starts in the full zone:
+ * the zone's growth (FIRE_GROW_TIME) is what gives them time to step away.
+ */
 export const LIGHT_REACH = 0.6;
 
 /** Hold interact this long next to a burning teammate to pat them out. */
