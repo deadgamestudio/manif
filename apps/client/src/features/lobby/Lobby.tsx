@@ -6,6 +6,7 @@ import { ArchetypeBadge, ArchetypePicker } from "../archetype/index.ts";
 import { SoundControl } from "../audio/index.ts";
 import { KeysControl } from "../controls/index.ts";
 import { Leaderboard } from "../score/index.ts";
+import { HelpLink } from "../help/index.ts";
 import { BotFill } from "./BotFill.tsx";
 import { RenameField } from "./RenameField.tsx";
 import { StartControls } from "./StartControls.tsx";
@@ -48,6 +49,9 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
             Manif <span className="lobby-code">#{code}</span>
           </h1>
         </header>
+
+        {/* #71: the help as an overlay, never a page load: the player stays in the room. */}
+        <HelpLink className="help-link lobby-help-link">Comment on joue ?</HelpLink>
 
         <LastRound />
 

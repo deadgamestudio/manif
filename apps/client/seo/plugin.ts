@@ -4,14 +4,15 @@
 // - Build: index.html keeps its `<!-- seo -->` marker through the bundle; once
 //   it is written, one copy per page replaces the marker with that page's
 //   tags (dist/index.html for the home page, dist/invite.html for invite
-//   links), next to robots.txt and sitemap.xml. Both copies come from the
-//   built file, so they load the same hashed bundles. The Caddyfile serves
-//   invite.html for any page URL with a `lobby` query parameter.
+//   links, dist/aide.html for the help, #71), next to robots.txt and
+//   sitemap.xml. Every copy comes from the built file, so they load the same
+//   hashed bundles. The Caddyfile serves aide.html for /aide, and invite.html
+//   for any other page URL with a `lobby` query parameter.
 // - `vite dev`: the tags of the requested URL, straight into index.html
 //   (transformIndexHtml sees the URL asked for, query included), and
 //   robots.txt / sitemap.xml served from memory.
-// - `vite preview`: a page URL with `?lobby=` is served invite.html, like
-//   Caddy does.
+// - `vite preview`: /aide is served aide.html and a page URL with `?lobby=`
+//   invite.html, like Caddy does.
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -51,7 +52,7 @@ export function seo(): Plugin {
     },
 
     configurePreviewServer(server) {
-      // Before the static files: point an invite URL at the HTML file written for it.
+      // Before the static files: point the help and invite URLs at the HTML file written for them.
       server.middlewares.use((req, _res, next) => {
         const url = req.url ?? "/";
         const [pathname = "/", query] = url.split("?");

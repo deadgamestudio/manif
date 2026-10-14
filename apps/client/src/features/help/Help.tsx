@@ -6,6 +6,7 @@ import { carryTargetFor } from "../carry/index.ts";
 import { fireActionFor } from "../fire/index.ts";
 import { useActions, useKeyLabels } from "../controls/index.ts";
 import { BASIC_TIP_COUNT, controls, pickTip, type TipSituation } from "./tips.ts";
+import { HelpLink } from "./HelpPage.tsx";
 
 const HELP = ["help"] as const;
 
@@ -65,7 +66,8 @@ export function HelpTip({ localId, players, touch }: { localId: string | null; p
 /**
  * The "?" button and the full controls list it opens, also toggled by the
  * help key on a keyboard (C by default, #72; H is a debug key in dev builds)
- * and closed by Échap. The list names the player's own keys.
+ * and closed by Échap. The list names the player's own keys, and links to
+ * the full help (#71), opened over the street.
  */
 export function HelpMenu({ touch }: { touch: boolean }) {
   const [open, setOpen] = useState(false);
@@ -116,7 +118,13 @@ export function HelpMenu({ touch }: { touch: boolean }) {
               </div>
             ))}
           </dl>
-          <p className="hud-help-goal">Objectif : la moitié du cortège à la Préfecture avant la fin du chrono.</p>
+          <p className="hud-help-goal">
+            Objectif : la moitié du cortège à la Préfecture avant la fin du chrono.
+            {/* #71: the full help, over the street, without leaving the room. */}
+            <HelpLink className="help-link hud-help-more" onOpen={() => setOpen(false)}>
+              Tout comprendre →
+            </HelpLink>
+          </p>
         </section>
       )}
     </>

@@ -63,9 +63,23 @@ describe("pageFor", () => {
   });
 });
 
-test("robots.txt allows everything and points to the sitemap, which lists the home page only", () => {
+test("robots.txt allows everything and points to the sitemap, which lists the home page and the help", () => {
   expect(robotsTxt()).toContain("Allow: /");
   expect(robotsTxt()).toContain(`Sitemap: ${SITE_ORIGIN}/sitemap.xml`);
   const locs = [...sitemapXml().matchAll(/<loc>([^<]+)<\/loc>/g)].map((l) => l[1]);
-  expect(locs).toEqual([`${SITE_ORIGIN}/`]);
+  expect(locs).toEqual([`${SITE_ORIGIN}/`, `${SITE_ORIGIN}/aide`]);
+});
+
+test("/aide is the help page (#71), indexable, even with a lobby code on it", () => {
+  for (const url of ["/aide", "/aide/", "/aide?lobby=abc123", "/aide#aide-points"]) {
+    const page = pageFor(url);
+    expect(page.file, url).toBe("aide.html");
+    expect(page.meta.noindex).toBe(false);
+    expect(page.meta.path).toBe("/aide");
+  }
+  expect(pageFor("/aide").meta.title).not.toBe(pageFor("/").meta.title);
+  expect(pageFor("/aidez").file).toBe("index.html");
+  const tags = headTags(pageFor("/aide?lobby=abc123").meta);
+  expect(tags).toContain(`<link rel="canonical" href="${SITE_ORIGIN}/aide" />`);
+  expect(tags).not.toContain("abc123");
 });

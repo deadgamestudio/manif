@@ -86,18 +86,22 @@
 	}
 
 	# Everything else (the pages, robots.txt, sitemap.xml, the icons)
-	# revalidates. There is one page, built twice with different link preview
-	# tags (seo/plugin.ts): index.html, and invite.html for invite links
-	# (/?lobby=<code>, "Tu es invité·e à une manif", noindex). Both load the
-	# same bundles and the client reads the code from the URL itself; the
-	# code is never put in the page. Any other path falls back to index.html
-	# (SPA). A file (a path with an extension) is never rewritten.
-	# `route` keeps these in the order written.
+	# revalidates. There is one app, built three times with different link
+	# preview tags (seo/plugin.ts): index.html; aide.html for the help page
+	# (/aide, #71); and invite.html for invite links (/?lobby=<code>, "Tu es
+	# invité·e à une manif", noindex). All load the same bundles and the
+	# client reads the URL itself; the code is never put in the page. Any
+	# other path falls back to index.html (SPA). A file (a path with an
+	# extension) is never rewritten. `route` keeps these in the order
+	# written: /aide first, so /aide?lobby=<code> (the help open over a
+	# lobby, then refreshed) is still the help page, not the invite.
 	handle {
 		root * /srv
 		encode zstd gzip
 		header Cache-Control "no-cache"
 		route {
+			@help path /aide /aide/
+			rewrite @help /aide.html
 			@invite {
 				query lobby=*
 				not path_regexp \.[a-zA-Z0-9]+$
