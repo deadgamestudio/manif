@@ -485,6 +485,74 @@ export const MAX_LBD = 2;
  */
 export const OFFENDER_MEMORY = 8;
 
+// The street heats up (#98): a round starts calm, the police escort the
+// cortège and only go after offenders; trouble (tension) or the march getting
+// far enough turns it hot, once, and from then on they chase anyone. See tension.ts.
+
+/**
+ * While calm (#98), how long a protester stays fair game for every unit after
+ * breaking, hitting or throwing something (OFFENDER_MEMORY's same four
+ * offences). Longer than the LBD's 8 s: a CRS on foot needs time to catch up.
+ */
+export const CRS_OFFENDER_MEMORY = 15;
+
+/** What each offence adds to the street's tension (#98). */
+export interface TensionGains {
+  /** A prop broken (the hit that broke it): a shop window, a bin, a car... */
+  propBreak: number;
+  /** Any other hit on a prop. A shop takes 2 to 6, so this is small. */
+  propHit: number;
+  /** A CRS hit, by a swing, a thrown item or a thrown teammate. */
+  crsHit: number;
+  /** An item or a teammate thrown, whatever it lands on. */
+  throw: number;
+}
+
+/**
+ * Tuned so that a group breaking a couple of shops in the first minute turns
+ * the street hot: two breaks plus their few hits come to about 100, and the
+ * loot they throw tops it up. One bin or one tomato alone is far from it.
+ */
+export const TENSION_GAINS: Readonly<TensionGains> = {
+  propBreak: 45,
+  propHit: 3,
+  crsHit: 15,
+  throw: 10,
+};
+
+/** Tension at which the street turns hot (#98). Synced as 0..TENSION_HOT. */
+export const TENSION_HOT = 100;
+
+/**
+ * Tension lost per second while calm (#98): slow, so a minute of trouble adds
+ * up (about 15 a minute), but one stray throw early on is forgotten by the
+ * middle of the march.
+ */
+export const TENSION_DECAY = 0.25;
+
+/**
+ * The cortège's front reaching this far (progress, 0..1) turns the street hot
+ * whatever the tension (#98): a fully peaceful march still gets its fight. The
+ * 0.4 wave (a shield line) arrives hot.
+ */
+export const HOT_PROGRESS = 0.4;
+
+/**
+ * Escorting while calm (#98): a CRS with nobody to go after walks beside the
+ * cortège, this far either side of the street's middle line. Bot protesters
+ * keep within 3 of it (BOT.laneSpread) and the facades are about 10 out, so
+ * the escort walks between the march and the shop fronts.
+ */
+export const ESCORT_LANE = 6.5;
+
+/**
+ * Where along the cortège an escort keeps, as progress from the front
+ * (0.03 is about 5 m): each bot its own spot in this range, from a little
+ * behind the rear of the bots' cortège to a little ahead of the front.
+ */
+export const ESCORT_BEHIND = 0.06;
+export const ESCORT_AHEAD = 0.03;
+
 /** Whether bots of `kind` are police (#17: a pompier is not): they chase, hit, grab, count as CRS taken out. */
 export function isPolice(kind: CrsKind): boolean {
   return kind !== CrsKind.Pompier;

@@ -17,6 +17,7 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
   }
   if (m.action === "hold") return { action: "hold" };
   if (m.action === "calm") return { action: "calm" };
+  if (m.action === "hot") return { action: "hot" };
   if (m.action === "clear") return { action: "clear" };
   if (m.action === "water") {
     const radius = Number((m as { radius?: unknown }).radius);

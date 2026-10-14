@@ -46,6 +46,7 @@ import {
   strikeCrs,
   stunCrs,
   vanDoors,
+  type CalmStreet,
   type CircleShape,
   type CollisionWorld,
   type CrsBehaviour,
@@ -166,6 +167,16 @@ export class CrsSquad {
     this.avoid.circles = h && h.circles.length > 0 ? [...this.world.circles, ...h.circles] : this.world.circles;
     this.nav.rebuild(this.avoid);
     this.bikeNav.rebuild(this.avoid);
+  }
+
+  /**
+   * The street is calm (#98): every unit only goes after recent offenders and
+   * escorts the cortège otherwise. Null: hot, anyone is fair game. From the
+   * next tick; the room passes the same object every tick, its `front` updated.
+   */
+  setCalm(calm: CalmStreet | null): void {
+    this.ctx.calm = calm;
+    this.bikeCtx.calm = calm;
   }
 
   /**

@@ -38,6 +38,8 @@ const ROUND_KEYS: Record<string, DebugRoundPayload> = {
   KeyY: { action: "water", radius: 4 },
   /** Jeun-Lac Moluchan (#85) turns up 3 m in front of you, whatever the roll. */
   KeyO: { action: "moluchan", distance: 3 },
+  /** The street turns hot now (#98): the CRS stop escorting and chase anyone. */
+  KeyU: { action: "hot" },
 };
 
 const DEBUG_CODES = [...Object.keys(KEYS), ...Object.keys(HEALTH_KEYS), ...Object.keys(ROUND_KEYS)];

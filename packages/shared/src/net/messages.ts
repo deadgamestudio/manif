@@ -153,6 +153,8 @@ export type DebugRoundPayload =
   | { action: "water"; radius: number }
   /** #16: no CRS on the street and no more waves this round, for scripted tests that need a calm street. */
   | { action: "calm" }
+  /** #98: the street turns hot now (CRS chase anyone), as if the tension had boiled over. Not the opposite of `calm`. */
+  | { action: "hot" }
   /** #13: no bots on the street right now, but the waves still to come still come. */
   | { action: "clear" }
   /** #45: a CRS lying out cold `distance` m in front of yourself for `seconds`, to hop over it. */

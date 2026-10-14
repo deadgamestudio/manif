@@ -244,6 +244,10 @@ export interface StreetStateShape {
   timeLeft: number;
   /** The cortège's front, 0..100 along the street (#12). */
   progress: number;
+  /** The street turned hot this round (#98): CRS chase anyone. False while calm (and between rounds). */
+  hot: boolean;
+  /** The street's tension (#98), 0..TENSION_HOT. */
+  tension: number;
   /** How the last round ended (#12). Stays set through `waiting` until the next march starts. */
   result: RoundResult;
   /** Session id of the host (who may start), or "" when the room is empty. */

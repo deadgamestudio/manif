@@ -14,6 +14,8 @@
  * room's fallback timer ends a drag that never gets there).
  *
  * Active with nobody in sight: walks back to its post (spawn point) and waits.
+ * While the street is calm (#98, `CrsContext.calm`) it only goes after recent
+ * offenders, and with none around it walks beside the cortège instead.
  *
  * Plain functions over a plain `CrsBot` record. The room owns the protesters
  * and applies the effects through `CrsHost` (damage, knockback, grab, drag),
@@ -39,6 +41,7 @@ import { PLAYER_RADIUS } from "../player/index.js";
 import {
   CRS_DIRECT_RANGE,
   CRS_GIVE_UP_TIME,
+  CRS_OFFENDER_MEMORY,
   CRS_SEPARATION,
   CRS_STATS,
   CRS_STUCK_PROGRESS,
@@ -64,7 +67,9 @@ import {
   isSplatted,
   isStinky,
 } from "./status.js";
-import { pickTarget, type ProtesterView } from "./targeting.js";
+import { isOffender, pickTarget, type ProtesterView } from "./targeting.js";
+import { calmTargets, escortSpot } from "./tension.js";
+import type { Level } from "../level/index.js";
 
 /** Server-side state of one bot. Only x, z, rotation, hp, status, down and kind are synced. */
 export interface CrsBot {
@@ -328,6 +333,19 @@ export interface CrsContext {
   dt: number;
   /** Random numbers in [0, 1) for the tear gas scatter (#7). Math.random when absent; tests pass their own. */
   rng?: () => number;
+  /**
+   * The street is still calm (#98, see tension.ts): every unit only goes after
+   * recent offenders (`targetsOf`), and one with nobody to go after escorts the
+   * cortège (`walkIdle`). Absent or null: hot, anyone is fair game.
+   */
+  calm?: CalmStreet | null;
+}
+
+/** What a calm street (#98) tells the bots: the level and how far the cortège's front got, for the escort. */
+export interface CalmStreet {
+  level: Level;
+  /** The cortège's front, progress 0..1. */
+  front: number;
 }
 
 /** The swappable steps of one tick (#13: a unit type replaces some). */
@@ -352,6 +370,8 @@ const scratch: Vec2 = { x: 0, z: 0 };
 const doorGoal: Vec2 = { x: 0, z: 0 };
 const doorAim: Vec2 = { x: 0, z: 0 };
 const NO_MOVE: Vec2 = { x: 0, z: 0 };
+/** Scratch for `walkIdle`'s escort spot (#98). */
+const idleGoal: Vec2 = { x: 0, z: 0 };
 /** A path waypoint counts as reached within this distance. */
 const WAYPOINT_REACHED = 0.35;
 /** Look this many waypoints ahead for one we can walk straight to (path smoothing). */
@@ -370,14 +390,43 @@ export function gapTo(bot: CrsBot, p: Vec2): number {
   return Math.hypot(p.x - bot.body.x, p.z - bot.body.z) - bot.stats.radius - PLAYER_RADIUS;
 }
 
-/** Re-pick the target every `retargetInterval`, or at once when it stops being a free protester. */
+/**
+ * The protesters a police bot may go after this tick: everyone once the
+ * street is hot, only recent offenders (CRS_OFFENDER_MEMORY) while it is calm
+ * (#98). Every unit's target pick and tear gas aim goes through this.
+ */
+export function targetsOf(ctx: CrsContext, host: CrsHost): Iterable<ProtesterView> {
+  return ctx.calm ? calmTargets(host.protesters(), ctx.now) : host.protesters();
+}
+
+/** Whether `p` may be gone after this tick (#98): anyone when hot, a recent offender while calm. */
+export function fairGame(ctx: CrsContext, p: ProtesterView): boolean {
+  return !ctx.calm || isOffender(p, ctx.now, CRS_OFFENDER_MEMORY);
+}
+
+/**
+ * Nobody to go after: back to its post (so a bot that dragged someone away
+ * does not idle out of sight forever), or, while the street is calm (#98),
+ * to its own spot beside the cortège (`escortSpot`), walking along with it.
+ */
+export function walkIdle(bot: CrsBot, ctx: CrsContext): void {
+  const goal = ctx.calm ? escortSpot(ctx.calm.level, ctx.calm.front, bot.id, idleGoal) : bot.post;
+  if (Math.hypot(goal.x - bot.body.x, goal.z - bot.body.z) > POST_REACHED) steerTo(bot, goal.x, goal.z, ctx);
+  else setInput(bot, NO_MOVE);
+}
+
+/**
+ * Re-pick the target every `retargetInterval`, or at once when it stops being
+ * a free protester (or, while calm, an offender, #98: a grab already underway
+ * is not this step's business and goes on).
+ */
 export function updateTarget(bot: CrsBot, ctx: CrsContext, host: CrsHost): void {
   const now = ctx.now;
   if (bot.ignoreId !== null && now >= bot.ignoreUntil) bot.ignoreId = null;
   const current = bot.targetId === null ? undefined : host.protester(bot.targetId);
-  const valid = current !== undefined && current.status === PlayerStatus.Free && current.id !== bot.ignoreId;
+  const valid = current !== undefined && current.status === PlayerStatus.Free && current.id !== bot.ignoreId && fairGame(ctx, current);
   if (valid && now < bot.retargetAt) return;
-  const next = pickTarget(bot.body, host.protesters(), bot.stats.sight, valid ? bot.targetId : null, bot.stats.switchMargin, bot.ignoreId);
+  const next = pickTarget(bot.body, targetsOf(ctx, host), bot.stats.sight, valid ? bot.targetId : null, bot.stats.switchMargin, bot.ignoreId);
   if (next !== bot.targetId) {
     bot.targetId = next;
     bot.path = null;
@@ -625,9 +674,8 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
     behaviour.updateTarget(bot, ctx, host);
     const target = bot.targetId === null ? undefined : host.protester(bot.targetId);
     if (!target) {
-      // Nobody in sight: back to its post, so a bot that dragged someone away does not idle out of sight forever.
-      if (Math.hypot(bot.post.x - bot.body.x, bot.post.z - bot.body.z) > POST_REACHED) steerTo(bot, bot.post.x, bot.post.z, ctx);
-      else setInput(bot, NO_MOVE);
+      // Nobody in sight (or, calm, nobody who offended): back to its post, or along with the cortège (#98).
+      walkIdle(bot, ctx);
     } else if (tryThrowGas(bot, ctx, host) || behaviour.act(bot, target, ctx, host)) {
       // Throwing a canister (#7) takes the tick, like a baton swing.
       setInput(bot, NO_MOVE);
@@ -676,7 +724,8 @@ export function tryThrowGas(bot: CrsBot, ctx: CrsContext, host: CrsHost): boolea
   if (!host.throwGas || !(s.gasCooldown > 0) || ctx.now < bot.gasReadyAt) return false;
   // Retry soon whatever happens; a throw pushes it to the full cooldown below.
   bot.gasReadyAt = ctx.now + s.retargetInterval;
-  const aim = pickGasAim(bot.body, host.protesters());
+  // #98: while calm, only at a bunch of offenders.
+  const aim = pickGasAim(bot.body, targetsOf(ctx, host));
   if (!aim) return false;
   // Splatted (#15): it can't see where it throws.
   const scatter = isSplatted(bot, ctx.now) ? GAS_SCATTER * SPLAT_GAS_SCATTER : GAS_SCATTER;

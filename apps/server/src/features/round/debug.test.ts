@@ -6,6 +6,7 @@ describe("taintsRound (#41)", () => {
     expect(taintsRound({ action: "teleport", progress: 1 }, 100)).toBe(true);
     expect(taintsRound({ action: "hold" }, 100)).toBe(true);
     expect(taintsRound({ action: "calm" }, 100)).toBe(true);
+    expect(taintsRound({ action: "hot" }, 100)).toBe(true);
     expect(taintsRound({ action: "clear" }, 100)).toBe(true);
     expect(taintsRound({ action: "moluchan" }, 100)).toBe(true);
     expect(taintsRound({ action: "crs", distance: 2 }, 100)).toBe(true);
@@ -18,6 +19,13 @@ describe("taintsRound (#41)", () => {
     expect(taintsRound({ action: "time", seconds: 0.5 }, 100)).toBe(false);
     expect(taintsRound({ action: "time", seconds: 100 }, 100)).toBe(false);
     expect(taintsRound({ action: "time", seconds: 101 }, 100)).toBe(true);
+  });
+});
+
+describe("parseDebugRound: hot (#98)", () => {
+  test("its own action, not the opposite of calm", () => {
+    expect(parseDebugRound({ action: "hot" })).toEqual({ action: "hot" });
+    expect(parseDebugRound({ action: "calm" })).toEqual({ action: "calm" });
   });
 });
 
