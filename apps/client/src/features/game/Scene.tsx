@@ -13,6 +13,7 @@ import { GasView } from "../gas/index.ts";
 import { FiresView } from "../fire/index.ts";
 import { TrucksView } from "../pompier/index.ts";
 import { MoluchanView } from "../moluchan/index.ts";
+import { GrabPairs } from "../grab/index.ts";
 import { bodyUrlFor, preloadModels, roundPreloadGroups } from "../models/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
 
@@ -56,6 +57,7 @@ export function Scene({
         <PlayerAvatar key={p.id} id={p.id} name={p.name} isLocal={p.id === localId} bot={isBotId(p.id)} />
       ))}
       <CrsView ids={crs} />
+      <GrabPairs />
       {/* #70: the van each grabbed protester is dragged to, and the local player's off-screen arrow. */}
       <DragTargets ids={ids} localId={localId} />
       <ThrowablesView />

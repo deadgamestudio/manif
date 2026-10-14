@@ -11,7 +11,7 @@
  * tomato splat (here, on the model's head bone), stink cloud, fire, water
  * jet, laser and HP bar.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal, useFrame, type RootState } from "@react-three/fiber";
 import {
   AnimationClip,
@@ -50,6 +50,7 @@ import { chooseLoop, lyingClip, swingClip, type PoliceRole } from "./crsClips.ts
 import { Splat } from "./crsVisuals.tsx";
 import { disguiseArchetype } from "./disguise.ts";
 import { getLastThrow } from "./canisterThrows.ts";
+import { setCrsBody } from "./crsBody.ts";
 
 /** Skin colour of every face (palette cell 6), the protesters' too (archetypeVisuals). */
 const SKIN = "#8d6e63";
@@ -274,6 +275,12 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
   const clips = usePoliceClips(spec.clips);
   const animator = useAnimator(body?.root ?? null, clips);
   useModelLink(link, animator !== null);
+  // A grab pair (#28, features/grab) reaches the body through this.
+  useLayoutEffect(() => {
+    if (!body || !animator) return;
+    setCrsBody(id, body.root);
+    return () => setCrsBody(id, null);
+  }, [id, body, animator]);
   const splat = useRef<Group>(null);
   const t = useRef<Track>(freshTrack());
   const at = useRef(new Vector3());
@@ -302,7 +309,7 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
       show(body.baton, !throwing);
       if (!throwing) show(body.canister, false);
     }
-    // A grab pair (#28, later) drives this body itself.
+    // A grab pair (#28, features/grab) drives this body itself.
     if (getPoseOwner(id) !== null) return;
     if (!onScreen(state, at.current)) {
       s.skipped = Math.min(1, s.skipped + dt);
