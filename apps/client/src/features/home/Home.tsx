@@ -2,6 +2,7 @@ import { useId, useState, type FormEvent } from "react";
 import { NAME_MAX_LENGTH, nameOrDefault, parseLobbyCode, randomDefaultName } from "@manif/shared";
 import { net, readInviteCode, type NetSnapshot } from "../../shared/net/index.ts";
 import { unlockAudio } from "../audio/index.ts";
+import { HelpLink } from "../help/index.ts";
 import { initialName, saveName } from "./profile.ts";
 import "./home.css";
 
@@ -131,6 +132,8 @@ export function Home({ snap }: { snap: NetSnapshot }) {
           {join}
         </div>
       )}
+
+      <HelpLink className="help-link">Comment on joue ?</HelpLink>
 
       <p className="error" role="alert" aria-live="polite">
         {error}

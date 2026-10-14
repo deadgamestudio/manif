@@ -87,8 +87,12 @@ export function pickTip(s: TipSituation, touch: boolean, turn: number, keys: Tip
   return list[((turn % list.length) + list.length) % list.length] ?? "";
 }
 
-/** The full controls list, as [key, what it does]. */
-export function controls(touch: boolean, keys: TipKeys): readonly (readonly [string, string])[] {
+/**
+ * The full controls list, as [key, what it does]. `where` is who shows it:
+ * the in-game "?" panel, or the "Comment on joue" page (#71), where the help
+ * key opens that panel rather than "this help".
+ */
+export function controls(touch: boolean, keys: TipKeys, where: "panel" | "page" = "panel"): readonly (readonly [string, string])[] {
   return touch
     ? [
         ["Joystick", "marcher (pose le pouce n'importe où à gauche)"],
@@ -100,6 +104,8 @@ export function controls(touch: boolean, keys: TipKeys): readonly (readonly [str
         ["Action maintenue", "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
         // The round feature's board chip (#63).
         ["📋", "afficher ou cacher le tableau du cortège (qui est libre, qui est embarqué·e)"],
+        // The sound chip (#60).
+        ["🔊", "régler ou couper le son"],
       ]
     : [
         [keys.move.replace(" ou ", " / "), "marcher"],
@@ -111,6 +117,6 @@ export function controls(touch: boolean, keys: TipKeys): readonly (readonly [str
         [`${keys.interact} maintenu`, "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
         [keys.mute, "couper ou remettre le son"],
         [`${keys.board} maintenu`, "voir le tableau du cortège (qui est libre, qui est embarqué·e)"],
-        [keys.help, "afficher ou cacher cette aide"],
+        [keys.help, where === "page" ? "en pleine manif, afficher ou cacher la liste des commandes" : "afficher ou cacher cette aide"],
       ];
 }
