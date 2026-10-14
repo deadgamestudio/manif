@@ -12,6 +12,11 @@
  *
  * It never picks up or throws a teammate and never lights a fire: those stay
  * players' choices, and the room gives bots no way to do them.
+ *
+ * While the street is calm (#98, `BotWorld.calm`) a bot never starts the
+ * trouble: it only goes for a CRS that is dragging someone (to free them),
+ * so a cortège of bots alone keeps the street calm until the march is far
+ * enough along to heat it up.
  */
 import { detectStuck, steerTo, type NavContext } from "../crs/index.js";
 import { PlayerStatus } from "../health/index.js";
@@ -145,6 +150,11 @@ export interface BotWorld {
   hurdles: readonly BotCircle[];
   /** Jeun-Lac Moluchan (#85), while his ring is on: bots drift a little towards him. Absent or null: not there. */
   moluchan?: Vec2 | null;
+  /**
+   * The street is still calm (#98): bots don't provoke, they only hit or throw
+   * at a CRS that is dragging someone. Absent or false: hot, today's bots.
+   */
+  calm?: boolean;
 }
 
 /** What the bot does this think. The room checks every action like a player's (control, cooldowns). */
@@ -256,10 +266,14 @@ export function chooseBotPlan(mind: BotMind, world: BotWorld): BotPlan {
       return { kind: "flee", x: cloud.x + dx * (cloud.r + 1.5), z: cloud.z + dz * (cloud.r + 1.5) };
     }
   }
-  // Something in hand: at the nearest standing CRS in reach, else keep it and march.
+  const calm = world.calm === true;
+  // Something in hand: at the nearest standing CRS in reach (calm, #98: only one dragging someone), else keep it and march.
   if (self.carrying) {
     let best: BotSeenCrs | undefined;
-    for (const c of world.crs) if (!c.down && dist(self, c) <= BOT.throwRange && (!best || dist(self, c) < dist(self, best))) best = c;
+    for (const c of world.crs) {
+      if (c.down || (calm && c.grabbing === null) || dist(self, c) > BOT.throwRange) continue;
+      if (!best || dist(self, c) < dist(self, best)) best = c;
+    }
     return best ? { kind: "throw", id: best.id } : MARCH;
   }
   // A grabbed teammate: humans first (they count as half as far), then fellow bots.
@@ -278,15 +292,15 @@ export function chooseBotPlan(mind: BotMind, world: BotWorld): BotPlan {
   if (mate && rollFor(mind, `rescue:${mate.id}`, mate.bot ? BOT.rescueChanceBot : BOT.rescueChanceHuman, now, random)) {
     return { kind: "rescue", id: mate.id };
   }
-  // A CRS dragging someone nearby, or right on a teammate (or on the bot).
+  // A CRS dragging someone nearby, or right on a teammate (or on the bot). Calm (#98): only one dragging someone.
   let foe: BotSeenCrs | undefined;
   let foeD = Infinity;
   for (const c of world.crs) {
     if (c.down) continue;
     const d = dist(self, c);
     if (d > BOT.helpRange) continue;
-    let busy = c.grabbing !== null || d <= BOT.brawlRange;
-    if (!busy) {
+    let busy = c.grabbing !== null || (!calm && d <= BOT.brawlRange);
+    if (!busy && !calm) {
       for (const p of world.protesters) {
         if (p.id !== mind.id && p.status === PlayerStatus.Free && dist(p, c) <= BOT.brawlRange) {
           busy = true;

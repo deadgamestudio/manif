@@ -22,7 +22,7 @@ import { PlayerStatus } from "../health/index.js";
 import { segmentEntry } from "../melee/index.js";
 import { isDown, type CollisionWorld, type Vec2 } from "../physics/index.js";
 import { wallEntry } from "../throwable/index.js";
-import { DEFAULT_BEHAVIOUR, cancelAim, gapTo, steerTo, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
+import { DEFAULT_BEHAVIOUR, cancelAim, gapTo, steerTo, targetsOf, walkIdle, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import { CrsStatus, OFFENDER_MEMORY, crsRadius, type LbdStats } from "./constants.js";
 import { isSplatted } from "./status.js";
 import { pickLbdTarget, type ProtesterView } from "./targeting.js";
@@ -81,10 +81,10 @@ function face(bot: CrsBot, p: Vec2): void {
 }
 
 /** The nearest free protester within `range` (centre to centre), or undefined. Ties go to the smaller id. */
-function nearestFree(bot: CrsBot, host: CrsHost, range: number): ProtesterView | undefined {
+function nearestFree(bot: CrsBot, protesters: Iterable<ProtesterView>, range: number): ProtesterView | undefined {
   let best: ProtesterView | undefined;
   let bestD = range;
-  for (const p of host.protesters()) {
+  for (const p of protesters) {
     if (p.status !== PlayerStatus.Free) continue;
     const d = Math.hypot(p.x - bot.body.x, p.z - bot.body.z);
     if (d < bestD || (d === bestD && best !== undefined && p.id < best.id)) {
@@ -161,7 +161,7 @@ const FLANK_CLOSEST = 0.5;
  * but out of line (behind a bollard, a car, other CRS) or out of range
  * (`flank`): it walks towards them, round the cover, until it has a shot, and
  * lets protesters come as close as FLANK_CLOSEST of its standoff meanwhile.
- * Nobody in sight: back to its post.
+ * Nobody in sight: back to its post (calm, #98: along with the cortège, `walkIdle`).
  */
 function keepDistance(
   bot: CrsBot,
@@ -172,8 +172,7 @@ function keepDistance(
   flank: ProtesterView | undefined,
 ): void {
   if (!near) {
-    if (Math.hypot(bot.post.x - bot.body.x, bot.post.z - bot.body.z) > 0.5) steerTo(bot, bot.post.x, bot.post.z, ctx);
-    else stand(bot);
+    walkIdle(bot, ctx);
     return;
   }
   const dx = bot.body.x - near.x;
@@ -217,7 +216,8 @@ export function lbdOrders(bot: CrsBot, ctx: CrsContext, host: CrsHost): boolean 
     stepAim(bot, ctx, host);
     return true;
   }
-  const near = nearestFree(bot, host, bot.stats.sight);
+  // #98: while calm, only an offender counts (to swing at, or to keep its distance from).
+  const near = nearestFree(bot, targetsOf(ctx, host), bot.stats.sight);
   // Rushed: a slow, soft swing (a miss when splatted, #15). It does not back off mid-swing.
   if (near && gapTo(bot, near) <= bot.stats.batonRange && now >= bot.batonReadyAt) {
     const dx = near.x - bot.body.x;

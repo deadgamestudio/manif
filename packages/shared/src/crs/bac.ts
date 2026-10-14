@@ -16,7 +16,7 @@
  */
 import { PlayerStatus } from "../health/index.js";
 import { DEFAULT_NAMES } from "../lobby/index.js";
-import { DEFAULT_BEHAVIOUR, gapTo, steerTo, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
+import { DEFAULT_BEHAVIOUR, gapTo, steerTo, targetsOf, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import type { DisguiseStats } from "./constants.js";
 import type { ProtesterView } from "./targeting.js";
 
@@ -50,10 +50,10 @@ export function disguiseName(used: ReadonlySet<string>, random: () => number = M
 }
 
 /** The nearest free protester within `range` of the bot, or undefined. Ties go to the smaller id. */
-function nearestFree(bot: CrsBot, host: CrsHost, range: number): ProtesterView | undefined {
+function nearestFree(bot: CrsBot, protesters: Iterable<ProtesterView>, range: number): ProtesterView | undefined {
   let best: ProtesterView | undefined;
   let bestD = range;
-  for (const p of host.protesters()) {
+  for (const p of protesters) {
     if (p.status !== PlayerStatus.Free) continue;
     const d = Math.hypot(p.x - bot.body.x, p.z - bot.body.z);
     if (d < bestD || (d === bestD && best !== undefined && p.id < best.id)) {
@@ -86,8 +86,8 @@ export function bacOrders(bot: CrsBot, ctx: CrsContext, host: CrsHost): boolean 
     return false;
   }
   const now = ctx.now;
-  // Who it keeps near (blending) or goes for (stalking): the nearest free protester it can see.
-  const near = nearestFree(bot, host, bot.stats.sight * 2);
+  // Who it keeps near (blending) or goes for (stalking): the nearest free protester it can see (calm, #98: an offender).
+  const near = nearestFree(bot, targetsOf(ctx, host), bot.stats.sight * 2);
   if (now >= bot.stalkAt) {
     if (near && gapTo(bot, near) <= d.revealRange) {
       revealBac(bot, now);

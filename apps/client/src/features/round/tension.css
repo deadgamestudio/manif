@@ -1,0 +1,71 @@
+/* The street turns hot (#98): a short placard over the street, like Moluchan's
+   banner (#85) but a step higher, so the two never sit on top of each other.
+   Fixed, centred, next to the round HUD without covering it: above it on a
+   keyboard (it sits bottom centre), under it on touch (top centre), and on a
+   portrait phone low in the middle, over the touch buttons. Takes no clicks. */
+.tension-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  z-index: 1;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 4px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: rgb(22 22 22 / 0.88);
+  color: #ffb36b;
+  font-family: var(--font-placard);
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-align: center;
+  box-shadow: var(--hud-shadow);
+  pointer-events: none;
+  translate: -50% 0;
+  rotate: 1deg;
+  animation: tension-banner 3.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes tension-banner {
+  0% {
+    opacity: 0;
+    scale: 0.85;
+  }
+  7% {
+    opacity: 1;
+    scale: 1.06;
+  }
+  14%,
+  86% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+/* Touch, landscape: the round is top centre, so the banner goes under it (Moluchan's spot, a step lower). */
+.hud[data-touch] .tension-banner {
+  top: calc(108px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  max-width: min(320px, 46vw);
+  font-size: 16px;
+}
+
+/* Touch, portrait: low in the middle, a step over Moluchan's banner, clear of the avatar. */
+@media (orientation: portrait) {
+  .hud[data-touch] .tension-banner {
+    top: auto;
+    bottom: calc(258px + env(safe-area-inset-bottom, 0px));
+    max-width: calc(100vw - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tension-banner {
+    animation: none;
+  }
+}

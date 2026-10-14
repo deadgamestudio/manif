@@ -39,6 +39,13 @@ export const StreetState = schema(
     timeLeft: t.uint16().default(0),
     /** The cortège's front (#12), 0..100 from the start to the Préfecture. */
     progress: t.uint8().default(0),
+    /**
+     * The street turned hot this round (#98, see `StreetMood`): until then the
+     * CRS escort the cortège and only go after offenders. Never back to false within a round.
+     */
+    hot: t.boolean().default(false),
+    /** The street's tension (#98), 0..TENSION_HOT (100 once hot). Changes on offences and as it cools. */
+    tension: t.uint8().default(0),
     /** How the last round ended (#12), see `RoundResult`. Kept through waiting for the lobby. */
     result: t.uint8().default(RoundResult.None),
     /** Session id of the host, who alone can start. */

@@ -6,7 +6,8 @@ import { KNOCKDOWN_THRESHOLD, applyImpulse, circleOverlaps, createBody, isDown, 
 import { PLAYER_RADIUS, PLAYER_SPEED } from "../player/index.js";
 import { GAS_SLOW } from "../gas/index.js";
 import { burnCrs, createCrsBot, hitCrs, isWeakened, pickVan, stepCrs, steerTo, strikeCrs, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
-import { CRS_STATS, CrsKind, CrsStatus, GRAB_HP_THRESHOLD, GRAB_WINDUP_SLACK } from "./constants.js";
+import { CRS_OFFENDER_MEMORY, CRS_STATS, CrsKind, CrsStatus, GRAB_HP_THRESHOLD, GRAB_WINDUP_SLACK } from "./constants.js";
+import { escortSpot } from "./tension.js";
 import { NavGrid } from "./nav.js";
 import { vanDoors, type ProtesterView } from "./targeting.js";
 
@@ -888,5 +889,84 @@ describe("pompier (#17): knocked over, never hurt", () => {
     const bot = createCrsBot("c", CrsKind.Crs, 0, 0);
     hitCrs(bot, -1, 0, 1, 0);
     expect(bot.hp).toBe(STATS.maxHp - 1);
+  });
+});
+
+describe("a calm street (#98)", () => {
+  /** The open test world as a street: progress runs down Z, from z = 20 to z = -20. */
+  const STREET = { ...STREET_LEVEL, progress: { from: { x: 0, z: 20 }, to: { x: 0, z: -20 } } };
+  const calmSetup = () => {
+    const s = setup();
+    s.ctx.calm = { level: STREET, front: 0.5 };
+    return s;
+  };
+
+  test("a peaceful protester walks right next to a CRS untouched: no chase, no baton, no grab", () => {
+    const { host, run, addBot, bots } = calmSetup();
+    addBot("crs-1", 0, 0);
+    const p = host.add("peaceful", 0, touching);
+    // Weakened, even: a grab would land at once if the street were hot.
+    p.health = { ...p.health, hp: GRAB_HP_THRESHOLD };
+    run(5);
+    expect(bots[0]!.targetId).toBeNull();
+    expect(bots[0]!.windupId).toBeNull();
+    expect(host.batonHits).toEqual([]);
+    expect(p.health.status).toBe(PlayerStatus.Free);
+  });
+
+  test("an offender is chased and hit, and only them", () => {
+    const { host, run, addBot } = calmSetup();
+    addBot("crs-1", 0, 0);
+    host.add("peaceful", 0, 3);
+    const o = host.add("offender", 0, 8);
+    o.view.offendedAt = 0;
+    expect(run(5, () => host.batonHits.length > 0)).toBe(true);
+    expect(host.batonHits.every((h) => h.id === "offender")).toBe(true);
+  });
+
+  test("the offence is forgotten after CRS_OFFENDER_MEMORY: the chase stops", () => {
+    const { host, run, addBot, bots, ctx } = calmSetup();
+    addBot("crs-1", 0, 0);
+    const o = host.add("offender", 0, 15);
+    o.view.offendedAt = 0;
+    run(0.5);
+    expect(bots[0]!.targetId).toBe("offender");
+    // Keep them out of reach (stuck far away), until the memory runs out.
+    o.view.offendedAt = ctx.now - CRS_OFFENDER_MEMORY - 0.01;
+    run(0.2);
+    expect(bots[0]!.targetId).toBeNull();
+  });
+
+  test("a grab already underway is not cancelled when the offence runs out", () => {
+    const { host, run, addBot, bots, ctx, windUp } = calmSetup();
+    addBot("crs-1", 0, 0);
+    const o = host.add("offender", 0, touching);
+    o.health = { ...o.health, hp: GRAB_HP_THRESHOLD };
+    o.view.offendedAt = 0;
+    expect(windUp()).toBe(true);
+    o.view.offendedAt = ctx.now - CRS_OFFENDER_MEMORY - 1;
+    run(1);
+    expect(bots[0]!.status).toBe(CrsStatus.Grabbing);
+    expect(o.health.status).toBe(PlayerStatus.Grabbed);
+  });
+
+  test("with nobody to go after, it walks beside the cortège (its escort spot), not to its post", () => {
+    const { run, addBot, bots, ctx } = calmSetup();
+    addBot("crs-1", 0, -10);
+    const spot = escortSpot(STREET, ctx.calm!.front, "crs-1");
+    expect(run(8, () => Math.hypot(bots[0]!.body.x - spot.x, bots[0]!.body.z - spot.z) < 0.6)).toBe(true);
+    expect(Math.abs(bots[0]!.body.x)).toBeGreaterThan(5);
+  });
+
+  test("someone who never offended (Moluchan, #85) is left alone while calm, and chased once hot", () => {
+    const { host, run, addBot, bots, ctx } = calmSetup();
+    addBot("crs-1", 0, 0);
+    const m = host.add("moluchan", 0, 6);
+    m.view.priority = 10;
+    run(1);
+    expect(bots[0]!.targetId).toBeNull();
+    ctx.calm = null;
+    run(0.5);
+    expect(bots[0]!.targetId).toBe("moluchan");
   });
 });

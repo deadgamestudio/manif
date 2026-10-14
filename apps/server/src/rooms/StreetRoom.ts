@@ -50,6 +50,13 @@ import {
   WAVE_LBD_AHEAD,
   CRS_STATS,
   Offenders,
+  addOffence,
+  createMood,
+  heatUp,
+  stepMood,
+  syncedTension,
+  type CalmStreet,
+  type Offence,
   type BallBody,
   type LbdImpactEvent,
   type LbdShotEvent,
@@ -356,6 +363,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private lightable: LightableView[] = [];
   /** Who broke, hit or threw something lately (#73): the LBD only aims at them. Server-only. */
   private offenders = new Offenders();
+  /**
+   * The street's mood (#98): calm until the tension boils over or the front
+   * gets far enough, then hot for the rest of the round. Mirrored into
+   * `state.hot` and `state.tension`; the CRS see it as `calmStreet`.
+   */
+  private mood = createMood();
+  /** What the CRS are told while calm (#98), reused every tick with the front updated; null once hot. */
+  private calmStreet: CalmStreet = { level: LEVEL, front: 0 };
   /** The LBD's balls in flight (#73), and the round's shot counts. Clients get the shot and impact as events. */
   private lbdShots = new LbdShots();
   /** Scratch for the balls (#73), reused every tick: what stops them and whom they can hit. */
@@ -658,6 +673,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
           this.crs.clear();
           this.brigade.clear();
           this.round.fired = ROUND_WAVES.map(() => true);
+        } else if (cmd?.action === "hot") {
+          // #98: the street turns hot now (not the opposite of `calm`, which removes the CRS).
+          if (heatUp(this.mood)) this.turnedHot("debug");
+          this.syncMood();
         } else if (cmd?.action === "fallen") {
           const self = this.state.players.get(client.sessionId);
           if (self) {
@@ -991,6 +1010,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       hurdles,
       // #85: bots drift a little towards Moluchan's ring.
       moluchan: this.moluchan.aura,
+      // #98: while calm, bots don't start the trouble.
+      calm: !this.mood.hot,
     };
   }
 
@@ -1032,6 +1053,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.batonDowned.clear();
     // #73: nobody is an offender yet, no ball in the air.
     this.offenders.clear();
+    // #98: every round starts calm.
+    this.mood = createMood();
     this.lbdShots.clear();
     // Nobody carried or flying (#11).
     this.carry.clear();
@@ -1072,6 +1095,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     });
     this.front = 0;
     this.state.progress = 0;
+    this.syncMood();
   }
 
   /**
@@ -1515,8 +1539,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // The black bloc's hits count double (#14): every prop hit goes through here, swing, throw or thrown teammate.
     const res = this.props.damage(propId, propDamageOf(amount, this.statsOf(by).propDamage), this.state.props.get(propId));
     if (!res) return;
-    // #73: breaking things makes you a target for the LBD.
-    this.offenders.mark(by, this.now);
+    // #73: breaking things makes you a target for the LBD. #98: and heats the street up, a break most of all.
+    this.offend(by, res.broke ? "propBreak" : "propHit");
     const event: HitEvent = { by, kind: "prop", target: propId, x, z, broke: res.broke };
     this.broadcast(ServerMessage.Hit, event);
     if (res.broke) {
@@ -1527,11 +1551,36 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     }
   }
 
+  /**
+   * `by` broke, hit or threw something (#73): an offender for a while (the LBD,
+   * and every unit while calm, go after them), and the street's tension goes up
+   * (#98), which may turn it hot.
+   */
+  private offend(by: string, offence: Offence) {
+    this.offenders.mark(by, this.now);
+    if (addOffence(this.mood, offence)) this.turnedHot(`tension (${offence} by ${by})`);
+    this.syncMood();
+  }
+
+  /** The street just turned hot (#98): CRS chase anyone from the next tick; clients show their banner on `state.hot`. */
+  private turnedHot(why: string) {
+    console.log(`[street ${this.roomId}] the street turns hot: ${why}`);
+  }
+
+  /** Mirror the mood (#98) into the synced state and tell the CRS (calm with the current front, or null once hot). */
+  private syncMood() {
+    const tension = syncedTension(this.mood);
+    if (this.state.tension !== tension) this.state.tension = tension;
+    if (this.state.hot !== this.mood.hot) this.state.hot = this.mood.hot;
+    this.calmStreet.front = this.front;
+    this.crs.setCalm(this.mood.hot ? null : this.calmStreet);
+  }
+
   /** Tell everyone a CRS was hit (to flash it) and pushed (to tip it the right way). */
   private announceCrsHit(by: string, crsId: string, res: CrsHitResult, x: number, z: number) {
     if (res.out) this.roundStats.add(by, "crsOut");
-    // #73: so does hitting a CRS.
-    this.offenders.mark(by, this.now);
+    // #73: so does hitting a CRS (#98: being hit by one is no offence).
+    this.offend(by, "crsHit");
     const event: HitEvent = { by, kind: "crs", target: crsId, x, z, broke: res.out };
     this.broadcast(ServerMessage.Hit, event);
     const imp = res.impulse;
@@ -1565,7 +1614,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     player.carrying = ThrowableKind.None;
     player.rotation = Math.atan2(dir.x, dir.z);
     // #73: and throwing anything.
-    this.offenders.mark(id, this.now);
+    this.offend(id, "throw");
     // A player already played the arm swing locally; a bot's is news to everyone.
     const swing: SwingEvent = { id };
     if (thrower) this.broadcast(ServerMessage.Swing, swing, { except: thrower });
@@ -1590,7 +1639,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (!res) return;
     this.carry.startFlight(mateId, id, mate.x, mate.z, res.dirX, res.dirZ);
     player.rotation = facing;
-    this.offenders.mark(id, this.now);
+    this.offend(id, "throw");
     this.roundStats.add(id, "teammatesThrown");
     this.roundStats.add(mateId, "knockdowns");
     // The flailing flight: every client's ragdoll kicks along the throw.
@@ -1896,6 +1945,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const started = this.tickStats ? performance.now() : 0;
       this.simulate(dt);
       this.updateFront();
+      // #98: the tension cools, and the front far enough turns the street hot.
+      if (stepMood(this.mood, dt, this.front)) this.turnedHot(`the front reached ${Math.round(this.front * 100)}%`);
+      this.syncMood();
       this.tickStats?.add(performance.now() - started, this.now, () => `${this.bots.size} bots, ${this.crs.size} CRS, ${this.state.players.size} protesters`);
     }
     if (this.state.phase !== Phase.Waiting) this.stepRoundClock(dt);

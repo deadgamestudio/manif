@@ -25,7 +25,7 @@
 import { PlayerStatus } from "../health/index.js";
 import { isDown, knockDown, resolveCircle, stepBody, type CollisionWorld, type Vec2 } from "../physics/index.js";
 import { PLAYER_RADIUS } from "../player/index.js";
-import { act, DEFAULT_BEHAVIOUR, steerTo, type BikeRide, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
+import { act, DEFAULT_BEHAVIOUR, fairGame, steerTo, targetsOf, walkIdle, type BikeRide, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import { CrsMount, CrsStatus, type BikeStats } from "./constants.js";
 import { SPLAT_SPEED_FACTOR, SPLAT_WOBBLE_ANGLE, SPLAT_WOBBLE_SPEED, isSplatted } from "./status.js";
 import { pickTarget, type ProtesterView } from "./targeting.js";
@@ -183,14 +183,18 @@ export function stepBike(bot: CrsBot, ctx: CrsContext, host: CrsHost): BikeEvent
   if (bot.status !== CrsStatus.Active || isDown(bot.body)) stand(bot);
   else if (ride.phase === "charge") {
     if (now >= bot.retargetAt || bot.targetId === null) {
-      bot.targetId = pickTarget(bot.body, host.protesters(), bike.sight, bot.targetId, bot.stats.switchMargin);
+      bot.targetId = pickTarget(bot.body, targetsOf(ctx, host), bike.sight, bot.targetId, bot.stats.switchMargin);
       bot.retargetAt = now + bot.stats.retargetInterval;
     }
     const target = bot.targetId === null ? undefined : host.protester(bot.targetId);
-    const free = target !== undefined && target.status === PlayerStatus.Free;
+    const free = target !== undefined && target.status === PlayerStatus.Free && fairGame(ctx, target);
     if (!free) {
       bot.targetId = null;
-      stand(bot);
+      // #98: calm with no offender around, it rides along beside the cortège rather than parking in its way.
+      if (ctx.calm) {
+        walkIdle(bot, ctx);
+        moving = bot.input.x !== 0 || bot.input.z !== 0;
+      } else stand(bot);
     } else if (Math.hypot(target.x - bot.body.x, target.z - bot.body.z) - bike.radius - PLAYER_RADIUS <= bike.dropRange) {
       // Brake by the target: the passenger hops off (or, alone, nothing to do here: leave).
       stand(bot);

@@ -255,11 +255,13 @@ function setMoluchanPhase(phase: MoluchanPhase | null) {
 export interface RoundView {
   timeLeft: number;
   progress: number;
+  /** The street turned hot this round (#98): the CRS chase anyone. */
+  hot: boolean;
   result: RoundResult;
   end: RoundEndEvent | null;
   board: RoundBoardEvent | null;
 }
-const NO_ROUND: RoundView = { timeLeft: 0, progress: 0, result: RoundResult.None, end: null, board: null };
+const NO_ROUND: RoundView = { timeLeft: 0, progress: 0, hot: false, result: RoundResult.None, end: null, board: null };
 let roundView: RoundView = NO_ROUND;
 const roundListeners = new Set<() => void>();
 function setRound(patch: Partial<RoundView>) {
@@ -516,10 +518,16 @@ function attach(joined: ClientRoom, gen: number) {
     if (gen !== generation) return;
     const state = joined.state as ClientState | undefined;
     if (!state) return;
-    setRound({ timeLeft: state.timeLeft ?? 0, progress: state.progress ?? 0, result: (state.result ?? RoundResult.None) as RoundResult });
+    setRound({
+      timeLeft: state.timeLeft ?? 0,
+      progress: state.progress ?? 0,
+      hot: state.hot ?? false,
+      result: (state.result ?? RoundResult.None) as RoundResult,
+    });
   };
   callbacks.listen("timeLeft", refreshRound);
   callbacks.listen("progress", refreshRound);
+  callbacks.listen("hot", refreshRound);
   callbacks.listen("result", refreshRound);
   joined.onMessage(ServerMessage.RoundEnd, (event: RoundEndEvent) => {
     if (gen !== generation) return;
