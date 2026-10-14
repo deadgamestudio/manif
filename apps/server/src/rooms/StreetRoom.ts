@@ -938,7 +938,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
 
   /** Waiting -> marching (#12), everyone at once from a clean street, with the opening wave. */
   private startMarch() {
-    this.resetStreet();
+    // The shops stay where the lobby showed them (#83): only the end of a round lays out a new street.
+    this.resetStreet(false);
     if (!startRound(this.round)) return;
     // #59: the empty seats fill with bots, on a clean street (resetStreet placed the humans).
     this.removeBots();
@@ -962,15 +963,16 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * or grabs; props whole; the level's pavés back on the ground; every
    * protester in the start zone with full HP, clear of the props put back, and
    * no cooldown, rescue or held input left over. Used when a round ends and
-   * again when the next one starts.
+   * again when the next one starts. `relayout`: build new shops (#83), not
+   * when a march starts from the lobby's street.
    */
-  private resetStreet() {
+  private resetStreet(relayout = true) {
     this.rescues.clear();
     this.struggles.clear();
     this.batonDowned.clear();
     // Nobody carried or flying (#11).
     this.carry.clear();
-    this.props.reset(this.state.props);
+    this.props.reset(this.state.props, relayout);
     this.fires.reset();
     this.crs.clear();
     // No fire truck or pompier left (#17).

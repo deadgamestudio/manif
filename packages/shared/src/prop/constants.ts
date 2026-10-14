@@ -29,17 +29,16 @@ export interface PropType {
 }
 
 /**
- * Every shop front (#68) collides the same, whatever kind it was dealt: the
- * collision world and the CRS nav grids never change from one round to the
- * next, and a client that has not got the kind yet still sees walls in the
- * right place. Once smashed you can step into the gap.
+ * A shop's nominal box. Every real shop brings its own, generated each round
+ * (#83: `PropSlot.footprint`, from `shopFootprint`), so this is only what a
+ * shop kind would collide as without one. Once smashed a shop is walkable.
  */
-export const SHOP_FRONT: PropShapeDef = { type: "box", halfX: 0.5, halfZ: 1.5 };
+export const SHOP_FRONT: PropShapeDef = { type: "box", halfX: 0.5, halfZ: 2 };
 
 /**
  * A shop front with its HP and drops. Never flammable nor hoppable: the room
- * builds its list of things that can burn from the level's slots, before any
- * kind is dealt, so those two must be the same for every kind (tested).
+ * builds its list of things that can burn from the level's own slots, which
+ * hold no shop (tested).
  */
 function shop(maxHp: number, drops: number, dropKind: ItemKind): PropType {
   return { maxHp, intact: SHOP_FRONT, broken: null, drops, dropKind, flammable: false, hoppable: false };
@@ -58,9 +57,7 @@ export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
     flammable: false,
     hoppable: false,
   },
-  // A shop slot before the round deals it a kind (#68): a plain shop window.
-  shop_window: shop(3, 1, ThrowableKind.Pave),
-  // The kinds a shop slot is dealt (#68; signs and dealing in `SHOP_TYPES`). Drops are existing throwables only.
+  // The shop kinds dealt each round (#68; signs and dealing in `SHOP_TYPES`). Drops are existing throwables only.
   // Flimsy windows; the tomatoes were for the sandwiches.
   boulangerie: shop(2, 2, ThrowableKind.Tomate),
   // The terrace paving comes up with the window.

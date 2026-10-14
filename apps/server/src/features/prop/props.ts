@@ -2,10 +2,9 @@ import type { MapSchema } from "@colyseus/schema";
 import {
   applyPropDamage,
   createPropState,
-  dealShops,
-  dealtSlot,
+  generateShops,
   shopCode,
-  shopSlots,
+  shopSlot,
   propCollisionWorld,
   propShape,
   type CollisionWorld,
@@ -13,7 +12,7 @@ import {
   type MeleeTarget,
   type PropSlot,
   type PropState,
-  type ShopKind,
+  type ShopLot,
 } from "@manif/shared";
 import { Prop } from "./schema.js";
 
@@ -39,16 +38,16 @@ export class Props {
   private readonly states = new Map<string, PropState>();
   /** Burning or charred (#16): swings and throws pass them by, their HP is the fire's. */
   private readonly locked = new Set<string>();
-  /** Shop slots (#68), in street order, and the kinds they were dealt last reset. */
-  private readonly shops: readonly PropSlot[];
-  private lastDeal: ShopKind[] | undefined;
+  /** This round's shops (#83), in street order. */
+  private lots: ShopLot[] = [];
+  /** How many layouts so far: each one's shops get fresh ids, so a client sees old shops go and new ones come. */
+  private layouts = 0;
 
-  /** `random`: the shop deal's generator (Math.random in the room, seeded in tests). */
+  /** `random`: the shop generator's (Math.random in the room, seeded in tests). */
   constructor(
     private readonly level: Level,
     private readonly random: () => number = Math.random,
   ) {
-    this.shops = shopSlots(level);
     for (const slot of level.propSlots) {
       this.slots.set(slot.id, slot);
       this.states.set(slot.id, createPropState(slot));
@@ -56,25 +55,22 @@ export class Props {
     this.world = { ...propCollisionWorld(level, () => false) };
   }
 
+  /** This round's shops (#83), in street order. */
+  get shops(): readonly ShopLot[] {
+    return this.lots;
+  }
+
   /**
-   * A fresh street for a new round: every shop slot dealt a new kind (#68),
-   * every prop back to intact at its kind's HP, all mirrored into the synced
-   * map (created on first call). The only place kinds change, so never
-   * mid-round.
+   * A fresh street for a new round: every prop back to intact at its kind's
+   * HP, mirrored into the synced map (created on first call). With `relayout`
+   * (and always on the first call) the shops are built anew too (#83): new
+   * places, sizes and kinds, the old ones removed from the map. The only
+   * place shops change, so never mid-round.
    */
-  reset(views: MapSchema<Prop>): void {
+  reset(views: MapSchema<Prop>, relayout = true): void {
     this.locked.clear();
-    const deal = dealShops(this.shops.length, this.random, this.lastDeal);
-    this.lastDeal = deal;
-    const codes = new Map<string, number>();
-    this.shops.forEach((slot, i) => {
-      const kind = deal[i];
-      if (kind) codes.set(slot.id, shopCode(kind));
-    });
-    for (const base of this.level.propSlots) {
-      const code = codes.get(base.id) ?? 0;
-      const slot = dealtSlot(base, code);
-      this.slots.set(slot.id, slot);
+    if (relayout || this.layouts === 0) this.layOut(views);
+    for (const slot of this.slots.values()) {
       const state = createPropState(slot);
       this.states.set(slot.id, state);
       let view = views.get(slot.id);
@@ -85,12 +81,37 @@ export class Props {
       view.hp = state.hp;
       view.broken = state.broken;
       view.charred = false;
-      view.kind = code;
     }
     this.rebuild();
   }
 
-  /** Prop `id` as it plays this round: a shop slot comes back as its dealt kind (#68). */
+  /** Swap last round's shops for a newly generated street, slots and synced views alike. */
+  private layOut(views: MapSchema<Prop>): void {
+    for (const lot of this.lots) {
+      this.slots.delete(lot.id);
+      this.states.delete(lot.id);
+      views.delete(lot.id);
+    }
+    this.layouts++;
+    this.lots = generateShops(this.level, this.random, { previous: this.lots, prefix: `shop${this.layouts}` });
+    for (const lot of this.lots) {
+      this.slots.set(lot.id, shopSlot(lot));
+      // Every field before it goes in the map, so a client gets the whole shop in one patch.
+      const view = new Prop();
+      view.kind = shopCode(lot.kind);
+      view.side = lot.side;
+      view.z = lot.z;
+      view.width = lot.width;
+      view.face = lot.face;
+      view.out = lot.out;
+      view.height = lot.height;
+      view.interior = lot.interior;
+      view.style = lot.style;
+      views.set(lot.id, view);
+    }
+  }
+
+  /** Prop `id` as it plays this round: a shop comes back with its kind and its own box (#83). */
   slot(id: string): PropSlot | undefined {
     return this.slots.get(id);
   }
@@ -155,7 +176,7 @@ export class Props {
   }
 
   private rebuild(): void {
-    const next = propCollisionWorld(this.level, (id) => this.states.get(id)?.broken ?? false);
+    const next = propCollisionWorld(this.level, (id) => this.states.get(id)?.broken ?? false, this.slots.values());
     this.world.boxes = next.boxes;
     this.world.circles = next.circles;
   }

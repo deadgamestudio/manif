@@ -4,7 +4,7 @@ import { ambienceLevels, diffCues, messageCues, type CrsView, type MessageMemory
 
 const props: PropTable = new Map([
   ["bin-1", { kind: "bin", x: 5, z: 5 }],
-  ["window-1", { kind: "shop_window", x: 8, z: 2 }],
+  ["window-1", { kind: "boulangerie", x: 8, z: 2 }],
   ["car-1", { kind: "car", x: 2, z: 9 }],
 ]);
 

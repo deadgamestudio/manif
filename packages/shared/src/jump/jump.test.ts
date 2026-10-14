@@ -204,7 +204,7 @@ describe("hoppable filtering", () => {
     expect(PROP_TYPES.bin.hoppable).toBe(true);
     expect(PROP_TYPES.car.hoppable).toBe(false);
     expect(PROP_TYPES.bus_shelter.hoppable).toBe(false);
-    expect(PROP_TYPES.shop_window.hoppable).toBe(false);
+    expect(PROP_TYPES.banque.hoppable).toBe(false);
     const bin = STREET_LEVEL.propSlots.find((s) => s.kind === "bin");
     expect(bin && propShape(bin, false)?.hoppable).toBe(true);
   });

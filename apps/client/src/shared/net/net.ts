@@ -10,6 +10,8 @@ import {
   RoundResult,
   ServerMessage,
   normalizeMove,
+  shopLotOf,
+  type ShopLot,
   type CanisterShape,
   type CrsShape,
   type GasCloudShape,
@@ -263,6 +265,20 @@ function emit(event: NetEvent) {
 /** Who wants to hear that our rename was refused (#61): the lobby's name field. */
 const renameListeners = new Set<(event: RenameRefusedEvent) => void>();
 
+/**
+ * Shops (#83): the round's generated shops, decoded from the synced props.
+ * Replaced (never mutated) when a new layout arrives, for useSyncExternalStore;
+ * the shops never change mid-round, so this changes once per round at most.
+ */
+let shops: readonly ShopLot[] = [];
+const shopListeners = new Set<() => void>();
+function setShops(next: readonly ShopLot[]) {
+  const same = next.length === shops.length && next.every((s, i) => s.id === shops[i]!.id);
+  if (same) return;
+  shops = next;
+  for (const listener of shopListeners) listener();
+}
+
 /** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
 let generation = 0;
 
@@ -279,6 +295,7 @@ function clearEffects() {
   setGasIds([], []);
   fireSeenAt.clear();
   setFireIds([]);
+  setShops([]);
   setTruckIds([]);
   setRound(NO_ROUND);
   setLeaderboard(null);
@@ -342,12 +359,29 @@ function attach(joined: ClientRoom, gen: number) {
     lastSwings.delete(id);
     refresh();
   });
+  // Shops (#83): a new layout removes last round's shops and adds the new ones, each whole in one patch.
+  const refreshShops = (removed?: string) => {
+    if (gen !== generation) return;
+    const state = joined.state as ClientState | undefined;
+    const next: ShopLot[] = [];
+    state?.props?.forEach((p, id) => {
+      const lot = id === removed ? null : shopLotOf(id, p);
+      if (lot) next.push(lot);
+    });
+    setShops(next);
+  };
   callbacks.onAdd("props", (prop, id) => {
     // `previous` is undefined on the first sync, so a prop that was already
     // broken when we joined swaps its model without spraying debris.
     callbacks.listen(prop as PropShapeState & IRef, "broken", (broken, previous) => {
       if (gen === generation && broken && previous === false) propBrokenAt.set(id, performance.now());
     });
+    if ((prop as PropShapeState).kind) refreshShops();
+  });
+  callbacks.onRemove("props", (prop, id) => {
+    propBrokenAt.delete(id);
+    lastPropHits.delete(id);
+    if ((prop as PropShapeState).kind) refreshShops(id);
   });
   callbacks.onAdd("crs", () => refresh());
   callbacks.onRemove("crs", (_crs, id) => {
@@ -624,6 +658,17 @@ export const net = {
   /** Live, decoded state of a police bot (#5). Read from useFrame. */
   getCrs(id: string): CrsShape | undefined {
     return room?.state.crs?.get(id);
+  },
+
+  /** Call `listener` when the round's shops (#83) are laid out anew. */
+  subscribeShops(listener: () => void): () => void {
+    shopListeners.add(listener);
+    return () => shopListeners.delete(listener);
+  },
+
+  /** The round's shops (#83), in street order. Same array until a new layout arrives. */
+  getShops(): readonly ShopLot[] {
+    return shops;
   },
 
   /** Call `listener` when an item appears on or leaves the ground, or a throw starts or stops (#8). */
