@@ -1,6 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useFrame } from "@react-three/fiber";
 import { BoxGeometry, MeshStandardMaterial, PlaneGeometry } from "three";
 import type { ShopRoom } from "@manif/shared";
+import { net } from "../../shared/net/index.ts";
 import { roomClutter, roomSize, type ClutterMaterial } from "./roomInterior.ts";
 
 /*
@@ -13,6 +15,9 @@ import { roomClutter, roomSize, type ClutterMaterial } from "./roomInterior.ts";
  * The wall linings are one-sided planes facing into the room: seen from
  * outside (through a faded building) they cull themselves, so only the far
  * walls show, never one between the camera and the player.
+ *
+ * The mess only shows once the shop is broken: an intact shop's room, seen
+ * through its faded block, is bare.
  *
  * Everything is shared: one unit box, one unit plane, one material per kind
  * of thing. Rebuilt per round layout, never per frame.
@@ -47,6 +52,11 @@ export function RoomsView({ rooms }: { rooms: readonly ShopRoom[] }) {
 
 function RoomView({ room }: { room: ShopRoom }) {
   const clutter = useMemo(() => roomClutter(room), [room]);
+  const [broken, setBroken] = useState(() => net.getProp(room.id)?.broken ?? false);
+  useFrame(() => {
+    const isBroken = net.getProp(room.id)?.broken ?? false;
+    if (isBroken !== broken) setBroken(isBroken);
+  });
   const { depth: D, halfWidth: W } = roomSize(room);
   const h = room.height;
   return (
@@ -57,9 +67,10 @@ function RoomView({ room }: { room: ShopRoom }) {
       <mesh geometry={UNIT_PLANE} material={WALL} position={[D - LINE, h / 2, 0]} rotation-y={-Math.PI / 2} scale={[2 * W, h, 1]} />
       <mesh geometry={UNIT_PLANE} material={WALL} position={[D / 2, h / 2, -W + LINE]} scale={[D, h, 1]} />
       <mesh geometry={UNIT_PLANE} material={WALL} position={[D / 2, h / 2, W - LINE]} rotation-y={Math.PI} scale={[D, h, 1]} />
-      {clutter.map((p, i) => (
-        <mesh key={i} geometry={UNIT_BOX} material={CLUTTER[p.m]} position={p.at} rotation={p.rot} scale={p.size} receiveShadow={p.m !== "tube"} />
-      ))}
+      {broken &&
+        clutter.map((p, i) => (
+          <mesh key={i} geometry={UNIT_BOX} material={CLUTTER[p.m]} position={p.at} rotation={p.rot} scale={p.size} receiveShadow={p.m !== "tube"} />
+        ))}
     </group>
   );
 }
