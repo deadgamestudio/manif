@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal, useFrame } from "@react-three/fiber";
 import { Color, Vector3, type Group, type MeshStandardMaterial } from "three";
-import { PLAYER_RADIUS, PlayerStatus, type PlayerShape } from "@manif/shared";
+import { PLAYER_RADIUS, Phase, PlayerStatus, type PlayerShape } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { HealthBar } from "../health/index.ts";
@@ -13,7 +13,11 @@ import { PROTESTER_RAGDOLL, useRagdoll } from "../ragdoll/index.ts";
 import { HopArc, LAND_SQUASH } from "../jump/index.ts";
 import { CARRY_ARM_UP, CARRY_FLAIL_ANGLE, CARRY_FLAIL_SPEED, CARRY_LIFT, CARRY_LIFT_RATE } from "../carry/index.ts";
 import { SKIN, archetypeLook } from "../archetype/index.ts";
+import { MODELS, bodyUrlFor, getPoseOwner, useStaticModel } from "../models/index.ts";
 import { NameTag } from "./NameTag.tsx";
+import { actionClip, chooseStateClip } from "./clipChoice.ts";
+import { onScreen } from "./onScreen.ts";
+import { BodyMotion, setAvatarBody, useProtesterBody } from "./protesterBody.ts";
 
 const CAPSULE_LENGTH = 1;
 const HEIGHT = CAPSULE_LENGTH + PLAYER_RADIUS * 2;
@@ -46,6 +50,23 @@ const DUST_GROW = 1.6;
 export type PlayerSource = (id: string) => PlayerShape | undefined;
 const readPlayer: PlayerSource = (id) => net.getPlayer(id);
 
+/** Jordan's body (#28): carried overhead, its pivot (the clip lies it across it) sits on the carrier's overhead socket, this high. */
+const CARRIED_PIVOT = 1.95;
+/** Grabbed or KO, the model's materials go a bit grey (they multiply the palette, so white is untouched). */
+const MODEL_HURT = new Color("#aab4ba");
+const MODEL_PLAIN = new Color("#ffffff");
+/** A swing event older than this (ms) when first seen is not played (joined late, or the body just loaded). */
+const SWING_FRESH_MS = 400;
+/** Measured speed smoothing rate, per second. */
+const SPEED_RATE = 10;
+/** Bones the carried item and the extra props ride on (the rig's names). */
+const HAND_SOCKET = "socket_hand_R";
+const ACCESSORY_BONE = "spine";
+/** The spine's rest height in the rig's frame (hips 0.92 + 0.15), to draw props authored feet-at-zero. */
+const SPINE_REST_Y = 1.07;
+/** CarriedItem hangs its item this far below the placeholder arm's shoulder; in the hand socket it goes back up. */
+const ITEM_IN_HAND_Y = 0.75;
+
 const DUST_PUFFS: readonly [number, number][] = [
   [-0.25, -0.15],
   [0.25, -0.2],
@@ -75,6 +96,14 @@ const DUST_PUFFS: readonly [number, number][] = [
  * Archetype (#14): the clothes colour (capsule and ragdoll) and the
  * accessories come from `archetypeVisuals.tsx`; the arm keeps the one skin
  * colour everyone shares. The local player gets a ring on the ground.
+ *
+ * Jordan's body (#28): once the archetype's model and the protester clips
+ * have loaded, a skinned body replaces the capsule, the arm and the nose
+ * (they stay as the placeholder until then, and for good if loading fails).
+ * clipChoice.ts picks its clip from the same state; the ragdoll drives its
+ * bones while `down`; the item in hand rides its hand socket. While
+ * `getPoseOwner(id)` is set (a pair animation, #28), the avatar leaves the
+ * body's clip and placement to that owner (see `getAvatarBody`).
  */
 export function PlayerAvatar({
   id,
@@ -120,13 +149,38 @@ export function PlayerAvatar({
   /** The archetype drawn (#14). It only changes in the lobby, so a re-render then is fine. */
   const [archetype, setArchetype] = useState(() => source(id)?.archetype ?? 0);
   const look = archetypeLook(archetype);
+  const model = useProtesterBody(bodyUrlFor(archetype, id));
+  const motion = useMemo(() => (model ? new BodyMotion(model.animator) : null), [model]);
+  const footRing = useStaticModel(isLocal ? MODELS.ui.playerFootRing : null);
+  const ringYaw = useRef<Group>(null);
+  /** Measured ground speed (m/s), and where the body was last frame. */
+  const speed = useRef(0);
+  const [lastAt] = useState(() => new Vector3(Number.NaN, 0, 0));
+  const seenSwing = useRef<number | undefined>(undefined);
+  /** When (performance.now) an item was last in hand, for telling a throw from a swing. */
+  const carriedItemAt = useRef(-Infinity);
+  const wasRagdolling = useRef(false);
+  const hurtShown = useRef(false);
+  const hand = useMemo(() => model?.root.getObjectByName(HAND_SOCKET) ?? null, [model]);
+  const spine = useMemo(() => model?.root.getObjectByName(ACCESSORY_BONE) ?? null, [model]);
+  // The ragdoll drives this body's bones (#26). Before any frame, so the rest pose is still on the bones.
+  useLayoutEffect(() => {
+    ragdoll.bindBody(model?.root ?? null);
+    return () => ragdoll.bindBody(null);
+  }, [ragdoll, model]);
+  useLayoutEffect(() => {
+    const root = group.current;
+    if (!model || !root) return;
+    setAvatarBody(id, { root, body: model.root, animator: model.animator });
+    return () => setAvatarBody(id, null);
+  }, [id, model]);
   const [clothes, hurtClothes] = useMemo(() => {
     const c = new Color(look.clothes);
     return [c, c.clone().lerp(HURT_COLOR, HURT_MIX)];
   }, [look]);
   const Accessories = look.accessories;
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const g = group.current;
     const t = tilt.current;
     const y = yaw.current;
@@ -142,7 +196,15 @@ export function PlayerAvatar({
     if (arrested) {
       ragdoll.reset();
       hop.reset();
+      motion?.reset();
       carryLift.current = 0;
+      return;
+    }
+    // A pair animation owns the body (#28): it places and animates it; only the bars stay ours.
+    if (getPoseOwner(id) !== null) {
+      ragdoll.reset();
+      wasRagdolling.current = false;
+      lastAt.set(Number.NaN, 0, 0);
       return;
     }
 
@@ -155,6 +217,7 @@ export function PlayerAvatar({
       y.rotation.z = 0;
       fall.current = 0;
       placed.current = true;
+      motion?.reset();
       return;
     }
 
@@ -162,26 +225,39 @@ export function PlayerAvatar({
     g.position.x += (p.x - g.position.x) * k;
     g.position.z += (p.z - g.position.z) * k;
 
+    // Measured speed (#28): no velocity is synced, so the drawn position's change.
+    if (Number.isFinite(lastAt.x) && dt > 0) {
+      const raw = Math.hypot(g.position.x - lastAt.x, g.position.z - lastAt.z) / dt;
+      speed.current += (raw - speed.current) * damp(SPEED_RATE, dt);
+    }
+    lastAt.set(g.position.x, 0, g.position.z);
+
+    // Carried with a model (#11): lying across the carrier's shoulders, so turned with them.
+    const carrier = model && p.carriedBy ? net.getPlayer(p.carriedBy) : undefined;
     // Rotate along the shortest arc.
-    let dr = p.rotation - y.rotation.y;
+    let dr = (carrier ? carrier.rotation : p.rotation) - y.rotation.y;
     dr = Math.atan2(Math.sin(dr), Math.cos(dr));
     y.rotation.y += dr * k;
 
     // Pick the fall direction at the start of the fall (the impulse event and
     // the `down` patch may arrive in either order, so keep looking briefly).
-    const lying = p.down || p.status === PlayerStatus.Ko;
+    const ko = p.status === PlayerStatus.Ko;
+    // With a model, a KO standing up plays its collapse (#28); one that comes while ragdolling stays a ragdoll.
+    const lying = model ? p.down || (ko && wasRagdolling.current) : p.down || ko;
     // Hop (#45) and carried pose (#11): the height before this frame's update
     // is where the body was drawn, so a fall (a throw) that starts now starts from there (no pop).
     const drawnLift = hop.lift + carryLift.current;
     hop.update(dt, p.airborne && !lying);
     const carried = !!p.carriedBy && !lying;
-    carryLift.current += ((carried ? CARRY_LIFT : 0) - carryLift.current) * damp(CARRY_LIFT_RATE, dt);
+    carryLift.current += ((carried ? (model ? CARRIED_PIVOT : CARRY_LIFT) : 0) - carryLift.current) * damp(CARRY_LIFT_RATE, dt);
     if (carryLift.current < 1e-3) carryLift.current = 0;
     if (overhead.current) overhead.current.position.y = carryLift.current;
     // Ragdoll (#26) if a slot is free: the capsule hides and stays upright meanwhile.
     const ragdolling = ragdoll.update(dt, lying, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id), drawnLift);
-    t.visible = !ragdolling;
-    if (ragdolling) fall.current = 0;
+    wasRagdolling.current = ragdolling;
+    // A model stays drawn while ragdolling: the ragdoll poses its bones.
+    t.visible = !!model || !ragdolling;
+    if (ragdolling || model) fall.current = 0;
     else if (lying && fall.current < 0.3) {
       const hit = net.getLastImpulse(id);
       // No event seen (joined late): fall backwards.
@@ -191,7 +267,7 @@ export function PlayerAvatar({
       fallAxis.set(dz, 0, -dx).normalize();
     }
 
-    const target = lying && !ragdolling ? 1 : 0;
+    const target = lying && !ragdolling && !model ? 1 : 0;
     fall.current += (target - fall.current) * damp(lying ? FALL_RATE : GETUP_RATE, dt);
     if (Math.abs(target - fall.current) < 1e-3) fall.current = target;
     const angle = fall.current * FALLEN_ANGLE;
@@ -202,12 +278,12 @@ export function PlayerAvatar({
     // Grabbed: flail side to side (the drag itself is the CRS's, #5). In tear
     // gas (#7): a slower, lopsided cough wobble.
     const grabbed = p.status === PlayerStatus.Grabbed;
-    // On fire (#16): a frantic flail, wider and faster than a grab.
-    const burning = !lying && p.onFire;
-    const coughing = !grabbed && !burning && !lying && p.gassed;
+    // On fire (#16): a frantic flail, wider and faster than a grab. A model has clips for these (#28): only the grab keeps its wobble.
+    const burning = !model && !lying && p.onFire;
+    const coughing = !model && !grabbed && !burning && !lying && p.gassed;
     flail.current = burning
       ? flail.current + dt * ON_FIRE_FLAIL_SPEED
-      : carried
+      : carried && !model
         ? flail.current + dt * CARRY_FLAIL_SPEED
       : grabbed
         ? flail.current + dt * FLAIL_SPEED
@@ -216,7 +292,7 @@ export function PlayerAvatar({
           : 0;
     y.rotation.z = burning
       ? Math.sin(flail.current) * ON_FIRE_FLAIL_ANGLE
-      : carried
+      : carried && !model
         ? Math.sin(flail.current) * CARRY_FLAIL_ANGLE
       : grabbed
         ? Math.sin(flail.current) * FLAIL_ANGLE
@@ -242,8 +318,10 @@ export function PlayerAvatar({
       dustAge.current = 0;
       dustAt.set(g.position.x, 0, g.position.z);
     }
+    const dodgeStarted = dodging && !wasDodging.current;
     wasDodging.current = dodging;
-    dive.current += ((dodging ? 1 : 0) - dive.current) * damp(DODGE_RATE, dt);
+    // A model dives with its own clip (#28): no lean or squash on top.
+    dive.current += ((dodging && !model ? 1 : 0) - dive.current) * damp(DODGE_RATE, dt);
     // Yaw last, so the lean (x) and the flail (z) are in the body's own frame.
     if (y.rotation.order !== "YXZ") y.rotation.order = "YXZ";
     y.rotation.x = dive.current * DODGE_LEAN;
@@ -264,46 +342,104 @@ export function PlayerAvatar({
       }
     }
 
-    const color = grabbed || p.status === PlayerStatus.Ko ? hurtClothes : clothes;
+    const hurt = grabbed || ko;
+    const color = hurt ? hurtClothes : clothes;
     body.current?.color.copy(color);
     ragdoll.setColor(color);
+    if (ringYaw.current) ringYaw.current.rotation.y = y.rotation.y;
+
+    if (model && motion) {
+      if (hurt !== hurtShown.current) {
+        hurtShown.current = hurt;
+        for (const m of model.materials) (m as MeshStandardMaterial).color?.copy(hurt ? MODEL_HURT : MODEL_PLAIN);
+      }
+      const now = performance.now();
+      if (p.carrying) carriedItemAt.current = now;
+      const swungAt = net.getLastSwing(id);
+      const swung = swungAt !== undefined && swungAt !== seenSwing.current && now - swungAt < SWING_FRESH_MS;
+      seenSwing.current = swungAt;
+      // While the ragdoll owns the bones, the clips wait.
+      if (!ragdolling) {
+        if (swung && !lying) motion.act(actionClip("swing", p.carrying ? 0 : now - carriedItemAt.current));
+        if (dodgeStarted) motion.act(actionClip("dodge", Infinity));
+        const phase = net.getState()?.phase;
+        const choice = chooseStateClip({
+          speed: speed.current,
+          ko: ko && !lying,
+          lyingFallback: lying,
+          carried,
+          grabbed,
+          onFire: p.onFire,
+          carryingPlayer: net.getCarried(id) !== null,
+          fireHold: p.fireHold > 0,
+          gassed: p.gassed,
+          carrying: p.carrying,
+          celebrating: phase === Phase.Ended,
+        });
+        motion.drive(choice, speed.current);
+        motion.tick(dt, onScreen(state.camera, state.clock.elapsedTime, g.position.x, 1, g.position.z, 1.6));
+      }
+      ragdoll.afterAnimate();
+    }
   });
 
   return (
     <group ref={group}>
       <group ref={tilt}>
         <group ref={yaw}>
-          <mesh position-y={HEIGHT / 2} castShadow>
-            <capsuleGeometry args={[PLAYER_RADIUS, CAPSULE_LENGTH, 4, 12]} />
-            <meshStandardMaterial ref={body} color={look.clothes} />
-          </mesh>
-          {/* The archetype's props (#14): placeholders until Jordan's models. */}
-          {Accessories && <Accessories />}
+          {model ? (
+            <>
+              {/* Jordan's body (#28), its props on: the item in hand rides the hand socket. */}
+              <primitive object={model.root} dispose={null} />
+              {hand &&
+                createPortal(
+                  <group position-y={ITEM_IN_HAND_Y}>
+                    <CarriedItem id={id} />
+                  </group>,
+                  hand,
+                )}
+              {spine && look.modelAccessories && createPortal(<ModelAccessories draw={look.modelAccessories} />, spine)}
+            </>
+          ) : (
+            <>
+              <mesh position-y={HEIGHT / 2} castShadow>
+                <capsuleGeometry args={[PLAYER_RADIUS, CAPSULE_LENGTH, 4, 12]} />
+                <meshStandardMaterial ref={body} color={look.clothes} />
+              </mesh>
+              {/* The archetype's props (#14): placeholders until Jordan's models. */}
+              {Accessories && <Accessories />}
+              {/* Small nose so facing direction is visible. */}
+              <mesh position={[0, HEIGHT * 0.7, PLAYER_RADIUS]} castShadow>
+                <boxGeometry args={[0.2, 0.2, 0.3]} />
+                <meshStandardMaterial color="#212121" />
+              </mesh>
+            </>
+          )}
           {/* Placeholder arm (#4), pivoting at the shoulder; it swings on attack and on a throw (#8). */}
-          <group ref={arm} position={[PLAYER_RADIUS + 0.08, HEIGHT * 0.68, 0]} rotation-x={ARM_REST}>
+          <group ref={arm} position={[PLAYER_RADIUS + 0.08, HEIGHT * 0.68, 0]} rotation-x={ARM_REST} visible={!model}>
             <mesh position-y={-0.35} castShadow>
               <boxGeometry args={[0.16, 0.7, 0.16]} />
               <meshStandardMaterial color={SKIN} />
             </mesh>
             {/* The item in hand (#8); the swing throws it. */}
-            <CarriedItem id={id} />
+            {!model && <CarriedItem id={id} />}
           </group>
           {/* The bum on fire (#16). */}
           <BodyFire isOnFire={() => source(id)?.onFire === true} />
-          {/* Small nose so facing direction is visible. */}
-          <mesh position={[0, HEIGHT * 0.7, PLAYER_RADIUS]} castShadow>
-            <boxGeometry args={[0.2, 0.2, 0.3]} />
-            <meshStandardMaterial color="#212121" />
-          </mesh>
         </group>
       </group>
-      {/* Who you are (#14): a ring on the ground under the local player. */}
-      {isLocal && (
-        <mesh position-y={0.03} rotation-x={-Math.PI / 2}>
-          <ringGeometry args={[PLAYER_RADIUS + 0.12, PLAYER_RADIUS + 0.24, 28]} />
-          <meshBasicMaterial color={LOCAL_RING} transparent opacity={0.85} depthWrite={false} />
-        </mesh>
-      )}
+      {/* Who you are (#14): a ring on the ground under the local player, Jordan's (#28) once loaded, its arrow turned with the body. */}
+      {isLocal &&
+        (footRing ? (
+          <group ref={ringYaw}>
+            <primitive object={footRing} dispose={null} />
+          </group>
+        ) : (
+          <mesh position-y={0.03} rotation-x={-Math.PI / 2}>
+            <ringGeometry args={[PLAYER_RADIUS + 0.12, PLAYER_RADIUS + 0.24, 28]} />
+            <meshBasicMaterial color={LOCAL_RING} transparent opacity={0.85} depthWrite={false} />
+          </mesh>
+        ))}
       {/* The ragdoll (#26), in world space under the root: never tilted or turned with the capsule. */}
       {ragdoll.view}
       {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
@@ -336,6 +472,15 @@ export function PlayerAvatar({
         {/* Lighting a prop or patting someone out (#16). */}
         <FireHoldBar id={id} y={HEIGHT + 1.25} />
       </group>
+    </group>
+  );
+}
+
+/** Props authored in the avatar's frame (feet at 0), drawn on the spine bone so they follow the body as it falls. */
+function ModelAccessories({ draw: Draw }: { draw: () => ReactNode }) {
+  return (
+    <group position-y={-SPINE_REST_Y}>
+      <Draw />
     </group>
   );
 }
