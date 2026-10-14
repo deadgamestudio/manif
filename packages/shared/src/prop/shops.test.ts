@@ -169,6 +169,13 @@ describe("generateShops (#83)", () => {
     expect(generateShops(L, mulberry32(1), { prefix: "shop7" })[0]!.id).toBe("shop7-1");
   });
 
+  test("shops land on both sides of the street: neither gets more than 60% of them over 200 rounds (#84)", () => {
+    const shops = streets.slice(0, 200).flat();
+    const left = shops.filter((s) => s.side < 0).length / shops.length;
+    expect(left).toBeGreaterThanOrEqual(0.4);
+    expect(left).toBeLessThanOrEqual(0.6);
+  });
+
   test("every street follows the dealing rules, and every kind turns up", () => {
     const seen = new Set<ShopKind>();
     for (const shops of streets) {

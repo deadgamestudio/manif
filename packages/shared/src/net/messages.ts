@@ -94,6 +94,12 @@ export const ClientMessage = {
    * The server accepts it only when NODE_ENV is "development".
    */
   DebugRound: "debug:round",
+  /**
+   * DEBUG, dev builds only (#84): break a shop and step inside its room, to
+   * test walking in, the loot and CRS coming in after you.
+   * The server accepts it only when NODE_ENV is "development".
+   */
+  DebugShop: "debug:shop",
 } as const;
 export type ClientMessage = (typeof ClientMessage)[keyof typeof ClientMessage];
 
@@ -119,6 +125,18 @@ export interface ClientMessagePayloads {
   [ClientMessage.DebugKnockback]: DebugKnockbackPayload;
   [ClientMessage.DebugHealth]: DebugHealthPayload;
   [ClientMessage.DebugRound]: DebugRoundPayload;
+  [ClientMessage.DebugShop]: DebugShopPayload;
+}
+
+/**
+ * DEBUG payload (#84): break shop `index` (0-based, in street order; the one
+ * nearest to you when absent) if it still stands, and put yourself in its
+ * room, `depth` of the way from the doorway to the back wall (0..1, default
+ * 0.75), facing the street.
+ */
+export interface DebugShopPayload {
+  index?: number;
+  depth?: number;
 }
 
 /**

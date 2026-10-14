@@ -51,6 +51,8 @@ import {
   type CrsStats,
 } from "./constants.js";
 import type { NavGrid } from "./nav.js";
+import type { ShopRoom } from "../prop/index.js";
+import { doorWaypoint } from "./doors.js";
 import {
   SPLAT_GAS_SCATTER,
   SPLAT_SPEED_FACTOR,
@@ -285,6 +287,8 @@ export interface NavContext {
   nav: NavGrid;
   now: number;
   bots: readonly CrsBot[];
+  /** This round's shop rooms (#84): walkers go in and out square through their doorways (`doorWaypoint`). None: open street only. */
+  rooms?: readonly ShopRoom[];
 }
 
 /** Whatever `detectStuck` watches (#59: protester bots too). A `CrsBot` is one. */
@@ -315,6 +319,8 @@ export interface CrsContext {
   nav: NavGrid;
   /** Drag destinations: a point beside each police van (see `vanDoors`). */
   vans: readonly Vec2[];
+  /** This round's shop rooms (#84), for going in after a protester and dragging them out (see `NavContext.rooms`). */
+  rooms?: readonly ShopRoom[];
   /** All bots, for keeping apart. */
   bots: readonly CrsBot[];
   /** Room time, seconds. */
@@ -342,6 +348,9 @@ export interface CrsBehaviour {
 }
 
 const scratch: Vec2 = { x: 0, z: 0 };
+/** Scratch for `steerTo`'s doorway waypoint (#84). */
+const doorGoal: Vec2 = { x: 0, z: 0 };
+const doorAim: Vec2 = { x: 0, z: 0 };
 const NO_MOVE: Vec2 = { x: 0, z: 0 };
 /** A path waypoint counts as reached within this distance. */
 const WAYPOINT_REACHED = 0.35;
@@ -843,6 +852,15 @@ export function burnCrs(bot: CrsBot, damage: number, now: number): boolean {
  */
 export function steerTo(bot: NavAgent, gx: number, gz: number, ctx: NavContext): void {
   const body = bot.body;
+  // #84: into or out of a shop room, square through its doorway first.
+  if (ctx.rooms !== undefined && ctx.rooms.length > 0) {
+    doorGoal.x = gx;
+    doorGoal.z = gz;
+    if (doorWaypoint(ctx.rooms, body, doorGoal, bot.stats.radius, doorAim)) {
+      gx = doorAim.x;
+      gz = doorAim.z;
+    }
+  }
   const dist = Math.hypot(gx - body.x, gz - body.z);
   if (dist < 1e-3) {
     setInput(bot, NO_MOVE);

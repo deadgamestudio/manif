@@ -1,6 +1,7 @@
 import type { MapSchema } from "@colyseus/schema";
 import {
   applyPropDamage,
+  carveLevel,
   createPropState,
   generateShops,
   shopCode,
@@ -13,6 +14,7 @@ import {
   type PropSlot,
   type PropState,
   type ShopLot,
+  type ShopRoom,
 } from "@manif/shared";
 import { Prop } from "./schema.js";
 
@@ -31,9 +33,23 @@ export interface PropDamageResult {
  * `world` to the bodies once; when a prop breaks its shape list is rebuilt in
  * place, so the very next tick collides against the broken shape. Broken
  * shapes fit inside intact ones, so nobody ends up inside one.
+ *
+ * Walk-in shops (#84): each layout carves the building blocks around the
+ * shops' rooms (`carveLevel`), once per round, never per tick. `world`,
+ * `staticWorld` and `rooms` are stable objects updated in place, so whoever
+ * holds them (bodies, CRS, swings, the brigade) sees the new walls at once.
  */
 export class Props {
   readonly world: MutableWorld;
+  /**
+   * The carved level's static obstacles, without any prop (#84): what blocks
+   * a swing, the hose or a line of sight. Updated in place on each layout.
+   */
+  readonly staticWorld: MutableWorld;
+  /** This round's shop rooms (#84), behind each shop front. The same array, refilled on each layout. */
+  readonly rooms: readonly ShopRoom[] = [];
+  /** The level with its building blocks carved around this round's rooms (#84). */
+  private carved: Level;
   private readonly slots = new Map<string, PropSlot>();
   private readonly states = new Map<string, PropState>();
   /** Burning or charred (#16): swings and throws pass them by, their HP is the fire's. */
@@ -52,7 +68,9 @@ export class Props {
       this.slots.set(slot.id, slot);
       this.states.set(slot.id, createPropState(slot));
     }
+    this.carved = level;
     this.world = { ...propCollisionWorld(level, () => false) };
+    this.staticWorld = { bounds: level.bounds, boxes: level.boxes, circles: level.circles };
   }
 
   /** This round's shops (#83), in street order. */
@@ -109,6 +127,19 @@ export class Props {
       view.style = lot.style;
       views.set(lot.id, view);
     }
+    // #84: the rooms behind the new shops, and the walls around them. Per layout, never per tick.
+    const carved = carveLevel(this.level, this.lots);
+    this.carved = carved.level;
+    const rooms = this.rooms as ShopRoom[];
+    rooms.length = 0;
+    rooms.push(...carved.rooms);
+    this.staticWorld.boxes = carved.level.boxes;
+    this.staticWorld.circles = carved.level.circles;
+  }
+
+  /** The room behind shop `id` this round (#84), or undefined (not a shop, or no room). */
+  room(id: string): ShopRoom | undefined {
+    return this.rooms.find((r) => r.id === id);
   }
 
   /** Prop `id` as it plays this round: a shop comes back with its kind and its own box (#83). */
@@ -176,7 +207,7 @@ export class Props {
   }
 
   private rebuild(): void {
-    const next = propCollisionWorld(this.level, (id) => this.states.get(id)?.broken ?? false, this.slots.values());
+    const next = propCollisionWorld(this.carved, (id) => this.states.get(id)?.broken ?? false, this.slots.values());
     this.world.boxes = next.boxes;
     this.world.circles = next.circles;
   }

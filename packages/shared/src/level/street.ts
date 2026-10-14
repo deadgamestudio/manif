@@ -37,7 +37,7 @@ function prop(id: string, kind: PropKind, x: number, z: number, rotation = 0): P
   return { id, kind, x, z, rotation };
 }
 
-const HALF_WIDTH = 12; // bounds, side streets included
+const HALF_WIDTH = 12; // where the side-street barriers stand
 const FAR = 16; // outer face of the facade blocks, beyond the bounds
 const START_Z = 100;
 const END_Z = -100;
@@ -148,14 +148,15 @@ const propSlots: PropSlot[] = [
   prop("bin-5", "bin", -8.5, 36.5),
   prop("bin-6", "bin", 8.5, -10),
   prop("shelter-1", "bus_shelter", 7.9, 58),
-  prop("shelter-2", "bus_shelter", -7.8, -48),
+  // Kept off the long left block between -58 and -27 (with stall-2), so shops land on both sides (#84).
+  prop("shelter-2", "bus_shelter", -7.8, -64),
   // No shops here: each round builds new ones into the facades (#83, `generateShops` in prop/).
   prop("car-1", "car", -5.5, 32),
   prop("car-2", "car", 5, -14),
   prop("car-3", "car", -6, -70),
   // Market stalls (#15), flush against the facades: smash one for tomatoes.
   prop("stall-1", "market_stall", 8.7, 70),
-  prop("stall-2", "market_stall", -8.7, -35),
+  prop("stall-2", "market_stall", -9.2, -79),
 ];
 
 /** CRS spawn points (#5): in the side-street gaps and ahead in the street. The round's waves (#12) pick the ones ahead of the cortège. */
@@ -221,7 +222,10 @@ const trottinettes: LevelItem[] = [
 
 export const STREET_LEVEL: Level = {
   id: "street",
-  bounds: { minX: -HALF_WIDTH, maxX: HALF_WIDTH, minZ: END_Z, maxZ: START_Z },
+  // Out to the back of the facade blocks (#84): the shop rooms reach that deep into the buildings,
+  // so a body can walk to their back wall. The street itself is still closed by the facades and
+  // the side-street barriers, which seal every gap between two blocks.
+  bounds: { minX: -FAR, maxX: FAR, minZ: END_Z, maxZ: START_Z },
   start: { minX: -7, maxX: 7, minZ: 86, maxZ: 98 },
   destination: { minX: -9, maxX: 9, minZ: END_Z, maxZ: -92 },
   progress: { from: { x: 0, z: 92 }, to: { x: 0, z: -92 } },

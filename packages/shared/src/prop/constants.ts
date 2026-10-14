@@ -1,7 +1,7 @@
 // Breakable prop tunables (#4). Shapes are in world units, local to the prop
 // before its rotation (Z runs along the street). HP is synced as a uint8.
 
-import type { PropKind } from "../level/index.js";
+import type { PropKind, ShopKind } from "../level/index.js";
 // The constants file only: the throwable index pulls in prop/ itself.
 import { ThrowableKind, type ItemKind } from "../throwable/constants.js";
 
@@ -92,3 +92,20 @@ export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
     hoppable: false,
   },
 };
+
+/**
+ * Loot inside a broken shop's room (#84): how many of its kind's `dropKind`
+ * lie in the room, on top of what falls out of the window (`drops`). The
+ * bank, toughest to break, keeps the most.
+ */
+export const ROOM_LOOT: Readonly<Record<ShopKind, number>> = {
+  boulangerie: 3,
+  cafe: 3,
+  sneakers: 1,
+  banque: 6,
+  kebab: 3,
+  toilettage: 2,
+};
+
+/** Seconds after a room's loot has all been taken before it comes back, once a round (#84). */
+export const ROOM_LOOT_REFILL = 25;
