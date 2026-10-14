@@ -53,23 +53,6 @@ export const DEFAULT_KEYMAP: Keymap = {
 };
 
 export const mouseBinding = (button: number): Binding => `Mouse${button}`;
-
-/** `MouseEvent.buttons` bits, in `MouseEvent.button` order (left, middle, right, back, forward). */
-const BUTTON_BITS = [1, 4, 2, 8, 16] as const;
-
-/**
- * The mouse buttons that went down or up between two `MouseEvent.buttons`
- * masks. Diffing the mask catches a second button pressed while one is held,
- * which fires no pointerdown of its own.
- */
-export function mouseChanges(prev: number, next: number): { button: number; down: boolean }[] {
-  const out: { button: number; down: boolean }[] = [];
-  BUTTON_BITS.forEach((bit, button) => {
-    if ((prev ^ next) & bit) out.push({ button, down: (next & bit) !== 0 });
-  });
-  return out;
-}
-
 /** The action a binding triggers, or null. */
 export function actionFor(km: Keymap, binding: Binding): Action | null {
   for (const a of ACTIONS) if (km[a][0] === binding || km[a][1] === binding) return a;

@@ -8,7 +8,6 @@ import {
   clearSecondary,
   isDefault,
   matches,
-  mouseChanges,
   parseKeymap,
   rebind,
   serializeKeymap,
@@ -59,23 +58,6 @@ describe("matching", () => {
     if (!r.ok) throw new Error(r.reason);
     expect(actionFor(r.keymap, "KeyF")).toBe("jump");
     expect(actionFor(r.keymap, "Space")).toBeNull();
-  });
-});
-
-describe("mouse buttons", () => {
-  test("a left press and release", () => {
-    expect(mouseChanges(0, 1)).toEqual([{ button: 0, down: true }]);
-    expect(mouseChanges(1, 0)).toEqual([{ button: 0, down: false }]);
-  });
-
-  test("a side button pressed while the left is held (no pointerdown for it)", () => {
-    expect(mouseChanges(1, 1 | 8)).toEqual([{ button: 3, down: true }]);
-  });
-
-  test("right and middle use swapped bits", () => {
-    expect(mouseChanges(0, 2)).toEqual([{ button: 2, down: true }]);
-    expect(mouseChanges(0, 4)).toEqual([{ button: 1, down: true }]);
-    expect(mouseChanges(5, 5)).toEqual([]);
   });
 });
 

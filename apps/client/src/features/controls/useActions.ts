@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent } from "react";
-import { actionFor, mouseBinding, mouseChanges, type Action, type Binding } from "./keymap.ts";
+import { actionFor, type Action } from "./keymap.ts";
 import { controls } from "./store.ts";
+import { createTracker } from "./tracker.ts";
 
 /** Typing in a field (the name, the code) never triggers an action. */
 export function typing(target: EventTarget | null): boolean {
@@ -32,66 +33,33 @@ export function useActions(actions: readonly Action[], handler: (action: Action,
 
   useEffect(() => {
     const mine = new Set(wanted.split(",") as Action[]);
-    /** Bindings held down, and the action each one pressed. */
-    const down = new Map<Binding, Action>();
-    const isHeld = (a: Action) => [...down.values()].includes(a);
-
-    /** True when the binding belongs to one of ours (and should not do its browser default). */
-    const press = (b: Binding): boolean => {
-      const action = actionFor(controls.get(), b);
-      if (!action || !mine.has(action)) return false;
-      if (down.has(b)) return true;
-      const was = isHeld(action);
-      down.set(b, action);
-      if (!was) fire(action, true);
-      return true;
-    };
-    const release = (b: Binding) => {
-      const action = down.get(b);
-      if (!action) return;
-      down.delete(b);
-      if (!isHeld(action)) fire(action, false);
-    };
-    const releaseAll = () => {
-      const held = new Set(down.values());
-      down.clear();
-      for (const a of held) fire(a, false);
-    };
+    const tracker = createTracker(controls.get, mine, (action, pressed) => fire(action, pressed));
+    const releaseAll = () => tracker.releaseAll();
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (controls.isCapturing() || e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
       // A repeat of a key we never saw go down (held through a rebind or a focus change): not a new press.
-      if (e.repeat && !down.has(e.code)) {
+      if (e.repeat && !tracker.isDown(e.code)) {
         const action = actionFor(controls.get(), e.code);
         if (action && mine.has(action)) e.preventDefault();
         return;
       }
-      if (press(e.code)) e.preventDefault();
+      if (tracker.press(e.code)) e.preventDefault();
     };
-    const onKeyUp = (e: KeyboardEvent) => release(e.code);
+    const onKeyUp = (e: KeyboardEvent) => tracker.release(e.code);
 
-    let buttons = 0;
     const onPointer = (e: PointerEvent) => {
       if (e.pointerType === "touch") return;
-      const changes = mouseChanges(buttons, e.buttons);
-      buttons = e.buttons;
-      for (const { button, down: isDown } of changes) {
-        const b = mouseBinding(button);
-        if (!isDown) release(b);
-        else if (!controls.isCapturing() && e.target instanceof HTMLCanvasElement) {
-          // Middle and side buttons: no autoscroll, no "back" (see useMouseGuard for the rest).
-          if (press(b) && button !== 0) e.preventDefault();
-        }
-      }
+      const pressable = !controls.isCapturing() && e.target instanceof HTMLCanvasElement;
+      const pressed = tracker.pointer(e.type, e.button, e.buttons, pressable);
+      // Middle and side buttons: no autoscroll, no "back" (see useMouseGuard for the rest).
+      if (pressed.some((button) => button !== 0)) e.preventDefault();
     };
 
     const onVisibility = () => {
       if (document.visibilityState === "hidden") releaseAll();
     };
-    const onBlur = () => {
-      buttons = 0;
-      releaseAll();
-    };
+    const onBlur = releaseAll;
     const unsubscribe = controls.subscribe(releaseAll);
 
     window.addEventListener("keydown", onKeyDown);
