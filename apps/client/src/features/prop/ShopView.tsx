@@ -4,7 +4,7 @@ import type { Group, Mesh, MeshBasicMaterial } from "three";
 import { shopSign, type ShopLot } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
 import { spawnDebris } from "./debris.ts";
-import { ShopSign } from "./ShopSign.tsx";
+import { ShopSignBoard } from "./ShopSign.tsx";
 import { FRAME, SHOP_STYLES, Storefront, UNIT_BOX, shopFront } from "./shopVisuals.tsx";
 
 /** How long a hit flashes and wobbles the shop, ms. */
@@ -70,7 +70,15 @@ function ShopView({ lot }: { lot: ShopLot }) {
           <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} />
         </mesh>
       </group>
-      <ShopSign text={shopSign(lot.kind, lot.style)} bg={style.sign[0]} fg={style.sign[1]} at={[front + 0.25, lot.height - FRAME.band / 2, 0]} />
+      {/* The name painted on the sign band, facing the street. */}
+      <ShopSignBoard
+        text={shopSign(lot.kind, lot.style)}
+        bg={style.sign[0]}
+        fg={style.sign[1]}
+        at={[front + 0.11, lot.height - FRAME.band / 2, 0]}
+        maxWidth={lot.width - 2 * FRAME.pilaster}
+        maxHeight={FRAME.band - 0.1}
+      />
     </group>
   );
 }

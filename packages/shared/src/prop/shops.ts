@@ -79,6 +79,8 @@ export const SHOP_LAYOUT = {
   /** Depth of the room reserved behind the front, inside the building (for walk-in shops later; unused for now). */
   minInterior: 3,
   maxInterior: 5,
+  /** At least this many shops on the street, when the level has room for them. */
+  minShops: 8,
   /** At most this many shops on the street. */
   maxShops: 12,
   /** How close a CRS spawn point may come, as a circle of this radius. */
@@ -238,8 +240,13 @@ function tryDeal(count: number, random: () => number): ShopKind[] | null {
   return deal as ShopKind[];
 }
 
-/** Something a shop keeps `SHOP_LAYOUT.clear` away from. */
-type Blocker = { type: "rect"; rect: Rect } | { type: "circle"; x: number; z: number; r: number };
+/**
+ * Something a shop keeps `SHOP_LAYOUT.clear` away from. `furniture` (vans,
+ * kiosks, barriers, works walls, and the level's props: bins, shelters,
+ * stalls, cars) never stands in front of a shop, even a flush one; a lamp
+ * post or a tree may, a little way out.
+ */
+type Blocker = ({ type: "rect"; rect: Rect } | { type: "circle"; x: number; z: number; r: number }) & { furniture?: boolean; gap?: number };
 
 /** Gap between two rectangles (0 when they touch or overlap). */
 function rectGap(a: Rect, b: Rect): number {
@@ -261,16 +268,18 @@ function blockers(level: Level): Blocker[] {
   const rect = (x: number, z: number, hx: number, hz: number): Blocker => ({
     type: "rect",
     rect: { minX: x - hx, maxX: x + hx, minZ: z - hz, maxZ: z + hz },
+    furniture: true,
   });
   for (const b of level.boxes) if (b.kind !== "building") out.push(rect(b.x, b.z, b.halfX, b.halfZ));
   for (const c of level.circles) out.push({ type: "circle", x: c.x, z: c.z, r: c.r });
   for (const slot of level.propSlots) {
     const s = propShape(slot, false);
     if (s?.type === "box") out.push(rect(s.x, s.z, s.halfX, s.halfZ));
-    else if (s) out.push({ type: "circle", x: s.x, z: s.z, r: s.r });
+    else if (s) out.push({ type: "circle", x: s.x, z: s.z, r: s.r, furniture: true });
   }
   for (const p of level.crsSpawns) out.push({ type: "circle", x: p.x, z: p.z, r: SHOP_LAYOUT.spawnRadius });
-  for (const it of level.items) out.push({ type: "circle", x: it.x, z: it.z, r: 0.3 });
+  // Items on the ground only have to stay out from under a shop, reachable.
+  for (const it of level.items) out.push({ type: "circle", x: it.x, z: it.z, r: 0.3, gap: 0.5 });
   // The start zone (where everyone spawns) and the Préfecture forecourt: no shop on either side of them.
   const b = level.bounds;
   for (const zone of [level.start, level.destination]) out.push({ type: "rect", rect: { minX: b.minX, maxX: b.maxX, minZ: zone.minZ, maxZ: zone.maxZ } });
@@ -282,6 +291,9 @@ function lotRect(f: Facade, minZ: number, maxZ: number, out: number): Rect {
   const near = f.face - Math.max(out, SHOP_LAYOUT.lip);
   return f.side < 0 ? { minX: -f.face, maxX: -near, minZ, maxZ } : { minX: near, maxX: f.face, minZ, maxZ };
 }
+
+/** How many layouts `generateShops` tries for `minShops` lots. */
+const LAYOUT_ATTEMPTS = 8;
 
 /** A random multiple of `step` in [lo, hi] (lo when the range is empty). */
 function between(random: () => number, lo: number, hi: number, step = 0.125): number {
@@ -302,8 +314,9 @@ interface Lot {
 /**
  * Free lots along one block, from its start end (+Z) towards the Préfecture.
  * A lot with `clear` room in front of it at full depth may have a shop that
- * stands out; one with something closer (a lamp post, a tree) still gets a
- * flush or set-back shop when the wall itself is clear.
+ * stands out; one with a lamp post or a tree closer than that still gets a
+ * flush or set-back shop when the wall itself is clear. Furniture is kept
+ * clear of the full depth either way.
  */
 function lotsAlong(f: Facade, blocked: readonly Blocker[], random: () => number): Lot[] {
   const L = SHOP_LAYOUT;
@@ -311,7 +324,8 @@ function lotsAlong(f: Facade, blocked: readonly Blocker[], random: () => number)
   const end = f.minZ + L.endMargin;
   const clear = (lo: number, hi: number, depth: number) => {
     const area = lotRect(f, lo, hi, depth);
-    return blocked.every((b) => gapTo(area, b) >= L.clear);
+    const full = lotRect(f, lo, hi, L.maxOut);
+    return blocked.every((b) => gapTo(b.furniture ? full : area, b) >= (b.gap ?? L.clear));
   };
   let cursor = f.maxZ - L.endMargin - between(random, 0, L.maxGap - L.minGap);
   while (cursor > end) {
@@ -350,7 +364,12 @@ export interface GenerateShopsOptions {
 export function generateShops(level: Level, random: () => number = Math.random, options: GenerateShopsOptions = {}): ShopLot[] {
   const L = SHOP_LAYOUT;
   const blocked = blockers(level);
-  const lots = level.facades.flatMap((f) => lotsAlong(f, blocked, random));
+  // A street with too few lots (the gaps fell badly) is laid out again; the fullest try wins.
+  let lots: Lot[] = [];
+  for (let attempt = 0; attempt < LAYOUT_ATTEMPTS && lots.length < L.minShops; attempt++) {
+    const next = level.facades.flatMap((f) => lotsAlong(f, blocked, random));
+    if (next.length > lots.length) lots = next;
+  }
   // Too many: drop some at random, so the gaps move round from one round to the next.
   while (lots.length > L.maxShops) lots.splice(Math.floor(random() * lots.length), 1);
   lots.sort((a, b) => b.maxZ + b.minZ - (a.maxZ + a.minZ) || a.facade.side - b.facade.side);

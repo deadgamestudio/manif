@@ -12,7 +12,9 @@ private lobby by code or invite link, a lobby screen where the host starts the
 march, and a long street (start zone at one end, the Préfecture at the other)
 with walls and obstacles the server collides players against, with names above
 the players walking it, synced through the server. Players swing (left
-click) to smash breakable props: bins, bus shelters, shop windows and cars.
+click) to smash breakable props: bins, bus shelters, shops and cars. The
+shops are big storefronts built into the facades, laid out afresh with a new
+mix of kinds every round (the lobby already shows the next round's street).
 Space hops (#45): half a second in the air to get over a wheelie bin or a CRS
 lying in the street (not over cars, walls or a shield line), and a baton swing
 that lands while you are in the air misses. A grab still gets you. A short
@@ -25,7 +27,7 @@ them and drag them to the police vans; protesters can hit them back, or dodge
 (Shift) with a short burst of speed that has a 3 s cooldown. A teammate being
 dragged away can be rescued: hold E next to them for a second (or floor the CRS
 holding them) and they are free, with a moment of grab immunity. Pavés lie in
-the street and fall out of broken bus shelters, shop windows and cars: press E
+the street and fall out of broken bus shelters, shops and cars: press E
 next to one to pick it up, then click to throw it towards the mouse.
 A pavé floors and stuns the CRS it hits, which drops whoever it was dragging,
 and lands on the ground again wherever it stops.

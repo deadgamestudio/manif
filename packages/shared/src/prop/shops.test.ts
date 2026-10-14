@@ -157,7 +157,7 @@ describe("generateShops (#83)", () => {
 
   test("8 to 12 shops a round, in street order, with unique ids", () => {
     for (const shops of streets) {
-      expect(shops.length).toBeGreaterThanOrEqual(8);
+      expect(shops.length).toBeGreaterThanOrEqual(SHOP_LAYOUT.minShops);
       expect(shops.length).toBeLessThanOrEqual(SHOP_LAYOUT.maxShops);
       // On each side, from the start to the Préfecture.
       for (const side of [-1, 1]) {
@@ -264,18 +264,23 @@ describe("generateShops (#83)", () => {
     for (const shops of streets) {
       for (const s of shops) {
         const r = outside(s);
+        // Furniture never stands in front of a shop, even a flush one: clear of where any shop there could stand out to.
+        const front = s.side < 0 ? { minX: -s.face, maxX: -(s.face - SHOP_LAYOUT.maxOut) } : { minX: s.face - SHOP_LAYOUT.maxOut, maxX: s.face };
+        const full = { ...r, ...front };
         for (const b of L.boxes) {
           if (b.kind === "building") continue;
-          expect(rectGap(r, { minX: b.x - b.halfX, maxX: b.x + b.halfX, minZ: b.z - b.halfZ, maxZ: b.z + b.halfZ })).toBeGreaterThanOrEqual(clear);
+          expect(rectGap(full, { minX: b.x - b.halfX, maxX: b.x + b.halfX, minZ: b.z - b.halfZ, maxZ: b.z + b.halfZ })).toBeGreaterThanOrEqual(clear);
         }
-        for (const c of L.circles) expect(circleGap(r, c.x, c.z, c.r)).toBeGreaterThanOrEqual(clear);
         for (const slot of L.propSlots) {
           const p = propShape(slot, false)!;
-          const gap = p.type === "circle" ? circleGap(r, p.x, p.z, p.r) : rectGap(r, { minX: p.x - p.halfX, maxX: p.x + p.halfX, minZ: p.z - p.halfZ, maxZ: p.z + p.halfZ });
+          const gap = p.type === "circle" ? circleGap(full, p.x, p.z, p.r) : rectGap(full, { minX: p.x - p.halfX, maxX: p.x + p.halfX, minZ: p.z - p.halfZ, maxZ: p.z + p.halfZ });
           expect(gap).toBeGreaterThanOrEqual(clear);
         }
+        // Trees, lamp posts and bollards keep clear of the shop itself.
+        for (const c of L.circles) expect(circleGap(r, c.x, c.z, c.r)).toBeGreaterThanOrEqual(clear);
         for (const p of L.crsSpawns) expect(circleGap(r, p.x, p.z, SHOP_LAYOUT.spawnRadius)).toBeGreaterThanOrEqual(clear);
-        for (const it of L.items) expect(circleGap(r, it.x, it.z, 0)).toBeGreaterThan(SHOP_LAYOUT.clear);
+        // Items on the ground stay out from under it.
+        for (const it of L.items) expect(circleGap(r, it.x, it.z, 0.3)).toBeGreaterThanOrEqual(0.5 - 1e-9);
         for (const zone of [L.start, L.destination]) {
           const apart = r.maxZ + clear <= zone.minZ || r.minZ - clear >= zone.maxZ;
           expect(apart).toBe(true);

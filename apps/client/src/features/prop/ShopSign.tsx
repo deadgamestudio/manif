@@ -1,8 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { CanvasTexture, LinearFilter, SRGBColorSpace } from "three";
 
-/** Height of the sign in world units. */
-const SIGN_HEIGHT = 0.6;
 const FONT_PX = 48;
 const PAD_X = 22;
 const PAD_Y = 12;
@@ -36,17 +34,19 @@ function drawSign(text: string, bg: string, fg: string): { texture: CanvasTextur
 }
 
 /**
- * A shop's sign (#68): the invented name over the front, always facing the
- * camera so it reads from any angle. Hidden by whatever stands in front of
- * it (unlike the name tags), so it hangs out over the pavement, clear of the
- * facade behind. Redrawn only when the round deals a new shop.
+ * A shop's sign painted flat on its sign band (#83), like a real shopfront:
+ * a board facing the street (+X locally), at most `maxWidth` wide and
+ * `maxHeight` high, keeping the lettering's proportions. Unlit, so it reads
+ * in the shade. Redrawn only when the round lays out a new shop.
  */
-export function ShopSign({ text, bg, fg, at }: { text: string; bg: string; fg: string; at: [number, number, number] }) {
+export function ShopSignBoard({ text, bg, fg, at, maxWidth, maxHeight }: { text: string; bg: string; fg: string; at: [number, number, number]; maxWidth: number; maxHeight: number }) {
   const sign = useMemo(() => drawSign(text, bg, fg), [text, bg, fg]);
   useEffect(() => () => sign.texture.dispose(), [sign]);
+  const h = Math.min(maxHeight, maxWidth / sign.aspect);
   return (
-    <sprite position={at} scale={[SIGN_HEIGHT * sign.aspect, SIGN_HEIGHT, 1]}>
-      <spriteMaterial map={sign.texture} transparent />
-    </sprite>
+    <mesh position={at} rotation-y={Math.PI / 2}>
+      <planeGeometry args={[h * sign.aspect, h]} />
+      <meshBasicMaterial map={sign.texture} />
+    </mesh>
   );
 }
