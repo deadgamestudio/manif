@@ -3,6 +3,14 @@
 {
 	auto_https off
 	admin off
+	# Only Coolify's Traefik (on the private Docker network) reaches Caddy, so
+	# trust it: the X-Forwarded-For it sends is passed on with its address
+	# appended, instead of being replaced by it. The game server reads the
+	# visitor's address from the right end of that header to limit how many
+	# lobbies one visitor creates (apps/server/src/features/lobby/visitor.ts).
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
 :80 {
