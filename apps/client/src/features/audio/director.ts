@@ -7,7 +7,7 @@
  * the server's own updates come 20 times a second at most, and nothing here
  * needs to be frame-exact.
  */
-import { CrsKind, Phase, STREET_LEVEL, type ShopLot, type StreetStateShape } from "@manif/shared";
+import { CrsKind, MOLUCHAN_ID, Phase, STREET_LEVEL, type ShopLot, type StreetStateShape } from "@manif/shared";
 import { net, type NetEvent } from "../../shared/net/index.ts";
 import { ambienceLevels, diffCues, messageCues, type Cue, type CrsView, type ItemView, type MessageMemory, type NetCueEvent, type PlayerView, type PropTable, type WorldView } from "./cues.ts";
 import { audio, type LoopWish } from "./engine.ts";
@@ -69,7 +69,9 @@ function buildView(state: StreetStateShape): WorldView {
   state.gas?.forEach((g, id) => gas.set(id, { x: g.x, z: g.z }));
   const fires = new Map<string, Point>();
   state.fires?.forEach((f, id) => fires.set(id, { x: f.x, z: f.z }));
-  return { phase: state.phase, timeLeft: state.timeLeft, players, crs, broken, projectiles, canisters, gas, fires };
+  const m = state.moluchan?.get(MOLUCHAN_ID);
+  const moluchan = m ? { x: m.x, z: m.z, phase: m.phase } : null;
+  return { phase: state.phase, timeLeft: state.timeLeft, players, crs, broken, projectiles, canisters, gas, fires, moluchan };
 }
 
 function listenerOf(view: WorldView | null, localId: string | null): Point | null {

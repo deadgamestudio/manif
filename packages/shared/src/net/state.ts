@@ -148,6 +148,24 @@ export interface TruckShape {
   parked: boolean;
 }
 
+/**
+ * Jeun-Lac Moluchan (#85), keyed by MOLUCHAN_ID, while he is on the street (at
+ * most one, at most once a round). Clients draw his ring from `x`, `z` and
+ * `phase`: the buffs are not synced per player.
+ */
+export interface MoluchanShape {
+  x: number;
+  z: number;
+  /** Facing angle around the Y axis, in radians. */
+  rotation: number;
+  /** A `MoluchanPhase`: rallying (ring on), leaving, grabbed. */
+  phase: number;
+  /** His speech bubble: an index into MOLUCHAN_LINES, -1 for none. */
+  line: number;
+  /** Whole seconds of rallying left (0 once leaving or grabbed). */
+  left: number;
+}
+
 /** An item lying on the ground (#8), keyed by a server-made id. */
 export interface GroundItemShape {
   kind: ThrowableKind;
@@ -218,6 +236,8 @@ export interface StreetStateShape {
   fires: SyncedMap<FireShape>;
   /** Fire trucks by id (#17). Their pompiers are in `crs`, with kind `CrsKind.Pompier`. */
   trucks: SyncedMap<TruckShape>;
+  /** Jeun-Lac Moluchan (#85), by MOLUCHAN_ID: empty, or him while he is on the street. */
+  moluchan: SyncedMap<MoluchanShape>;
   /** Round phase (#12): waiting (lobby screen), marching, ended. */
   phase: Phase;
   /** Whole seconds left: of the march while marching, of the end screen while ended. */

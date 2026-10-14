@@ -104,6 +104,7 @@ import {
   type ThrowPayload,
   type CrsHitResult,
   type CrsHost,
+  MOLUCHAN_ID,
   type ProtesterView,
   type ShoveEvent,
   type SwingEvent,
@@ -171,6 +172,7 @@ import { FireBrigade, type BrigadeHost, type HoseTarget } from "../features/pomp
 import { DEBUG_ROUND_ENABLED, IDLE_BOARD, RoundStats, boardKey, parseDebugRound, stepBoard, taintsRound, type BoardThrottle } from "../features/round/index.js";
 import { bankEntries, hashToken, newDeviceToken, scoreStore } from "../features/score/index.js";
 import { HealAuras } from "../features/archetype/index.js";
+import { MoluchanEvent } from "../features/moluchan/index.js";
 import { Bots, DIAG_ENABLED, TickStats, leftovers } from "../features/bot/index.js";
 import { CreateLimit, DEFAULT_CREATE_LIMIT, UNKNOWN_VISITOR, maxRoomsFromEnv, visitorKey } from "../features/lobby/index.js";
 import { MessageBudget, gateMessages } from "../features/net/index.js";
@@ -314,6 +316,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private brigade = new FireBrigade(LEVEL, this.crs, this.props.world, SWING_OBSTACLES, this.state.trucks);
   /** Scratch for the hose (#17), reused every tick. */
   private hoseTargets: HoseTarget[] = [];
+  /** Jeun-Lac Moluchan (#85): the roll, his visit and his ring. Shown to the CRS only, never a player. */
+  private moluchan = new MoluchanEvent(LEVEL, this.state.moluchan, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`));
   /** The room as the brigade sees it (#17). */
   private brigadeHost: BrigadeHost = {
     fires: () => this.fires.burning(),
@@ -358,9 +362,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private protesterViews = new Map<string, ProtesterView>();
   /** The room as the bots see it: effects on protesters go through the same hooks as every other system. */
   private crsHost: CrsHost = {
-    protesters: () => this.allProtesterViews(),
-    protester: (id) => this.protesterView(id),
-    canBeHurt: (id) => this.healths.canBeHurt(id, this.now),
+    // #85: Moluchan too, a priority target the baton never touches.
+    protesters: () => this.crsProtesterViews(),
+    protester: (id) => (id === MOLUCHAN_ID ? this.moluchan.view() : this.protesterView(id)),
+    canBeHurt: (id) => id !== MOLUCHAN_ID && this.healths.canBeHurt(id, this.now),
     batonHit: (by, id, dirX, dirZ, amount, impulse) => {
       const swing: SwingEvent = { id: by };
       this.broadcast(ServerMessage.Swing, swing);
@@ -378,9 +383,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const swing: SwingEvent = { id: by };
       this.broadcast(ServerMessage.Swing, swing);
     },
-    grab: (id, duration) => this.grabPlayer(id, duration),
+    // #85: grabbing Moluchan ends his visit; nobody to drag, so the bot is told no and goes back to work.
+    grab: (id, duration) => {
+      if (id !== MOLUCHAN_ID) return this.grabPlayer(id, duration);
+      this.moluchan.grab(this.now);
+      return false;
+    },
     // #70: checked before a wind-up, so a bot never winds up on someone it can't grab.
-    canGrab: (id) => this.canBeGrabbed(id),
+    canGrab: (id) => (id === MOLUCHAN_ID ? this.moluchan.view() !== undefined : this.canBeGrabbed(id)),
     // #70: the van reached; arrested on the next tick, like a drag that ran out of time.
     arrest: (id) => {
       const player = this.state.players.get(id);
@@ -656,6 +666,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
           const self = this.state.players.get(client.sessionId);
           if (self) this.extinguishAt(self.x, self.z, cmd.radius);
         } else if (cmd?.action === "brigade") this.brigade.tune(cmd);
+        // #85: Moluchan now, in front of you or by his usual way in.
+        else if (cmd?.action === "moluchan") {
+          const self = this.state.players.get(client.sessionId);
+          const d = cmd.distance;
+          const at = self && d !== undefined ? resolveCircle(this.props.world, self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d, PLAYER_RADIUS) : undefined;
+          this.moluchan.force(this.moluchanTick(0), at, cmd.seconds);
+        }
       },
     }),
   }, (client: Client, type: string) => this.allowMessage(client, type));
@@ -955,6 +972,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       items,
       gas,
       hurdles,
+      // #85: bots drift a little towards Moluchan's ring.
+      moluchan: this.moluchan.aura,
     };
   }
 
@@ -968,6 +987,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.fillWithBots();
     // #17: the dev-only brigade tuning lasts one round.
     this.brigade.resetTuning();
+    // #85: the roll for Moluchan's visit this round.
+    this.moluchan.startRound();
     this.roundHeld = false;
     this.roundTainted = false;
     this.roundStats.clear();
@@ -1002,6 +1023,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.crs.clear();
     // No fire truck or pompier left (#17).
     this.brigade.clear();
+    // #85: Moluchan gone, no visit planned (startMarch rolls the next one).
+    this.moluchan.clear();
     this.crs.reinforceTo = 0;
     // No fire left for the bots to avoid; rebuilds their grid for the props put back.
     this.crs.setHazards(null);
@@ -1346,7 +1369,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private struggle(id: string) {
     const player = this.state.players.get(id);
     if (!player || player.status !== PlayerStatus.Grabbed) return;
-    if (this.struggles.press(id, this.now)) this.breakFree(id);
+    // #85: inside Moluchan's ring, each press counts for more.
+    if (this.struggles.press(id, this.now, this.moluchan.struggleAt(player))) this.breakFree(id);
     else player.struggle = this.struggles.percent(id);
   }
 
@@ -1423,6 +1447,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const target = given > 0 ? targets.find((t) => t.id === id) : undefined;
       const healer = target ? bestHealer(target, healers) : null;
       if (healer) this.roundStats.add(healer, "hpHealed", given);
+    }
+    // #85: Moluchan's ring heals on top (the rates add up), and scores for nobody.
+    for (const [id, hp] of this.moluchan.heals(targets, dt)) {
+      const player = this.state.players.get(id);
+      if (player) this.healths.heal(id, player, hp, this.now);
     }
   }
 
@@ -1910,7 +1939,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       // A carrier walks slower (#11), and so does someone lugging a trottinette (#15).
       // A bot (#59) walks a little slower than its archetype.
       const botSpeed = isBotId(sessionId) ? BOT.speed : 1;
-      const speed = gas.speed * fire.speed * botSpeed * (this.carry.isCarrying(sessionId) ? CARRY_SPEED_FACTOR : 1) * carrySpeedOf(player.carrying);
+      // #85: faster inside Moluchan's ring.
+      const speed = gas.speed * fire.speed * botSpeed * (this.carry.isCarrying(sessionId) ? CARRY_SPEED_FACTOR : 1) * carrySpeedOf(player.carrying) * this.moluchan.speedAt(player);
       const input = speed === 1 ? held : { x: held.x * speed, z: held.z * speed };
       // Walk (or dodge) from the held input (ignored while down) plus knockback
       // velocity, collided against the street (sub-stepped, bounces off walls).
@@ -1959,6 +1989,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     });
     // Pompiers (#17): trucks come and go, the crews pick fires and spray (puts out fires, pushes whoever is in the water).
     this.brigade.step(this.now, dt, this.brigadeHost);
+    // Moluchan (#85): arrives when the front reaches his point, walks with the cortège, leaves or is grabbed.
+    this.moluchan.step(this.moluchanTick(dt));
     this.burnCrs();
     this.stepFires(dt);
     // Members walked into protesters: push them out of the shields (walls win; a
@@ -2219,6 +2251,21 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const event: LbdImpactEvent = { id: ball.id, x: res.x, z: res.z, hit };
       this.broadcast(ServerMessage.LbdImpact, event);
     });
+  }
+
+  /** What the CRS chase (#5): the protesters, plus Moluchan while he is there (#85). */
+  private *crsProtesterViews(): Generator<ProtesterView> {
+    yield* this.allProtesterViews();
+    const m = this.moluchan.view();
+    if (m) yield m;
+  }
+
+  /** What Moluchan's walk needs this tick (#85). */
+  private moluchanTick(dt: number) {
+    const protesters: { x: number; z: number; status: number }[] = [];
+    this.state.players.forEach((p) => protesters.push({ x: p.x, z: p.z, status: p.status }));
+    const rear = respawnPoint(LEVEL, PLAYER_RADIUS, protesters.filter((p) => p.status === PlayerStatus.Free));
+    return { now: this.now, dt, front: this.front, protesters, rear, nav: this.crs.navGrid, world: this.props.world };
   }
 
   private *allProtesterViews(): Generator<ProtesterView> {

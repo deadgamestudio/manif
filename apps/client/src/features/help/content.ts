@@ -23,6 +23,7 @@ import {
   LINE_FLANK_COUNT,
   MAX_HP,
   MAX_PLAYERS,
+  MOLUCHAN,
   ON_FIRE_DURATION,
   PROP_TYPES,
   RESCUE_TIME,
@@ -269,6 +270,33 @@ export function policeCards(): PoliceCard[] {
       tip: `Plonge quand le laser est sur toi, planque-toi derrière une voiture, ou fonce : ${plural(lbd.maxHp, "coup")} et il est au tapis. Une tomate le fait rater.`,
     },
   ];
+}
+
+// ---------- Jeun-Lac Moluchan (#85) ----------
+
+export interface MoluchanCard {
+  icon: string;
+  name: string;
+  what: string;
+  /** What his ring does, in numbers. */
+  chips: { text: string; good: boolean }[];
+  /** What to do with him. */
+  tip: string;
+}
+
+/** The rare guest on the protesters' side (#85), from MOLUCHAN. A caricature: no real quote. */
+export function moluchanCard(): MoluchanCard {
+  return {
+    icon: "📣",
+    name: "Jeun-Lac Moluchan",
+    what: `Rare (environ ${Math.round(MOLUCHAN.chance * 100)} % des manches) : il débarque en plein cortège, mégaphone à la main, et reste ${duration(MOLUCHAN.duration)}. Dans son cercle rouge au sol, on marche plus vite, on se débat plus vite quand on est attrapé·e, et on récupère des PV doucement.`,
+    chips: [
+      { text: `Vitesse ${percent(MOLUCHAN.speedFactor)}`, good: true },
+      { text: `Se débat ×${num(MOLUCHAN.struggleFactor)}`, good: true },
+      { text: `Soigne ${num(MOLUCHAN.healRate)} PV/s`, good: true },
+    ],
+    tip: "Protège-le : les CRS le visent en priorité, et s'ils l'attrapent, sa visite est finie. Il ne compte ni pour gagner ni dans les points.",
+  };
 }
 
 /** The police units that need a card: every CrsKind but the pompiers. */

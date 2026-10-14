@@ -63,6 +63,16 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
       ...(soak !== undefined && { soak }),
     };
   }
+  if (m.action === "moluchan") {
+    const raw = m as { distance?: unknown; seconds?: unknown };
+    const distance = Number(raw.distance);
+    const seconds = Number(raw.seconds);
+    return {
+      action: "moluchan",
+      ...(raw.distance !== undefined && Number.isFinite(distance) && { distance: Math.max(0, Math.min(20, distance)) }),
+      ...(raw.seconds !== undefined && Number.isFinite(seconds) && { seconds: Math.max(1, Math.min(120, seconds)) }),
+    };
+  }
   if (m.action === "time") {
     const seconds = Number(m.seconds);
     return Number.isFinite(seconds) ? { action: "time", seconds: Math.max(0, seconds) } : null;

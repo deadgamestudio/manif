@@ -192,6 +192,21 @@ describe("thinking", () => {
     expect(progressAt(L, goal.x, goal.z)).toBeCloseTo(0.5 + m.lead, 5);
   });
 
+  test("drifts part of the way towards Moluchan's ring when he is near (#85), not onto him", () => {
+    const m = mindAt(0.4);
+    const w = world(m, { protesters: [human("h", 0.4)] });
+    const plain = marchGoal(m, w);
+    const him = at(0.38, 2);
+    const drawn = marchGoal(m, { ...w, moluchan: him });
+    const before = Math.hypot(plain.x - him.x, plain.z - him.z);
+    const after = Math.hypot(drawn.x - him.x, drawn.z - him.z);
+    expect(after).toBeCloseTo(before * (1 - BOT.moluchanPull), 5);
+    expect(after).toBeGreaterThan(0);
+    // Too far away: no pull at all.
+    expect(marchGoal(m, { ...w, moluchan: at(0.9) })).toEqual(plain);
+    expect(marchGoal(m, { ...w, moluchan: null })).toEqual(plain);
+  });
+
   test("hops a hurdle right in its way, not one beside it or behind", () => {
     const self = { x: 0, z: 0 };
     const move = { x: 0, z: 1 };

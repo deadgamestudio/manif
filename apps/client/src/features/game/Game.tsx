@@ -15,6 +15,7 @@ import { RescueHud } from "../rescue/index.ts";
 import { GasOverlay } from "../gas/index.ts";
 import { FireHud } from "../fire/index.ts";
 import { CarryHud } from "../carry/index.ts";
+import { MoluchanHud } from "../moluchan/index.ts";
 import { EndScreen, RoundBoard, RoundHud } from "../round/index.ts";
 import { TouchControls, useInputMode } from "../touch/index.ts";
 import { HelpMenu, HelpTip } from "../help/index.ts";
@@ -75,6 +76,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
           </div>
         )}
         {!ended && <RoundHud localId={snap.sessionId} />}
+        {!ended && <MoluchanHud />}
         <div className="hud-corner">
           <SoundControl placement="hud" touch={touch} />
           {/* #72: rebind keys and mouse buttons; hidden on touch screens. */}

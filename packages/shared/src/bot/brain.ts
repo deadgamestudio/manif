@@ -143,6 +143,8 @@ export interface BotWorld {
   items: readonly Vec2[];
   gas: readonly BotCircle[];
   hurdles: readonly BotCircle[];
+  /** Jeun-Lac Moluchan (#85), while his ring is on: bots drift a little towards him. Absent or null: not there. */
+  moluchan?: Vec2 | null;
 }
 
 /** What the bot does this think. The room checks every action like a player's (control, cooldowns). */
@@ -199,6 +201,10 @@ const dist = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.z - b.z);
  * Where a bot keeps in the cortège: its lead past the leading free human (or,
  * with none free, the leading free protester, or itself), on its own lane,
  * never past the middle of the Préfecture zone.
+ *
+ * With Moluchan's ring on (#85) and him within BOT.moluchanRange of the bot,
+ * that spot is pulled BOT.moluchanPull of the way towards him: each bot keeps
+ * most of its own lead and lane, so they gather round him without piling up.
  */
 export function marchGoal(mind: BotMind, world: BotWorld): Vec2 {
   const { level } = world;
@@ -220,7 +226,13 @@ export function marchGoal(mind: BotMind, world: BotWorld): Vec2 {
   // Sideways: the street's left-right, perpendicular to its axis.
   const sx = -(to.z - from.z) / len;
   const sz = (to.x - from.x) / len;
-  return { x: from.x + (to.x - from.x) * t + sx * mind.lane, z: from.z + (to.z - from.z) * t + sz * mind.lane };
+  const goal = { x: from.x + (to.x - from.x) * t + sx * mind.lane, z: from.z + (to.z - from.z) * t + sz * mind.lane };
+  const m = world.moluchan;
+  if (m && dist(world.self, m) <= BOT.moluchanRange) {
+    goal.x += (m.x - goal.x) * BOT.moluchanPull;
+    goal.z += (m.z - goal.z) * BOT.moluchanPull;
+  }
+  return goal;
 }
 
 /** What catches the bot's eye right now, before the reaction delay. March when nothing does (or the dice say no). */

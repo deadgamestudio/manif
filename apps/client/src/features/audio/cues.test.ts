@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CrsKind, CrsMount, CrsStatus, Phase, PlayerStatus, RoundResult, SHOP_KINDS, ThrowableKind } from "@manif/shared";
+import { CrsKind, CrsMount, CrsStatus, MoluchanPhase, Phase, PlayerStatus, RoundResult, SHOP_KINDS, ThrowableKind } from "@manif/shared";
 import { ambienceLevels, diffCues, messageCues, type CrsView, type MessageMemory, type PlayerView, type PropTable, type WorldView } from "./cues.ts";
 
 const props: PropTable = new Map([
@@ -45,6 +45,7 @@ function world(patch: Partial<WorldView> = {}): WorldView {
     canisters: new Map(),
     gas: new Map(),
     fires: new Map(),
+    moluchan: null,
     ...patch,
   };
 }
@@ -167,6 +168,18 @@ describe("diffCues", () => {
     expect(sounds(diffCues(grabbed, arrested, "me", props))).toEqual(["van-door"]);
     // Struggled free: the rescue blip, no door.
     expect(sounds(diffCues(grabbed, free, "me", props))).toEqual(["rescue"]);
+  });
+
+  test("Jeun-Lac Moluchan turning up plays his bullhorn and a cheer, for everyone, once (#85)", () => {
+    const here = world({ moluchan: { x: 4, z: 2, phase: MoluchanPhase.Rallying } });
+    expect(diffCues(world(), here, "me", props)).toEqual([{ sound: "moluchan" }, { sound: "cheer", gain: 0.5 }]);
+    // Still there, or already there when we joined: nothing.
+    expect(diffCues(here, world({ moluchan: { x: 5, z: 2, phase: MoluchanPhase.Rallying } }), "me", props)).toEqual([]);
+    expect(diffCues(null, here, "me", props)).toEqual([]);
+    // A CRS gets him: the cuffs, where he is. Gone: nothing.
+    const grabbed = world({ moluchan: { x: 4, z: 2, phase: MoluchanPhase.Grabbed } });
+    expect(diffCues(here, grabbed, "me", props)).toEqual([{ sound: "cuffs", at: { x: 4, z: 2 } }]);
+    expect(diffCues(grabbed, world(), "me", props)).toEqual([]);
   });
 
   test("the last ten seconds tick once a second", () => {

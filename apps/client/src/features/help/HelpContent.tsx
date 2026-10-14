@@ -6,6 +6,7 @@ import {
   RULES,
   archetypeCards,
   furnitureRows,
+  moluchanCard,
   policeCards,
   scoreRows,
   shopRows,
@@ -73,6 +74,32 @@ function ControlsList({ title, rows, mine }: { title: string; rows: readonly (re
         ))}
       </dl>
     </div>
+  );
+}
+
+/** The rare guest (#85): not a pick, so his own card after the archetypes. */
+function MoluchanCardView() {
+  const m = moluchanCard();
+  return (
+    <>
+      <h3 className="help-subtitle">Et parfois, un invité surprise</h3>
+      <ul className="help-cards">
+        <li className="help-card">
+          <h3 className="help-card-title">
+            <span aria-hidden="true">{m.icon}</span> {m.name}
+          </h3>
+          <p className="help-card-text">{m.what}</p>
+          <ul className="help-chips" aria-label="Dans son cercle">
+            {m.chips.map((c) => (
+              <li key={c.text} className="help-chip" data-good={c.good || undefined}>
+                {c.text}
+              </li>
+            ))}
+          </ul>
+          <p className="help-card-tip">→ {m.tip}</p>
+        </li>
+      </ul>
+    </>
   );
 }
 
@@ -263,6 +290,7 @@ export function HelpContent() {
             );
           })}
         </ul>
+        <MoluchanCardView />
       </Section>
 
       <Section id="aide-points">

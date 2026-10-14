@@ -38,9 +38,10 @@ export const STRUGGLE_PER_PRESS = 1 / (STRUGGLE_TIME * STRUGGLE_RATE);
 
 /**
  * One press at `now`. Returns true when it counted (the budget had a press
- * left). The meter never goes above 1.
+ * left). The meter never goes above 1. `gain` scales what a counted press
+ * fills (#85: Moluchan's ring makes it faster); the rate limit is the same.
  */
-export function strugglePress(s: Struggle, now: number): boolean {
+export function strugglePress(s: Struggle, now: number, gain = 1): boolean {
   const refill = Number.isFinite(s.creditAt) ? Math.max(0, now - s.creditAt) * STRUGGLE_RATE : STRUGGLE_BURST;
   s.credit = Math.min(STRUGGLE_BURST, s.credit + refill);
   s.creditAt = now;
@@ -48,7 +49,7 @@ export function strugglePress(s: Struggle, now: number): boolean {
   // A hair of slack, so a press exactly on the beat at the fastest rate still counts despite float rounding.
   if (s.credit < 1 - 1e-6) return false;
   s.credit = Math.max(0, s.credit - 1);
-  s.meter = Math.min(1, s.meter + STRUGGLE_PER_PRESS);
+  s.meter = Math.min(1, s.meter + STRUGGLE_PER_PRESS * Math.max(0, gain));
   return true;
 }
 

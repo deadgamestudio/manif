@@ -7,6 +7,7 @@ import { GroundItem, ProjectileView } from "../features/throwable/index.js";
 import { CanisterView, GasCloudView } from "../features/gas/index.js";
 import { FireView } from "../features/fire/index.js";
 import { TruckView } from "../features/pompier/index.js";
+import { MoluchanView } from "../features/moluchan/index.js";
 
 // The root room state. It composes the per-feature Schema classes and stays
 // with the room; features define their own pieces (see features/*/schema.ts).
@@ -30,6 +31,8 @@ export const StreetState = schema(
     fires: t.map(FireView),
     /** Fire trucks (#17), by server-made id. At most `maxTrucks`; their pompiers are bots in `crs`. */
     trucks: t.map(TruckView),
+    /** Jeun-Lac Moluchan (#85), by MOLUCHAN_ID: empty, or him while he is on the street (at most one). */
+    moluchan: t.map(MoluchanView),
     /** Round phase (#12), see `Phase` in @manif/shared: waiting (the lobby screen), marching, ended. */
     phase: t.uint8().default(Phase.Waiting),
     /** Whole seconds left (#12): of the march while marching, of the end screen while ended. Changes once a second. */

@@ -8,7 +8,7 @@
  * as a new round) is only a baseline: whatever is already there (fires,
  * gas, items, broken props) makes no sound.
  */
-import { CrsKind, CrsMount, CrsStatus, Phase, PlayerStatus, RoundResult, ThrowableKind, type PropKind } from "@manif/shared";
+import { CrsKind, CrsMount, CrsStatus, MoluchanPhase, Phase, PlayerStatus, RoundResult, ThrowableKind, type PropKind } from "@manif/shared";
 import type { SoundName } from "./sounds.ts";
 import type { Point } from "./spatial.ts";
 
@@ -51,6 +51,8 @@ export interface WorldView {
   canisters: ReadonlyMap<string, Point>;
   gas: ReadonlyMap<string, Point>;
   fires: ReadonlyMap<string, Point>;
+  /** Jeun-Lac Moluchan (#85) and his `MoluchanPhase`, or null when he isn't on the street. */
+  moluchan: (Point & { phase: number }) | null;
 }
 
 /** A sound to play: where (none: centred, full volume), and an extra gain. */
@@ -163,6 +165,14 @@ export function diffCues(prev: WorldView | null, next: WorldView, localId: strin
   for (const [id, c] of next.canisters) if (!prev.canisters.has(id)) cues.push({ sound: "launch", at: at(c) });
   for (const [id, g] of next.gas) if (!prev.gas.has(id)) cues.push({ sound: "hiss", at: at(g) });
   for (const [id, f] of next.fires) if (!prev.fires.has(id)) cues.push({ sound: "ignite", at: at(f) });
+
+  // Jeun-Lac Moluchan (#85): his entrance is for the whole cortège (the HUD says so too), not placed;
+  // the cuffs when a CRS gets him, where he is.
+  const m = next.moluchan;
+  if (m && !prev.moluchan) cues.push({ sound: "moluchan" }, { sound: "cheer", gain: 0.5 });
+  if (m && prev.moluchan && prev.moluchan.phase !== MoluchanPhase.Grabbed && m.phase === MoluchanPhase.Grabbed) {
+    cues.push({ sound: "cuffs", at: at(m) });
+  }
   return cues;
 }
 
