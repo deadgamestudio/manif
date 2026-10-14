@@ -30,6 +30,8 @@ export interface CrsView extends Point {
   spraying: boolean;
   /** Winding up a grab (#70). */
   windup: boolean;
+  /** A CRS LBD aiming (#73): the session id under its laser, "" otherwise. */
+  aim: string;
 }
 
 export interface ItemView extends Point {
@@ -144,6 +146,8 @@ export function diffCues(prev: WorldView | null, next: WorldView, localId: strin
     if (!was.revealed && c.revealed) cues.push({ sound: "whistle", at: at(c) });
     // A grab winding up (#70): a sharp whistle with the "!", the cue to dodge or hop.
     if (!was.windup && c.windup) cues.push({ sound: "whistle", at: at(c), gain: 0.8 });
+    // A CRS LBD starting to aim (#73): a rising "charging" beep at it, or right in your ears when you are the one under the laser.
+    if (was.aim === "" && c.aim !== "") cues.push(c.aim === localId ? { sound: "charge" } : { sound: "charge", at: at(c), gain: 0.7 });
     if (was.mount !== CrsMount.Wreck && c.mount === CrsMount.Wreck) cues.push({ sound: "car", at: at(c), gain: 0.8 });
     if (!was.onFire && c.onFire) cues.push({ sound: "ignite", at: at(c), gain: 0.6 });
   }
@@ -168,6 +172,8 @@ export type NetCueEvent =
   | { type: "hit"; kind: "prop" | "crs"; target: string; x: number; z: number; broke: boolean }
   | { type: "shove"; ids: readonly string[] }
   | { type: "impulse"; id: string }
+  | { type: "lbdShot"; x: number; z: number }
+  | { type: "lbdImpact"; x: number; z: number; hit: boolean }
   | { type: "roundEnd"; result: number };
 
 /** What the message cues remember between messages: when each CRS last swung its baton. */
@@ -240,6 +246,11 @@ export function messageCues(
       }
       return [];
     }
+    // The CRS LBD (#73): the launcher's pop, then a cartoon boing where the ball lands (a softer one off a wall or a CRS).
+    case "lbdShot":
+      return [{ sound: "launch", at: { x: event.x, z: event.z } }];
+    case "lbdImpact":
+      return [{ sound: "boing", at: { x: event.x, z: event.z }, gain: event.hit ? 1 : 0.45 }];
   }
 }
 

@@ -3,7 +3,7 @@ import { PlayerStatus } from "../health/index.js";
 import { STREET_LEVEL as L, inRect, progressAt, type Level } from "../level/index.js";
 import { circleOverlaps, type CollisionWorld } from "../physics/index.js";
 import { PLAYER_RADIUS } from "../player/index.js";
-import { CRS_SPAWN_CLEARANCE, MAX_CRS } from "../crs/index.js";
+import { CRS_SPAWN_CLEARANCE, MAX_CRS, MAX_LBD } from "../crs/index.js";
 import { propCollisionWorld } from "../prop/index.js";
 import { TICK_DT } from "../net/index.js";
 import { Phase, ROUND_DURATION, ROUND_END_DURATION, ROUND_WAVES, RoundResult, UNIT_STAGES, WAVE_LINE_AHEAD } from "./constants.js";
@@ -340,6 +340,15 @@ describe("unit mix (#13)", () => {
     expect(unitStageAt(1)).toMatchObject({ bac: 1, bravm: 1 });
   });
 
+  test("the CRS LBD (#73) joins from 35 % on, never in the opening wave", () => {
+    expect(unitStageAt(0).lbd).toBe(0);
+    expect(unitStageAt(0.3).lbd).toBe(0);
+    expect(unitStageAt(0.35).lbd).toBe(1);
+    expect(unitStageAt(0.6).lbd).toBe(1);
+    expect(unitStageAt(1).lbd).toBe(1);
+    for (const s of UNIT_STAGES) expect(s.lbd).toBeLessThanOrEqual(MAX_LBD);
+  });
+
   test("the table starts at 0, is sorted, and the schedule's waves bring a few of each", () => {
     expect(UNIT_STAGES[0]!.from).toBe(0);
     for (let i = 1; i < UNIT_STAGES.length; i++) expect(UNIT_STAGES[i]!.from).toBeGreaterThan(UNIT_STAGES[i - 1]!.from);
@@ -358,8 +367,8 @@ describe("unit mix (#13)", () => {
 
   test("a changed table changes the mix, unsorted rows included", () => {
     const stages = [
-      { from: 0.6, bac: 0, bravm: 3 },
-      { from: 0, bac: 2, bravm: 0 },
+      { from: 0.6, bac: 0, bravm: 3, lbd: 0 },
+      { from: 0, bac: 2, bravm: 0, lbd: 0 },
     ];
     expect(unitStageAt(0.1, stages)).toMatchObject({ bac: 2, bravm: 0 });
     expect(unitStageAt(0.7, stages)).toMatchObject({ bac: 0, bravm: 3 });

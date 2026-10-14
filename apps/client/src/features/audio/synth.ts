@@ -45,6 +45,55 @@ function hop(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
   return 0.24;
 }
 
+/**
+ * A CRS LBD taking aim (#73): quick beeps climbing in pitch and coming
+ * closer together, like a toy locking on. About as long as the aim.
+ */
+function charge(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
+  const beeps = 7;
+  let t = t0;
+  for (let i = 0; i < beeps; i++) {
+    const f = 660 * Math.pow(2, i / (beeps - 1));
+    const length = 0.045;
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(f, t);
+    osc.frequency.linearRampToValueAtTime(f * 1.06, t + length);
+    osc.connect(envelope(ctx, out, t, length, 0.6, 0.005));
+    osc.start(t);
+    osc.stop(t + length + 0.02);
+    t += length + 0.11 * (1 - i / beeps);
+  }
+  return t - t0;
+}
+
+/**
+ * The LBD's rubber ball landing (#73): a cartoon boing, a quick swoop up
+ * then a wobbling tone settling down, the wobble dying out. Slapstick only.
+ */
+function boing(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
+  const seconds = 0.6;
+  const osc = ctx.createOscillator();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(140, t0);
+  osc.frequency.exponentialRampToValueAtTime(520, t0 + 0.05);
+  osc.frequency.exponentialRampToValueAtTime(300, t0 + seconds);
+  // The wobble: a fast vibrato whose depth dies away.
+  const lfo = ctx.createOscillator();
+  const depth = ctx.createGain();
+  lfo.frequency.setValueAtTime(16, t0);
+  lfo.frequency.linearRampToValueAtTime(9, t0 + seconds);
+  depth.gain.setValueAtTime(110, t0 + 0.05);
+  depth.gain.exponentialRampToValueAtTime(4, t0 + seconds);
+  lfo.connect(depth).connect(osc.frequency);
+  osc.connect(envelope(ctx, out, t0, seconds, 1, 0.008));
+  lfo.start(t0);
+  osc.start(t0);
+  lfo.stop(t0 + seconds + 0.02);
+  osc.stop(t0 + seconds + 0.02);
+  return seconds;
+}
+
 /** The sad trombone of a lost march: four notes down, the last one wobbling. */
 function sadTrombone(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
   const filter = ctx.createBiquadFilter();
@@ -161,5 +210,9 @@ export function synthesize(ctx: BaseAudioContext, name: SynthSoundName, out: Aud
       return sadTrombone(ctx, out, t0);
     case "megaphone":
       return megaphone(ctx, out, t0);
+    case "charge":
+      return charge(ctx, out, t0);
+    case "boing":
+      return boing(ctx, out, t0);
   }
 }

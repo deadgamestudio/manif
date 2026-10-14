@@ -11,6 +11,8 @@ import {
   grab,
   rescue,
   respawn,
+  shieldFromGrabs,
+  isGrabImmune,
   secondsLeft,
   tickHealth,
   heal,
@@ -327,5 +329,19 @@ describe("heal (#14, the CGT's aura)", () => {
     expect(heal(hurt, Number.NaN)).toBe(hurt);
     const grabbed = grab(hurt, 0);
     expect(heal(grabbed, 5)).toBe(grabbed);
+  });
+});
+
+describe("shieldFromGrabs (#73: after an LBD hit)", () => {
+  test("no grab until it runs out, hits still land, and the longer immunity wins", () => {
+    const h = shieldFromGrabs(createHealth(), 10, 2);
+    expect(isGrabImmune(h, 11.9)).toBe(true);
+    expect(grab(h, 11.9)).toBe(h);
+    expect(grab(h, 12).status).toBe(PlayerStatus.Grabbed);
+    expect(damage(h, 10, 11).hp).toBe(MAX_HP - 10);
+    // A shorter one on top changes nothing; a bad duration is ignored.
+    expect(shieldFromGrabs(h, 10.5, 1)).toBe(h);
+    expect(shieldFromGrabs(h, 10, Number.NaN)).toBe(h);
+    expect(shieldFromGrabs(h, 11, 2).grabImmuneUntil).toBe(13);
   });
 });

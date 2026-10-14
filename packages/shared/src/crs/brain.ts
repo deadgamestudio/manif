@@ -137,6 +137,12 @@ export interface CrsBot {
   stalkAt: number;
   /** Set when the bot leaves the street on its own (a BRAV-M riding off, #13): the squad removes it, no "out". */
   gone: boolean;
+  /** An LBD aiming (#73): the protester under its laser, or null. Synced as `Crs.aim` for the tell. */
+  aimId: string | null;
+  /** Room time the aim ends and it fires. */
+  aimUntil: number;
+  /** Room time it may start its next aim (the shot's cooldown, or the pause after a foiled aim). */
+  shotReadyAt: number;
 }
 
 /** A ridden bike's plan (#13): charge a protester, wait while the passenger works, ride off. */
@@ -198,6 +204,9 @@ export function createCrsBot(id: string, kind: CrsKind, x: number, z: number, ro
     revealed: stats.disguise === undefined,
     stalkAt: now + (stats.disguise?.blendMin ?? 0),
     gone: false,
+    aimId: null,
+    aimUntil: 0,
+    shotReadyAt: now + (stats.lbd?.firstShotDelay ?? 0),
   };
 }
 
@@ -248,6 +257,12 @@ export interface CrsHost {
    * without it, bots never throw gas.
    */
   throwGas?(by: string, from: Vec2, to: Vec2): boolean;
+  /**
+   * An LBD `by` fires its ball (#73) from `from` along the unit direction
+   * (dirX, dirZ). The room flies it and applies the hit. Optional: without
+   * it, an LBD aims but never fires.
+   */
+  fireLbd?(by: string, from: Vec2, dirX: number, dirZ: number): void;
 }
 
 /**
@@ -404,6 +419,16 @@ export function cancelWindup(bot: CrsBot, now: number, cooldown = true): void {
   if (bot.windupId === null) return;
   bot.windupId = null;
   if (cooldown) bot.grabReadyAt = Math.max(bot.grabReadyAt, now + bot.stats.grabCooldown);
+}
+
+/**
+ * Drop an LBD's aim (#73): foiled (a dodge, cover, a hit, a stun, the target
+ * gone), so it waits `reaimDelay` before aiming again. A no-op when not aiming.
+ */
+export function cancelAim(bot: CrsBot, now: number): void {
+  if (bot.aimId === null) return;
+  bot.aimId = null;
+  bot.shotReadyAt = Math.max(bot.shotReadyAt, now + (bot.stats.lbd?.reaimDelay ?? 0));
 }
 
 /**
@@ -566,6 +591,7 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
     // Out, dazed or on the floor: lets go of any grab (or the one winding up, #70) and does nothing.
     if (bot.grabbedId !== null) releaseGrab(bot, host, now);
     cancelWindup(bot, now);
+    cancelAim(bot, now);
     setInput(bot, NO_MOVE);
   } else if (bot.windupId !== null) {
     // Winding up a grab (#70): stands, arms out, until it grabs or something foils it.
@@ -581,6 +607,7 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
     }
   } else if (isBackingOff(bot, now)) {
     // Stinky (#15): backs away from the protesters for a moment, embarrassed. Before any orders: a line member steps out too.
+    cancelAim(bot, now);
     backOff(bot, ctx, host);
   } else if (behaviour.orders?.(bot, ctx, host) === true) {
     // Following orders (#6): input and facing are already set.
@@ -736,8 +763,9 @@ export function hitCrs(bot: CrsBot, fromX: number, fromZ: number, damage: number
     const away = awayFrom(bot, fromX, fromZ);
     return { impulse: applyImpulse(bot.body, away.x, away.z, s.heavyHitImpulse, "always"), out: false };
   }
-  // Any hit staggers it out of a grab's wind-up (#70).
+  // Any hit staggers it out of a grab's wind-up (#70), and an LBD out of its aim (#73).
   cancelWindup(bot, now);
+  cancelAim(bot, now);
   bot.staggerCount = now - bot.lastHitAt <= s.staggerWindow ? bot.staggerCount + 1 : 1;
   bot.lastHitAt = now;
   const heavy = bot.staggerCount >= s.staggerHits;
@@ -785,8 +813,9 @@ export function strikeCrs(
   if (bot.status === CrsStatus.Out) return null;
   // A pompier (#17): knocked over by anything that pushes it, never hurt or stunned.
   if (bot.stats.invulnerable === true) return { impulse: applyImpulse(bot.body, dirX, dirZ, impulse, impulse > 0 ? "always" : "auto"), out: false };
-  // Anything thrown at it foils a grab's wind-up (#70), a tomato included.
+  // Anything thrown at it foils a grab's wind-up (#70) or an aim (#73), a tomato included.
   cancelWindup(bot, now);
+  cancelAim(bot, now);
   bot.hp = Math.max(0, bot.hp - Math.max(0, damage));
   const out = bot.hp === 0;
   const res = applyImpulse(bot.body, dirX, dirZ, impulse, out ? "always" : "auto");

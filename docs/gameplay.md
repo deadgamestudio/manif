@@ -109,6 +109,18 @@ bike skids away). An end
 screen shows the result and a few joke awards for 10 s, then the street resets
 and everyone is back on the lobby screen for the next round.
 
+## CRS LBD (#73)
+
+Further down the march, one or two CRS carry a cartoon LBD instead of a shield:
+an orange band on the uniform and helmet, and a fat orange toy launcher. It
+hangs back 10 to 16 m from the cortège and only aims at protesters who broke,
+hit or threw something in the last 8 s. When it aims, a red laser runs from the
+launcher to the target's feet for 0.8 s, with a rising beep, then it fires a
+big rubber ball. Dodging, stepping behind cover, a teammate in the way (who
+takes the ball instead), a tomato on its visor or rushing it (it is weak up
+close) all foil it; hopping does not. A hit knocks you on your bum with a
+"boing" for 10 HP, and you can't be grabbed for 2.2 s afterwards.
+
 ## Archetypes (#14)
 
 On the lobby screen each player picks an archetype (#14), locked for the whole

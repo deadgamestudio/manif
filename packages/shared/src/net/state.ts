@@ -126,6 +126,12 @@ export interface CrsShape {
   spraying: boolean;
   /** Winding up a grab (#70): arms out, about to grab whoever it faces. Draw the tell; dodge or hop to foil it. */
   windup: boolean;
+  /**
+   * An LBD aiming (#73): the session id of the protester under its laser, ""
+   * otherwise. Draw the laser from the bot to their feet; it fires when the
+   * aim time is up unless they dodge or get behind cover.
+   */
+  aim: string;
 }
 
 /**

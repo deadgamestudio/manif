@@ -26,6 +26,8 @@ import {
   type HitEvent,
   type ImpulseEvent,
   type InteractPayload,
+  type LbdImpactEvent,
+  type LbdShotEvent,
   type LobbyJoinOptions,
   type MoveInput,
   type PickArchetypePayload,
@@ -155,6 +157,22 @@ const lastCrsHits = new Map<string, number>();
 /** When (performance.now(), ms) each CRS last shoved with its shield (#6). */
 const lastShoves = new Map<string, number>();
 const propBrokenAt = new Map<string, number>();
+/**
+ * LBD balls (#73), cosmetic only: each shot as it arrived (performance.now(),
+ * ms) and its impact once that arrives. The ball itself is flown on the
+ * client from the shot; read from useFrame. Old ones are dropped on the next shot.
+ */
+export interface LbdBall {
+  shot: LbdShotEvent;
+  firedAt: number;
+  impact: LbdImpactEvent | null;
+  impactAt: number;
+}
+const lbdBalls = new Map<string, LbdBall>();
+/** A ball older than this is gone for good (it flies under a second, then puffs). */
+const LBD_BALL_TTL_MS = 4000;
+/** When (performance.now(), ms) each CRS LBD last fired (#73), for the recoil. */
+const lastLbdShots = new Map<string, number>();
 /** Local cosmetic gate so the swing animation is not replayed faster than the server allows. */
 let lastLocalSwing = -Infinity;
 /**
@@ -256,6 +274,8 @@ export type NetEvent =
   | { type: "hit"; event: HitEvent }
   | { type: "shove"; ids: readonly string[] }
   | { type: "impulse"; event: ImpulseEvent }
+  | { type: "lbdShot"; event: LbdShotEvent }
+  | { type: "lbdImpact"; event: LbdImpactEvent }
   | { type: "roundEnd"; event: RoundEndEvent };
 const eventListeners = new Set<(event: NetEvent) => void>();
 function emit(event: NetEvent) {
@@ -289,6 +309,8 @@ function clearEffects() {
   lastCrsHits.clear();
   lastShoves.clear();
   propBrokenAt.clear();
+  lbdBalls.clear();
+  lastLbdShots.clear();
   lastLocalSwing = -Infinity;
   setItemIds([], []);
   gasSeenAt.clear();
@@ -389,6 +411,7 @@ function attach(joined: ClientRoom, gen: number) {
     lastSwings.delete(id);
     lastCrsHits.delete(id);
     lastShoves.delete(id);
+    lastLbdShots.delete(id);
     refresh();
   });
   // Throwables (#8): only the id lists; positions are read live from useFrame.
@@ -516,6 +539,24 @@ function attach(joined: ClientRoom, gen: number) {
     if (event.kind === "prop") lastPropHits.set(event.target, performance.now());
     else if (event.kind === "crs") lastCrsHits.set(event.target, performance.now());
     emit({ type: "hit", event });
+  });
+  // The CRS LBD (#73): the ball flies on the client from its shot until its impact arrives.
+  joined.onMessage(ServerMessage.LbdShot, (event: LbdShotEvent) => {
+    if (gen !== generation) return;
+    const now = performance.now();
+    for (const [id, ball] of lbdBalls) if (now - ball.firedAt > LBD_BALL_TTL_MS) lbdBalls.delete(id);
+    lbdBalls.set(event.id, { shot: event, firedAt: now, impact: null, impactAt: 0 });
+    lastLbdShots.set(event.by, now);
+    emit({ type: "lbdShot", event });
+  });
+  joined.onMessage(ServerMessage.LbdImpact, (event: LbdImpactEvent) => {
+    if (gen !== generation) return;
+    const ball = lbdBalls.get(event.id);
+    if (ball) {
+      ball.impact = event;
+      ball.impactAt = performance.now();
+    }
+    emit({ type: "lbdImpact", event });
   });
 
   joined.onLeave(() => {
@@ -653,6 +694,16 @@ export const net = {
   /** When (performance.now()) CRS `id` last shoved with its shield (#6), if ever. */
   getLastShove(id: string): number | undefined {
     return lastShoves.get(id);
+  },
+
+  /** The LBD balls (#73) still flying or just stopped, by ball id. Read from useFrame; never keep pieces. */
+  getLbdBalls(): ReadonlyMap<string, LbdBall> {
+    return lbdBalls;
+  },
+
+  /** When (performance.now()) CRS LBD `id` last fired (#73), if ever. */
+  getLastLbdShot(id: string): number | undefined {
+    return lastLbdShots.get(id);
   },
 
   /** Live, decoded state of a police bot (#5). Read from useFrame. */
