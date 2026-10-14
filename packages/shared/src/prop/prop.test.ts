@@ -159,10 +159,10 @@ describe("street props", () => {
 });
 
 describe("market stalls (#15)", () => {
-  test("a broken market stall drops tomatoes; every other prop drops pavés (or nothing)", () => {
+  test("a broken market stall drops tomatoes; the street furniture drops pavés (or nothing)", () => {
     expect(PROP_TYPES.market_stall.dropKind).toBe(ThrowableKind.Tomate);
     expect(PROP_TYPES.market_stall.drops).toBeGreaterThan(0);
-    for (const [kind, t] of Object.entries(PROP_TYPES)) if (kind !== "market_stall") expect(t.dropKind).toBe(ThrowableKind.Pave);
+    for (const kind of ["bin", "bus_shelter", "shop_window", "car"] as const) expect(PROP_TYPES[kind].dropKind).toBe(ThrowableKind.Pave);
   });
 
   test("the street has market stalls, and they neither burn nor get hopped over", () => {

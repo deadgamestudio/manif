@@ -72,6 +72,8 @@ export interface PropShapeState {
   broken: boolean;
   /** Burnt out (#16): black, still in the way, never burns again. */
   charred: boolean;
+  /** A shop slot's dealt kind (#68): `shopCode(kind)`, 0 for any other prop. Changes only at a round reset. */
+  kind: number;
 }
 
 /**

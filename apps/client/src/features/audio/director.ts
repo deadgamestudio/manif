@@ -7,7 +7,7 @@
  * the server's own updates come 20 times a second at most, and nothing here
  * needs to be frame-exact.
  */
-import { CrsKind, Phase, STREET_LEVEL, type StreetStateShape } from "@manif/shared";
+import { CrsKind, Phase, STREET_LEVEL, dealtSlot, type StreetStateShape } from "@manif/shared";
 import { net, type NetEvent } from "../../shared/net/index.ts";
 import { ambienceLevels, diffCues, messageCues, type Cue, type CrsView, type ItemView, type MessageMemory, type NetCueEvent, type PlayerView, type PropTable, type WorldView } from "./cues.ts";
 import { audio, type LoopWish } from "./engine.ts";
@@ -21,7 +21,19 @@ const MAX_HOSE_LOOPS = 2;
 /** After a round ends, the sting plays, then the music comes in. */
 const MUSIC_AFTER_END_MS = 2500;
 
-const PROPS: PropTable = new Map(STREET_LEVEL.propSlots.map((p) => [p.id, { kind: p.kind, x: p.x, z: p.z }]));
+/** The level's props; a shop slot sounds like the kind this round dealt it (#68). */
+const PROPS: PropTable = new Map(
+  STREET_LEVEL.propSlots.map((p) => [
+    p.id,
+    {
+      get kind() {
+        return dealtSlot(p, net.getProp(p.id)?.kind ?? 0).kind;
+      },
+      x: p.x,
+      z: p.z,
+    },
+  ]),
+);
 
 let started = false;
 /** The last street snapshot, or null for "next one is a baseline". */

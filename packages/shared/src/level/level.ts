@@ -13,8 +13,19 @@ export type BoxKind = "building" | "wall" | "kiosk" | "barrier" | "van" | "prefe
 /** What a round obstacle looks like. */
 export type CircleKind = "bollard" | "tree" | "lamp";
 
-/** Breakable prop types (#4 owns their HP, shapes and state). */
-export type PropKind = "bin" | "bus_shelter" | "shop_window" | "car" | "market_stall";
+/**
+ * The kinds of shop a shop slot can be dealt at each round (#68). Same
+ * footprint for all of them; they differ in look, sign, HP and drops
+ * (`PROP_TYPES`, `SHOP_TYPES` in prop/).
+ */
+export type ShopKind = "boulangerie" | "cafe" | "sneakers" | "banque" | "kebab" | "toilettage";
+
+/**
+ * Breakable prop types (#4 owns their HP, shapes and state). A level slot of
+ * kind `shop_window` is a shop slot: the server deals it a `ShopKind` at each
+ * round reset (#68), and syncs it.
+ */
+export type PropKind = "bin" | "bus_shelter" | "shop_window" | "car" | "market_stall" | ShopKind;
 
 export interface BoxObstacle extends BoxShape {
   id: string;
