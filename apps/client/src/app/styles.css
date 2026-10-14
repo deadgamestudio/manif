@@ -954,6 +954,31 @@ body,
   text-transform: uppercase;
 }
 
+/* The 3D chunk failed to download, usually an old tab after a deploy (#88). */
+.new-version {
+  color: var(--cloth);
+  justify-content: center;
+  text-align: center;
+}
+.new-version.banner {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--cloth);
+  font: 15px/1.4 var(--font-body);
+}
+.new-version p {
+  margin: 0;
+}
+
 /* ---------- March round (#12) ---------- */
 
 /* Timer and progress: bottom centre on a keyboard, top centre on touch (see .hud[data-touch]). */

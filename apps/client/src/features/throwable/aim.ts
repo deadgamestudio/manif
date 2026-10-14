@@ -1,25 +1,19 @@
-import { Plane, Raycaster, Vector2, Vector3, type Camera } from "three";
-
 /**
- * Where the mouse points on the ground (#8), for the throw aim. Updated every
+ * Where the mouse points on the ground (#8), for the throw aim. Set every
  * frame by `AimTracker` once the mouse has moved over the game view; until
- * then there is no aim and a throw goes along the facing.
+ * then there is no aim and a throw goes along the facing. Plain numbers, no
+ * three.js: the touch controls reach this through `tryThrow`, and they load
+ * before the 3D scene does (#88).
  */
-const ground = new Plane(new Vector3(0, 1, 0), 0);
-const raycaster = new Raycaster();
-const hit = new Vector3();
 let aimX = 0;
 let aimZ = 0;
 let hasAim = false;
 
-/** Project the pointer (normalized device coordinates) onto the ground plane. */
-export function updateAim(pointer: Vector2, camera: Camera): void {
-  raycaster.setFromCamera(pointer, camera);
-  if (raycaster.ray.intersectPlane(ground, hit)) {
-    aimX = hit.x;
-    aimZ = hit.z;
-    hasAim = true;
-  }
+/** The ground point under the mouse. */
+export function setAim(x: number, z: number): void {
+  aimX = x;
+  aimZ = z;
+  hasAim = true;
 }
 
 /** Forget the aim (the mouse left the game view). */

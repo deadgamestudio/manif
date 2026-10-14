@@ -49,7 +49,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         shadows="percentage"
         orthographic
         dpr={[1, touch ? 1.5 : 2]}
-        camera={{ position: CAMERA_OFFSET.toArray(), zoom: 40, near: 0.1, far: 200 }}
+        camera={{ position: [CAMERA_OFFSET.x, CAMERA_OFFSET.y, CAMERA_OFFSET.z], zoom: 40, near: 0.1, far: 200 }}
       >
         <Scene players={snap.players} crs={snap.crs} localId={snap.sessionId} />
       </Canvas>
