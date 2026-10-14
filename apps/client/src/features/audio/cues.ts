@@ -70,6 +70,13 @@ const BREAK_SOUND: Record<PropKind, SoundName> = {
   shop_window: "glass",
   car: "car",
   market_stall: "wood",
+  // The shops dealt each round (#68): glass fronts, and the bank's metal shutters.
+  boulangerie: "glass",
+  cafe: "glass",
+  sneakers: "glass",
+  banque: "metal",
+  kebab: "glass",
+  toilettage: "glass",
 };
 
 /** A hit that doesn't break the prop: a thud in the right material. */
@@ -79,6 +86,12 @@ const HIT_SOUND: Record<PropKind, SoundName> = {
   shop_window: "shield",
   car: "metal",
   market_stall: "wood",
+  boulangerie: "shield",
+  cafe: "shield",
+  sneakers: "shield",
+  banque: "metal",
+  kebab: "shield",
+  toilettage: "shield",
 };
 
 /** A thrown item landing (#8, #15): the pavé thuds, the tomato and the poo splat, the trottinette clangs. */

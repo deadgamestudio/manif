@@ -28,6 +28,23 @@ export interface PropType {
   hoppable: boolean;
 }
 
+/**
+ * Every shop front (#68) collides the same, whatever kind it was dealt: the
+ * collision world and the CRS nav grids never change from one round to the
+ * next, and a client that has not got the kind yet still sees walls in the
+ * right place. Once smashed you can step into the gap.
+ */
+export const SHOP_FRONT: PropShapeDef = { type: "box", halfX: 0.5, halfZ: 1.5 };
+
+/**
+ * A shop front with its HP and drops. Never flammable nor hoppable: the room
+ * builds its list of things that can burn from the level's slots, before any
+ * kind is dealt, so those two must be the same for every kind (tested).
+ */
+function shop(maxHp: number, drops: number, dropKind: ItemKind): PropType {
+  return { maxHp, intact: SHOP_FRONT, broken: null, drops, dropKind, flammable: false, hoppable: false };
+}
+
 export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
   // A wheelie bin: two whacks and the lid flies. Nothing left to stand behind. Low enough to hop over (#45).
   bin: { maxHp: 2, intact: { type: "circle", r: 0.5 }, broken: null, drops: 0, dropKind: ThrowableKind.Pave, flammable: true, hoppable: true },
@@ -41,8 +58,21 @@ export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
     flammable: false,
     hoppable: false,
   },
-  // A shop front: once smashed you can step into the gap.
-  shop_window: { maxHp: 3, intact: { type: "box", halfX: 0.5, halfZ: 1.5 }, broken: null, drops: 1, dropKind: ThrowableKind.Pave, flammable: false, hoppable: false },
+  // A shop slot before the round deals it a kind (#68): a plain shop window.
+  shop_window: shop(3, 1, ThrowableKind.Pave),
+  // The kinds a shop slot is dealt (#68; signs and dealing in `SHOP_TYPES`). Drops are existing throwables only.
+  // Flimsy windows; the tomatoes were for the sandwiches.
+  boulangerie: shop(2, 2, ThrowableKind.Tomate),
+  // The terrace paving comes up with the window.
+  cafe: shop(2, 2, ThrowableKind.Pave),
+  // A display trottinette rolls out.
+  sneakers: shop(3, 1, ThrowableKind.Trottinette),
+  // Heavy shutters: many whacks, and a pile of pavés from the cladding. Worth the same +10 as any prop (#41).
+  banque: shop(6, 4, ThrowableKind.Pave),
+  // Salade, tomate, oignon.
+  kebab: shop(3, 3, ThrowableKind.Tomate),
+  // A dog groomer: best not to ask what spills out.
+  toilettage: shop(2, 2, ThrowableKind.Crotte),
   // A burnt-out car is still a car.
   car: {
     maxHp: 6,

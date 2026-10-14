@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { DoubleSide } from "three";
 import { PROP_TYPES, type PropKind, type PropShapeDef } from "@manif/shared";
 import type { DebrisBurst } from "./debris.ts";
+import { SHOP_LOOKS } from "./shopVisuals.tsx";
 
 /** Footprint (full width along X, full depth along Z) of a shape. */
 function footprint(def: PropShapeDef): [number, number] {
@@ -227,4 +228,6 @@ export const PROP_LOOKS: Readonly<Record<PropKind, PropLook>> = {
     broken: () => <MarketStall broken />,
     debris: { y: 1.2, count: 24, colors: ["#d62a1e", "#e53935", "#8d6e63", "#f5f5f5"], size: 0.16, speed: 6 },
   },
+  // The shops dealt each round (#68).
+  ...SHOP_LOOKS,
 };

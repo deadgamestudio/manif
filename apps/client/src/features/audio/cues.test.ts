@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CrsKind, CrsMount, CrsStatus, Phase, PlayerStatus, RoundResult, ThrowableKind } from "@manif/shared";
+import { CrsKind, CrsMount, CrsStatus, Phase, PlayerStatus, RoundResult, SHOP_KINDS, ThrowableKind } from "@manif/shared";
 import { ambienceLevels, diffCues, messageCues, type CrsView, type MessageMemory, type PlayerView, type PropTable, type WorldView } from "./cues.ts";
 
 const props: PropTable = new Map([
@@ -162,6 +162,14 @@ describe("diffCues", () => {
     expect(sounds(diffCues(world({ timeLeft: 11 }), world({ timeLeft: 10 }), "me", props))).toEqual(["tick"]);
     expect(diffCues(world({ timeLeft: 12 }), world({ timeLeft: 11 }), "me", props)).toEqual([]);
     expect(diffCues(world({ timeLeft: 1 }), world({ timeLeft: 0 }), "me", props)).toEqual([]);
+  });
+
+  test("every shop kind (#68) breaks with a sound: glass for the fronts, metal for the bank's shutters", () => {
+    for (const kind of SHOP_KINDS) {
+      const table: PropTable = new Map([["shop-1", { kind, x: 1, z: 1 }]]);
+      const cues = diffCues(world(), world({ broken: new Set(["shop-1"]) }), "me", table);
+      expect(sounds(cues)).toEqual([kind === "banque" ? "metal" : "glass"]);
+    }
   });
 });
 
