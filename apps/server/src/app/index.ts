@@ -27,8 +27,13 @@ const health = createEndpoint("/health", { method: "GET" }, async () => ({ ok: t
 // logs straight away (the game runs anyway, with round scores only).
 const scores = scoreStore();
 
-/** The top of the lasting leaderboard (#41): names, totals and rounds only, never a token. */
-const leaderboard = createEndpoint("/leaderboard", { method: "GET" }, async () => {
+/**
+ * The top of the lasting leaderboard (#41): names, totals and rounds only, never a token.
+ * The same for everyone, so Cloudflare may keep it 15 s (#90) to soak up refresh spam;
+ * browsers still ask every time (max-age=0).
+ */
+const leaderboard = createEndpoint("/leaderboard", { method: "GET" }, async (ctx) => {
+  ctx.setHeader("Cache-Control", "public, max-age=0, s-maxage=15");
   const { available, top } = scores.leaderboard(null);
   return { available, top };
 });
