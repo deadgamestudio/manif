@@ -9,9 +9,16 @@ const port = Number(process.env.PORT ?? DEFAULT_SERVER_PORT);
 
 // Error tracking with Rustrak (Sentry-protocol). The DSN is a public ingest
 // key, passed at runtime by docker-compose (SENTRY_DSN). Unset in dev, which
-// just turns reporting off.
+// just turns reporting off. Console lines are not kept as breadcrumbs: the
+// room's logs name players and carry lobby codes, which stay on this server.
 const dsn = process.env.SENTRY_DSN;
-if (dsn) Sentry.init({ dsn, environment: process.env.NODE_ENV });
+if (dsn) {
+  Sentry.init({
+    dsn,
+    environment: process.env.NODE_ENV,
+    beforeBreadcrumb: (crumb) => (crumb.category === "console" ? null : crumb),
+  });
+}
 
 /** Answers 200 while the server is up. The Docker healthcheck polls it (see apps/server/Dockerfile). */
 const health = createEndpoint("/health", { method: "GET" }, async () => ({ ok: true }));
