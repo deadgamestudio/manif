@@ -1,0 +1,137 @@
+/* Scoring (#41): my round score in the round HUD, and the lasting leaderboard
+   placard in the lobby (the placard look is .placard and .roster in app/styles.css). */
+
+/* ---------- My score, in the round HUD's dark pill ---------- */
+
+.my-score {
+  font-family: var(--font-marker);
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--cloth);
+}
+
+.my-score b {
+  display: inline-block;
+  min-width: 1.6em;
+  font-family: var(--font-placard);
+  font-weight: 400;
+  font-size: 24px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--hi-vis);
+  animation: my-score-pop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes my-score-pop {
+  0% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-score b {
+    animation: none;
+  }
+}
+
+/* ---------- The lasting leaderboard, a lobby placard ---------- */
+
+.leaderboard {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.leaderboard li {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 1px 10px;
+  background: #fffaf0;
+  border: 2px solid var(--ink);
+  font-family: var(--font-marker);
+  font-size: 16px;
+}
+
+.leaderboard li[data-me] {
+  background: #fff3b0;
+}
+
+/* Me, below the top: a dotted gap says the lines in between are skipped. */
+.leaderboard li[data-outside] {
+  margin-top: 10px;
+  position: relative;
+}
+
+.leaderboard li[data-outside]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -11px;
+  width: 30px;
+  border-top: 4px dotted var(--ink);
+  transform: translateX(-50%);
+}
+
+.leaderboard-rank {
+  font-family: var(--font-placard);
+  font-size: 20px;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.leaderboard li:nth-child(1):not([data-outside]) .leaderboard-rank {
+  color: var(--paint-red);
+}
+
+.leaderboard-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Total and rounds on one line, so twenty rows stay short. */
+.leaderboard-total {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.leaderboard-rounds {
+  min-width: 4.6em;
+  font-weight: 400;
+  font-size: 12px;
+  text-align: right;
+  color: var(--muted);
+}
+
+.leaderboard-note {
+  margin: 0;
+  font-family: var(--font-marker);
+  font-size: 15px;
+  color: var(--muted);
+}
+
+@media (max-height: 600px) {
+  .lobby .leaderboard li {
+    padding: 2px 8px;
+    font-size: 15px;
+  }
+}

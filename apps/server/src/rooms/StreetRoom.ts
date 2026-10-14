@@ -123,6 +123,13 @@ import {
   canStart,
   type ReadyPayload,
   type StartPayload,
+  bestHealer,
+  endBonus,
+  inRect,
+  isBotId,
+  isDeviceToken,
+  type LeaderboardEvent,
+  type ScoreTokenEvent,
 } from "@manif/shared";
 import { Bodies, DEBUG_KNOCKBACK_ENABLED, planDebugKnockback } from "../features/physics/index.js";
 import { DEBUG_HEALTH_ENABLED, Healths, parseDebugHealth } from "../features/health/index.js";
@@ -138,7 +145,8 @@ import { Gas } from "../features/gas/index.js";
 import { Fires } from "../features/fire/index.js";
 import { Carries } from "../features/carry/index.js";
 import { FireBrigade, type BrigadeHost, type HoseTarget } from "../features/pompier/index.js";
-import { DEBUG_ROUND_ENABLED, IDLE_BOARD, RoundStats, boardKey, parseDebugRound, stepBoard, type BoardThrottle } from "../features/round/index.js";
+import { DEBUG_ROUND_ENABLED, IDLE_BOARD, RoundStats, boardKey, parseDebugRound, stepBoard, taintsRound, type BoardThrottle } from "../features/round/index.js";
+import { bankEntries, hashToken, newDeviceToken, scoreStore } from "../features/score/index.js";
 import { HealAuras } from "../features/archetype/index.js";
 import { StreetState } from "./state.js";
 
@@ -191,8 +199,27 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * stepped by `stepRound`; phase, whole seconds and result are mirrored into Schema.
    */
   private round = createRound();
-  /** Per-player numbers for the end screen (#12). Server-only, sent once at the end. */
-  private roundStats = new RoundStats();
+  /**
+   * Per-player numbers for the end screen (#12) and the round score (#41). Server-only, sent at the end
+   * and on the live board; each score change is mirrored into `Player.score` for the HUD.
+   */
+  private roundStats = new RoundStats((id, score) => {
+    const player = this.state.players.get(id);
+    if (player && player.score !== score) player.score = score;
+  });
+  /** DEBUG (#41): a dev-only debug action touched this round, so it never banks. Cleared by the next start. */
+  private roundTainted = false;
+  /** The lasting totals (#41), shared by every room. May be unavailable: then only round scores exist. */
+  private scores = scoreStore();
+  /**
+   * Hash of the device token each session joined with (#41). Server-only: the token itself is never
+   * kept, synced, broadcast or logged. Bots (#59) have none.
+   */
+  private tokenHashes = new Map<string, string>();
+  /** A token issued at join (#41), sent to that client alone on the next tick, then forgotten. */
+  private tokensToSend = new Map<string, string>();
+  /** Who joined and gets the leaderboard on the next tick (#41), once their join is through. */
+  private leaderboardJoiners = new Set<string>();
   /** The live Tab board (#63): when it last went out and what it said. Throttled by `stepBoard`. */
   private board: BoardThrottle = IDLE_BOARD;
   /** Who joined mid-march (#63) and gets the current board on the next tick, without waiting for a change. */
@@ -413,6 +440,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (check.ok) {
         console.log(`[street ${this.roomId}] ${client.sessionId} renames "${player.name}" -> "${check.name}"`);
         player.name = check.name;
+        // #41: the leaderboard shows the latest name for the token; everyone here sees it change.
+        const hash = this.tokenHashes.get(client.sessionId);
+        if (hash && this.scores.rename(hash, check.name)) this.sendLeaderboard();
       } else if (check.reason === "empty" || check.reason === "taken") {
         const refused: RenameRefusedEvent = { reason: check.reason };
         client.send(ServerMessage.RenameRefused, refused);
@@ -450,6 +480,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     ...(DEBUG_KNOCKBACK_ENABLED && {
       [ClientMessage.DebugKnockback]: (client: Client, message: unknown) => {
         if (this.state.phase !== Phase.Marching) return;
+        this.roundTainted = true;
         const self = this.state.players.get(client.sessionId);
         if (!self) return;
         const plan = planDebugKnockback(client.sessionId, self, this.state.players.entries(), message);
@@ -462,6 +493,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       [ClientMessage.DebugHealth]: (client: Client, message: unknown) => {
         if (this.state.phase !== Phase.Marching) return;
         const action = parseDebugHealth(message);
+        if (action) this.roundTainted = true;
         if (action === "damage") this.damagePlayer(client.sessionId, DEBUG_DAMAGE);
         else if (action === "grab") this.grabPlayer(client.sessionId);
       },
@@ -472,6 +504,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       [ClientMessage.DebugRound]: (client: Client, message: unknown) => {
         if (this.state.phase !== Phase.Marching) return;
         const cmd = parseDebugRound(message);
+        // #41: a round touched by a debug action never banks (cutting the timer short aside, see taintsRound).
+        if (cmd && taintsRound(cmd, this.round.timeLeft)) this.roundTainted = true;
         if (cmd?.action === "time") this.round.timeLeft = cmd.seconds;
         else if (cmd?.action === "teleport") this.debugTeleport(client.sessionId, cmd.progress);
         else if (cmd?.action === "hold") this.roundHeld = true;
@@ -531,6 +565,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (this.state.phase === Phase.Marching) this.boardJoiners.add(client.sessionId);
     this.moveInputs.set(client.sessionId, { x: 0, z: 0 });
     this.joinOrder.set(client.sessionId, this.joinCounter++);
+    this.identify(client.sessionId, player.name, options?.token);
     // The creator is the first to join, so becomes host.
     if (!this.state.hostId) this.state.hostId = client.sessionId;
     console.log(
@@ -560,6 +595,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.protesterViews.delete(client.sessionId);
     this.joinOrder.delete(client.sessionId);
     this.lastRename.delete(client.sessionId);
+    this.tokenHashes.delete(client.sessionId);
+    this.tokensToSend.delete(client.sessionId);
+    this.leaderboardJoiners.delete(client.sessionId);
     this.heals.remove(client.sessionId);
     this.roundStats.remove(client.sessionId);
     this.boardJoiners.delete(client.sessionId);
@@ -582,7 +620,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // #17: the dev-only brigade tuning lasts one round.
     this.brigade.resetTuning();
     this.roundHeld = false;
+    this.roundTainted = false;
     this.roundStats.clear();
+    for (const player of this.state.players.values()) player.score = 0;
     // #62: everyone lands back in the next lobby not ready.
     for (const player of this.state.players.values()) player.ready = false;
     this.updateFront();
@@ -720,16 +760,84 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.syncRound();
   }
 
-  /** The march is over: everyone gets the result and the numbers once. The street freezes until the reset. */
+  /**
+   * The march is over: the end bonus (#41), then the round's scores go into the lasting totals (one
+   * small transaction, the only write of the round), then everyone gets the result, the numbers and
+   * their new totals once. The street freezes until the reset.
+   */
   private endRound() {
     this.rescues.clear();
-    const event: RoundEndEvent = {
-      result: this.round.result,
-      seconds: Math.round(this.round.elapsed),
-      players: this.roundRows(),
-    };
+    const won = this.round.result === RoundResult.Won;
+    this.state.players.forEach((p, id) => {
+      const arrived = p.status === PlayerStatus.Free && inRect(LEVEL.destination, p.x, p.z);
+      this.roundStats.bonus(id, endBonus(won, arrived));
+    });
+    const players = this.roundRows();
+    let bank: RoundEndEvent["bank"] = "off";
+    if (this.roundTainted) bank = "debug";
+    else if (this.scores.available) {
+      const started = performance.now();
+      const entries = bankEntries(players.map((r) => ({ id: r.id, name: r.name, score: r.score, hash: this.tokenHashes.get(r.id) })));
+      const totals = this.scores.bank(entries);
+      if (totals) {
+        bank = "saved";
+        for (const row of players) {
+          const hash = this.tokenHashes.get(row.id);
+          const total = hash === undefined ? undefined : totals.get(hash);
+          if (total !== undefined) row.total = total;
+        }
+        console.log(`[street ${this.roomId}] banked ${entries.length} score(s) in ${(performance.now() - started).toFixed(1)} ms`);
+      }
+    }
+    const event: RoundEndEvent = { result: this.round.result, seconds: Math.round(this.round.elapsed), players, bank };
     this.broadcast(ServerMessage.RoundEnd, event);
-    console.log(`[street ${this.roomId}] end: result ${event.result} after ${event.seconds} s, progress ${this.state.progress}`);
+    // The lobby that follows shows the board with the new totals.
+    if (bank === "saved") this.sendLeaderboard();
+    console.log(`[street ${this.roomId}] end: result ${event.result} after ${event.seconds} s, progress ${this.state.progress}, bank ${bank}`);
+  }
+
+  /**
+   * Who this session is across visits (#41): the device token it joined with, or a fresh one sent to
+   * it alone on the next tick. Only the hash is kept. A malformed token is ignored (a new one is
+   * issued), so a client can't pick someone else's total by sending a name or a guess. Bots (#59) get none.
+   */
+  private identify(sessionId: string, name: string, token: unknown) {
+    if (isBotId(sessionId)) return;
+    let own = isDeviceToken(token) ? token : null;
+    if (!own) {
+      own = newDeviceToken();
+      this.tokensToSend.set(sessionId, own);
+    }
+    const hash = hashToken(own);
+    this.tokenHashes.set(sessionId, hash);
+    // The board shows the latest name: one typed on the home screen since the last visit counts too.
+    this.scores.rename(hash, name);
+    this.leaderboardJoiners.add(sessionId);
+  }
+
+  /**
+   * The lasting leaderboard (#41) to `ids` (default: everyone here), each with their own line.
+   * Bounded reads (top N, one rank count each), only after a join, a banked round or a rename.
+   */
+  private sendLeaderboard(ids: Iterable<string> = this.tokenHashes.keys()) {
+    for (const id of ids) {
+      const client = this.clients.getById(id);
+      if (!client) continue;
+      const event: LeaderboardEvent = this.scores.leaderboard(this.tokenHashes.get(id) ?? null);
+      client.send(ServerMessage.Leaderboard, event);
+    }
+  }
+
+  /** Joiners (#41), on the tick after their join: a newly issued token to its owner alone, then the board. */
+  private welcomeJoiners() {
+    if (this.leaderboardJoiners.size === 0) return;
+    for (const [id, token] of this.tokensToSend) {
+      const event: ScoreTokenEvent = { token };
+      this.clients.getById(id)?.send(ServerMessage.ScoreToken, event);
+    }
+    this.tokensToSend.clear();
+    this.sendLeaderboard(this.leaderboardJoiners);
+    this.leaderboardJoiners.clear();
   }
 
   /**
@@ -737,7 +845,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * live board alike. Built from `state.players` only, so no BAC ever shows up.
    */
   private roundRows(): RoundPlayerRow[] {
-    return Array.from(this.state.players.entries(), ([id, p]) => ({ id, name: p.name, archetype: p.archetype, ...this.roundStats.get(id) }));
+    return Array.from(this.state.players.entries(), ([id, p]) => ({
+      id,
+      name: p.name,
+      archetype: p.archetype,
+      ...this.roundStats.get(id),
+      score: this.roundStats.score(id),
+    }));
   }
 
   /**
@@ -881,7 +995,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     });
     for (const [id, hp] of this.heals.step(targets, healers, dt)) {
       const player = this.state.players.get(id);
-      if (player) this.healths.heal(id, player, hp, this.now);
+      if (!player) continue;
+      const before = player.hp;
+      this.healths.heal(id, player, hp, this.now);
+      // #41: the HP actually given back scores for the CGT whose aura did it.
+      const given = player.hp - before;
+      const target = given > 0 ? targets.find((t) => t.id === id) : undefined;
+      const healer = target ? bestHealer(target, healers) : null;
+      if (healer) this.roundStats.add(healer, "hpHealed", given);
     }
   }
 
@@ -1286,6 +1407,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    *    timers. Only the round clock runs while `ended` (the street is frozen),
    *    and nothing at all while `waiting`.
    * 6. The live Tab board (#63), if it is due.
+   * 7. Joiners since the last tick (#41): their new token, if one was issued, and the leaderboard.
    */
   private step(dt: number) {
     if (this.state.phase === Phase.Marching) {
@@ -1294,6 +1416,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     }
     if (this.state.phase !== Phase.Waiting) this.stepRoundClock(dt);
     this.sendBoard();
+    this.welcomeJoiners();
   }
 
   /** Steps 1 to 4 of `step`: the street itself, only while marching. */

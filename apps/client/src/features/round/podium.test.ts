@@ -2,8 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { emptyStats, type RoundEndEvent } from "@manif/shared";
 import { laureates } from "./podium.ts";
 
-const player = (id: string, archetype: number, stats: Partial<ReturnType<typeof emptyStats>>): RoundEndEvent["players"][number] => ({
+type Row = RoundEndEvent["players"][number];
+const player = (id: string, archetype: number, stats: Partial<Row>): Row => ({
   ...emptyStats(),
+  score: 0,
   ...stats,
   id,
   name: `P${id}`,
@@ -11,28 +13,36 @@ const player = (id: string, archetype: number, stats: Partial<ReturnType<typeof 
 });
 
 describe("laureates", () => {
-  test("groups awards per protester, most awarded first, with their archetype", () => {
+  test("ranked by round score (#41), with their awards, archetype and total", () => {
     const ranked = laureates(
-      [player("a", 2, { knockdowns: 1 }), player("b", 5, { rescues: 2, splats: 1 }), player("c", 1, {})],
+      [player("a", 2, { knockdowns: 1, score: 10 }), player("b", 5, { rescues: 2, splats: 1, score: 115, total: 900 }), player("c", 1, { score: 60 })],
       "b",
     );
-    expect(ranked.map((l) => [l.name, l.archetype, l.awards.length, l.isMe])).toEqual([
-      ["Pb", 5, 2, true],
-      ["Pa", 2, 1, false],
+    expect(ranked.map((l) => [l.name, l.archetype, l.score, l.total, l.awards.length, l.isMe])).toEqual([
+      ["Pb", 5, 115, 900, 2, true],
+      ["Pc", 1, 60, undefined, 0, false],
+      ["Pa", 2, 10, undefined, 1, false],
     ]);
   });
 
-  test("two players with the same name get separate steps (#61)", () => {
-    const twin = (id: string, stats: Partial<ReturnType<typeof emptyStats>>) => ({ ...player(id, 0, stats), name: "Gérard du 93" });
-    const ranked = laureates([twin("a", { knockdowns: 2 }), twin("b", { rescues: 1 })], "b");
+  test("everyone is ranked, even without points or awards", () => {
+    expect(laureates([player("a", 0, {})], "a").map((l) => [l.name, l.score, l.awards])).toEqual([["Pa", 0, []]]);
+  });
+
+  test("two players with the same name stay apart (#61)", () => {
+    const twin = (id: string, stats: Partial<Row>) => ({ ...player(id, 0, stats), name: "Gérard du 93" });
+    const ranked = laureates([twin("a", { knockdowns: 2, score: 5 }), twin("b", { rescues: 1, score: 50 })], "b");
     expect(ranked.map((l) => [l.id, l.name, l.awards.length, l.isMe])).toEqual([
-      ["a", "Gérard du 93", 1, false],
       ["b", "Gérard du 93", 1, true],
+      ["a", "Gérard du 93", 1, false],
     ]);
   });
 
-  test("ties keep the join order; no awards, no podium", () => {
-    expect(laureates([player("a", 0, { slips: 1 }), player("b", 0, { arrests: 1 })], null).map((l) => l.name)).toEqual(["Pa", "Pb"]);
-    expect(laureates([player("a", 0, {})], "a")).toEqual([]);
+  test("ties keep the join order", () => {
+    expect(laureates([player("a", 0, { score: 20 }), player("b", 0, { score: 20 }), player("c", 0, { score: 30 })], null).map((l) => l.name)).toEqual([
+      "Pc",
+      "Pa",
+      "Pb",
+    ]);
   });
 });

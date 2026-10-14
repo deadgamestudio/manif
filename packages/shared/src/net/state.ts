@@ -42,6 +42,8 @@ export interface PlayerShape {
   archetype: number;
   /** Marked ready in the lobby (#62). Ignored for the host; false for everyone once the march starts. */
   ready: boolean;
+  /** This round's points so far (#41), never below 0. Reset when a march starts. The lasting total is not synced. */
+  score: number;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */

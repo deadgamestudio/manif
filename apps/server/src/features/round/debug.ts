@@ -69,3 +69,14 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
   }
   return null;
 }
+
+/**
+ * Does this debug action keep the round out of the lasting totals (#41)?
+ * Every one does (teleport, hold, a CRS dropped in front of you, a calm
+ * street...), so dev databases stay meaningful, except cutting the timer
+ * short: that only takes playing time away (no win comes from a timeout) and
+ * lets scripted checks end a round quickly. Stretching the timer counts.
+ */
+export function taintsRound(cmd: DebugRoundPayload, timeLeft: number): boolean {
+  return !(cmd.action === "time" && cmd.seconds <= timeLeft);
+}

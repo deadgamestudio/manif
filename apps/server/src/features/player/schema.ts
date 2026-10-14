@@ -47,6 +47,11 @@ export const Player = schema(
      * everyone once the march starts; the host's own flag is ignored by the start rule.
      */
     ready: t.boolean().default(false),
+    /**
+     * This round's points so far (#41), never below 0, for the HUD. Counted by the server's RoundStats
+     * from what it resolved itself; reset when a march starts. The lasting total and the token are never synced.
+     */
+    score: t.uint16().default(0),
   },
   "Player",
 );

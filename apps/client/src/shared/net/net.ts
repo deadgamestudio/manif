@@ -39,8 +39,11 @@ import {
   type SwingEvent,
   type RoundBoardEvent,
   type RoundEndEvent,
+  type LeaderboardEvent,
+  type ScoreTokenEvent,
 } from "@manif/shared";
 import { setInviteUrl } from "./invite.ts";
+import { loadToken, saveToken } from "./token.ts";
 
 /**
  * - idle: on the homepage, no room.
@@ -222,6 +225,19 @@ function setRound(patch: Partial<RoundView>) {
 }
 
 /**
+ * The lasting leaderboard (#41), as the server last sent it to us: after our
+ * join, after a banked round, after a rename. Null until the first one in this
+ * room. Replaced (never mutated), for useSyncExternalStore.
+ */
+let leaderboard: LeaderboardEvent | null = null;
+const leaderboardListeners = new Set<() => void>();
+function setLeaderboard(next: LeaderboardEvent | null) {
+  if (next === leaderboard) return;
+  leaderboard = next;
+  for (const listener of leaderboardListeners) listener();
+}
+
+/**
  * The server's event messages as they arrive (and our own swing, which the
  * server doesn't echo back), for the sound layer (#57). Not state: a missed
  * one only costs a sound.
@@ -258,6 +274,7 @@ function clearEffects() {
   setFireIds([]);
   setTruckIds([]);
   setRound(NO_ROUND);
+  setLeaderboard(null);
 }
 
 function update(patch: Partial<NetSnapshot>) {
@@ -421,6 +438,14 @@ function attach(joined: ClientRoom, gen: number) {
   joined.onMessage(ServerMessage.RenameRefused, (event: RenameRefusedEvent) => {
     if (gen !== generation) return;
     for (const listener of renameListeners) listener(event);
+  });
+  // #41: our device token, sent once by the server if we joined without one. Kept for every later join.
+  joined.onMessage(ServerMessage.ScoreToken, (event: ScoreTokenEvent) => {
+    saveToken(event?.token);
+  });
+  joined.onMessage(ServerMessage.Leaderboard, (event: LeaderboardEvent) => {
+    if (gen !== generation) return;
+    setLeaderboard(event);
   });
 
   joined.onMessage(ServerMessage.Impulse, (event: ImpulseEvent) => {
@@ -658,6 +683,17 @@ export const net = {
     return room?.state.trucks?.get(id);
   },
 
+  /** Call `listener` when the lasting leaderboard (#41) arrives or changes. */
+  subscribeLeaderboard(listener: () => void): () => void {
+    leaderboardListeners.add(listener);
+    return () => leaderboardListeners.delete(listener);
+  },
+
+  /** The lasting leaderboard (#41) as last sent to us, or null before the first one. */
+  getLeaderboard(): LeaderboardEvent | null {
+    return leaderboard;
+  },
+
   /** Call `listener` when the round timer, progress or result changes, or a round ends (#12). */
   subscribeRound(listener: () => void): () => void {
     roundListeners.add(listener);
@@ -790,14 +826,14 @@ export const net = {
 
   /** Create a private lobby and join it as host. */
   createLobby(name: string): Promise<void> {
-    const options: LobbyJoinOptions = { name };
+    const options: LobbyJoinOptions = { name, token: loadToken() };
     return connect((client) => client.create<ClientState>(ROOM_NAME, options));
   },
 
   /** Join a lobby by its code. Already in that lobby: nothing to do. */
   joinLobby(code: string, name: string): Promise<void> {
     if (room && room.roomId === code && !pending) return Promise.resolve();
-    const options: LobbyJoinOptions = { name };
+    const options: LobbyJoinOptions = { name, token: loadToken() };
     return connect((client) => client.joinById<ClientState>(code, options));
   },
 

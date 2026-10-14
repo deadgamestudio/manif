@@ -38,6 +38,7 @@ export function disguiseSource(id: string): PlayerShape | undefined {
       carriedBy: "",
       archetype,
       ready: false,
+      score: 0,
     };
     views.set(id, v);
   }

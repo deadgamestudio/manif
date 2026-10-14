@@ -19,3 +19,13 @@ export function resultText(result: RoundResult): { title: string; line: string }
       return { title: "", line: "" };
   }
 }
+
+/**
+ * What the end screen says about the lasting totals (#41), or null when the
+ * round was banked (the new totals show next to each player then).
+ */
+export function bankText(bank: "saved" | "debug" | "off" | undefined): string | null {
+  if (bank === "debug") return "Manif de test (triche de dev) : ces points ne comptent pas au classement.";
+  if (bank === "off") return "Classement indisponible pour l'instant : seuls les points de cette manif comptent.";
+  return null;
+}

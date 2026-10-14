@@ -12,8 +12,8 @@ describe("boardRows", () => {
   test("one row per player in room order, counts matched by id even when names clash", () => {
     const board = {
       players: [
-        { id: "b", name: "Josiane", archetype: 2, ...emptyStats(), crsOut: 3 },
-        { id: "a", name: "Josiane", archetype: 0, ...emptyStats(), rescues: 1 },
+        { id: "b", name: "Josiane", archetype: 2, ...emptyStats(), crsOut: 3, score: 180 },
+        { id: "a", name: "Josiane", archetype: 0, ...emptyStats(), rescues: 1, score: 50 },
       ],
     };
     const rows = boardRows(lobby, board, "b");
@@ -22,6 +22,8 @@ describe("boardRows", () => {
     expect(rows[0]?.stats.crsOut).toBe(0);
     expect(rows[1]?.stats.crsOut).toBe(3);
     expect(rows.map((r) => r.isMe)).toEqual([false, true, false]);
+    // #41: the score column, matched by id too; zero for someone not counted yet.
+    expect(rows.map((r) => r.score)).toEqual([50, 180, 0]);
   });
 
   test("a player the board doesn't know yet, or no board at all, shows zeros", () => {
@@ -31,7 +33,7 @@ describe("boardRows", () => {
 
   test("only the room's players: a row for someone who left is dropped", () => {
     const board = {
-      players: [{ id: "gone", name: "X", archetype: 0, ...emptyStats(), crsOut: 9 }],
+      players: [{ id: "gone", name: "X", archetype: 0, ...emptyStats(), crsOut: 9, score: 540 }],
     };
     expect(boardRows(lobby.slice(0, 1), board, null).map((r) => r.id)).toEqual(["a"]);
   });

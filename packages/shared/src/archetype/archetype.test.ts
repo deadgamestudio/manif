@@ -9,6 +9,7 @@ import {
   DEFAULT_ARCHETYPE,
   archetypeOf,
   archetypeStats,
+  bestHealer,
   canPickArchetype,
   filmFactor,
   healRate,
@@ -161,6 +162,14 @@ describe("heal aura", () => {
     const me = subject("c1", 0, Archetype.Cgt);
     expect(healRate(me, [me])).toBe(0);
     expect(healRate(me, [me, subject("c2", 1, Archetype.Cgt)])).toBe(2);
+  });
+
+  test("the credit for a heal (#41) goes to the nearest CGT in reach, never to the target itself", () => {
+    expect(bestHealer(target, [subject("far", 3, Archetype.Cgt), subject("near", -1, Archetype.Cgt)])).toBe("near");
+    expect(bestHealer(target, [subject("out", AURA_RADIUS + 0.1, Archetype.Cgt)])).toBeNull();
+    const me = subject("c1", 0, Archetype.Cgt);
+    expect(bestHealer(me, [me])).toBeNull();
+    expect(bestHealer(target, [subject("b", 1, Archetype.BlackBloc)])).toBeNull();
   });
 
   test("whole HP per tick, the fraction carried over", () => {

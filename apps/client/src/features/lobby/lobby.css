@@ -26,6 +26,19 @@
   width: min(1080px, 100%);
 }
 
+/* The roster with the lasting leaderboard (#41) under it: one column of placards. */
+.lobby-side {
+  flex: 1 1 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.lobby-side > .placard {
+  flex: none;
+}
+
 /* Wide screens: picker and roster side by side, so nothing needs a scroll. */
 @media (min-width: 800px) {
   .lobby .placards {
@@ -430,7 +443,8 @@
   }
 
   /* Smaller placards so the picker shows whole between the banner and the bar. */
-  .lobby .placards {
+  .lobby .placards,
+  .lobby-side {
     gap: 14px;
   }
 

@@ -40,6 +40,8 @@ export interface BoardRow {
   archetype: number;
   isMe: boolean;
   stats: RoundPlayerStats;
+  /** The round's points so far (#41), from the same message as the counts. */
+  score: number;
 }
 
 /**
@@ -64,6 +66,7 @@ export function boardRows(
       archetype: p.archetype,
       isMe: p.id === localId,
       stats,
+      score: row?.score ?? 0,
     };
   });
 }

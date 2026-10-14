@@ -1,5 +1,6 @@
 import type { RenameRefusal } from "../lobby/index.js";
 import type { RoundBoardEvent, RoundEndEvent } from "../round/index.js";
+import type { LeaderboardEvent, ScoreTokenEvent } from "../score/index.js";
 
 /** Message type names sent from client to server. */
 export const ClientMessage = {
@@ -201,6 +202,14 @@ export const ServerMessage = {
   RoundBoard: "round:board",
   /** Your rename (#61) was refused: the name is empty or taken. Only to the sender; your name stays as it was. */
   RenameRefused: "rename:refused",
+  /**
+   * Your device token (#41): only to you, right after a join that sent none
+   * (or a malformed one). Keep it and send it on every join; your lasting
+   * total belongs to it. Never broadcast, never in Schema.
+   */
+  ScoreToken: "score:token",
+  /** The lasting leaderboard (#41), to one player: the top and their own line. After a join, a banked round and a rename. */
+  Leaderboard: "score:leaderboard",
 } as const;
 export type ServerMessage = (typeof ServerMessage)[keyof typeof ServerMessage];
 
@@ -251,6 +260,8 @@ export interface ServerMessagePayloads {
   [ServerMessage.RoundEnd]: RoundEndEvent;
   [ServerMessage.RoundBoard]: RoundBoardEvent;
   [ServerMessage.RenameRefused]: RenameRefusedEvent;
+  [ServerMessage.ScoreToken]: ScoreTokenEvent;
+  [ServerMessage.Leaderboard]: LeaderboardEvent;
   [ServerMessage.Impulse]: ImpulseEvent;
   [ServerMessage.Swing]: SwingEvent;
   [ServerMessage.Hit]: HitEvent;
@@ -260,4 +271,10 @@ export interface ServerMessagePayloads {
 export interface LobbyJoinOptions {
   /** Display name. The server sanitises it and falls back to a random one. */
   name?: string;
+  /**
+   * The device token this browser was given (#41, `ServerMessage.ScoreToken`).
+   * The lasting total belongs to it; the server keeps only its hash. Missing
+   * or malformed: a new one is issued and the total starts at 0.
+   */
+  token?: string;
 }

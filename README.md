@@ -88,6 +88,17 @@ teammates nearby, a bobo filming makes nearby grabs last longer). The numbers
 are one table in `packages/shared/src/archetype/constants.ts`; the looks are
 `apps/client/src/features/archetype/archetypeVisuals.tsx`. Players who join
 mid-march are the default until the next lobby.
+Every useful action scores (#41), counted by the server only: taking a CRS out,
+rescuing a teammate, breaking a prop, splatting a CRS, lighting a fire, the
+CGT's heals, and a bonus for everyone when the round is won (more for those
+standing in the Préfecture); an arrest costs points (never below 0). Each
+action is capped per round so it can't be farmed. Your score is in the round
+HUD, in the Tab board and on the end screen, which ranks the players by it. At
+the end of a round (never when you leave mid-round, never after a dev-only
+debug action) it is added to your lasting total, shown on the leaderboard in
+the lobby. There are no accounts: the total belongs to an anonymous token the
+server gives your browser on the first visit (kept in `localStorage` beside
+your name), so clearing site data or switching devices starts again at 0.
 
 ## Layout
 
@@ -109,10 +120,11 @@ apps/client/src/
               fire/ (flames and smoke on props, burning bodies, hold bar, fire prompts)
               pompier/ (fire trucks)  water/ (the water jet, for the hose and a future water cannon)
               round/ (timer and progress HUD, Tab scoreboard, end screen, last result in the lobby)
+              score/ (my round score in the HUD, the lasting leaderboard in the lobby)
               archetype/ (the lobby pick menu, the placeholder looks)
               audio/ (sound: what plays when, the crowd bed, music, the sound button)
               debug/ (dev-only keys)
-  shared/     net/ (connection, invite link)  iso/ (camera maths)
+  shared/     net/ (connection, invite link, the device token)  iso/ (camera maths)
 apps/client/seo/      the link preview and search tags (meta.ts) and the Vite plugin that writes them (plugin.ts)
 apps/client/scripts/  og/ (renders the link preview image)
 apps/client/public/   og/og.png, favicon.svg, apple-touch-icon.png, sounds/ (CC0 MP3s, with CREDITS.md)
@@ -128,10 +140,11 @@ apps/server/src/
               pompier/ (Truck Schema, FireBrigade: trucks, the pompiers' work, what the water does)
               round/ (end-of-round numbers, the live board throttle, dev-only round debug)
               archetype/ (the CGT's heal aura)
+              score/ (device tokens, the SQLite store of lasting totals, who banks what)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
   net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ jump/ rescue/ throwable/ gas/ fire/ round/
-  water/ pompier/ archetype/   (each with an index.ts)
+  water/ pompier/ archetype/ score/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -193,6 +206,10 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change what sound plays when (#57), the crowd bed, the music, or the voice caps | `apps/client/src/features/audio/`: `cues.ts` turns server messages and state changes into sounds (tested in `cues.test.ts`), `sounds.ts` is the catalogue (file, gain, per-sound cap, pitch spread), `director.ts` runs it all, `synth.ts` makes the blips and stings in code. New files go in `apps/client/public/sounds/` (CC0 only) with a line in its `CREDITS.md` |
 | Change the round HUD, end screen or joke awards | `apps/client/src/features/round/`; the awards are `roundAwards` in `packages/shared/src/round/stats.ts`, the numbers are counted by `RoundStats` (`apps/server/src/features/round/`) |
 | Change the live Tab scoreboard (#63): its columns, look or how often it updates | Columns and status words: `apps/client/src/features/round/board.ts`; the panel, the Tab key and the phone's 📋 chip: `RoundBoard.tsx` and `board.css` beside it. The server sends `round:board` from `StreetRoom.sendBoard()`, throttled by `stepBoard` in `apps/server/src/features/round/board.ts` (once a second at most, only on change, only while marching); the rows are the same `RoundPlayerRow` as `round:end` |
+| Tune the scoring (#41): points per action, the per-round caps, the arrest penalty, the win and Préfecture bonuses, the leaderboard size | `ACTION_POINTS` and the bonuses in `packages/shared/src/score/constants.ts` (a stat counted in `RoundPlayerStats` scores once it has a row there); the rules are `actionPoints`, `addPoints` and `endBonus` in `score/score.ts` |
+| Score a new action (#41) | Count it with `roundStats.add(id, stat)` in `StreetRoom` (a new stat goes in `RoundPlayerStats`, `packages/shared/src/round/stats.ts`), then give it a row in `ACTION_POINTS`. The live score follows (`Player.score`, the Tab board, the end screen) |
+| Change the lasting totals (#41): the table, the ranking, banking, names | `apps/server/src/features/score/` (`store.ts`: SQLite through `node:sqlite`; `bank.ts`: who banks; `token.ts`: device tokens). The room banks once in `StreetRoom.endRound()`, sends the board from `sendLeaderboard()`, and identifies joiners in `identify()`. Which debug actions keep a round out of the totals: `taintsRound` in `features/round/debug.ts` |
+| Change the leaderboard placard or the HUD score | `apps/client/src/features/score/` (`Leaderboard.tsx`, `MyScore.tsx`, `score.css`); the token is kept by `apps/client/src/shared/net/token.ts` |
 | Change the bot AI (targeting, baton, grab, drag, stun, steering, stuck detector) | `packages/shared/src/crs/brain.ts` (`stepCrs`; a unit type can swap steps via `CrsBehaviour`); target and spawn choice in `crs/targeting.ts` |
 | Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |
 | Tune shield lines (size, spacing, shield reach, speed, engage range, how far they advance, clearance from the start zone, shove, what breaks them) | The `LINE_*` constants in `packages/shared/src/crs/constants.ts` |
@@ -262,6 +279,12 @@ older versions, so let agents use the skill rather than their memory.
   `apps/client/.env.example`.
 - Server: `PORT` (default `2567`), `NODE_ENV` (`production` turns off the debug
   knockback message). `GET /health` answers 200 while the server is up.
+- Server: `SCORE_DB_PATH` (#41), the SQLite file for the lasting totals
+  (`/data/manif.db` in the image). Unset: round scores only, nothing is kept
+  (the default for `bun run dev`; set it to try the leaderboard, e.g.
+  `SCORE_DB_PATH=./.data/manif.db`). A missing directory is created; an
+  unwritable or corrupt file is logged and the game runs with round scores
+  only. `GET /leaderboard` returns the top 20 names and totals, never a token.
 - Error tracking: `VITE_SENTRY_DSN` (client, inlined into the bundle at build)
   and `SENTRY_DSN` (server, read at runtime) send to self-hosted Rustrak. They
   default to the committed public ingest keys, so production needs no Coolify
@@ -279,8 +302,16 @@ Production is two containers (`docker-compose.yaml`):
 - `server`: the Colyseus server on Node 24 (distroless, non-root), reachable
   only from the client. On SIGTERM it closes the rooms and exits at once.
 
-No database: lobbies live in the server's memory, so a redeploy ends the games
-in progress.
+Lobbies live in the server's memory, so a redeploy ends the games in progress.
+The lasting scores (#41) are the one thing kept: a SQLite file at
+`SCORE_DB_PATH=/data/manif.db`, on the **`scores` named volume** mounted at
+`/data` on the `server` service. The image creates `/data` owned by `nonroot`
+(uid 65532), and a fresh named volume takes that ownership, so the server can
+write there. Coolify keeps named volumes across redeploys; deleting the volume
+resets every total to 0. If the file can't be opened or written (read-only,
+corrupt, no volume), the server logs `[score] cannot open ...` and the game
+runs with round scores only. To back it up, copy `manif.db` out of the volume
+while the server is stopped.
 
 Run it locally on http://localhost:8080:
 
@@ -293,7 +324,8 @@ On Coolify (https://manif.bazlab.si): create a Docker Compose resource from this
 repo with `docker-compose.yaml`, give the `client` service the domain on port
 80 (Coolify's proxy adds TLS), and leave `server` without a domain. The only
 variable is the build arg `VITE_SERVER_URL=/colyseus` (the default); see
-`.env.production.example`.
+`.env.production.example`. The `scores` volume and `SCORE_DB_PATH` come from
+`docker-compose.yaml` itself: nothing to set in Coolify.
 
 ## Link previews and search
 
