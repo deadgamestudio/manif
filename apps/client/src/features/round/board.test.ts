@@ -37,6 +37,16 @@ describe("boardRows", () => {
     };
     expect(boardRows(lobby.slice(0, 1), board, null).map((r) => r.id)).toEqual(["a"]);
   });
+
+  test("bots (#59) are marked and listed after the humans, even one who joined mid-march", () => {
+    const players = [lobby[0]!, { id: "bot:1", name: "Dédé Merguez", archetype: 3 }, { id: "late", name: "Momo", archetype: 0 }];
+    const rows = boardRows(players, null, "a");
+    expect(rows.map((r) => [r.id, r.bot])).toEqual([
+      ["a", false],
+      ["late", false],
+      ["bot:1", true],
+    ]);
+  });
 });
 
 describe("statusLabel", () => {

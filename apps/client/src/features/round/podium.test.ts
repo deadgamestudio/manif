@@ -45,4 +45,13 @@ describe("laureates", () => {
       "Pb",
     ]);
   });
+
+  test("bots (#59) come after every human, whatever their score, marked and with no award", () => {
+    const bot = { ...player("bot:1", 0, { score: 500, crsOut: 9 }), bot: true };
+    const ranked = laureates([bot, player("a", 0, { score: 5, crsOut: 1 })], "a");
+    expect(ranked.map((l) => [l.id, l.bot, l.awards.length])).toEqual([
+      ["a", false, 1],
+      ["bot:1", true, 0],
+    ]);
+  });
 });

@@ -149,7 +149,7 @@ export function RoundBoard({
                 const look = archetypeLook(id);
                 const status = statusLabel(Number(statuses[i] ?? PlayerStatus.Free));
                 return (
-                  <tr key={r.id} data-me={r.isMe || undefined}>
+                  <tr key={r.id} data-me={r.isMe || undefined} data-bot={r.bot || undefined}>
                     <th scope="row" className="round-board-who">
                       <div className="round-board-player">
                         <span className="round-board-swatch" style={{ background: look.clothes }} aria-hidden="true">
@@ -157,6 +157,11 @@ export function RoundBoard({
                         </span>
                         <span className="round-board-id">
                           <span className="round-board-name">
+                            {r.bot && (
+                              <span className="bot-chip" title="Bot">
+                                BOT
+                              </span>
+                            )}
                             {r.name}
                             {r.isMe && <span className="round-board-me"> (toi)</span>}
                           </span>

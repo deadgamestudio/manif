@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Vector3, type Group, type MeshStandardMaterial, type Sprite } from "three";
-import { CRS_STATS, CrsKind, CrsMount, CrsStatus, crsMaxHp, crsRadius } from "@manif/shared";
+import { CRS_STATS, CrsKind, CrsMount, CrsStatus, crsMaxHp, crsRadius, isBotId } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { PROTESTER_RAGDOLL, useRagdoll } from "../ragdoll/index.ts";
@@ -75,10 +75,20 @@ export function CrsAvatar({ id }: { id: string }) {
   return <CrsBody key={key} id={id} kind={kind} mount={(c.mount ?? CrsMount.Foot) as CrsMount} />;
 }
 
-/** A BAC in plain clothes (#13): a protester like any other, same avatar, placard and HP bar. */
+/**
+ * A BAC in plain clothes (#13): a protester like any other, same avatar, placard and HP bar.
+ * With bots in the march (#59) it wears the bot marker too: among a few friends and a crowd of
+ * marked bots, the one unmarked stranger would give itself away.
+ */
 function BacDisguise({ id, name }: { id: string; name: string }) {
   useEffect(() => () => forgetDisguise(id), [id]);
-  return <PlayerAvatar id={id} name={name} isLocal={false} source={disguiseSource} />;
+  const amongBots = useSyncExternalStore(net.subscribe, botsMarching);
+  return <PlayerAvatar id={id} name={name} isLocal={false} bot={amongBots} source={disguiseSource} />;
+}
+
+/** Whether bot protesters (#59) are in the march right now. */
+function botsMarching(): boolean {
+  return net.getSnapshot().players.some((p) => isBotId(p.id));
 }
 
 /**

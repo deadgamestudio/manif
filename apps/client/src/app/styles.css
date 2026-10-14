@@ -1265,6 +1265,27 @@ body,
   color: var(--muted);
 }
 
+/* A bot protester (#59), on the Tab board and the end screen: the same dark chip as on its placard. */
+.bot-chip {
+  display: inline-block;
+  min-width: 0;
+  margin-right: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--ink);
+  color: #cfd3d8;
+  font-family: var(--font-placard);
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  vertical-align: 0.1em;
+}
+
+.podium-rest li[data-bot],
+.round-board-table tr[data-bot] {
+  opacity: 0.8;
+}
+
 /* Why the totals didn't move (#41): a debug round, or no storage. */
 .round-end-bank {
   margin: 8px 0 0;

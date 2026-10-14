@@ -571,6 +571,35 @@ export class CrsSquad {
     return true;
   }
 
+  /**
+   * Protester `protesterId` left the street (#59: a bot making room for a
+   * human who joined): every bot holding them lets go at once (back to work,
+   * with its usual grab cooldown) and every bot chasing them looks for
+   * someone else. Without it they'd notice on their next step anyway; this
+   * makes it immediate, so no CRS walks to the van holding nobody.
+   */
+  forget(protesterId: string): void {
+    for (const bot of this.bots) {
+      if (bot.grabbedId === protesterId) {
+        bot.grabbedId = null;
+        if (bot.status === CrsStatus.Grabbing) bot.status = CrsStatus.Active;
+        bot.grabReadyAt = this.ctx.now + bot.stats.grabCooldown;
+        bot.path = null;
+      }
+      if (bot.targetId === protesterId) {
+        bot.targetId = null;
+        bot.retargetAt = 0;
+        bot.path = null;
+      }
+      if (bot.ignoreId === protesterId) bot.ignoreId = null;
+    }
+  }
+
+  /** The squad's navigation grid (#59: protester bots walk it too), fire zones included, rebuilt when a prop breaks. */
+  get navGrid(): NavGrid {
+    return this.nav;
+  }
+
   /** The bot holding protester `protesterId`, if any (#10). */
   holderOf(protesterId: string): string | null {
     for (const bot of this.bots) {
@@ -706,7 +735,9 @@ export class CrsSquad {
     if (view.x !== bot.body.x) view.x = bot.body.x;
     if (view.z !== bot.body.z) view.z = bot.body.z;
     if (Math.abs(view.rotation - bot.rotation) > ROTATION_EPSILON) view.rotation = bot.rotation;
-    if (view.hp !== bot.hp) view.hp = bot.hp;
+    // Whole HP on the wire (a uint8): a bot protester's half-damage swing (#59) leaves a fraction server-side.
+    const hp = Math.ceil(bot.hp - 1e-9);
+    if (view.hp !== hp) view.hp = hp;
     if (view.status !== bot.status) view.status = bot.status;
     const down = isDown(bot.body);
     if (view.down !== down) view.down = down;

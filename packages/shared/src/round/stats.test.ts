@@ -42,4 +42,9 @@ describe("roundAwards", () => {
   test("a tie goes to the first player", () => {
     expect(roundAwards([player("A", { arrests: 2 }), player("B", { arrests: 2 })])[0]!.name).toBe("A");
   });
+
+  test("bots (#59) never get an award, even with the best count: the best human does", () => {
+    const bot = { ...player("bot:1", { crsOut: 9, slips: 4 }), bot: true };
+    expect(roundAwards([bot, player("A", { crsOut: 1 })])).toEqual([{ title: "Terreur des CRS", id: "A", name: "A", value: 1, unit: "CRS au tapis" }]);
+  });
 });

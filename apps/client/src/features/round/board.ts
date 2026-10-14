@@ -3,7 +3,7 @@
  * room, with the counts from the last ServerMessage.RoundBoard (zeros until
  * the server has counted anything for them) and the status from Schema.
  */
-import { PlayerStatus, emptyStats, type RoundBoardEvent, type RoundPlayerStats } from "@manif/shared";
+import { PlayerStatus, emptyStats, isBotId, type RoundBoardEvent, type RoundPlayerStats } from "@manif/shared";
 
 /** The four counts the board shows, in column order, with their headings (and a short one for a phone held upright). */
 export const BOARD_COLUMNS: readonly {
@@ -42,13 +42,15 @@ export interface BoardRow {
   stats: RoundPlayerStats;
   /** The round's points so far (#41), from the same message as the counts. */
   score: number;
+  /** A bot protester (#59): marked on the board, listed after the humans. */
+  bot: boolean;
 }
 
 /**
- * The rows, in the room's join order. Built from the room's players (never
- * the CRS map, so a BAC never shows up), keyed by id since two players can
- * share a name (#61). Someone the last board doesn't know yet (they just
- * joined) gets zeros.
+ * The rows, in the room's join order, humans first and bots (#59) after them.
+ * Built from the room's players (never the CRS map, so a BAC never shows up),
+ * keyed by id since two players can share a name (#61). Someone the last
+ * board doesn't know yet (they just joined) gets zeros.
  */
 export function boardRows(
   players: readonly { id: string; name: string; archetype: number }[],
@@ -56,7 +58,8 @@ export function boardRows(
   localId: string | null,
 ): BoardRow[] {
   const counted = new Map(board?.players.map((p) => [p.id, p]));
-  return players.map((p) => {
+  const ordered = [...players.filter((p) => !isBotId(p.id)), ...players.filter((p) => isBotId(p.id))];
+  return ordered.map((p) => {
     const row = counted.get(p.id);
     const stats = emptyStats();
     if (row) for (const k of Object.keys(stats) as (keyof RoundPlayerStats)[]) stats[k] = row[k];
@@ -67,6 +70,7 @@ export function boardRows(
       isMe: p.id === localId,
       stats,
       score: row?.score ?? 0,
+      bot: isBotId(p.id),
     };
   });
 }

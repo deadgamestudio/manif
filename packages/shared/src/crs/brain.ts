@@ -206,6 +206,43 @@ export interface CrsHost {
   throwGas?(by: string, from: Vec2, to: Vec2): boolean;
 }
 
+/**
+ * Whatever walks with `steerTo` (#59: protester bots too): a body, a cached
+ * path and a walking direction. A `CrsBot` is one.
+ */
+export interface NavAgent {
+  readonly id: string;
+  readonly body: Vec2;
+  readonly stats: { readonly radius: number; readonly repathInterval: number };
+  path: number[] | null;
+  pathIndex: number;
+  readonly pathGoal: Vec2;
+  repathAt: number;
+  readonly input: Vec2;
+}
+
+/** What `steerTo` needs of the world: the grid, the time, and the police bots to keep apart from (none for a protester bot). */
+export interface NavContext {
+  nav: NavGrid;
+  now: number;
+  bots: readonly CrsBot[];
+}
+
+/** Whatever `detectStuck` watches (#59: protester bots too). A `CrsBot` is one. */
+export interface StuckAgent {
+  readonly body: Readonly<Body>;
+  readonly input: Vec2;
+  readonly anchor: Vec2;
+  anchorAt: number;
+  path: number[] | null;
+  repathAt: number;
+  stuckCount: number;
+  targetId: string | null;
+  ignoreId: string | null;
+  ignoreUntil: number;
+  retargetAt: number;
+}
+
 /** What a bot sees of the world this tick. */
 export interface CrsContext {
   /** The room's collision world (static level and props in their current shape). */
@@ -588,7 +625,7 @@ export function burnCrs(bot: CrsBot, damage: number, now: number): boolean {
  * close, otherwise along a cached A* path (re-pathed every `repathInterval`,
  * or when the goal drifts). Then nudged away from nearby bots.
  */
-export function steerTo(bot: CrsBot, gx: number, gz: number, ctx: CrsContext): void {
+export function steerTo(bot: NavAgent, gx: number, gz: number, ctx: NavContext): void {
   const body = bot.body;
   const dist = Math.hypot(gx - body.x, gz - body.z);
   if (dist < 1e-3) {
@@ -677,7 +714,7 @@ export function steerTo(bot: CrsBot, gx: number, gz: number, ctx: CrsContext): v
  * the next tick searches again; stuck twice in a row while chasing, give up
  * on that target for CRS_GIVE_UP_TIME and look for another.
  */
-export function detectStuck(bot: CrsBot, now: number): void {
+export function detectStuck(bot: StuckAgent, now: number): void {
   const body = bot.body;
   const moving = (bot.input.x !== 0 || bot.input.z !== 0) && !isDown(body);
   const moved = Math.hypot(body.x - bot.anchor.x, body.z - bot.anchor.z);
@@ -702,7 +739,7 @@ export function detectStuck(bot: CrsBot, now: number): void {
   }
 }
 
-function setInput(bot: CrsBot, v: Vec2): void {
+function setInput(bot: { readonly input: Vec2 }, v: Vec2): void {
   bot.input.x = v.x;
   bot.input.z = v.z;
 }

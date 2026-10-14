@@ -37,7 +37,15 @@ export function emptyStats(): RoundPlayerStats {
  * `total` (#41, `round:end` only): the player's lasting total once this round
  * is banked; absent when it wasn't (a bot, a debug round, no storage).
  */
-export type RoundPlayerRow = RoundPlayerStats & { id: string; name: string; archetype?: number; score: number; total?: number };
+export type RoundPlayerRow = RoundPlayerStats & {
+  id: string;
+  name: string;
+  archetype?: number;
+  score: number;
+  total?: number;
+  /** A bot protester (#59): shown marked as one, never given an award, never banked. */
+  bot?: boolean;
+};
 
 /** Payload of `ServerMessage.RoundEnd`. */
 export interface RoundEndEvent {
@@ -90,13 +98,14 @@ const AWARDS: readonly { stat: keyof RoundPlayerStats; title: string; unit: stri
 
 /**
  * One award per stat, to the player with the highest non-zero count. A tie
- * goes to the first in the list (the server sends them in join order).
+ * goes to the first in the list (the server sends them in join order). Bots
+ * (#59) never get one: the awards are for the humans.
  */
 export function roundAwards(players: RoundEndEvent["players"]): RoundAward[] {
   const out: RoundAward[] = [];
   for (const a of AWARDS) {
     let best: RoundEndEvent["players"][number] | null = null;
-    for (const p of players) if (p[a.stat] > 0 && (!best || p[a.stat] > best[a.stat])) best = p;
+    for (const p of players) if (!p.bot && p[a.stat] > 0 && (!best || p[a.stat] > best[a.stat])) best = p;
     if (best) out.push({ title: a.title, id: best.id, name: best.name, value: best[a.stat], unit: a.unit });
   }
   return out;

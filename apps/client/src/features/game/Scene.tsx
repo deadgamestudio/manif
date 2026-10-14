@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Object3D, Vector3, type DirectionalLight } from "three";
-import { STREET_LEVEL } from "@manif/shared";
+import { STREET_LEVEL, isBotId } from "@manif/shared";
 import { CAMERA_OFFSET, damp } from "../../shared/iso/index.ts";
 import { LevelView } from "../level/index.ts";
 import { net } from "../../shared/net/index.ts";
@@ -46,7 +46,7 @@ export function Scene({
       <PropsView level={LEVEL} />
 
       {players.map((p) => (
-        <PlayerAvatar key={p.id} id={p.id} name={p.name} isLocal={p.id === localId} />
+        <PlayerAvatar key={p.id} id={p.id} name={p.name} isLocal={p.id === localId} bot={isBotId(p.id)} />
       ))}
       <CrsView ids={crs} />
       <ThrowablesView />

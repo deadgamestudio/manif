@@ -19,3 +19,4 @@ export * from "./water/index.js";
 export * from "./pompier/index.js";
 export * from "./archetype/index.js";
 export * from "./score/index.js";
+export * from "./bot/index.js";

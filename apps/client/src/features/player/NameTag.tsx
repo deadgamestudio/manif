@@ -7,21 +7,33 @@ const FONT_PX = 44;
 const PAD_X = 18;
 const PAD_Y = 10;
 
+/** The bot marker (#59): a small dark chip before the name. */
+const BOT_LABEL = "BOT";
+const BOT_FONT_PX = 30;
+const BOT_PAD = 8;
+const BOT_GAP = 12;
+
 /**
  * Draws the name once into a small canvas texture: a cardboard placard with
- * marker lettering. Redrawn only if the name changes, never per frame.
+ * marker lettering. Redrawn only if the name changes, never per frame. A bot
+ * protester (#59) gets a greyer placard and a "BOT" chip before its name, so
+ * nobody takes it for a friend.
  */
-function drawTag(name: string, isLocal: boolean): { texture: CanvasTexture; aspect: number } {
+function drawTag(name: string, isLocal: boolean, bot: boolean): { texture: CanvasTexture; aspect: number } {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d canvas unavailable");
   const font = `${FONT_PX}px "Anton", Impact, "Arial Black", sans-serif`;
   ctx.font = font;
   const textW = Math.ceil(ctx.measureText(name).width);
-  canvas.width = textW + PAD_X * 2;
+  const chipFont = `${BOT_FONT_PX}px "Anton", Impact, "Arial Black", sans-serif`;
+  ctx.font = chipFont;
+  const chipW = bot ? Math.ceil(ctx.measureText(BOT_LABEL).width) + BOT_PAD * 2 : 0;
+  const lead = bot ? chipW + BOT_GAP : 0;
+  canvas.width = textW + PAD_X * 2 + lead;
   canvas.height = FONT_PX + PAD_Y * 2;
 
-  ctx.fillStyle = isLocal ? "#ffd400" : "#f3e6c8";
+  ctx.fillStyle = isLocal ? "#ffd400" : bot ? "#cfd3d8" : "#f3e6c8";
   ctx.strokeStyle = "#141414";
   ctx.lineWidth = 6;
   ctx.beginPath();
@@ -29,11 +41,23 @@ function drawTag(name: string, isLocal: boolean): { texture: CanvasTexture; aspe
   ctx.fill();
   ctx.stroke();
 
-  ctx.font = font; // resizing the canvas resets the context
-  ctx.fillStyle = "#141414";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(name, canvas.width / 2, canvas.height / 2 + 2);
+  if (bot) {
+    const chipH = BOT_FONT_PX + 8;
+    const chipX = PAD_X - 6;
+    ctx.fillStyle = "#141414";
+    ctx.beginPath();
+    ctx.roundRect(chipX, (canvas.height - chipH) / 2, chipW, chipH, 4);
+    ctx.fill();
+    ctx.font = chipFont;
+    ctx.fillStyle = "#cfd3d8";
+    ctx.fillText(BOT_LABEL, chipX + chipW / 2, canvas.height / 2 + 2);
+  }
+
+  ctx.font = font; // resizing the canvas resets the context
+  ctx.fillStyle = "#141414";
+  ctx.fillText(name, lead + (canvas.width - lead) / 2, canvas.height / 2 + 2);
 
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
@@ -42,9 +66,9 @@ function drawTag(name: string, isLocal: boolean): { texture: CanvasTexture; aspe
   return { texture, aspect: canvas.width / canvas.height };
 }
 
-/** A name placard that always faces the camera and draws over the scenery. */
-export function NameTag({ name, isLocal, y }: { name: string; isLocal: boolean; y: number }) {
-  const tag = useMemo(() => drawTag(name, isLocal), [name, isLocal]);
+/** A name placard that always faces the camera and draws over the scenery. `bot`: a bot protester's (#59), marked. */
+export function NameTag({ name, isLocal, y, bot = false }: { name: string; isLocal: boolean; y: number; bot?: boolean }) {
+  const tag = useMemo(() => drawTag(name, isLocal, bot), [name, isLocal, bot]);
   useEffect(() => () => tag.texture.dispose(), [tag]);
 
   return (

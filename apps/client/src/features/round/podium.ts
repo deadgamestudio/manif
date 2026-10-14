@@ -1,4 +1,4 @@
-import { roundAwards, type RoundAward, type RoundEndEvent } from "@manif/shared";
+import { isBotId, roundAwards, type RoundAward, type RoundEndEvent } from "@manif/shared";
 
 /** One protester on the end screen: who, what they marched as, their points and their awards. */
 export interface Laureate {
@@ -12,11 +12,14 @@ export interface Laureate {
   /** Their lasting total with this round banked (#41); undefined when it wasn't. */
   total: number | undefined;
   awards: RoundAward[];
+  /** A bot protester (#59): listed after every human, marked, never on the podium, no award. */
+  bot: boolean;
 }
 
 /**
  * Every protester of the round, ranked by round score (#41), best first; ties
- * keep the join order. The joke awards (#12) stay, grouped by player id.
+ * keep the join order. The joke awards (#12) stay, grouped by player id. Bots
+ * (#59) come after every human, ranked the same way among themselves.
  */
 export function laureates(players: RoundEndEvent["players"], localId: string | null): Laureate[] {
   const awards = new Map<string, RoundAward[]>();
@@ -36,8 +39,9 @@ export function laureates(players: RoundEndEvent["players"], localId: string | n
         score: p.score ?? 0,
         total: p.total,
         awards: awards.get(p.id) ?? [],
+        bot: p.bot === true || isBotId(p.id),
       },
     }))
-    .sort((a, b) => b.laureate.score - a.laureate.score || a.order - b.order)
+    .sort((a, b) => Number(a.laureate.bot) - Number(b.laureate.bot) || b.laureate.score - a.laureate.score || a.order - b.order)
     .map((x) => x.laureate);
 }

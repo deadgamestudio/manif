@@ -130,6 +130,22 @@ import {
   isDeviceToken,
   type LeaderboardEvent,
   type ScoreTokenEvent,
+  BOT,
+  BOT_MELEE_COOLDOWN,
+  BOT_MELEE_CRS_DAMAGE,
+  MELEE_COOLDOWN,
+  botsToFill,
+  botThinkDue,
+  nameKey,
+  pickBotArchetype,
+  pickBotName,
+  progressAt,
+  thinkBot,
+  type BotCircle,
+  type BotSeenCrs,
+  type BotSeenProtester,
+  type BotWorld,
+  type FillBotsPayload,
 } from "@manif/shared";
 import { Bodies, DEBUG_KNOCKBACK_ENABLED, planDebugKnockback } from "../features/physics/index.js";
 import { DEBUG_HEALTH_ENABLED, Healths, parseDebugHealth } from "../features/health/index.js";
@@ -148,6 +164,7 @@ import { FireBrigade, type BrigadeHost, type HoseTarget } from "../features/pomp
 import { DEBUG_ROUND_ENABLED, IDLE_BOARD, RoundStats, boardKey, parseDebugRound, stepBoard, taintsRound, type BoardThrottle } from "../features/round/index.js";
 import { bankEntries, hashToken, newDeviceToken, scoreStore } from "../features/score/index.js";
 import { HealAuras } from "../features/archetype/index.js";
+import { Bots, DIAG_ENABLED, TickStats, leftovers } from "../features/bot/index.js";
 import { StreetState } from "./state.js";
 
 // The level is static shared data, imported by the client too. It is not synced.
@@ -358,6 +375,19 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private auraHealers: AuraSubject[] = [];
   private auraTargets: AuraSubject[] = [];
 
+  /** Bot protesters' heads (#59), by player id. Each bot is otherwise an ordinary entry in `state.players`. */
+  private bots = new Bots();
+  /** What the bots see when they think (#59): scratch lists, refilled on a tick where at least one thinks. */
+  private botProtesters: BotSeenProtester[] = [];
+  private botCrs: BotSeenCrs[] = [];
+  private botItems: Vec2[] = [];
+  private botGas: BotCircle[] = [];
+  private botHurdles: BotCircle[] = [];
+  /** DIAGNOSTICS (#59, MANIF_DIAG=1 only): tick time while marching. */
+  private tickStats = DIAG_ENABLED ? new TickStats((m) => console.log(`[street ${this.roomId}] ${m}`)) : null;
+  /** DIAGNOSTICS (#59, MANIF_DIAG=1 only): every bot id that played here, to look for leftovers once they are gone. */
+  private pastBots = new Set<string>();
+
   /** Arrival order per session, for host hand-over. Server-only. */
   private joinOrder = new Map<string, number>();
   private joinCounter = 0;
@@ -379,7 +409,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // and facing, and owns the cooldown, so a tampered client gains nothing.
     [ClientMessage.Attack]: (client: Client) => {
       if (this.state.phase !== Phase.Marching) return;
-      this.attack(client);
+      this.attack(client.sessionId, client);
     },
 
     // Dodge (#9). No payload: the server uses the held move direction (or the
@@ -400,7 +430,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // direction: the server re-normalizes it, checks the thrower, and flies the throw itself.
     [ClientMessage.Throw]: (client: Client, message: unknown) => {
       if (this.state.phase !== Phase.Marching) return;
-      this.throwItem(client, message);
+      const m = (message ?? {}) as Partial<ThrowPayload>;
+      this.throwItem(client.sessionId, Number(m.x), Number(m.z), client);
     },
 
     // Interact (E), on press and on release. No target: the server picks it (see `interact`).
@@ -447,6 +478,15 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         const refused: RenameRefusedEvent = { reason: check.reason };
         client.send(ServerMessage.RenameRefused, refused);
       }
+    },
+
+    // Bots (#59): the host's toggle, lobby only, only a boolean. Applies at the next Start.
+    [ClientMessage.FillBots]: (client: Client, message: unknown) => {
+      if (this.state.phase !== Phase.Waiting || client.sessionId !== this.state.hostId) return;
+      const on = (message as Partial<FillBotsPayload> | null)?.on;
+      if (typeof on !== "boolean" || this.state.fillBots === on) return;
+      this.state.fillBots = on;
+      console.log(`[street ${this.roomId}] fill with bots: ${on ? "on" : "off"}`);
     },
 
     // Ready check (#62): only a boolean, only in the lobby, only your own flag. The host's is
@@ -557,6 +597,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     player.name = nameOrDefault(options?.name);
     this.healths.reset(client.sessionId, player);
     this.state.players.set(client.sessionId, player);
+    // Mid-march (#59): the rearmost bot makes room, so there are never more than MAX_PLAYERS protesters;
+    // and a bot going by the joiner's name takes another, so no two placards read the same.
+    if (this.state.phase === Phase.Marching) this.makeRoomFor(player.name);
     // Mid-round (#12): a fresh protester at the rear of the cortège; it counts
     // towards the win threshold from now on. Before a round: the start zone.
     if (this.state.phase === Phase.Waiting) this.placeAtSpawn(client.sessionId, player);
@@ -574,49 +617,228 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   }
 
   override onLeave(client: Client) {
+    this.removePlayer(client.sessionId);
+    console.log(`[street ${this.roomId}] leave ${client.sessionId}`);
+  }
+
+  /**
+   * Protester `id` is gone from the street: a player leaving, or a bot (#59)
+   * removed at the end of the march or making room for a human. The one path
+   * that clears every per-id map, so nothing is left behind either way. What
+   * they carried falls where they stood; a carry they were in ends; a rescue
+   * aimed at them ends on the next tick; CRS holding or chasing them let go.
+   */
+  private removePlayer(id: string) {
     // What they carried falls where they stood (#8); so does a carried teammate (#11).
-    const leaving = this.state.players.get(client.sessionId);
+    const leaving = this.state.players.get(id);
     if (leaving && isItemKind(leaving.carrying)) this.throwables.drop(leaving.carrying, leaving.x, leaving.z);
-    this.endCarry(client.sessionId);
+    this.endCarry(id);
     // Mid-flight (#11): the flight goes with the body; nothing else points at it.
-    this.carry.remove(client.sessionId);
-    this.state.players.delete(client.sessionId);
-    this.moveInputs.delete(client.sessionId);
-    this.meleeCooldowns.remove(client.sessionId);
-    this.dodgeCooldowns.remove(client.sessionId);
-    this.jumpCooldowns.remove(client.sessionId);
+    this.carry.remove(id);
+    this.state.players.delete(id);
+    this.moveInputs.delete(id);
+    this.meleeCooldowns.remove(id);
+    this.dodgeCooldowns.remove(id);
+    this.jumpCooldowns.remove(id);
     // A rescue aimed at this player ends on the next tick (unknown target).
-    this.rescues.remove(client.sessionId);
-    this.bodies.remove(client.sessionId);
-    // Systems that point at a player (a CRS grab #5) see unknown ids as no-ops.
-    this.healths.remove(client.sessionId);
-    this.gas.remove(client.sessionId);
-    this.fires.remove(client.sessionId);
-    this.protesterViews.delete(client.sessionId);
-    this.joinOrder.delete(client.sessionId);
-    this.lastRename.delete(client.sessionId);
-    this.tokenHashes.delete(client.sessionId);
-    this.tokensToSend.delete(client.sessionId);
-    this.leaderboardJoiners.delete(client.sessionId);
-    this.heals.remove(client.sessionId);
-    this.roundStats.remove(client.sessionId);
-    this.boardJoiners.delete(client.sessionId);
-    this.slips.remove(client.sessionId);
-    this.brigade.remove(client.sessionId);
-    if (this.state.hostId === client.sessionId) {
-      this.state.hostId = pickHost(Array.from(this.joinOrder, ([id, joinedAt]) => ({ id, joinedAt })));
+    this.rescues.remove(id);
+    this.bodies.remove(id);
+    // Systems that point at a player see unknown ids as no-ops; the CRS let go and look elsewhere at once (#59).
+    this.crs.forget(id);
+    this.healths.remove(id);
+    this.gas.remove(id);
+    this.fires.remove(id);
+    this.protesterViews.delete(id);
+    this.joinOrder.delete(id);
+    this.lastRename.delete(id);
+    this.tokenHashes.delete(id);
+    this.tokensToSend.delete(id);
+    this.leaderboardJoiners.delete(id);
+    this.heals.remove(id);
+    this.roundStats.remove(id);
+    this.boardJoiners.delete(id);
+    this.slips.remove(id);
+    this.brigade.remove(id);
+    this.bots.remove(id);
+    if (this.state.hostId === id) {
+      this.state.hostId = pickHost(Array.from(this.joinOrder, ([pid, joinedAt]) => ({ id: pid, joinedAt })));
       // #62: the new host's own ready flag no longer counts; clear it so no stale tag stays.
       const newHost = this.state.players.get(this.state.hostId);
       if (newHost) newHost.ready = false;
       if (this.state.hostId) console.log(`[street ${this.roomId}] host -> ${this.state.hostId}`);
     }
-    console.log(`[street ${this.roomId}] leave ${client.sessionId}`);
+  }
+
+  /**
+   * Bots (#59) at the start of a march: one per empty seat up to MAX_PLAYERS
+   * with the host's toggle on, each with a funny name nobody here goes by (nor
+   * a BAC's placard), a random archetype, full HP and a spot in the start
+   * zone. Never in `joinOrder` (never host), never ready-checked, no token.
+   */
+  private fillWithBots() {
+    const count = botsToFill(this.state.players.size, this.state.fillBots);
+    for (let i = 0; i < count; i++) {
+      const id = this.bots.nextId();
+      const player = new Player();
+      player.name = pickBotName(this.usedNames());
+      player.archetype = pickBotArchetype();
+      this.healths.reset(id, player, archetypeStats(player.archetype).maxHp);
+      this.state.players.set(id, player);
+      this.placeAtSpawn(id, player);
+      this.moveInputs.set(id, { x: 0, z: 0 });
+      const body = this.bodies.get(id);
+      if (body) this.bots.add(id, body, this.now);
+      if (DIAG_ENABLED) this.pastBots.add(id);
+    }
+    if (count > 0) console.log(`[street ${this.roomId}] ${count} bot(s) join the march`);
+  }
+
+  /** Every bot leaves (#59): the march is over. */
+  private removeBots() {
+    const ids = this.bots.ids();
+    for (const id of ids) this.removePlayer(id);
+    if (ids.length > 0) console.log(`[street ${this.roomId}] ${ids.length} bot(s) leave`);
+  }
+
+  /**
+   * A human joins mid-march (#59): the bot furthest back leaves when the
+   * cortège is full, and a bot already going by `name` takes another one.
+   */
+  private makeRoomFor(name: string) {
+    if (this.state.players.size > MAX_PLAYERS) {
+      let rear: string | null = null;
+      let rearT = Infinity;
+      for (const id of this.bots.ids()) {
+        const p = this.state.players.get(id);
+        const t = p ? progressAt(LEVEL, p.x, p.z) : -Infinity;
+        if (t < rearT) {
+          rearT = t;
+          rear = id;
+        }
+      }
+      if (rear !== null) {
+        this.removePlayer(rear);
+        console.log(`[street ${this.roomId}] bot ${rear} makes room (${this.bots.size} bots left)`);
+        this.logLeftovers();
+      }
+    }
+    const key = nameKey(name);
+    for (const id of this.bots.ids()) {
+      const bot = this.state.players.get(id);
+      if (bot && nameKey(bot.name) === key) bot.name = pickBotName([...this.usedNames(), name]);
+    }
+  }
+
+  /** Every name on the street: protesters, bots and BAC placards (#13, #59). */
+  private usedNames(): string[] {
+    const used: string[] = [];
+    this.state.players.forEach((p) => used.push(p.name));
+    this.state.crs.forEach((c) => {
+      if (c.name) used.push(c.name);
+    });
+    return used;
+  }
+
+  /** DIAGNOSTICS (#59, MANIF_DIAG=1 only): any map still keyed by a bot that is gone, and any CRS still pointing at one. */
+  private logLeftovers() {
+    if (!DIAG_ENABLED) return;
+    const gone = (key: string) => this.pastBots.has(key) && !this.state.players.has(key);
+    const maps = leftovers(this, gone, [this.pastBots]);
+    let crsRefs = 0;
+    for (const c of this.crs.all) if ((c.grabbedId !== null && gone(c.grabbedId)) || (c.targetId !== null && gone(c.targetId))) crsRefs++;
+    const list = [...maps].map(([k, n]) => `${k}=${n}`).join(", ");
+    const verdict = maps.size === 0 && crsRefs === 0 ? "none" : `${list} crsRefs=${crsRefs}`;
+    console.log(`[street ${this.roomId}] diag leftovers: ${verdict} (players ${this.state.players.size}, bots ${this.bots.size})`);
+  }
+
+  /**
+   * Bots (#59), once a tick before anyone moves: each one whose think is due
+   * looks at the street (built once for all of them) and acts through the
+   * same id-based actions a player's messages reach, so every rule (control,
+   * cooldowns, what a press may do) applies to it too. Its walk holds between thinks.
+   */
+  private stepBots() {
+    if (this.bots.size === 0) return;
+    let world: BotWorld | null = null;
+    for (const mind of this.bots.all()) {
+      if (!botThinkDue(mind, this.now)) continue;
+      const id = mind.id;
+      const player = this.state.players.get(id);
+      const body = this.bodies.get(id);
+      if (!player || !body) continue;
+      mind.body = body;
+      world ??= this.buildBotWorld();
+      world.self.x = player.x;
+      world.self.z = player.z;
+      world.self.canAct = this.hasControl(id);
+      world.self.carrying = player.carrying !== ThrowableKind.None;
+      world.self.gassed = player.gassed;
+      const intent = thinkBot(mind, world);
+      this.moveInputs.set(id, intent.move);
+      // Only a rescue: a bot's hold never lights a fire or lifts a teammate (no `interact`).
+      this.rescues.hold(id, intent.rescueHold);
+      if (intent.face) {
+        const dx = intent.face.x - player.x;
+        const dz = intent.face.z - player.z;
+        if (dx !== 0 || dz !== 0) player.rotation = Math.atan2(dx, dz);
+      }
+      if (intent.attack) this.attack(id);
+      if (intent.throwAt) this.throwItem(id, intent.throwAt.x - player.x, intent.throwAt.z - player.z);
+      if (intent.pickUp && this.hasControl(id) && player.carrying === ThrowableKind.None) {
+        const kind = this.throwables.pickUp(player, player.carrying);
+        if (kind !== ThrowableKind.None) player.carrying = kind;
+      }
+      if (intent.jump) this.jump(id);
+      if (intent.dodge) this.dodge(id);
+    }
+  }
+
+  /** The street as the bots see it this tick (#59): protesters, standing CRS, pavés and tomatoes, gas, hurdles. */
+  private buildBotWorld(): BotWorld {
+    const protesters = this.botProtesters;
+    protesters.length = 0;
+    this.state.players.forEach((p, id) => protesters.push({ id, x: p.x, z: p.z, status: p.status, bot: isBotId(id) }));
+    const crs = this.botCrs;
+    crs.length = 0;
+    for (const c of this.crs.all) {
+      // Out, a pompier (on nobody's side), or a BAC still in disguise (a bot is fooled like anyone): not a foe.
+      if (c.status === CrsStatus.Out || c.kind === CrsKind.Pompier || !c.revealed) continue;
+      crs.push({ id: c.id, x: c.body.x, z: c.body.z, radius: crsRadius(c.kind, c.mount), down: isDown(c.body), grabbing: c.status === CrsStatus.Grabbing ? c.grabbedId : null });
+    }
+    const items = this.botItems;
+    items.length = 0;
+    this.state.items.forEach((it) => {
+      if (it.kind === ThrowableKind.Pave || it.kind === ThrowableKind.Tomate) items.push({ x: it.x, z: it.z });
+    });
+    const gas = this.botGas;
+    gas.length = 0;
+    this.state.gas.forEach((g) => gas.push({ x: g.x, z: g.z, r: g.radius }));
+    const hurdles = this.botHurdles;
+    hurdles.length = 0;
+    for (const b of this.props.world.boxes) if (b.hoppable) hurdles.push({ x: b.x, z: b.z, r: Math.max(b.halfX, b.halfZ) });
+    for (const c of this.props.world.circles) if (c.hoppable) hurdles.push({ x: c.x, z: c.z, r: c.r });
+    for (const c of this.crs.fallenCircles([])) hurdles.push({ x: c.x, z: c.z, r: c.r });
+    return {
+      level: LEVEL,
+      nav: { nav: this.crs.navGrid, now: this.now, bots: [] },
+      now: this.now,
+      random: Math.random,
+      self: { x: 0, z: 0, canAct: false, carrying: false, gassed: false },
+      protesters,
+      crs,
+      items,
+      gas,
+      hurdles,
+    };
   }
 
   /** Waiting -> marching (#12), everyone at once from a clean street, with the opening wave. */
   private startMarch() {
     this.resetStreet();
     if (!startRound(this.round)) return;
+    // #59: the empty seats fill with bots, on a clean street (resetStreet placed the humans).
+    this.removeBots();
+    this.fillWithBots();
     // #17: the dev-only brigade tuning lasts one round.
     this.brigade.resetTuning();
     this.roundHeld = false;
@@ -627,7 +849,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     for (const player of this.state.players.values()) player.ready = false;
     this.updateFront();
     this.syncRound();
-    console.log(`[street ${this.roomId}] start (${this.state.players.size} players)`);
+    this.tickStats?.reset(this.now);
+    console.log(`[street ${this.roomId}] start (${this.state.players.size} players, ${this.bots.size} bots)`);
   }
 
   /**
@@ -680,7 +903,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * bar, and every wave whose threshold it crossed fires (once per round).
    */
   private updateFront() {
-    const front = frontProgress(LEVEL, this.state.players.values());
+    const front = frontProgress(LEVEL, this.roundProtesters());
     if (front !== null) this.front = front;
     const bar = syncedProgress(this.front);
     if (this.state.progress !== bar) this.state.progress = bar;
@@ -750,14 +973,20 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   private stepRoundClock(dt: number) {
     const event = stepRound(this.round, dt, (timeLeft) =>
-      this.roundHeld ? RoundResult.None : roundOutcome(LEVEL, Array.from(this.state.players.values()), timeLeft),
+      this.roundHeld ? RoundResult.None : roundOutcome(LEVEL, this.roundProtesters(), timeLeft),
     );
     if (event === "ended") this.endRound();
     else if (event === "reset") {
       this.resetStreet();
+      this.logLeftovers();
       console.log(`[street ${this.roomId}] reset -> waiting`);
     }
     this.syncRound();
+  }
+
+  /** The protesters as the round rules see them (#12), bots flagged (#59): they count for neither the front, the win nor the wipe. */
+  private roundProtesters() {
+    return Array.from(this.state.players.entries(), ([id, p]) => ({ x: p.x, z: p.z, status: p.status, bot: isBotId(id) }));
   }
 
   /**
@@ -791,6 +1020,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     }
     const event: RoundEndEvent = { result: this.round.result, seconds: Math.round(this.round.elapsed), players, bank };
     this.broadcast(ServerMessage.RoundEnd, event);
+    // #59: the bots leave with the march; their rows went out above, marked. Re-filled at the next Start.
+    this.removeBots();
     // The lobby that follows shows the board with the new totals.
     if (bank === "saved") this.sendLeaderboard();
     console.log(`[street ${this.roomId}] end: result ${event.result} after ${event.seconds} s, progress ${this.state.progress}, bank ${bank}`);
@@ -851,6 +1082,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       archetype: p.archetype,
       ...this.roundStats.get(id),
       score: this.roundStats.score(id),
+      ...(isBotId(id) && { bot: true }),
     }));
   }
 
@@ -1017,16 +1249,18 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * its own positions and facing: everything in the arc, in reach and not
    * behind a wall. A swing at nothing changes no state; it is still shown.
    */
-  private attack(client: Client) {
-    const id = client.sessionId;
+  private attack(id: string, swinger?: Client) {
     const player = this.state.players.get(id);
     // A carrier's hands are full (#11): the click throws instead (the client sends a throw).
     if (!player || !this.hasControl(id) || this.carry.isCarrying(id)) return;
-    if (!this.meleeCooldowns.tryStart(id, this.now)) return;
+    // A bot (#59) swings slower and softer than a player, whatever its archetype.
+    const bot = isBotId(id);
+    if (!this.meleeCooldowns.tryStart(id, this.now, bot ? BOT_MELEE_COOLDOWN : MELEE_COOLDOWN)) return;
 
-    // The swinger already played it locally.
+    // A player already played it locally; a bot's swing is news to everyone.
     const swing: SwingEvent = { id };
-    this.broadcast(ServerMessage.Swing, swing, { except: client });
+    if (swinger) this.broadcast(ServerMessage.Swing, swing, { except: swinger });
+    else this.broadcast(ServerMessage.Swing, swing);
 
     for (const hit of meleeHits(player, this.props.targets(), SWING_OBSTACLES)) {
       this.damageProp(id, hit.id, MELEE_PROP_DAMAGE, hit.point.x, hit.point.z);
@@ -1036,7 +1270,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // on its next tick: the other way to free a grabbed teammate (#10), with the
     // same grab immunity as a rescue (CrsHost.release -> rescuePlayer).
     for (const hit of meleeHits(player, this.crs.meleeTargets(), SWING_OBSTACLES)) {
-      const res = this.crs.hit(hit.id, player.x, player.z, MELEE_CRS_DAMAGE, this.now);
+      const res = this.crs.hit(hit.id, player.x, player.z, bot ? BOT_MELEE_CRS_DAMAGE : MELEE_CRS_DAMAGE, this.now);
       if (res) this.announceCrsHit(id, hit.id, res, hit.point.x, hit.point.z);
     }
   }
@@ -1074,27 +1308,27 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * zero aim throws along the facing. The projectile starts at the server's
    * own copy of the thrower's position, and the thrower turns to face the throw.
    */
-  private throwItem(client: Client, message: unknown) {
-    const id = client.sessionId;
+  private throwItem(id: string, aimX: number, aimZ: number, thrower?: Client) {
     const player = this.state.players.get(id);
     if (!player || !this.hasControl(id)) return;
-    const m = (message ?? {}) as Partial<ThrowPayload>;
     // Carrying a teammate (#11): they are what flies.
     const mate = this.carry.carriedOf(id);
     if (mate !== null) {
-      this.throwTeammate(client, player, mate, Number(m.x), Number(m.z));
+      this.throwTeammate(id, player, mate, aimX, aimZ, thrower);
       return;
     }
     if (!isItemKind(player.carrying)) return;
-    // The archetype's arm (#14): how far it flies, and how far off the aim it may wobble.
+    // The archetype's arm (#14): how far it flies, and how far off the aim it may wobble. A bot (#59) wobbles more on top.
     const stats = this.statsOf(id);
-    const dir = spreadAim(aimDirection(Number(m.x), Number(m.z), player.rotation), stats.throwSpread, Math.random());
+    const spread = stats.throwSpread + (isBotId(id) ? BOT.throwSpread : 0);
+    const dir = spreadAim(aimDirection(aimX, aimZ, player.rotation), spread, Math.random());
     if (!this.throwables.launch(id, player.carrying, player.x, player.z, dir.x, dir.z, stats.throwRange)) return;
     player.carrying = ThrowableKind.None;
     player.rotation = Math.atan2(dir.x, dir.z);
-    // The thrower already played the arm swing locally.
+    // A player already played the arm swing locally; a bot's is news to everyone.
     const swing: SwingEvent = { id };
-    this.broadcast(ServerMessage.Swing, swing, { except: client });
+    if (thrower) this.broadcast(ServerMessage.Swing, swing, { except: thrower });
+    else this.broadcast(ServerMessage.Swing, swing);
   }
 
   /**
@@ -1103,8 +1337,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * spot, and hit CRS and props on the way (`stepFlights`). The carrier turns
    * to face the throw.
    */
-  private throwTeammate(client: Client, player: Player, mateId: string, aimX: number, aimZ: number) {
-    const id = client.sessionId;
+  private throwTeammate(id: string, player: Player, mateId: string, aimX: number, aimZ: number, thrower?: Client) {
     const mate = this.state.players.get(mateId);
     const l = teammateLaunch(aimX, aimZ, player.rotation);
     this.carry.release(id);
@@ -1122,7 +1355,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const event: ImpulseEvent = { id: mateId, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: true };
     this.broadcast(ServerMessage.Impulse, event);
     const swing: SwingEvent = { id };
-    this.broadcast(ServerMessage.Swing, swing, { except: client });
+    if (thrower) this.broadcast(ServerMessage.Swing, swing, { except: thrower });
+    else this.broadcast(ServerMessage.Swing, swing);
   }
 
   /**
@@ -1169,7 +1403,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // A tomato or a poo does none of that; the hit still flashes the bot.
     const bot = this.crs.get(target.id);
     const at = bot ? bot.body : p;
-    const res = this.crs.strike(target.id, p.dirX, p.dirZ, type.crsDamage, type.knockback, type.stun, this.now);
+    // A bot's throw (#59) hurts less; the push and the stun are the item's own.
+    const damage = isBotId(p.by) ? type.crsDamage * BOT.throwDamage : type.crsDamage;
+    const res = this.crs.strike(target.id, p.dirX, p.dirZ, damage, type.knockback, type.stun, this.now);
     if (res) this.announceCrsHit(p.by, target.id, res, at.x, at.z);
     // Its status (#15): a splatted visor, a stink. A second one refreshes the timer.
     if (type.effect !== null && this.crs.affect(target.id, type.effect, type.effectTime, this.now)) this.roundStats.add(p.by, "splats");
@@ -1411,8 +1647,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   private step(dt: number) {
     if (this.state.phase === Phase.Marching) {
+      const started = this.tickStats ? performance.now() : 0;
       this.simulate(dt);
       this.updateFront();
+      this.tickStats?.add(performance.now() - started, this.now, () => `${this.bots.size} bots, ${this.crs.size} CRS, ${this.state.players.size} protesters`);
     }
     if (this.state.phase !== Phase.Waiting) this.stepRoundClock(dt);
     this.sendBoard();
@@ -1433,10 +1671,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         this.roundStats.add(rescuerId, "rescues");
         return true;
       },
-      // The étudiant·e pulls faster (#14).
-      (id) => RESCUE_TIME * this.statsOf(id).rescueTime,
+      // The étudiant·e pulls faster (#14); a bot slower (#59), on top of its archetype.
+      (id) => RESCUE_TIME * this.statsOf(id).rescueTime * (isBotId(id) ? BOT.rescueTime : 1),
     );
     this.stepFireHolds(dt);
+    // Bots (#59) decide a few times a second and act like players, before everyone moves.
+    this.stepBots();
     const crowd = this.buildCrowdWorld();
     this.state.players.forEach((player, sessionId) => {
       const health = this.healths.tick(sessionId, player, this.now);
@@ -1464,7 +1704,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (fire.damage > 0) this.damagePlayer(sessionId, fire.damage);
       const held = free ? (this.moveInputs.get(sessionId) ?? NO_INPUT) : NO_INPUT;
       // A carrier walks slower (#11), and so does someone lugging a trottinette (#15).
-      const speed = gas.speed * fire.speed * (this.carry.isCarrying(sessionId) ? CARRY_SPEED_FACTOR : 1) * carrySpeedOf(player.carrying);
+      // A bot (#59) walks a little slower than its archetype.
+      const botSpeed = isBotId(sessionId) ? BOT.speed : 1;
+      const speed = gas.speed * fire.speed * botSpeed * (this.carry.isCarrying(sessionId) ? CARRY_SPEED_FACTOR : 1) * carrySpeedOf(player.carrying);
       const input = speed === 1 ? held : { x: held.x * speed, z: held.z * speed };
       // Walk (or dodge) from the held input (ignored while down) plus knockback
       // velocity, collided against the street (sub-stepped, bounces off walls).
@@ -1719,7 +1961,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     view.status = player.status;
     view.down = player.down;
     // The black bloc is chased first (#14): a weight on distance, see `pickTarget`.
-    view.priority = archetypeStats(player.archetype).targetWeight;
+    // A bot (#59) is chased after a human at a similar distance, on top of its archetype's weight.
+    view.priority = archetypeStats(player.archetype).targetWeight * (isBotId(id) ? BOT.targetWeight : 1);
     return view;
   }
 

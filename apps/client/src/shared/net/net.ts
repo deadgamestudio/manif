@@ -28,6 +28,7 @@ import {
   type MoveInput,
   type PickArchetypePayload,
   type ReadyPayload,
+  type FillBotsPayload,
   type RenamePayload,
   type StartPayload,
   type RenameRefusedEvent,
@@ -70,8 +71,10 @@ export interface NetSnapshot {
   /** null until the first state snapshot is decoded. */
   phase: Phase | null;
   hostId: string | null;
-  /** Players in join order. Changes only on join/leave, never per frame. */
+  /** Players in join order. Changes only on join/leave, never per frame. Bots (#59, `isBotId`) only during the march. */
   players: readonly LobbyPlayer[];
+  /** The host's toggle (#59): the cortège fills up with bots at the next Start. */
+  fillBots: boolean;
   /** Ids of the police bots on the street (#5). Changes only when one appears or is removed. */
   crs: readonly string[];
   /** Readable message for the homepage. */
@@ -115,6 +118,7 @@ const IDLE: NetSnapshot = {
   phase: null,
   hostId: null,
   players: [],
+  fillBots: true,
   crs: [],
   error: null,
 };
@@ -300,10 +304,11 @@ function describeJoinError(err: unknown): string {
 function readRoom(r: ClientRoom): Partial<NetSnapshot> {
   const state = r.state as ClientState | undefined;
   // state can be empty until the first full snapshot is decoded
-  if (!state?.players) return { phase: null, hostId: null, players: [], crs: [] };
+  if (!state?.players) return { phase: null, hostId: null, players: [], fillBots: true, crs: [] };
   return {
     phase: state.phase as Phase,
     hostId: state.hostId || null,
+    fillBots: state.fillBots !== false,
     players: Array.from(state.players.entries(), ([id, p]) => ({ id, name: p.name, archetype: p.archetype ?? 0, ready: p.ready === true })),
     crs: state.crs ? Array.from(state.crs.entries(), ([id]) => id) : [],
   };
@@ -431,6 +436,7 @@ function attach(joined: ClientRoom, gen: number) {
     emit({ type: "roundEnd", event });
   });
   callbacks.listen("hostId", refresh);
+  callbacks.listen("fillBots", refresh);
   joined.onMessage(ServerMessage.RoundBoard, (event: RoundBoardEvent) => {
     if (gen !== generation) return;
     setRound({ board: event });
@@ -852,6 +858,12 @@ export const net = {
   setReady(ready: boolean) {
     const payload: ReadyPayload = { ready };
     room?.send(ClientMessage.Ready, payload);
+  },
+
+  /** Host only (the server checks), in the lobby (#59): fill the cortège with bots at the next Start, or not. */
+  setFillBots(on: boolean) {
+    const payload: FillBotsPayload = { on };
+    room?.send(ClientMessage.FillBots, payload);
   },
 
   /** Pick an archetype in the lobby (#14). The server ignores it outside `waiting`. */
