@@ -14,6 +14,7 @@ import {
   type RescueSubject,
 } from "@manif/shared";
 import { net, type LobbyPlayer } from "../../shared/net/index.ts";
+import { inSentence, useKeyLabels } from "../controls/index.ts";
 import { carryTargetFor } from "../carry/index.ts";
 import { FIRE_TEXT } from "./fireVisuals.tsx";
 
@@ -84,14 +85,16 @@ export function FireHud({
   touch?: boolean;
 }) {
   const [text, setText] = useState("");
+  // The player's own interact key (#72).
+  const keys = useKeyLabels();
   useEffect(() => {
     if (!localId) return undefined;
-    const key = touch ? "Action" : "E";
+    const key = touch ? "Action" : inSentence(keys.interact);
     const update = () => setText(prompt(localId, players, key));
     update();
     const timer = window.setInterval(update, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [localId, players, touch]);
+  }, [localId, players, touch, keys]);
   if (!text) return null;
   return <div className="hud-status">{text}</div>;
 }

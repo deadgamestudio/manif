@@ -1,18 +1,14 @@
-import { useEffect } from "react";
 import { net } from "../../shared/net/index.ts";
+import { useActions } from "../controls/index.ts";
+
+const JUMP = ["jump"] as const;
 
 /**
- * Hop (#45): Space. The server enforces the cooldown and the state, so
- * holding the key or mashing it does nothing extra.
+ * Hop (#45): Space by default (#72). The server enforces the cooldown and the
+ * state, so holding the key or mashing it does nothing extra.
  */
 export function useJumpInput() {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.code !== "Space") return;
-      e.preventDefault();
-      if (!e.repeat) net.sendJump();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  useActions(JUMP, (_, pressed) => {
+    if (pressed) net.sendJump();
+  });
 }

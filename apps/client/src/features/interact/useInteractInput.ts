@@ -1,38 +1,15 @@
-import { useEffect } from "react";
 import { net } from "../../shared/net/index.ts";
+import { useActions } from "../controls/index.ts";
+
+const INTERACT = ["interact"] as const;
 
 /**
- * The interact key, E (#10 rescue, #8 pick-up). Sent on press and on release:
- * holding it next to a grabbed teammate pulls them free; otherwise a press
- * picks up the nearest item (pavé, tomate, crotte, trottinette).
- * Losing focus counts as a release, so a rescue never sticks on a key the
- * page no longer sees.
+ * The interact key, E by default (#10 rescue, #8 pick-up, #72 rebinding). Sent
+ * on press and on release: holding it next to a grabbed teammate pulls them
+ * free; otherwise a press picks up the nearest item (pavé, tomate, crotte,
+ * trottinette). The keymap lets go on blur, on a rebind and on unmount, so a
+ * rescue never sticks on a key the page no longer sees.
  */
 export function useInteractInput() {
-  useEffect(() => {
-    let held = false;
-    const set = (next: boolean) => {
-      if (held === next) return;
-      held = next;
-      net.sendInteract(next);
-    };
-    const onDown = (e: KeyboardEvent) => {
-      if (e.code !== "KeyE") return;
-      e.preventDefault();
-      set(true);
-    };
-    const onUp = (e: KeyboardEvent) => {
-      if (e.code === "KeyE") set(false);
-    };
-    const onBlur = () => set(false);
-    window.addEventListener("keydown", onDown);
-    window.addEventListener("keyup", onUp);
-    window.addEventListener("blur", onBlur);
-    return () => {
-      window.removeEventListener("keydown", onDown);
-      window.removeEventListener("keyup", onUp);
-      window.removeEventListener("blur", onBlur);
-      set(false);
-    };
-  }, []);
+  useActions(INTERACT, (_, pressed) => net.sendInteract(pressed));
 }
