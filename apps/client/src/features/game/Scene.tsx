@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Object3D, Vector3, type DirectionalLight } from "three";
 import { CrsStatus, STREET_LEVEL, isBotId } from "@manif/shared";
@@ -13,6 +13,7 @@ import { GasView } from "../gas/index.ts";
 import { FiresView } from "../fire/index.ts";
 import { TrucksView } from "../pompier/index.ts";
 import { MoluchanView } from "../moluchan/index.ts";
+import { bodyUrlFor, preloadModels, roundPreloadGroups } from "../models/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
 
 const LEVEL = STREET_LEVEL;
@@ -40,6 +41,7 @@ export function Scene({
 }) {
   const ids = players.map((p) => p.id);
   const fadeTargets = useFadeTargets(ids, crs);
+  usePreloadModels(players);
   return (
     <>
       <FollowRig localId={localId} />
@@ -63,6 +65,19 @@ export function Scene({
       <MoluchanView />
     </>
   );
+}
+
+/**
+ * Starts fetching Jordan's models (#28) as soon as the street is drawn, the
+ * bodies of who is here first. Placeholders stand in until each one arrives.
+ * Again when someone joins or changes archetype: what is cached costs nothing.
+ */
+function usePreloadModels(players: readonly LobbyPlayer[]) {
+  // A string, so the effect only runs again when the set of bodies changes, not with each new players array.
+  const bodies = [...new Set(players.map((p) => bodyUrlFor(p.archetype, p.id)))].sort().join(" ");
+  useEffect(() => {
+    preloadModels(roundPreloadGroups(bodies ? bodies.split(" ") : []));
+  }, [bodies]);
 }
 
 /**

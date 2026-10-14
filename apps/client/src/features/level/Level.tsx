@@ -1,6 +1,8 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { STREET_LEVEL, type BoxKind, type BoxObstacle, type CircleObstacle, type Level, type Rect } from "@manif/shared";
+import type { Object3D } from "three";
 import { net } from "../../shared/net/index.ts";
+import { MODELS, fitToBox, useGltf, useStaticModel, type GLTF } from "../models/index.ts";
 import { carveBlocks } from "./blocks.ts";
 import { BuildingsView, type BuildingSpec } from "./Buildings.tsx";
 import type { Point3 } from "./occlusion.ts";
@@ -119,10 +121,39 @@ function CentreLine({ level }: { level: Level }) {
 
 /**
  * A police van, the "panier à salade" (#70: where the CRS drag people):
- * the collision box in police blue, a white stripe along it and a blue light
- * bar on the roof, so it reads as a van from far off. Placeholder until the real model (#28).
+ * Jordan's model (#28) stretched over the collision box, or until it has
+ * loaded (or if it failed), the box in police blue with a white stripe and a
+ * blue light bar on the roof, so it reads as a van from far off.
  */
 function VanMesh({ box }: { box: BoxObstacle }) {
+  const van = useStaticModel(MODELS.police.policeVan);
+  const gltf = useGltf(MODELS.police.policeVan);
+  if (van && gltf) return <VanModel box={box} van={van} gltf={gltf} />;
+  return <VanPlaceholder box={box} />;
+}
+
+/**
+ * The model is 2.4 × 2.4 × 5 m with its nose on +Z, like the boxes: parked
+ * along the street, nose down the right-hand lane (towards the Préfecture
+ * on the +X side, away from it on the -X side); across it if a box is ever
+ * longer in X.
+ */
+function VanModel({ box, van, gltf }: { box: BoxObstacle; van: Object3D; gltf: GLTF }) {
+  const long = box.halfZ >= box.halfX;
+  const yaw = long ? (box.x > 0 ? Math.PI : 0) : box.z > 0 ? -Math.PI / 2 : Math.PI / 2;
+  const width = (long ? box.halfX : box.halfZ) * 2;
+  const length = (long ? box.halfZ : box.halfX) * 2;
+  const fit = fitToBox(gltf, [width, box.height, length]);
+  return (
+    <group position={[box.x, 0, box.z]} rotation-y={yaw}>
+      <group scale={fit.scale}>
+        <primitive object={van} position={fit.offset} dispose={null} />
+      </group>
+    </group>
+  );
+}
+
+function VanPlaceholder({ box }: { box: BoxObstacle }) {
   const long = box.halfZ >= box.halfX;
   const stripe: [number, number, number] = long ? [box.halfX * 2 + 0.02, 0.25, box.halfZ * 2 - 0.4] : [box.halfX * 2 - 0.4, 0.25, box.halfZ * 2 + 0.02];
   return (
