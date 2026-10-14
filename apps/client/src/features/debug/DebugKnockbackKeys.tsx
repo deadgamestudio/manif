@@ -36,6 +36,8 @@ const ROUND_KEYS: Record<string, DebugRoundPayload> = {
   KeyT: { action: "time", seconds: 10 },
   /** Throw water around you (#16), standing in for the pompiers' hose (#17): fires and burning bodies within 4 go out. */
   KeyY: { action: "water", radius: 4 },
+  /** Jeun-Lac Moluchan (#85) turns up 3 m in front of you, whatever the roll. */
+  KeyO: { action: "moluchan", distance: 3 },
 };
 
 const DEBUG_CODES = [...Object.keys(KEYS), ...Object.keys(HEALTH_KEYS), ...Object.keys(ROUND_KEYS)];
@@ -77,7 +79,7 @@ export function DebugKnockbackKeys() {
   return (
     <div className="hud-debug">
       debug : K te renverse · J te pousse · L renverse le plus proche · H te blesse (−{DEBUG_DAMAGE}) · G te fait
-      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour
+      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan
     </div>
   );
 }

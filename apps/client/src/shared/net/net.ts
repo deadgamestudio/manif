@@ -3,6 +3,7 @@ import type { IRef } from "@colyseus/schema";
 import {
   ClientMessage,
   DEFAULT_SERVER_PORT,
+  MOLUCHAN_ID,
   MELEE_COOLDOWN,
   Phase,
   PlayerStatus,
@@ -17,6 +18,8 @@ import {
   type GasCloudShape,
   type FireShape,
   type TruckShape,
+  type MoluchanShape,
+  type MoluchanPhase,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type DebugRoundPayload,
@@ -229,6 +232,19 @@ function setTruckIds(ids: readonly string[]) {
 }
 
 /**
+ * Jeun-Lac Moluchan (#85): his phase while he is on the street, null when he
+ * isn't, kept out of NetSnapshot like the trucks. Changes when he arrives,
+ * starts leaving, is grabbed and is gone: a handful of times a round.
+ */
+let moluchanPhase: MoluchanPhase | null = null;
+const moluchanListeners = new Set<() => void>();
+function setMoluchanPhase(phase: MoluchanPhase | null) {
+  if (phase === moluchanPhase) return;
+  moluchanPhase = phase;
+  for (const listener of moluchanListeners) listener();
+}
+
+/**
  * The round (#12): timer, progress and result, kept out of NetSnapshot so the
  * once-a-second countdown re-renders only the HUD, not the game. `end` is the
  * last ServerMessage.RoundEnd seen in this room (null after joining). `board`
@@ -319,6 +335,7 @@ function clearEffects() {
   setFireIds([]);
   setShops([]);
   setTruckIds([]);
+  setMoluchanPhase(null);
   setRound(NO_ROUND);
   setLeaderboard(null);
 }
@@ -475,6 +492,17 @@ function attach(joined: ClientRoom, gen: number) {
   };
   callbacks.onAdd("trucks", () => refreshTrucks());
   callbacks.onRemove("trucks", (_t, id) => refreshTrucks(id));
+  // Moluchan (#85): at most one entry; his phase drives the view and the HUD banner.
+  callbacks.onAdd("moluchan", (m) => {
+    const read = () => {
+      if (gen === generation) setMoluchanPhase((m as MoluchanShape).phase as MoluchanPhase);
+    };
+    callbacks.listen(m as MoluchanShape & IRef, "phase", read);
+    read();
+  });
+  callbacks.onRemove("moluchan", () => {
+    if (gen === generation) setMoluchanPhase(null);
+  });
   callbacks.listen("phase", () => {
     // A new phase starts from no held input on the server (#12): forget the
     // last direction sent, or pressing the same key again would not be sent.
@@ -789,6 +817,22 @@ export const net = {
   /** Live state of a fire truck (#17). Read from useFrame. */
   getTruck(id: string): TruckShape | undefined {
     return room?.state.trucks?.get(id);
+  },
+
+  /** Call `listener` when Jeun-Lac Moluchan (#85) arrives, changes phase or is gone. */
+  subscribeMoluchan(listener: () => void): () => void {
+    moluchanListeners.add(listener);
+    return () => moluchanListeners.delete(listener);
+  },
+
+  /** Moluchan's phase (#85, a `MoluchanPhase`) while he is on the street, null when he isn't. */
+  getMoluchanPhase(): MoluchanPhase | null {
+    return moluchanPhase;
+  },
+
+  /** Moluchan's live state (#85). Read from useFrame. */
+  getMoluchan(): MoluchanShape | undefined {
+    return room?.state.moluchan?.get(MOLUCHAN_ID);
   },
 
   /** Call `listener` when the lasting leaderboard (#41) arrives or changes. */

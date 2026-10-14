@@ -67,6 +67,10 @@ export const BOT = {
   leadMax: 0.03,
   /** How far either side of the street's middle line a bot's own lane is. */
   laneSpread: 3,
+  /** Jeun-Lac Moluchan (#85) this close (centre to centre) draws a bot's spot in the cortège towards him... */
+  moluchanRange: 16,
+  /** ...this share of the way (0: not at all, 1: right onto him). */
+  moluchanPull: 0.4,
   /** Close enough to its spot in the cortège: it stands and waits. */
   arriveRadius: 1.5,
   /** Its path is searched again this often while it walks. */

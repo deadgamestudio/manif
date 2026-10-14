@@ -149,7 +149,12 @@ export type DebugRoundPayload =
    * `crew` pompiers per truck, `spray` the accidental spray chance per second (0 turns it off), `extra` seconds of
    * fire before another truck comes, `soak` the hose's water per second (a slow hose keeps a pompier busy). Each is optional.
    */
-  | { action: "brigade"; delay?: number; crew?: number; spray?: number; extra?: number; soak?: number };
+  | { action: "brigade"; delay?: number; crew?: number; spray?: number; extra?: number; soak?: number }
+  /**
+   * #85: Jeun-Lac Moluchan turns up now, whatever the roll (unless he is already on the street), `distance` m in front of
+   * yourself (absent: by his usual way in), rallying for `seconds` (absent: MOLUCHAN.duration).
+   */
+  | { action: "moluchan"; distance?: number; seconds?: number };
 
 /** Payload of `ClientMessage.PickArchetype`: an `Archetype` id. */
 export interface PickArchetypePayload {

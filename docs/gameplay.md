@@ -121,6 +121,24 @@ takes the ball instead), a tomato on its visor or rushing it (it is weak up
 close) all foil it; hopping does not. A hit knocks you on your bum with a
 "boing" for 10 HP, and you can't be grabbed for 2.2 s afterwards.
 
+## Jeun-Lac Moluchan (#85)
+
+About one round in seven, a surprise guest joins the protesters: Jeun-Lac
+Moluchan, a big caricature of a tribune with a red scarf and a megaphone, and
+nothing but made-up lines ("Je suis la manif !"). He turns up once the front
+has covered somewhere between a quarter and three quarters of the street, from
+a side street just behind it or from the back of the cortège, with a banner and
+a squeal of megaphone feedback and a cheer. For 45 s he walks to the thickest group of protesters,
+a little behind the front, and everyone free inside his ring (6 m) walks 15%
+faster, struggles out of a grab half again as fast, and heals 1 HP a second (on
+top of a CGT's heal). Then he leaves by a side street, and once he is gone untouched the HUD says "Moluchan protégé !".
+The CRS want him badly (he counts as three times closer than anyone else), and
+a grab ends his visit at once ("Moluchan embarqué !"). The LBD never shoots
+him: he never breaks or throws anything. He is not a protester: he counts for
+neither the win, the wipe, the bot fill nor the scores. Bots drift a little
+towards him. Dev builds: `debug:round {action: "moluchan", distance, seconds}`
+brings him in now.
+
 ## Archetypes (#14)
 
 On the lobby screen each player picks an archetype (#14), locked for the whole

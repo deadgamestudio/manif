@@ -13,14 +13,18 @@ import { createStruggle, isStruggleFree, stepStruggle, strugglePercent, struggle
 export class Struggles {
   private readonly meters = new Map<string, Struggle>();
 
-  /** One press of the mash by `id` at room time `now`. Returns true when the meter is now full (break free). */
-  press(id: string, now: number): boolean {
+  /**
+   * One press of the mash by `id` at room time `now`. Returns true when the
+   * meter is now full (break free). `gain`: what a counted press fills, as a
+   * factor (#85: more inside Moluchan's ring).
+   */
+  press(id: string, now: number, gain = 1): boolean {
     let s = this.meters.get(id);
     if (!s) {
       s = createStruggle();
       this.meters.set(id, s);
     }
-    strugglePress(s, now);
+    strugglePress(s, now, gain);
     return isStruggleFree(s);
   }
 

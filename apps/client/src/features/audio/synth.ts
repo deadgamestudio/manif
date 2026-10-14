@@ -181,6 +181,66 @@ function megaphone(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
   return t + 0.1 - t0;
 }
 
+/**
+ * Jeun-Lac Moluchan turning up (#85): his megaphone squealing with feedback
+ * as it switches on, then a short chirpy bullhorn "hé ho !" (two buzzy
+ * syllables, no words, nobody's voice). About a second.
+ */
+function moluchan(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
+  // The feedback squeal: a high whistle swelling and wavering, then cut.
+  const squeal = ctx.createOscillator();
+  squeal.type = "sine";
+  squeal.frequency.setValueAtTime(2300, t0);
+  squeal.frequency.exponentialRampToValueAtTime(3100, t0 + 0.38);
+  const waver = ctx.createOscillator();
+  const waverDepth = ctx.createGain();
+  waver.frequency.value = 11;
+  waverDepth.gain.value = 45;
+  waver.connect(waverDepth).connect(squeal.frequency);
+  const squealAmp = ctx.createGain();
+  squealAmp.gain.setValueAtTime(0.0001, t0);
+  squealAmp.gain.exponentialRampToValueAtTime(0.5, t0 + 0.3);
+  squealAmp.gain.linearRampToValueAtTime(0, t0 + 0.42);
+  squeal.connect(squealAmp).connect(out);
+  waver.start(t0);
+  squeal.start(t0);
+  waver.stop(t0 + 0.45);
+  squeal.stop(t0 + 0.45);
+
+  // The bullhorn: a buzzy tone through the same narrow, crackly band as the cortège's megaphones.
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = 1500;
+  band.Q.value = 1.6;
+  const shaper = ctx.createWaveShaper();
+  shaper.curve = distortion();
+  shaper.connect(band).connect(out);
+  const voice = ctx.createOscillator();
+  voice.type = "sawtooth";
+  const amp = ctx.createGain();
+  amp.gain.setValueAtTime(0, t0);
+  voice.connect(amp).connect(shaper);
+  // "Hé": up and bright. "Ho !": higher still, held, then dropping off.
+  const syllables: readonly [from: number, to: number, start: number, length: number][] = [
+    [230, 330, 0.5, 0.16],
+    [300, 420, 0.72, 0.28],
+  ];
+  for (const [from, to, start, length] of syllables) {
+    const t = t0 + start;
+    voice.frequency.setValueAtTime(from, t);
+    voice.frequency.exponentialRampToValueAtTime(to, t + length * 0.4);
+    voice.frequency.exponentialRampToValueAtTime(to * 0.8, t + length);
+    amp.gain.setValueAtTime(0, t);
+    amp.gain.linearRampToValueAtTime(0.9, t + 0.02);
+    amp.gain.setValueAtTime(0.9, t + length * 0.7);
+    amp.gain.linearRampToValueAtTime(0, t + length);
+  }
+  const end = t0 + 0.72 + 0.28;
+  voice.start(t0 + 0.5);
+  voice.stop(end + 0.05);
+  return end + 0.05 - t0;
+}
+
 /** Builds sound `name` into `out` at `t0`; returns its length in seconds. */
 export function synthesize(ctx: BaseAudioContext, name: SynthSoundName, out: AudioNode, t0: number): number {
   switch (name) {
@@ -210,6 +270,8 @@ export function synthesize(ctx: BaseAudioContext, name: SynthSoundName, out: Aud
       return sadTrombone(ctx, out, t0);
     case "megaphone":
       return megaphone(ctx, out, t0);
+    case "moluchan":
+      return moluchan(ctx, out, t0);
     case "charge":
       return charge(ctx, out, t0);
     case "boing":

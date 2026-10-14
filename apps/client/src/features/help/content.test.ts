@@ -8,6 +8,7 @@ import {
   CRS_STATS,
   CrsKind,
   GRAB_HP_THRESHOLD,
+  MOLUCHAN,
   PROP_TYPES,
   ROUND_DURATION,
   SHOP_KINDS,
@@ -23,6 +24,7 @@ import {
   archetypeCards,
   archetypeChips,
   duration,
+  moluchanCard,
   policeCards,
   scoreRows,
   shopRows,
@@ -82,6 +84,17 @@ describe("the help page can't drift from the game (#71)", () => {
     for (const kind of POLICE_KINDS) expect(kinds, `CrsKind ${kind}`).toContain(kind);
     expect(POLICE_KINDS).not.toContain(CrsKind.Pompier);
     expect(policeCards().find((c) => c.kind === CrsKind.Crs)?.tip).toContain(`${CRS_STATS[CrsKind.Crs].maxHp} coups`);
+  });
+
+  test("Moluchan's card (#85) quotes his ring's numbers", () => {
+    const card = moluchanCard();
+    expect(card.chips.map((c) => c.text)).toEqual([
+      "Vitesse +15 %",
+      `Se débat ×${String(MOLUCHAN.struggleFactor).replace(".", ",")}`,
+      `Soigne ${MOLUCHAN.healRate} PV/s`,
+    ]);
+    expect(card.what).toContain(`${Math.round(MOLUCHAN.chance * 100)} %`);
+    expect(card.tip).toContain("CRS");
   });
 
   test("the rules quote the constants (#70's grab rules included)", () => {

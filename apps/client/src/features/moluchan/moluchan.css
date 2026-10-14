@@ -1,0 +1,84 @@
+/* Jeun-Lac Moluchan's banner (#85): a short placard over the street when he
+   joins the cortège, leaves untouched, or gets embarqué. Fixed, centred, next
+   to the round HUD without covering it: above it on a keyboard (it sits
+   bottom centre), under it on touch (top centre), and on a portrait phone
+   low in the middle, over the stick's and the buttons' row. Takes no clicks. */
+.moluchan-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  z-index: 1;
+  width: max-content;
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 5px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: var(--paint-red);
+  color: var(--cloth);
+  font-family: var(--font-placard);
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-shadow: 1px 1px 0 var(--ink);
+  box-shadow: var(--hud-shadow);
+  pointer-events: none;
+  translate: -50% 0;
+  rotate: -1deg;
+  animation: moluchan-banner 4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.moluchan-banner[data-kind="protected"] {
+  background: var(--hi-vis);
+  color: var(--ink);
+  text-shadow: none;
+}
+
+.moluchan-banner[data-kind="grabbed"] {
+  background: rgb(22 22 22 / 0.88);
+  color: #ff8a7f;
+}
+
+@keyframes moluchan-banner {
+  0% {
+    opacity: 0;
+    scale: 0.85;
+  }
+  6% {
+    opacity: 1;
+    scale: 1.06;
+  }
+  12%,
+  88% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1;
+  }
+}
+
+/* Touch, landscape: the round is top centre, so the banner goes just under it. */
+.hud[data-touch] .moluchan-banner {
+  top: calc(66px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  max-width: min(360px, 46vw);
+  font-size: 17px;
+}
+
+/* Touch, portrait: the top is the HUD's column; the banner sits low, just over
+   the touch buttons, clear of the avatar in the middle. */
+@media (orientation: portrait) {
+  .hud[data-touch] .moluchan-banner {
+    top: auto;
+    bottom: calc(216px + env(safe-area-inset-bottom, 0px));
+    max-width: calc(100vw - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moluchan-banner {
+    animation: none;
+  }
+}
