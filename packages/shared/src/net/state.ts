@@ -199,4 +199,6 @@ export interface StreetStateShape {
   result: RoundResult;
   /** Session id of the host (who may start), or "" when the room is empty. */
   hostId: string;
+  /** Fill the cortège up to MAX_PLAYERS with bot protesters at the next Start (#59). The host's toggle in the lobby. */
+  fillBots: boolean;
 }

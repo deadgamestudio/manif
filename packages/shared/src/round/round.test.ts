@@ -126,6 +126,39 @@ describe("round outcome", () => {
   });
 });
 
+describe("bots don't count (#59)", () => {
+  const bot = (p: RoundProtester): RoundProtester => ({ ...p, bot: true });
+  const bots = (n: number, make: () => RoundProtester) => Array.from({ length: n }, () => bot(make()));
+
+  test("1 human + 7 bots: the human arriving wins, alone", () => {
+    expect(roundOutcome(L, [inZone(), ...bots(7, () => at(0.3))], 100)).toBe(RoundResult.Won);
+  });
+
+  test("bots arriving never win: half of the humans must", () => {
+    expect(roundOutcome(L, [at(0.3), at(0.4), ...bots(6, () => inZone())], 100)).toBe(RoundResult.None);
+    expect(roundOutcome(L, [inZone(), at(0.4), ...bots(6, () => at(0.2))], 100)).toBe(RoundResult.Won);
+    expect(roundOutcome(L, [inZone(), at(0.4), at(0.4), ...bots(5, () => inZone())], 100)).toBe(RoundResult.None);
+  });
+
+  test("every human arrested is a wipe, however many bots are still free", () => {
+    const humans = [at(0.2, PlayerStatus.Arrested), at(0.5, PlayerStatus.Arrested)];
+    expect(roundOutcome(L, [...humans, ...bots(6, () => at(0.5))], 100)).toBe(RoundResult.LostArrested);
+  });
+
+  test("every bot arrested with a human free is no wipe", () => {
+    expect(roundOutcome(L, [at(0.2), at(0.3), ...bots(6, () => at(0.5, PlayerStatus.Arrested))], 100)).toBe(RoundResult.None);
+  });
+
+  test("a solo human arrested among bots is no wipe (WIPE_MIN_PLAYERS counts humans)", () => {
+    expect(roundOutcome(L, [at(0.2, PlayerStatus.Arrested), ...bots(7, () => at(0.5))], 100)).toBe(RoundResult.None);
+  });
+
+  test("the front is the humans' front: a bot ahead doesn't move it", () => {
+    expect(frontProgress(L, [at(0.2), bot(at(0.6))])).toBeCloseTo(0.2, 5);
+    expect(frontProgress(L, [at(0.2, PlayerStatus.Grabbed), bot(at(0.6))])).toBeNull();
+  });
+});
+
 describe("phase machine (fake clock)", () => {
   const run = (round: ReturnType<typeof createRound>, seconds: number, outcome: (t: number) => RoundResult) => {
     const events: string[] = [];

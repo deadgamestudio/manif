@@ -28,16 +28,29 @@ export interface RoundProtester {
   z: number;
   /** A `PlayerStatus`. */
   status: number;
+  /**
+   * A bot protester (#59). Bots are crowd, not the team: the front, the win
+   * and the wipe look at humans only (see `humansOf`).
+   */
+  bot?: boolean;
+}
+
+/** The human protesters (#59): what the front, the win threshold, the arrivals and the wipe count. */
+export function humansOf<T extends RoundProtester>(protesters: Iterable<T>): T[] {
+  const out: T[] = [];
+  for (const p of protesters) if (!p.bot) out.push(p);
+  return out;
 }
 
 /**
- * Where the cortège's front is: the progress of the free protester furthest
- * down the street, 0..1. Null when nobody is free (the caller keeps the last value).
+ * Where the cortège's front is: the progress of the free human protester
+ * furthest down the street, 0..1. Bots (#59) don't count, so they can't drag
+ * the waves forward on their own. Null when no human is free (the caller keeps the last value).
  */
 export function frontProgress(level: Level, protesters: Iterable<RoundProtester>): number | null {
   let best: number | null = null;
   for (const p of protesters) {
-    if (p.status !== PlayerStatus.Free) continue;
+    if (p.status !== PlayerStatus.Free || p.bot) continue;
     const t = progressAt(level, p.x, p.z);
     if (best === null || t > best) best = t;
   }
@@ -72,8 +85,13 @@ export function allArrested(protesters: Iterable<RoundProtester>): boolean {
  * protesters: the win (enough of them in the zone), then the wipe (everyone
  * arrested, from WIPE_MIN_PLAYERS protesters up), then the timer. `None`
  * while the march goes on.
+ *
+ * Bots (#59) are left out of all of it: the threshold is half the humans,
+ * only humans arriving count, and the wipe is every human arrested, whatever
+ * the bots are doing.
  */
-export function roundOutcome(level: Level, protesters: readonly RoundProtester[], timeLeft: number): RoundResult {
+export function roundOutcome(level: Level, all: readonly RoundProtester[], timeLeft: number): RoundResult {
+  const protesters = humansOf(all);
   const need = winThreshold(protesters.length);
   if (need > 0 && arrivedCount(level, protesters) >= need) return RoundResult.Won;
   if (protesters.length >= WIPE_MIN_PLAYERS && allArrested(protesters)) return RoundResult.LostArrested;

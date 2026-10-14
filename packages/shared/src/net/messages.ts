@@ -32,6 +32,11 @@ export const ClientMessage = {
    */
   Rename: "rename",
   /**
+   * Host only, in the lobby (#59): fill the cortège up to MAX_PLAYERS with bot
+   * protesters at the next Start, or not: `{ on: boolean }`. On by default.
+   */
+  FillBots: "fillBots",
+  /**
    * Swing at whatever is in front (#4). No payload: the server uses its own
    * position and facing, and enforces the cooldown and the player's state.
    */
@@ -96,6 +101,7 @@ export interface ClientMessagePayloads {
   [ClientMessage.Ready]: ReadyPayload;
   [ClientMessage.PickArchetype]: PickArchetypePayload;
   [ClientMessage.Rename]: RenamePayload;
+  [ClientMessage.FillBots]: FillBotsPayload;
   [ClientMessage.Attack]: undefined;
   [ClientMessage.Dodge]: undefined;
   [ClientMessage.Jump]: undefined;
@@ -151,6 +157,11 @@ export interface ReadyPayload {
   ready: boolean;
 }
 
+/** Payload of `ClientMessage.FillBots` (#59). */
+export interface FillBotsPayload {
+  on: boolean;
+}
+
 /** Payload of `ClientMessage.Rename`: the name as typed. The server cleans it. */
 export interface RenamePayload {
   name: string;
@@ -189,7 +200,8 @@ export const ServerMessage = {
   Impulse: "impulse",
   /**
    * A player swung (#4) or threw (#8), hit or miss: sent to everyone but the
-   * swinger, who already plays it locally. Also a CRS baton swing (#5), sent to everyone.
+   * swinger, who already plays it locally. Also a CRS baton swing (#5) and a
+   * bot protester's swing or throw (#59), sent to everyone.
    */
   Swing: "swing",
   /** A swing landed on something (#4). Not stored in Schema; lets clients flash the target. */

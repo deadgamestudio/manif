@@ -99,6 +99,18 @@ debug action) it is added to your lasting total, shown on the leaderboard in
 the lobby. There are no accounts: the total belongs to an anonymous token the
 server gives your browser on the first visit (kept in `localStorage` beside
 your name), so clearing site data or switching devices starts again at 0.
+Bots fill the empty seats (#59). When the host presses Start, bot protesters
+join until the cortège has 8 (the host can turn this off in the lobby, with
+"Compléter avec des bots"). They get a funny name, a random archetype and a
+"BOT" chip on their name tag, walk with the crowd near the leading human, and
+now and then hit a CRS that is dragging someone, throw a pavé, hop a bin or
+dive out of gas, or pull a grabbed teammate free. They are weaker than a
+player of the same archetype (slower to react, slower to walk, softer and
+slower swings, sloppy throws, only some of their chances taken) and much
+weaker than a CRS. The CRS chase them, but a human first at a similar
+distance. They never count for the win or the wipe (only humans do), never get
+an award, and never bank a score. A human joining mid-march takes the place of
+the bot furthest back; at the end of the march every bot leaves.
 
 ## Layout
 
@@ -141,10 +153,11 @@ apps/server/src/
               round/ (end-of-round numbers, the live board throttle, dev-only round debug)
               archetype/ (the CGT's heal aura)
               score/ (device tokens, the SQLite store of lasting totals, who banks what)
+              bot/ (the bot protesters' heads; diagnostics: tick time, leftovers)
   rooms/      StreetRoom and its root state, which wires the features together
 packages/shared/src/
   net/ player/ lobby/ physics/ level/ health/ prop/ melee/ crs/ dodge/ jump/ rescue/ throwable/ gas/ fire/ round/
-  water/ pompier/ archetype/ score/   (each with an index.ts)
+  water/ pompier/ archetype/ score/ bot/   (each with an index.ts)
 ```
 
 A feature imports another feature only through its `index.ts`, `shared/` never
@@ -194,6 +207,8 @@ Run the built server with `bun run --cwd apps/server start`.
 | Change the arc check, line of sight or cooldown rule | `packages/shared/src/melee/melee.ts` |
 | Tune a prop type (HP, intact and broken collision shape, what it drops: pavés, or tomatoes for a market stall) | `packages/shared/src/prop/constants.ts` |
 | Handle a swing on the server (targets, hit events), hit a new kind of target | `StreetRoom.attack()` in `apps/server/src/rooms/StreetRoom.ts` |
+| Tune the bot protesters (#59): how weak they are, how often they act, where they keep in the cortège | The `BOT` table in `packages/shared/src/bot/constants.ts`; what they decide is `packages/shared/src/bot/brain.ts`, what the room does with it `StreetRoom.stepBots()` |
+| Check tick time or per-player leftovers on a dev server (#59) | Start the server with `MANIF_DIAG=1`: it logs the tick time every 5 s of march and the maps still keyed by a bot that left |
 | Tune a police unit (speed, HP, sight, baton, grab, drag, stun, stagger) or add a unit type (#13) | The `CRS_STATS` table in `packages/shared/src/crs/constants.ts`, the BAC's `disguise` and the BRAV-M's `bike` rows included (plus a look in `apps/client/src/features/crs/crsVisuals.tsx`) |
 | Change what a BAC or a BRAV-M does (#13) | `packages/shared/src/crs/bac.ts` (blend in, sidle up, reveal) and `crs/bravm.ts` (charge, drop, wait, leave, ram, dismount, knocked off); the squad's bookkeeping (passenger, wreck, reveal on any hit) in `apps/server/src/features/crs/squad.ts`. The disguised BAC is drawn by `PlayerAvatar` fed by `apps/client/src/features/crs/disguise.ts` |
 | Change which unit types each wave brings (#13) | `UNIT_STAGES` in `packages/shared/src/round/constants.ts`, next to `ROUND_WAVES` |

@@ -6,7 +6,7 @@
 import { Phase } from "../round/constants.js";
 
 /**
- * Id prefix of a computer-controlled player (#59, not built yet). Bots are
+ * Id prefix of a bot protester (#59), never a Colyseus session id. Bots are
  * never asked to be ready: they only exist during the march, and this keeps a
  * later change there from ever making the lobby wait on one.
  */

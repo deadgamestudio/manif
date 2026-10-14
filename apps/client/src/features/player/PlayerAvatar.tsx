@@ -80,11 +80,14 @@ export function PlayerAvatar({
   id,
   name,
   isLocal,
+  bot = false,
   source = readPlayer,
 }: {
   id: string;
   name: string;
   isLocal: boolean;
+  /** Wears the bot marker on its placard (#59): a bot protester, or a BAC blending in among bots. */
+  bot?: boolean;
   source?: PlayerSource;
 }) {
   const group = useRef<Group>(null);
@@ -323,7 +326,7 @@ export function PlayerAvatar({
       </group>
       {/* Rides up with the carried pose (#11), so a carried player's tag sits above the carrier's instead of on it. */}
       <group ref={overhead}>
-        <NameTag name={name} isLocal={isLocal} y={HEIGHT + 0.55} />
+        <NameTag name={name} isLocal={isLocal} bot={bot} y={HEIGHT + 0.55} />
         {/* The local player's HP is in the HUD. */}
         {!isLocal && <HealthBar id={id} y={HEIGHT + 0.95} source={source} />}
         {/* Over everyone, the local player included: help is coming (#10). */}

@@ -68,10 +68,11 @@ export function EndScreen({ localId }: { localId: string | null }) {
   const { result, timeLeft, end } = useRound();
   const { title, line } = resultText(result);
   const ranked = end ? laureates(end.players, localId) : [];
-  const top = ranked.slice(0, 3);
+  // The podium is for humans (#59): bots are ranked after them, so they only ever fill the list under it.
+  const top = ranked.filter((l) => !l.bot).slice(0, 3);
   // Second on the left, first in the middle, third on the right.
   const podium = [top[1], top[0], top[2]].flatMap((l) => (l ? [{ l, place: top.indexOf(l) + 1 }] : []));
-  const rest = ranked.slice(3);
+  const rest = ranked.slice(top.length);
   const bankNote = end ? bankText(end.bank) : null;
   return (
     <div className="round-end" data-won={result === RoundResult.Won || undefined}>
@@ -90,10 +91,16 @@ export function EndScreen({ localId }: { localId: string | null }) {
           </ol>
         )}
         {rest.length > 0 && (
-          <ol className="podium-rest" start={4}>
+          <ol className="podium-rest" start={top.length + 1}>
             {rest.map((l, i) => (
-              <li key={l.id} data-me={l.isMe || undefined}>
-                <span className="podium-rest-rank">{i + 4}</span>
+              <li key={l.id} data-me={l.isMe || undefined} data-bot={l.bot || undefined}>
+                {l.bot ? (
+                  <span className="podium-rest-rank bot-chip" title="Bot">
+                    BOT
+                  </span>
+                ) : (
+                  <span className="podium-rest-rank">{i + top.length + 1}</span>
+                )}
                 <Badge archetype={l.archetype} />
                 <span className="podium-name">{l.name}</span> <Score laureate={l} />
                 {l.awards.length > 0 && <span className="podium-rest-awards"> · {l.awards.map((a) => a.title).join(", ")}</span>}

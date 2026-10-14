@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MAX_PLAYERS, RoundResult, canStart } from "@manif/shared";
+import { MAX_PLAYERS, RoundResult, canStart, isBotId } from "@manif/shared";
 import { inviteLink, net, type NetSnapshot } from "../../shared/net/index.ts";
 import { LastRound, useRound } from "../round/index.ts";
 import { ArchetypeBadge, ArchetypePicker } from "../archetype/index.ts";
 import { SoundControl } from "../audio/index.ts";
 import { Leaderboard } from "../score/index.ts";
+import { BotFill } from "./BotFill.tsx";
 import { RenameField } from "./RenameField.tsx";
 import { StartControls } from "./StartControls.tsx";
 import { readyCount } from "./readyText.ts";
@@ -29,6 +30,8 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
   const stopRenaming = useCallback(() => setRenaming(false), []);
   // The ready check (#62): the same rule the server applies to Start.
   const check = canStart(snap.players, snap.hostId ?? "");
+  // Bots (#59) only exist during the march; never list one here, whatever the timing.
+  const humans = snap.players.filter((p) => !isBotId(p.id));
   const readyLabel = readyCount(check.ready, check.required);
 
   return (
@@ -54,12 +57,12 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
             <h2 className="placard-label">
               Le cortège{" "}
               <span className="count">
-                {snap.players.length}/{MAX_PLAYERS}
+                {humans.length}/{MAX_PLAYERS}
                 {readyLabel && ` · ${readyLabel}`}
               </span>
             </h2>
             <ul className="roster">
-              {snap.players.map((p) => {
+              {humans.map((p) => {
                 const mine = p.id === snap.sessionId;
                 if (mine && renaming) {
                   return (
@@ -92,6 +95,7 @@ export function Lobby({ snap }: { snap: NetSnapshot }) {
                 );
               })}
             </ul>
+            <BotFill isHost={isHost} on={snap.fillBots} humans={humans.length} />
           </section>
 
           {/* #41: the lasting totals, under the roster. In the scrolling area, so Start never moves. */}

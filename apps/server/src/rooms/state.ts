@@ -40,6 +40,8 @@ export const StreetState = schema(
     result: t.uint8().default(RoundResult.None),
     /** Session id of the host, who alone can start. */
     hostId: t.string(),
+    /** Fill the cortège up to MAX_PLAYERS with bot protesters at the next Start (#59). Host's toggle, lobby only. */
+    fillBots: t.boolean().default(true),
   },
   "StreetState",
 );

@@ -10,9 +10,9 @@ export class MeleeCooldowns {
 
   constructor(private readonly cooldown = MELEE_COOLDOWN) {}
 
-  /** Starts a swing if the cooldown allows it. Returns false (and changes nothing) otherwise. */
-  tryStart(id: string, now: number): boolean {
-    if (!cooldownReady(this.lastAt.get(id), now, this.cooldown)) return false;
+  /** Starts a swing if the cooldown allows it (`cooldown`: this swinger's own, #59 bots swing slower). Returns false (and changes nothing) otherwise. */
+  tryStart(id: string, now: number, cooldown = this.cooldown): boolean {
+    if (!cooldownReady(this.lastAt.get(id), now, cooldown)) return false;
     this.lastAt.set(id, now);
     return true;
   }
