@@ -1,53 +1,25 @@
-import { useEffect } from "react";
+import { useRef } from "react";
 import { SCREEN_RIGHT, SCREEN_UP } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
+import { useActions, type Action } from "../controls/index.ts";
 
-const KEYS: Record<string, "up" | "down" | "left" | "right"> = {
-  KeyW: "up",
-  ArrowUp: "up",
-  KeyS: "down",
-  ArrowDown: "down",
-  KeyA: "left",
-  ArrowLeft: "left",
-  KeyD: "right",
-  ArrowRight: "right",
-};
+const MOVES: readonly Action[] = ["up", "down", "left", "right"];
 
-/** Maps WASD / arrows to an isometric ground direction and sends it on change. */
+/**
+ * Maps the four move actions (ZQSD and the arrows by default; #72 lets the
+ * player rebind them) to an isometric ground direction and sends it on change.
+ * The keymap lets go of everything on blur, so the avatar never walks on alone.
+ */
 export function useMoveInput() {
-  useEffect(() => {
-    const held = new Set<string>();
-
-    const push = () => {
-      const fwd = (held.has("up") ? 1 : 0) - (held.has("down") ? 1 : 0);
-      const side = (held.has("right") ? 1 : 0) - (held.has("left") ? 1 : 0);
-      const x = SCREEN_UP.x * fwd + SCREEN_RIGHT.x * side;
-      const z = SCREEN_UP.z * fwd + SCREEN_RIGHT.z * side;
-      net.sendMove(x, z); // normalized and de-duplicated inside
-    };
-
-    const onKey = (pressed: boolean) => (e: KeyboardEvent) => {
-      const dir = KEYS[e.code];
-      if (!dir) return;
-      e.preventDefault();
-      if (pressed) held.add(dir);
-      else held.delete(dir);
-      push();
-    };
-    const onDown = onKey(true);
-    const onUp = onKey(false);
-    const onBlur = () => {
-      held.clear();
-      push();
-    };
-
-    window.addEventListener("keydown", onDown);
-    window.addEventListener("keyup", onUp);
-    window.addEventListener("blur", onBlur);
-    return () => {
-      window.removeEventListener("keydown", onDown);
-      window.removeEventListener("keyup", onUp);
-      window.removeEventListener("blur", onBlur);
-    };
-  }, []);
+  const held = useRef(new Set<Action>());
+  useActions(MOVES, (action, pressed) => {
+    if (pressed) held.current.add(action);
+    else held.current.delete(action);
+    const h = held.current;
+    const fwd = (h.has("up") ? 1 : 0) - (h.has("down") ? 1 : 0);
+    const side = (h.has("right") ? 1 : 0) - (h.has("left") ? 1 : 0);
+    const x = SCREEN_UP.x * fwd + SCREEN_RIGHT.x * side;
+    const z = SCREEN_UP.z * fwd + SCREEN_RIGHT.z * side;
+    net.sendMove(x, z); // normalized and de-duplicated inside
+  });
 }

@@ -8,7 +8,7 @@
  * as a new round) is only a baseline: whatever is already there (fires,
  * gas, items, broken props) makes no sound.
  */
-import { CrsKind, CrsMount, CrsStatus, Phase, PlayerStatus, RoundResult, ThrowableKind, type PropKind } from "@manif/shared";
+import { CrsKind, CrsMount, CrsStatus, MoluchanPhase, Phase, PlayerStatus, RoundResult, ThrowableKind, type PropKind } from "@manif/shared";
 import type { SoundName } from "./sounds.ts";
 import type { Point } from "./spatial.ts";
 
@@ -30,6 +30,8 @@ export interface CrsView extends Point {
   spraying: boolean;
   /** Winding up a grab (#70). */
   windup: boolean;
+  /** A CRS LBD aiming (#73): the session id under its laser, "" otherwise. */
+  aim: string;
 }
 
 export interface ItemView extends Point {
@@ -49,6 +51,8 @@ export interface WorldView {
   canisters: ReadonlyMap<string, Point>;
   gas: ReadonlyMap<string, Point>;
   fires: ReadonlyMap<string, Point>;
+  /** Jeun-Lac Moluchan (#85) and his `MoluchanPhase`, or null when he isn't on the street. */
+  moluchan: (Point & { phase: number }) | null;
 }
 
 /** A sound to play: where (none: centred, full volume), and an extra gain. */
@@ -67,18 +71,29 @@ export const COUNTDOWN_FROM = 10;
 const BREAK_SOUND: Record<PropKind, SoundName> = {
   bin: "bin",
   bus_shelter: "glass",
-  shop_window: "glass",
   car: "car",
   market_stall: "wood",
+  // The shops dealt each round (#68): glass fronts, and the bank's metal shutters.
+  boulangerie: "glass",
+  cafe: "glass",
+  sneakers: "glass",
+  banque: "metal",
+  kebab: "glass",
+  toilettage: "glass",
 };
 
 /** A hit that doesn't break the prop: a thud in the right material. */
 const HIT_SOUND: Record<PropKind, SoundName> = {
   bin: "bin",
   bus_shelter: "shield",
-  shop_window: "shield",
   car: "metal",
   market_stall: "wood",
+  boulangerie: "shield",
+  cafe: "shield",
+  sneakers: "shield",
+  banque: "metal",
+  kebab: "shield",
+  toilettage: "shield",
 };
 
 /** A thrown item landing (#8, #15): the pavé thuds, the tomato and the poo splat, the trottinette clangs. */
@@ -133,6 +148,8 @@ export function diffCues(prev: WorldView | null, next: WorldView, localId: strin
     if (!was.revealed && c.revealed) cues.push({ sound: "whistle", at: at(c) });
     // A grab winding up (#70): a sharp whistle with the "!", the cue to dodge or hop.
     if (!was.windup && c.windup) cues.push({ sound: "whistle", at: at(c), gain: 0.8 });
+    // A CRS LBD starting to aim (#73): a rising "charging" beep at it, or right in your ears when you are the one under the laser.
+    if (was.aim === "" && c.aim !== "") cues.push(c.aim === localId ? { sound: "charge" } : { sound: "charge", at: at(c), gain: 0.7 });
     if (was.mount !== CrsMount.Wreck && c.mount === CrsMount.Wreck) cues.push({ sound: "car", at: at(c), gain: 0.8 });
     if (!was.onFire && c.onFire) cues.push({ sound: "ignite", at: at(c), gain: 0.6 });
   }
@@ -148,6 +165,14 @@ export function diffCues(prev: WorldView | null, next: WorldView, localId: strin
   for (const [id, c] of next.canisters) if (!prev.canisters.has(id)) cues.push({ sound: "launch", at: at(c) });
   for (const [id, g] of next.gas) if (!prev.gas.has(id)) cues.push({ sound: "hiss", at: at(g) });
   for (const [id, f] of next.fires) if (!prev.fires.has(id)) cues.push({ sound: "ignite", at: at(f) });
+
+  // Jeun-Lac Moluchan (#85): his entrance is for the whole cortège (the HUD says so too), not placed;
+  // the cuffs when a CRS gets him, where he is.
+  const m = next.moluchan;
+  if (m && !prev.moluchan) cues.push({ sound: "moluchan" }, { sound: "cheer", gain: 0.5 });
+  if (m && prev.moluchan && prev.moluchan.phase !== MoluchanPhase.Grabbed && m.phase === MoluchanPhase.Grabbed) {
+    cues.push({ sound: "cuffs", at: at(m) });
+  }
   return cues;
 }
 
@@ -157,6 +182,8 @@ export type NetCueEvent =
   | { type: "hit"; kind: "prop" | "crs"; target: string; x: number; z: number; broke: boolean }
   | { type: "shove"; ids: readonly string[] }
   | { type: "impulse"; id: string }
+  | { type: "lbdShot"; x: number; z: number }
+  | { type: "lbdImpact"; x: number; z: number; hit: boolean }
   | { type: "roundEnd"; result: number };
 
 /** What the message cues remember between messages: when each CRS last swung its baton. */
@@ -229,6 +256,11 @@ export function messageCues(
       }
       return [];
     }
+    // The CRS LBD (#73): the launcher's pop, then a cartoon boing where the ball lands (a softer one off a wall or a CRS).
+    case "lbdShot":
+      return [{ sound: "launch", at: { x: event.x, z: event.z } }];
+    case "lbdImpact":
+      return [{ sound: "boing", at: { x: event.x, z: event.z }, gain: event.hit ? 1 : 0.45 }];
   }
 }
 

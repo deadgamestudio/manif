@@ -3,6 +3,7 @@ import type { IRef } from "@colyseus/schema";
 import {
   ClientMessage,
   DEFAULT_SERVER_PORT,
+  MOLUCHAN_ID,
   MELEE_COOLDOWN,
   Phase,
   PlayerStatus,
@@ -10,11 +11,15 @@ import {
   RoundResult,
   ServerMessage,
   normalizeMove,
+  shopLotOf,
+  type ShopLot,
   type CanisterShape,
   type CrsShape,
   type GasCloudShape,
   type FireShape,
   type TruckShape,
+  type MoluchanShape,
+  type MoluchanPhase,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type DebugRoundPayload,
@@ -24,6 +29,8 @@ import {
   type HitEvent,
   type ImpulseEvent,
   type InteractPayload,
+  type LbdImpactEvent,
+  type LbdShotEvent,
   type LobbyJoinOptions,
   type MoveInput,
   type PickArchetypePayload,
@@ -106,6 +113,9 @@ const SERVER_URL = resolveServerUrl();
  */
 const MATCHMAKE_INVALID_ROOM_ID = 522;
 const MATCHMAKE_ERROR_BEHIND_PROXY = 409;
+/** The server refused to create a lobby: this visitor made too many, or the server has too many. */
+const MATCHMAKE_TOO_MANY_LOBBIES = 429;
+const MATCHMAKE_SERVER_FULL = 503;
 
 /** Decoded state: the plain shape from shared, plus the decoder's ref marker. */
 type ClientState = StreetStateShape & IRef;
@@ -150,6 +160,22 @@ const lastCrsHits = new Map<string, number>();
 /** When (performance.now(), ms) each CRS last shoved with its shield (#6). */
 const lastShoves = new Map<string, number>();
 const propBrokenAt = new Map<string, number>();
+/**
+ * LBD balls (#73), cosmetic only: each shot as it arrived (performance.now(),
+ * ms) and its impact once that arrives. The ball itself is flown on the
+ * client from the shot; read from useFrame. Old ones are dropped on the next shot.
+ */
+export interface LbdBall {
+  shot: LbdShotEvent;
+  firedAt: number;
+  impact: LbdImpactEvent | null;
+  impactAt: number;
+}
+const lbdBalls = new Map<string, LbdBall>();
+/** A ball older than this is gone for good (it flies under a second, then puffs). */
+const LBD_BALL_TTL_MS = 4000;
+/** When (performance.now(), ms) each CRS LBD last fired (#73), for the recoil. */
+const lastLbdShots = new Map<string, number>();
 /** Local cosmetic gate so the swing animation is not replayed faster than the server allows. */
 let lastLocalSwing = -Infinity;
 /**
@@ -206,6 +232,19 @@ function setTruckIds(ids: readonly string[]) {
 }
 
 /**
+ * Jeun-Lac Moluchan (#85): his phase while he is on the street, null when he
+ * isn't, kept out of NetSnapshot like the trucks. Changes when he arrives,
+ * starts leaving, is grabbed and is gone: a handful of times a round.
+ */
+let moluchanPhase: MoluchanPhase | null = null;
+const moluchanListeners = new Set<() => void>();
+function setMoluchanPhase(phase: MoluchanPhase | null) {
+  if (phase === moluchanPhase) return;
+  moluchanPhase = phase;
+  for (const listener of moluchanListeners) listener();
+}
+
+/**
  * The round (#12): timer, progress and result, kept out of NetSnapshot so the
  * once-a-second countdown re-renders only the HUD, not the game. `end` is the
  * last ServerMessage.RoundEnd seen in this room (null after joining). `board`
@@ -216,11 +255,13 @@ function setTruckIds(ids: readonly string[]) {
 export interface RoundView {
   timeLeft: number;
   progress: number;
+  /** The street turned hot this round (#98): the CRS chase anyone. */
+  hot: boolean;
   result: RoundResult;
   end: RoundEndEvent | null;
   board: RoundBoardEvent | null;
 }
-const NO_ROUND: RoundView = { timeLeft: 0, progress: 0, result: RoundResult.None, end: null, board: null };
+const NO_ROUND: RoundView = { timeLeft: 0, progress: 0, hot: false, result: RoundResult.None, end: null, board: null };
 let roundView: RoundView = NO_ROUND;
 const roundListeners = new Set<() => void>();
 function setRound(patch: Partial<RoundView>) {
@@ -251,6 +292,8 @@ export type NetEvent =
   | { type: "hit"; event: HitEvent }
   | { type: "shove"; ids: readonly string[] }
   | { type: "impulse"; event: ImpulseEvent }
+  | { type: "lbdShot"; event: LbdShotEvent }
+  | { type: "lbdImpact"; event: LbdImpactEvent }
   | { type: "roundEnd"; event: RoundEndEvent };
 const eventListeners = new Set<(event: NetEvent) => void>();
 function emit(event: NetEvent) {
@@ -259,6 +302,20 @@ function emit(event: NetEvent) {
 
 /** Who wants to hear that our rename was refused (#61): the lobby's name field. */
 const renameListeners = new Set<(event: RenameRefusedEvent) => void>();
+
+/**
+ * Shops (#83): the round's generated shops, decoded from the synced props.
+ * Replaced (never mutated) when a new layout arrives, for useSyncExternalStore;
+ * the shops never change mid-round, so this changes once per round at most.
+ */
+let shops: readonly ShopLot[] = [];
+const shopListeners = new Set<() => void>();
+function setShops(next: readonly ShopLot[]) {
+  const same = next.length === shops.length && next.every((s, i) => s.id === shops[i]!.id);
+  if (same) return;
+  shops = next;
+  for (const listener of shopListeners) listener();
+}
 
 /** Bumped by every connect and leave. A stale join or a stale onLeave sees a different value and backs off. */
 let generation = 0;
@@ -270,13 +327,17 @@ function clearEffects() {
   lastCrsHits.clear();
   lastShoves.clear();
   propBrokenAt.clear();
+  lbdBalls.clear();
+  lastLbdShots.clear();
   lastLocalSwing = -Infinity;
   setItemIds([], []);
   gasSeenAt.clear();
   setGasIds([], []);
   fireSeenAt.clear();
   setFireIds([]);
+  setShops([]);
   setTruckIds([]);
+  setMoluchanPhase(null);
   setRound(NO_ROUND);
   setLeaderboard(null);
 }
@@ -294,6 +355,9 @@ function describeJoinError(err: unknown): string {
     if (/locked/i.test(message)) return "Cette manif est complète (8 manifestants max). Lance la tienne !";
     return "Code inconnu, ou cette manif s'est déjà dispersée. Vérifie le code ou crée ta propre manif.";
   }
+  // The server's lobby creation limits (per visitor, then for the whole server).
+  if (code === MATCHMAKE_TOO_MANY_LOBBIES) return "Trop de manifs créées, réessaie dans un moment.";
+  if (code === MATCHMAKE_SERVER_FULL) return "Trop de manifs en cours sur le serveur, réessaie dans un moment.";
   if (err instanceof TypeError || /fetch|network|ECONNREFUSED|websocket/i.test(message)) {
     return "Impossible de joindre le serveur. Il fait peut-être grève ?";
   }
@@ -336,12 +400,29 @@ function attach(joined: ClientRoom, gen: number) {
     lastSwings.delete(id);
     refresh();
   });
+  // Shops (#83): a new layout removes last round's shops and adds the new ones, each whole in one patch.
+  const refreshShops = (removed?: string) => {
+    if (gen !== generation) return;
+    const state = joined.state as ClientState | undefined;
+    const next: ShopLot[] = [];
+    state?.props?.forEach((p, id) => {
+      const lot = id === removed ? null : shopLotOf(id, p);
+      if (lot) next.push(lot);
+    });
+    setShops(next);
+  };
   callbacks.onAdd("props", (prop, id) => {
     // `previous` is undefined on the first sync, so a prop that was already
     // broken when we joined swaps its model without spraying debris.
     callbacks.listen(prop as PropShapeState & IRef, "broken", (broken, previous) => {
       if (gen === generation && broken && previous === false) propBrokenAt.set(id, performance.now());
     });
+    if ((prop as PropShapeState).kind) refreshShops();
+  });
+  callbacks.onRemove("props", (prop, id) => {
+    propBrokenAt.delete(id);
+    lastPropHits.delete(id);
+    if ((prop as PropShapeState).kind) refreshShops(id);
   });
   callbacks.onAdd("crs", () => refresh());
   callbacks.onRemove("crs", (_crs, id) => {
@@ -349,6 +430,7 @@ function attach(joined: ClientRoom, gen: number) {
     lastSwings.delete(id);
     lastCrsHits.delete(id);
     lastShoves.delete(id);
+    lastLbdShots.delete(id);
     refresh();
   });
   // Throwables (#8): only the id lists; positions are read live from useFrame.
@@ -412,6 +494,17 @@ function attach(joined: ClientRoom, gen: number) {
   };
   callbacks.onAdd("trucks", () => refreshTrucks());
   callbacks.onRemove("trucks", (_t, id) => refreshTrucks(id));
+  // Moluchan (#85): at most one entry; his phase drives the view and the HUD banner.
+  callbacks.onAdd("moluchan", (m) => {
+    const read = () => {
+      if (gen === generation) setMoluchanPhase((m as MoluchanShape).phase as MoluchanPhase);
+    };
+    callbacks.listen(m as MoluchanShape & IRef, "phase", read);
+    read();
+  });
+  callbacks.onRemove("moluchan", () => {
+    if (gen === generation) setMoluchanPhase(null);
+  });
   callbacks.listen("phase", () => {
     // A new phase starts from no held input on the server (#12): forget the
     // last direction sent, or pressing the same key again would not be sent.
@@ -425,10 +518,16 @@ function attach(joined: ClientRoom, gen: number) {
     if (gen !== generation) return;
     const state = joined.state as ClientState | undefined;
     if (!state) return;
-    setRound({ timeLeft: state.timeLeft ?? 0, progress: state.progress ?? 0, result: (state.result ?? RoundResult.None) as RoundResult });
+    setRound({
+      timeLeft: state.timeLeft ?? 0,
+      progress: state.progress ?? 0,
+      hot: state.hot ?? false,
+      result: (state.result ?? RoundResult.None) as RoundResult,
+    });
   };
   callbacks.listen("timeLeft", refreshRound);
   callbacks.listen("progress", refreshRound);
+  callbacks.listen("hot", refreshRound);
   callbacks.listen("result", refreshRound);
   joined.onMessage(ServerMessage.RoundEnd, (event: RoundEndEvent) => {
     if (gen !== generation) return;
@@ -476,6 +575,24 @@ function attach(joined: ClientRoom, gen: number) {
     if (event.kind === "prop") lastPropHits.set(event.target, performance.now());
     else if (event.kind === "crs") lastCrsHits.set(event.target, performance.now());
     emit({ type: "hit", event });
+  });
+  // The CRS LBD (#73): the ball flies on the client from its shot until its impact arrives.
+  joined.onMessage(ServerMessage.LbdShot, (event: LbdShotEvent) => {
+    if (gen !== generation) return;
+    const now = performance.now();
+    for (const [id, ball] of lbdBalls) if (now - ball.firedAt > LBD_BALL_TTL_MS) lbdBalls.delete(id);
+    lbdBalls.set(event.id, { shot: event, firedAt: now, impact: null, impactAt: 0 });
+    lastLbdShots.set(event.by, now);
+    emit({ type: "lbdShot", event });
+  });
+  joined.onMessage(ServerMessage.LbdImpact, (event: LbdImpactEvent) => {
+    if (gen !== generation) return;
+    const ball = lbdBalls.get(event.id);
+    if (ball) {
+      ball.impact = event;
+      ball.impactAt = performance.now();
+    }
+    emit({ type: "lbdImpact", event });
   });
 
   joined.onLeave(() => {
@@ -615,9 +732,30 @@ export const net = {
     return lastShoves.get(id);
   },
 
+  /** The LBD balls (#73) still flying or just stopped, by ball id. Read from useFrame; never keep pieces. */
+  getLbdBalls(): ReadonlyMap<string, LbdBall> {
+    return lbdBalls;
+  },
+
+  /** When (performance.now()) CRS LBD `id` last fired (#73), if ever. */
+  getLastLbdShot(id: string): number | undefined {
+    return lastLbdShots.get(id);
+  },
+
   /** Live, decoded state of a police bot (#5). Read from useFrame. */
   getCrs(id: string): CrsShape | undefined {
     return room?.state.crs?.get(id);
+  },
+
+  /** Call `listener` when the round's shops (#83) are laid out anew. */
+  subscribeShops(listener: () => void): () => void {
+    shopListeners.add(listener);
+    return () => shopListeners.delete(listener);
+  },
+
+  /** The round's shops (#83), in street order. Same array until a new layout arrives. */
+  getShops(): readonly ShopLot[] {
+    return shops;
   },
 
   /** Call `listener` when an item appears on or leaves the ground, or a throw starts or stops (#8). */
@@ -687,6 +825,22 @@ export const net = {
   /** Live state of a fire truck (#17). Read from useFrame. */
   getTruck(id: string): TruckShape | undefined {
     return room?.state.trucks?.get(id);
+  },
+
+  /** Call `listener` when Jeun-Lac Moluchan (#85) arrives, changes phase or is gone. */
+  subscribeMoluchan(listener: () => void): () => void {
+    moluchanListeners.add(listener);
+    return () => moluchanListeners.delete(listener);
+  },
+
+  /** Moluchan's phase (#85, a `MoluchanPhase`) while he is on the street, null when he isn't. */
+  getMoluchanPhase(): MoluchanPhase | null {
+    return moluchanPhase;
+  },
+
+  /** Moluchan's live state (#85). Read from useFrame. */
+  getMoluchan(): MoluchanShape | undefined {
+    return room?.state.moluchan?.get(MOLUCHAN_ID);
   },
 
   /** Call `listener` when the lasting leaderboard (#41) arrives or changes. */

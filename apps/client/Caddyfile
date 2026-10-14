@@ -3,9 +3,62 @@
 {
 	auto_https off
 	admin off
+	# Only Coolify's Traefik (on the private Docker network) reaches Caddy, so
+	# trust it: the X-Forwarded-For it sends is passed on with its address
+	# appended, instead of being replaced by it. The game server reads the
+	# visitor's address from the right end of that header to limit how many
+	# lobbies one visitor creates (apps/server/src/features/lobby/visitor.ts).
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+# Security headers, on every response (imported below, errors included).
+# CSP, what the page really loads:
+# - scripts: only our own Vite bundles (no inline script; the JSON-LD
+#   block is data, not run);
+# - styles: our CSS, Google Fonts' stylesheet, and inline styles (React
+#   and the HUD set style attributes);
+# - fonts: Google Fonts' files;
+# - images and sounds: our own files, plus data:/blob: (three.js textures);
+# - connections: this origin (matchmaking, sounds), the room WebSocket on
+#   this same host, and the Rustrak error ingest (VITE_SENTRY_DSN's host:
+#   change it here if the DSN moves).
+# Nothing may frame the page. Referrers leave as the origin only, so an
+# invite link's code never reaches another site.
+(security_headers) {
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' ws://{hostport} wss://{hostport} https://rustrack.bazlab.si; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		-Server
+	}
 }
 
 :80 {
+	import security_headers
+	# Error responses (a missing asset) start from scratch: same headers. Never
+	# kept by a cache: a file missing for a moment during a deploy must not stay
+	# a 404 at Cloudflare.
+	handle_errors {
+		import security_headers
+		header Cache-Control "no-store"
+	}
+
+	# Nothing from the game server is cached (matchmaking, WebSockets, health),
+	# unless the server says otherwise itself: the leaderboard sends its own
+	# short edge cache (apps/server/src/app/index.ts). `?` only sets the header
+	# when the response has none.
+	header /colyseus* ?Cache-Control "no-store"
+
+	# The game server's root page only names the framework and its version:
+	# nobody needs it, so it is a plain 404 here.
+	handle /colyseus/ {
+		respond 404
+	}
+
 	# The game server: HTTP matchmaking and the room WebSockets. handle_path
 	# strips the /colyseus prefix; reverse_proxy passes WebSocket upgrades
 	# through on its own.
@@ -33,27 +86,43 @@
 		file_server
 	}
 
-	# The link preview images: not hashed, so not forever, but a day is fine.
-	handle /og/* {
+	# Static files without a hash in their name (#90): the sounds, the models,
+	# the link preview image and the icons. A deploy can change them under the
+	# same name, so browsers keep them only a minute. Cloudflare keeps them a
+	# day and serves its copy while it refetches one that expired; the deploy
+	# purges Cloudflare's copies (scripts/cf-purge.sh), so a new file shows up
+	# on the next load. Cloudflare reads Cloudflare-CDN-Cache-Control before
+	# Cache-Control and strips it from what browsers get. It is a separate
+	# header because `s-maxage` in Cache-Control would turn off Cloudflare's
+	# stale-while-revalidate, and stale-while-revalidate in Cache-Control would
+	# let browsers play an old sound once after a deploy. A missing one is a
+	# real 404, not the page.
+	@unhashed path /sounds/* /models/* /og/* /favicon.svg /apple-touch-icon.png
+	handle @unhashed {
 		root * /srv
+		encode zstd gzip
 		@exists file
-		header @exists Cache-Control "public, max-age=86400"
+		header @exists Cache-Control "public, max-age=60, s-maxage=86400"
+		header @exists Cloudflare-CDN-Cache-Control "public, max-age=86400, stale-while-revalidate=86400"
 		file_server
 	}
 
-	# Everything else (the pages, robots.txt, sitemap.xml, the icons)
-	# revalidates. There is one page, built twice with different link preview
-	# tags (seo/plugin.ts): index.html, and invite.html for invite links
-	# (/?lobby=<code>, "Tu es invité·e à une manif", noindex). Both load the
-	# same bundles and the client reads the code from the URL itself; the
-	# code is never put in the page. Any other path falls back to index.html
-	# (SPA). A file (a path with an extension) is never rewritten.
-	# `route` keeps these in the order written.
+	# Everything else (the pages, robots.txt, sitemap.xml) revalidates. There is one app, built three times with different link
+	# preview tags (seo/plugin.ts): index.html; aide.html for the help page
+	# (/aide, #71); and invite.html for invite links (/?lobby=<code>, "Tu es
+	# invité·e à une manif", noindex). All load the same bundles and the
+	# client reads the URL itself; the code is never put in the page. Any
+	# other path falls back to index.html (SPA). A file (a path with an
+	# extension) is never rewritten. `route` keeps these in the order
+	# written: /aide first, so /aide?lobby=<code> (the help open over a
+	# lobby, then refreshed) is still the help page, not the invite.
 	handle {
 		root * /srv
 		encode zstd gzip
 		header Cache-Control "no-cache"
 		route {
+			@help path /aide /aide/
+			rewrite @help /aide.html
 			@invite {
 				query lobby=*
 				not path_regexp \.[a-zA-Z0-9]+$

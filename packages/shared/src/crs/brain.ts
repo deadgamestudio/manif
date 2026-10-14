@@ -14,6 +14,8 @@
  * room's fallback timer ends a drag that never gets there).
  *
  * Active with nobody in sight: walks back to its post (spawn point) and waits.
+ * While the street is calm (#98, `CrsContext.calm`) it only goes after recent
+ * offenders, and with none around it walks beside the cortège instead.
  *
  * Plain functions over a plain `CrsBot` record. The room owns the protesters
  * and applies the effects through `CrsHost` (damage, knockback, grab, drag),
@@ -39,6 +41,7 @@ import { PLAYER_RADIUS } from "../player/index.js";
 import {
   CRS_DIRECT_RANGE,
   CRS_GIVE_UP_TIME,
+  CRS_OFFENDER_MEMORY,
   CRS_SEPARATION,
   CRS_STATS,
   CRS_STUCK_PROGRESS,
@@ -51,6 +54,8 @@ import {
   type CrsStats,
 } from "./constants.js";
 import type { NavGrid } from "./nav.js";
+import type { ShopRoom } from "../prop/index.js";
+import { doorWaypoint } from "./doors.js";
 import {
   SPLAT_GAS_SCATTER,
   SPLAT_SPEED_FACTOR,
@@ -62,7 +67,9 @@ import {
   isSplatted,
   isStinky,
 } from "./status.js";
-import { pickTarget, type ProtesterView } from "./targeting.js";
+import { isOffender, pickTarget, type ProtesterView } from "./targeting.js";
+import { calmTargets, escortSpot } from "./tension.js";
+import type { Level } from "../level/index.js";
 
 /** Server-side state of one bot. Only x, z, rotation, hp, status, down and kind are synced. */
 export interface CrsBot {
@@ -137,6 +144,12 @@ export interface CrsBot {
   stalkAt: number;
   /** Set when the bot leaves the street on its own (a BRAV-M riding off, #13): the squad removes it, no "out". */
   gone: boolean;
+  /** An LBD aiming (#73): the protester under its laser, or null. Synced as `Crs.aim` for the tell. */
+  aimId: string | null;
+  /** Room time the aim ends and it fires. */
+  aimUntil: number;
+  /** Room time it may start its next aim (the shot's cooldown, or the pause after a foiled aim). */
+  shotReadyAt: number;
 }
 
 /** A ridden bike's plan (#13): charge a protester, wait while the passenger works, ride off. */
@@ -198,6 +211,9 @@ export function createCrsBot(id: string, kind: CrsKind, x: number, z: number, ro
     revealed: stats.disguise === undefined,
     stalkAt: now + (stats.disguise?.blendMin ?? 0),
     gone: false,
+    aimId: null,
+    aimUntil: 0,
+    shotReadyAt: now + (stats.lbd?.firstShotDelay ?? 0),
   };
 }
 
@@ -248,6 +264,12 @@ export interface CrsHost {
    * without it, bots never throw gas.
    */
   throwGas?(by: string, from: Vec2, to: Vec2): boolean;
+  /**
+   * An LBD `by` fires its ball (#73) from `from` along the unit direction
+   * (dirX, dirZ). The room flies it and applies the hit. Optional: without
+   * it, an LBD aims but never fires.
+   */
+  fireLbd?(by: string, from: Vec2, dirX: number, dirZ: number): void;
 }
 
 /**
@@ -270,6 +292,8 @@ export interface NavContext {
   nav: NavGrid;
   now: number;
   bots: readonly CrsBot[];
+  /** This round's shop rooms (#84): walkers go in and out square through their doorways (`doorWaypoint`). None: open street only. */
+  rooms?: readonly ShopRoom[];
 }
 
 /** Whatever `detectStuck` watches (#59: protester bots too). A `CrsBot` is one. */
@@ -300,6 +324,8 @@ export interface CrsContext {
   nav: NavGrid;
   /** Drag destinations: a point beside each police van (see `vanDoors`). */
   vans: readonly Vec2[];
+  /** This round's shop rooms (#84), for going in after a protester and dragging them out (see `NavContext.rooms`). */
+  rooms?: readonly ShopRoom[];
   /** All bots, for keeping apart. */
   bots: readonly CrsBot[];
   /** Room time, seconds. */
@@ -307,6 +333,19 @@ export interface CrsContext {
   dt: number;
   /** Random numbers in [0, 1) for the tear gas scatter (#7). Math.random when absent; tests pass their own. */
   rng?: () => number;
+  /**
+   * The street is still calm (#98, see tension.ts): every unit only goes after
+   * recent offenders (`targetsOf`), and one with nobody to go after escorts the
+   * cortège (`walkIdle`). Absent or null: hot, anyone is fair game.
+   */
+  calm?: CalmStreet | null;
+}
+
+/** What a calm street (#98) tells the bots: the level and how far the cortège's front got, for the escort. */
+export interface CalmStreet {
+  level: Level;
+  /** The cortège's front, progress 0..1. */
+  front: number;
 }
 
 /** The swappable steps of one tick (#13: a unit type replaces some). */
@@ -327,7 +366,12 @@ export interface CrsBehaviour {
 }
 
 const scratch: Vec2 = { x: 0, z: 0 };
+/** Scratch for `steerTo`'s doorway waypoint (#84). */
+const doorGoal: Vec2 = { x: 0, z: 0 };
+const doorAim: Vec2 = { x: 0, z: 0 };
 const NO_MOVE: Vec2 = { x: 0, z: 0 };
+/** Scratch for `walkIdle`'s escort spot (#98). */
+const idleGoal: Vec2 = { x: 0, z: 0 };
 /** A path waypoint counts as reached within this distance. */
 const WAYPOINT_REACHED = 0.35;
 /** Look this many waypoints ahead for one we can walk straight to (path smoothing). */
@@ -346,14 +390,43 @@ export function gapTo(bot: CrsBot, p: Vec2): number {
   return Math.hypot(p.x - bot.body.x, p.z - bot.body.z) - bot.stats.radius - PLAYER_RADIUS;
 }
 
-/** Re-pick the target every `retargetInterval`, or at once when it stops being a free protester. */
+/**
+ * The protesters a police bot may go after this tick: everyone once the
+ * street is hot, only recent offenders (CRS_OFFENDER_MEMORY) while it is calm
+ * (#98). Every unit's target pick and tear gas aim goes through this.
+ */
+export function targetsOf(ctx: CrsContext, host: CrsHost): Iterable<ProtesterView> {
+  return ctx.calm ? calmTargets(host.protesters(), ctx.now) : host.protesters();
+}
+
+/** Whether `p` may be gone after this tick (#98): anyone when hot, a recent offender while calm. */
+export function fairGame(ctx: CrsContext, p: ProtesterView): boolean {
+  return !ctx.calm || isOffender(p, ctx.now, CRS_OFFENDER_MEMORY);
+}
+
+/**
+ * Nobody to go after: back to its post (so a bot that dragged someone away
+ * does not idle out of sight forever), or, while the street is calm (#98),
+ * to its own spot beside the cortège (`escortSpot`), walking along with it.
+ */
+export function walkIdle(bot: CrsBot, ctx: CrsContext): void {
+  const goal = ctx.calm ? escortSpot(ctx.calm.level, ctx.calm.front, bot.id, idleGoal) : bot.post;
+  if (Math.hypot(goal.x - bot.body.x, goal.z - bot.body.z) > POST_REACHED) steerTo(bot, goal.x, goal.z, ctx);
+  else setInput(bot, NO_MOVE);
+}
+
+/**
+ * Re-pick the target every `retargetInterval`, or at once when it stops being
+ * a free protester (or, while calm, an offender, #98: a grab already underway
+ * is not this step's business and goes on).
+ */
 export function updateTarget(bot: CrsBot, ctx: CrsContext, host: CrsHost): void {
   const now = ctx.now;
   if (bot.ignoreId !== null && now >= bot.ignoreUntil) bot.ignoreId = null;
   const current = bot.targetId === null ? undefined : host.protester(bot.targetId);
-  const valid = current !== undefined && current.status === PlayerStatus.Free && current.id !== bot.ignoreId;
+  const valid = current !== undefined && current.status === PlayerStatus.Free && current.id !== bot.ignoreId && fairGame(ctx, current);
   if (valid && now < bot.retargetAt) return;
-  const next = pickTarget(bot.body, host.protesters(), bot.stats.sight, valid ? bot.targetId : null, bot.stats.switchMargin, bot.ignoreId);
+  const next = pickTarget(bot.body, targetsOf(ctx, host), bot.stats.sight, valid ? bot.targetId : null, bot.stats.switchMargin, bot.ignoreId);
   if (next !== bot.targetId) {
     bot.targetId = next;
     bot.path = null;
@@ -404,6 +477,16 @@ export function cancelWindup(bot: CrsBot, now: number, cooldown = true): void {
   if (bot.windupId === null) return;
   bot.windupId = null;
   if (cooldown) bot.grabReadyAt = Math.max(bot.grabReadyAt, now + bot.stats.grabCooldown);
+}
+
+/**
+ * Drop an LBD's aim (#73): foiled (a dodge, cover, a hit, a stun, the target
+ * gone), so it waits `reaimDelay` before aiming again. A no-op when not aiming.
+ */
+export function cancelAim(bot: CrsBot, now: number): void {
+  if (bot.aimId === null) return;
+  bot.aimId = null;
+  bot.shotReadyAt = Math.max(bot.shotReadyAt, now + (bot.stats.lbd?.reaimDelay ?? 0));
 }
 
 /**
@@ -566,6 +649,7 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
     // Out, dazed or on the floor: lets go of any grab (or the one winding up, #70) and does nothing.
     if (bot.grabbedId !== null) releaseGrab(bot, host, now);
     cancelWindup(bot, now);
+    cancelAim(bot, now);
     setInput(bot, NO_MOVE);
   } else if (bot.windupId !== null) {
     // Winding up a grab (#70): stands, arms out, until it grabs or something foils it.
@@ -581,6 +665,7 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
     }
   } else if (isBackingOff(bot, now)) {
     // Stinky (#15): backs away from the protesters for a moment, embarrassed. Before any orders: a line member steps out too.
+    cancelAim(bot, now);
     backOff(bot, ctx, host);
   } else if (behaviour.orders?.(bot, ctx, host) === true) {
     // Following orders (#6): input and facing are already set.
@@ -589,9 +674,8 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
     behaviour.updateTarget(bot, ctx, host);
     const target = bot.targetId === null ? undefined : host.protester(bot.targetId);
     if (!target) {
-      // Nobody in sight: back to its post, so a bot that dragged someone away does not idle out of sight forever.
-      if (Math.hypot(bot.post.x - bot.body.x, bot.post.z - bot.body.z) > POST_REACHED) steerTo(bot, bot.post.x, bot.post.z, ctx);
-      else setInput(bot, NO_MOVE);
+      // Nobody in sight (or, calm, nobody who offended): back to its post, or along with the cortège (#98).
+      walkIdle(bot, ctx);
     } else if (tryThrowGas(bot, ctx, host) || behaviour.act(bot, target, ctx, host)) {
       // Throwing a canister (#7) takes the tick, like a baton swing.
       setInput(bot, NO_MOVE);
@@ -640,7 +724,8 @@ export function tryThrowGas(bot: CrsBot, ctx: CrsContext, host: CrsHost): boolea
   if (!host.throwGas || !(s.gasCooldown > 0) || ctx.now < bot.gasReadyAt) return false;
   // Retry soon whatever happens; a throw pushes it to the full cooldown below.
   bot.gasReadyAt = ctx.now + s.retargetInterval;
-  const aim = pickGasAim(bot.body, host.protesters());
+  // #98: while calm, only at a bunch of offenders.
+  const aim = pickGasAim(bot.body, targetsOf(ctx, host));
   if (!aim) return false;
   // Splatted (#15): it can't see where it throws.
   const scatter = isSplatted(bot, ctx.now) ? GAS_SCATTER * SPLAT_GAS_SCATTER : GAS_SCATTER;
@@ -736,8 +821,9 @@ export function hitCrs(bot: CrsBot, fromX: number, fromZ: number, damage: number
     const away = awayFrom(bot, fromX, fromZ);
     return { impulse: applyImpulse(bot.body, away.x, away.z, s.heavyHitImpulse, "always"), out: false };
   }
-  // Any hit staggers it out of a grab's wind-up (#70).
+  // Any hit staggers it out of a grab's wind-up (#70), and an LBD out of its aim (#73).
   cancelWindup(bot, now);
+  cancelAim(bot, now);
   bot.staggerCount = now - bot.lastHitAt <= s.staggerWindow ? bot.staggerCount + 1 : 1;
   bot.lastHitAt = now;
   const heavy = bot.staggerCount >= s.staggerHits;
@@ -785,8 +871,9 @@ export function strikeCrs(
   if (bot.status === CrsStatus.Out) return null;
   // A pompier (#17): knocked over by anything that pushes it, never hurt or stunned.
   if (bot.stats.invulnerable === true) return { impulse: applyImpulse(bot.body, dirX, dirZ, impulse, impulse > 0 ? "always" : "auto"), out: false };
-  // Anything thrown at it foils a grab's wind-up (#70), a tomato included.
+  // Anything thrown at it foils a grab's wind-up (#70) or an aim (#73), a tomato included.
   cancelWindup(bot, now);
+  cancelAim(bot, now);
   bot.hp = Math.max(0, bot.hp - Math.max(0, damage));
   const out = bot.hp === 0;
   const res = applyImpulse(bot.body, dirX, dirZ, impulse, out ? "always" : "auto");
@@ -814,6 +901,15 @@ export function burnCrs(bot: CrsBot, damage: number, now: number): boolean {
  */
 export function steerTo(bot: NavAgent, gx: number, gz: number, ctx: NavContext): void {
   const body = bot.body;
+  // #84: into or out of a shop room, square through its doorway first.
+  if (ctx.rooms !== undefined && ctx.rooms.length > 0) {
+    doorGoal.x = gx;
+    doorGoal.z = gz;
+    if (doorWaypoint(ctx.rooms, body, doorGoal, bot.stats.radius, doorAim)) {
+      gx = doorAim.x;
+      gz = doorAim.z;
+    }
+  }
   const dist = Math.hypot(gx - body.x, gz - body.z);
   if (dist < 1e-3) {
     setInput(bot, NO_MOVE);

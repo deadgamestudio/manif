@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { CrsKind, CrsMount, CrsStatus, Phase, PlayerStatus, RoundResult, ThrowableKind } from "@manif/shared";
+import { CrsKind, CrsMount, CrsStatus, MoluchanPhase, Phase, PlayerStatus, RoundResult, SHOP_KINDS, ThrowableKind } from "@manif/shared";
 import { ambienceLevels, diffCues, messageCues, type CrsView, type MessageMemory, type PlayerView, type PropTable, type WorldView } from "./cues.ts";
 
 const props: PropTable = new Map([
   ["bin-1", { kind: "bin", x: 5, z: 5 }],
-  ["window-1", { kind: "shop_window", x: 8, z: 2 }],
+  ["window-1", { kind: "boulangerie", x: 8, z: 2 }],
   ["car-1", { kind: "car", x: 2, z: 9 }],
 ]);
 
@@ -30,6 +30,7 @@ const crs = (patch: Partial<CrsView> = {}): CrsView => ({
   onFire: false,
   spraying: false,
   windup: false,
+  aim: "",
   ...patch,
 });
 
@@ -44,6 +45,7 @@ function world(patch: Partial<WorldView> = {}): WorldView {
     canisters: new Map(),
     gas: new Map(),
     fires: new Map(),
+    moluchan: null,
     ...patch,
   };
 }
@@ -148,6 +150,16 @@ describe("diffCues", () => {
     expect(diffCues(during, before, "me", props)).toEqual([]);
   });
 
+  test("a CRS LBD taking aim beeps once: at it, or in your ears when you are the target (#73)", () => {
+    const before = world({ crs: new Map([["l", crs({ kind: CrsKind.Lbd })]]) });
+    const atOther = world({ crs: new Map([["l", crs({ kind: CrsKind.Lbd, aim: "other" })]]) });
+    const atMe = world({ crs: new Map([["l", crs({ kind: CrsKind.Lbd, aim: "me" })]]) });
+    expect(diffCues(before, atOther, "me", props)).toEqual([{ sound: "charge", at: { x: 3, z: 0 }, gain: 0.7 }]);
+    expect(diffCues(before, atMe, "me", props)).toEqual([{ sound: "charge" }]);
+    expect(diffCues(atMe, atMe, "me", props)).toEqual([]);
+    expect(diffCues(atMe, before, "me", props)).toEqual([]);
+  });
+
   test("the van door slams when a dragged protester is arrested at the van, the cuffs on the grab (#70)", () => {
     const free = world({ players: new Map([["a", player()]]) });
     const grabbed = world({ players: new Map([["a", player({ status: PlayerStatus.Grabbed })]]) });
@@ -158,10 +170,30 @@ describe("diffCues", () => {
     expect(sounds(diffCues(grabbed, free, "me", props))).toEqual(["rescue"]);
   });
 
+  test("Jeun-Lac Moluchan turning up plays his bullhorn and a cheer, for everyone, once (#85)", () => {
+    const here = world({ moluchan: { x: 4, z: 2, phase: MoluchanPhase.Rallying } });
+    expect(diffCues(world(), here, "me", props)).toEqual([{ sound: "moluchan" }, { sound: "cheer", gain: 0.5 }]);
+    // Still there, or already there when we joined: nothing.
+    expect(diffCues(here, world({ moluchan: { x: 5, z: 2, phase: MoluchanPhase.Rallying } }), "me", props)).toEqual([]);
+    expect(diffCues(null, here, "me", props)).toEqual([]);
+    // A CRS gets him: the cuffs, where he is. Gone: nothing.
+    const grabbed = world({ moluchan: { x: 4, z: 2, phase: MoluchanPhase.Grabbed } });
+    expect(diffCues(here, grabbed, "me", props)).toEqual([{ sound: "cuffs", at: { x: 4, z: 2 } }]);
+    expect(diffCues(grabbed, world(), "me", props)).toEqual([]);
+  });
+
   test("the last ten seconds tick once a second", () => {
     expect(sounds(diffCues(world({ timeLeft: 11 }), world({ timeLeft: 10 }), "me", props))).toEqual(["tick"]);
     expect(diffCues(world({ timeLeft: 12 }), world({ timeLeft: 11 }), "me", props)).toEqual([]);
     expect(diffCues(world({ timeLeft: 1 }), world({ timeLeft: 0 }), "me", props)).toEqual([]);
+  });
+
+  test("every shop kind (#68) breaks with a sound: glass for the fronts, metal for the bank's shutters", () => {
+    for (const kind of SHOP_KINDS) {
+      const table: PropTable = new Map([["shop-1", { kind, x: 1, z: 1 }]]);
+      const cues = diffCues(world(), world({ broken: new Set(["shop-1"]) }), "me", table);
+      expect(sounds(cues)).toEqual([kind === "banque" ? "metal" : "glass"]);
+    }
   });
 });
 
@@ -197,6 +229,12 @@ describe("messageCues", () => {
 
   test("a shield line's shove clangs at each shield", () => {
     expect(sounds(messageCues({ type: "shove", ids: ["c1", "gone"] }, view, props, 0, fresh()))).toEqual(["shield"]);
+  });
+
+  test("a CRS LBD's shot pops at the shooter; its ball boings where it lands, softer off a wall (#73)", () => {
+    expect(messageCues({ type: "lbdShot", x: 4, z: 5 }, view, props, 0, fresh())).toEqual([{ sound: "launch", at: { x: 4, z: 5 } }]);
+    expect(messageCues({ type: "lbdImpact", x: 1, z: 2, hit: true }, view, props, 0, fresh())).toEqual([{ sound: "boing", at: { x: 1, z: 2 }, gain: 1 }]);
+    expect(messageCues({ type: "lbdImpact", x: 1, z: 2, hit: false }, view, props, 0, fresh())).toEqual([{ sound: "boing", at: { x: 1, z: 2 }, gain: 0.45 }]);
   });
 
   test("the round's end: a fanfare for a win, a sad trombone for a loss", () => {

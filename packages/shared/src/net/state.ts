@@ -63,8 +63,10 @@ export interface SyncedMap<V> {
 }
 
 /**
- * Runtime state of a breakable prop (#4), keyed by its id in the level data.
- * Position, type and size are not synced: read them from the shared level.
+ * Runtime state of a breakable prop (#4), keyed by its id: a level prop id, or
+ * a shop's id (#83). A level prop's position, type and size are not synced:
+ * read them from the shared level. A shop's are (the fields below `kind`),
+ * since the round generates them; `shopLotOf` turns them back into a `ShopLot`.
  */
 export interface PropShapeState {
   /** 0..PROP_TYPES[kind].maxHp. */
@@ -72,6 +74,18 @@ export interface PropShapeState {
   broken: boolean;
   /** Burnt out (#16): black, still in the way, never burns again. */
   charred: boolean;
+  /** A shop's kind (#68): `shopCode(kind)`, 0 for any other prop. Changes only at a round reset. */
+  kind: number;
+  /** A shop's side of the street (#83): -1 left, 1 right; 0 for any other prop. The rest are 0 too. */
+  side: number;
+  /** A shop's `ShopLot` fields (#83): centre along the street, width, facade, how far out, height, room depth, look seed. */
+  z: number;
+  width: number;
+  face: number;
+  out: number;
+  height: number;
+  interior: number;
+  style: number;
 }
 
 /**
@@ -112,6 +126,12 @@ export interface CrsShape {
   spraying: boolean;
   /** Winding up a grab (#70): arms out, about to grab whoever it faces. Draw the tell; dodge or hop to foil it. */
   windup: boolean;
+  /**
+   * An LBD aiming (#73): the session id of the protester under its laser, ""
+   * otherwise. Draw the laser from the bot to their feet; it fires when the
+   * aim time is up unless they dodge or get behind cover.
+   */
+  aim: string;
 }
 
 /**
@@ -126,6 +146,24 @@ export interface TruckShape {
   rotation: number;
   /** Parked (lights flashing, crew off) rather than driving in or out. */
   parked: boolean;
+}
+
+/**
+ * Jeun-Lac Moluchan (#85), keyed by MOLUCHAN_ID, while he is on the street (at
+ * most one, at most once a round). Clients draw his ring from `x`, `z` and
+ * `phase`: the buffs are not synced per player.
+ */
+export interface MoluchanShape {
+  x: number;
+  z: number;
+  /** Facing angle around the Y axis, in radians. */
+  rotation: number;
+  /** A `MoluchanPhase`: rallying (ring on), leaving, grabbed. */
+  phase: number;
+  /** His speech bubble: an index into MOLUCHAN_LINES, -1 for none. */
+  line: number;
+  /** Whole seconds of rallying left (0 once leaving or grabbed). */
+  left: number;
 }
 
 /** An item lying on the ground (#8), keyed by a server-made id. */
@@ -198,12 +236,18 @@ export interface StreetStateShape {
   fires: SyncedMap<FireShape>;
   /** Fire trucks by id (#17). Their pompiers are in `crs`, with kind `CrsKind.Pompier`. */
   trucks: SyncedMap<TruckShape>;
+  /** Jeun-Lac Moluchan (#85), by MOLUCHAN_ID: empty, or him while he is on the street. */
+  moluchan: SyncedMap<MoluchanShape>;
   /** Round phase (#12): waiting (lobby screen), marching, ended. */
   phase: Phase;
   /** Whole seconds left: of the march while marching, of the end screen while ended. */
   timeLeft: number;
   /** The cortège's front, 0..100 along the street (#12). */
   progress: number;
+  /** The street turned hot this round (#98): CRS chase anyone. False while calm (and between rounds). */
+  hot: boolean;
+  /** The street's tension (#98), 0..TENSION_HOT. */
+  tension: number;
   /** How the last round ended (#12). Stays set through `waiting` until the next march starts. */
   result: RoundResult;
   /** Session id of the host (who may start), or "" when the room is empty. */

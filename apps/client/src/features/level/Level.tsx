@@ -1,9 +1,15 @@
+import { useMemo, useSyncExternalStore } from "react";
 import { STREET_LEVEL, type BoxKind, type BoxObstacle, type CircleObstacle, type Level, type Rect } from "@manif/shared";
+import { net } from "../../shared/net/index.ts";
+import { carveBlocks } from "./blocks.ts";
+import { BuildingsView, type BuildingSpec } from "./Buildings.tsx";
+import type { Point3 } from "./occlusion.ts";
+import { RoomsView } from "./Rooms.tsx";
 
 /*
  * Draws the level from the shared data: the same boxes and circles the server
  * collides with, so what you see is where you stop. Static: rendered once,
- * nothing here changes per frame.
+ * except the buildings, which fade when they hide someone (#80).
  */
 
 const BOX_COLORS: Record<BoxKind, readonly string[]> = {
@@ -19,8 +25,25 @@ const ASPHALT = "#4a4e55";
 const PAVEMENT = "#6b6f76";
 const MARKING = "#d8d8d0";
 
-export function LevelView({ level = STREET_LEVEL }: { level?: Level }) {
+export function LevelView({
+  level = STREET_LEVEL,
+  fadeTargets,
+}: {
+  level?: Level;
+  /** Where the characters that must stay visible are, read a few times a second (#80). */
+  fadeTargets?: () => readonly Point3[];
+}) {
   const b = level.bounds;
+  // Same array until a new layout arrives: carved once per round, never per frame.
+  const shops = useSyncExternalStore(net.subscribeShops, net.getShops);
+  const { buildings, rooms } = useMemo(() => {
+    const carved = carveBlocks(level, shops);
+    // Colours by index in the full box list, as before buildings were split out.
+    const specs = carved.blocks.map(
+      (block): BuildingSpec => ({ box: block.box, pieces: block.pieces, rooms: block.rooms, color: pick(BOX_COLORS.building, block.index) }),
+    );
+    return { buildings: specs, rooms: carved.rooms };
+  }, [level, shops]);
   return (
     <group>
       {/* Pavement beyond the street, under the buildings. */}
@@ -31,14 +54,18 @@ export function LevelView({ level = STREET_LEVEL }: { level?: Level }) {
       <ZoneMarks rect={level.destination} color="#e53935" />
       <CentreLine level={level} />
 
-      {level.boxes.map((box, i) => (
-        <BoxMesh key={box.id} box={box} index={i} />
-      ))}
+      <BuildingsView buildings={buildings} targets={fadeTargets} />
+      <RoomsView rooms={rooms} />
+      {level.boxes.map((box, i) => box.kind !== "building" && <BoxMesh key={box.id} box={box} index={i} />)}
       {level.circles.map((c) => (
         <CircleMesh key={c.id} c={c} />
       ))}
     </group>
   );
+}
+
+function pick(palette: readonly string[], index: number): string {
+  return palette[index % palette.length] ?? "#999999";
 }
 
 function grow(r: Rect, by: number): Rect {
@@ -118,8 +145,7 @@ function VanMesh({ box }: { box: BoxObstacle }) {
 
 function BoxMesh({ box, index }: { box: BoxObstacle; index: number }) {
   if (box.kind === "van") return <VanMesh box={box} />;
-  const palette = BOX_COLORS[box.kind];
-  const color = palette[index % palette.length] ?? "#999999";
+  const color = pick(BOX_COLORS[box.kind], index);
   return (
     <mesh position={[box.x, box.height / 2, box.z]} castShadow receiveShadow>
       <boxGeometry args={[box.halfX * 2, box.height, box.halfZ * 2]} />

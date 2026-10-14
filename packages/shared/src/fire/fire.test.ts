@@ -6,13 +6,27 @@ import { PROP_TYPES, propShape, type PropShape } from "../prop/index.js";
 import {
   FIRE_DURATION,
   FIRE_DYING_TIME,
+  FIRE_GROW_TIME,
   FIRE_REACH,
   FIRE_SPREAD_COOLDOWN,
   FIRE_SPREAD_DELAY,
   FIRE_SPREAD_RADIUS,
   MAX_FIRES,
 } from "./constants.js";
-import { FireField, distanceToShape, fireIntensity, fireSecondsLeft, inFireZone, shapeGap, type PropFire } from "./fire.js";
+import {
+  FireField,
+  distanceToShape,
+  fireHp,
+  fireIntensity,
+  fireSecondsLeft,
+  flammableProps,
+  hasFuel,
+  inFireZone,
+  shapeGap,
+  zoneGrowth,
+  type FlammableProp,
+  type PropFire,
+} from "./fire.js";
 
 const DT = 1 / 30;
 const slot = (id: string, kind: PropSlot["kind"], x: number, z: number): PropSlot => ({ id, kind, x, z, rotation: 0 });
@@ -22,9 +36,9 @@ const fullHp = (slots: readonly PropSlot[]) => {
 };
 
 /** Run the field for `seconds` of fixed ticks; returns every event. */
-function run(field: FireField, seconds: number, hpOf: (id: string) => number) {
+function run(field: FireField, seconds: number, hpOf: (id: string) => number, brokenOf?: (id: string) => boolean) {
   const events = [];
-  for (let t = 0; t < seconds - 1e-9; t += DT) events.push(...field.step(DT, hpOf));
+  for (let t = 0; t < seconds - 1e-9; t += DT) events.push(...field.step(DT, hpOf, brokenOf));
   return events;
 }
 
@@ -55,7 +69,7 @@ describe("shapes", () => {
 });
 
 describe("lighting", () => {
-  const slots = [slot("bin", "bin", 0, 0), slot("car", "car", 10, 0), slot("shelter", "bus_shelter", 20, 0), slot("window", "shop_window", 30, 0)];
+  const slots = [slot("bin", "bin", 0, 0), slot("car", "car", 10, 0), slot("shelter", "bus_shelter", 20, 0), slot("window", "boulangerie", 30, 0)];
 
   test("bins and cars light; shop windows and bus shelters never", () => {
     const field = new FireField(slots);
@@ -210,6 +224,7 @@ describe("extinguish hook (#17 pompiers, #13 water cannon)", () => {
   test("touches: a body in any fire zone", () => {
     const field = new FireField(slots);
     field.ignite("bin", 2);
+    run(field, FIRE_GROW_TIME, () => 2);
     expect(field.touches(1.2, 0, PLAYER_RADIUS)).toBe(true);
     expect(field.touches(3, 0, PLAYER_RADIUS)).toBe(false);
   });
@@ -260,5 +275,137 @@ describe("bots and fire zones", () => {
       nav.centre(cell, pt);
       expect(inFireZone(propShape(slot("bin", "bin", 0, 0), false)!, pt.x, pt.z, 0.45)).toBe(false);
     }
+  });
+});
+
+describe("wrecks (#91)", () => {
+  const carSlot = slot("car", "car", 0, 0);
+  const slots = [carSlot, slot("bin", "bin", 10, 0)];
+  // Both smashed: 0 HP, broken.
+  const zero = () => 0;
+  const broken = () => true;
+
+  test("a smashed car can be lit, a smashed bin cannot (nothing left of it)", () => {
+    const field = new FireField(slots);
+    expect(hasFuel("car", 0, true)).toBe(true);
+    expect(hasFuel("bin", 0, true)).toBe(false);
+    expect(field.canIgnite("car", 0)).toBe(false);
+    expect(field.canIgnite("car", 0, true)).toBe(true);
+    expect(field.canIgnite("bin", 0, true)).toBe(false);
+    expect(field.ignite("bin", 0, true)).toBeNull();
+  });
+
+  test("it burns its own fuel, a full FIRE_DURATION, around its broken shape, with 0 HP to mirror", () => {
+    const field = new FireField(slots);
+    const fire = field.ignite("car", 0, true)!;
+    expect(fire.wreck).toBe(true);
+    expect(fire.shape).toEqual(propShape(carSlot, true)!);
+    expect(fireSecondsLeft(fire)).toBe(FIRE_DURATION);
+    expect(fireHp(fire)).toBe(0);
+    expect(run(field, FIRE_DURATION - 0.5, zero, broken)).toEqual([]);
+    expect(fireHp(fire)).toBe(0);
+    expect(run(field, 1, zero, broken)).toEqual([{ type: "burnt", id: "car" }]);
+  });
+
+  test("charred at the end, and never lit again", () => {
+    const field = new FireField(slots);
+    field.ignite("car", 0, true);
+    run(field, FIRE_DURATION + 0.1, zero, broken);
+    expect(field.isCharred("car")).toBe(true);
+    expect(field.canIgnite("car", 0, true)).toBe(false);
+    expect(field.ignite("car", 0, true)).toBeNull();
+  });
+
+  test("a car burnt out intact can't be relit as a wreck either", () => {
+    const field = new FireField(slots);
+    field.ignite("car", 6);
+    run(field, FIRE_DURATION + 0.1, () => 6);
+    expect(field.isCharred("car")).toBe(true);
+    expect(field.canIgnite("car", 0, true)).toBe(false);
+  });
+
+  test("put out early, it keeps the fuel it had left for the next light", () => {
+    const field = new FireField(slots);
+    field.ignite("car", 0, true);
+    run(field, 10, zero, broken);
+    expect(field.extinguish("car")).toBe(0);
+    expect(field.isCharred("car")).toBe(false);
+    const again = field.ignite("car", 0, true)!;
+    expect(fireSecondsLeft(again)).toBe(FIRE_DURATION - 10);
+    // A new round starts it full again.
+    field.extinguish("car");
+    field.clear();
+    expect(fireSecondsLeft(field.ignite("car", 0, true)!)).toBe(FIRE_DURATION);
+  });
+
+  test("a fire spreads to a wreck nearby", () => {
+    const near = [slot("bin", "bin", 0, 0), slot("wreck", "car", 3, 0)];
+    const field = new FireField(near);
+    field.ignite("bin", 2);
+    const hp = (id: string) => (id === "bin" ? 2 : 0);
+    const isBroken = (id: string) => id === "wreck";
+    // Without telling it the car is a wreck, it sees a car with 0 HP: nothing to light.
+    expect(field.spreadTarget(field.get("bin")!, hp)).toBeNull();
+    expect(field.spreadTarget(field.get("bin")!, hp, FIRE_SPREAD_RADIUS, isBroken)).toBe("wreck");
+    const events = run(field, FIRE_SPREAD_DELAY + 0.1, hp, isBroken);
+    expect(events).toEqual([{ type: "spread", from: "bin", to: "wreck" }]);
+    expect(field.get("wreck")!.wreck).toBe(true);
+  });
+
+  test("flammableProps: each one's intact and wreck shapes (a bin has no wreck)", () => {
+    const props = flammableProps([...slots, slot("shelter", "bus_shelter", 20, 0)]);
+    expect(props.map((p) => p.id)).toEqual(["car", "bin"]);
+    const [car, bin] = props as [FlammableProp, FlammableProp];
+    expect(car.wreck?.shape).toEqual(propShape(carSlot, true)!);
+    expect(car.intact.shape).toEqual(propShape(carSlot, false)!);
+    expect(bin.wreck).toBeNull();
+  });
+});
+
+describe("a new fire's zone grows (#91)", () => {
+  const binAt = [slot("bin", "bin", 0, 0)];
+  // Standing against the bin, as whoever just lit it.
+  const against = 0.5 + PLAYER_RADIUS;
+  // As far as one can light it from: edge to edge LIGHT_REACH, the same as FIRE_REACH.
+  const farthest = 0.5 + PLAYER_RADIUS + FIRE_REACH;
+
+  test("zoneGrowth: 0 when lit, 1 from FIRE_GROW_TIME on, growing in between", () => {
+    expect(zoneGrowth(0)).toBe(0);
+    expect(zoneGrowth(FIRE_GROW_TIME / 2)).toBeGreaterThan(0);
+    expect(zoneGrowth(FIRE_GROW_TIME / 2)).toBeLessThan(0.5);
+    expect(zoneGrowth(FIRE_GROW_TIME)).toBe(1);
+    expect(zoneGrowth(FIRE_GROW_TIME * 10)).toBe(1);
+  });
+
+  test("whoever lit it is not in the zone at first, even standing against the bin", () => {
+    const field = new FireField(binAt);
+    field.ignite("bin", 2);
+    expect(field.touches(against, 0, PLAYER_RADIUS)).toBe(false);
+    run(field, 0.5, () => 2);
+    expect(field.touches(against, 0, PLAYER_RADIUS)).toBe(false);
+    expect(field.touches(farthest, 0, PLAYER_RADIUS)).toBe(false);
+  });
+
+  test("staying against it catches fire before the zone is full; the farthest spot only at full size", () => {
+    const field = new FireField(binAt);
+    field.ignite("bin", 2);
+    let caughtAt = -1;
+    for (let t = 0; t < FIRE_GROW_TIME + 0.1 && caughtAt < 0; t += DT) {
+      field.step(DT, () => 2);
+      if (field.touches(against, 0, PLAYER_RADIUS)) caughtAt = field.get("bin")!.age;
+    }
+    expect(caughtAt).toBeGreaterThan(1);
+    expect(caughtAt).toBeLessThan(FIRE_GROW_TIME);
+    expect(field.touches(farthest, 0, PLAYER_RADIUS)).toBe(false);
+    run(field, FIRE_GROW_TIME, () => 2);
+    expect(field.touches(farthest - 0.01, 0, PLAYER_RADIUS)).toBe(true);
+    expect(field.touches(farthest + 0.05, 0, PLAYER_RADIUS)).toBe(false);
+  });
+
+  test("the bots keep clear of the full zone from the start", () => {
+    const field = new FireField(binAt);
+    field.ignite("bin", 2);
+    const world = field.hazards({ minX: -10, maxX: 10, minZ: -10, maxZ: 10 });
+    expect(world.circles).toEqual([{ x: 0, z: 0, r: 0.5 + FIRE_REACH }]);
   });
 });

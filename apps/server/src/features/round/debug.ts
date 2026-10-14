@@ -1,12 +1,12 @@
 // DEBUG ONLY (#12): a full march takes minutes, so in dev builds a client can
 // jump down the street or cut the round timer to test waves, the win and the
 // timeout, or hold the round open so scripted tests of other features are not
-// cut short by a win or a loss. Never accepted in production.
+// cut short by a win or a loss. Accepted only in development.
 
 import type { DebugRoundPayload } from "@manif/shared";
 
-/** The debug message is only accepted outside production. */
-export const DEBUG_ROUND_ENABLED = process.env.NODE_ENV !== "production";
+/** The debug message is only accepted when NODE_ENV is exactly "development" (bun run dev sets it); anything else, unset included, refuses it. */
+export const DEBUG_ROUND_ENABLED = process.env.NODE_ENV === "development";
 
 /** Reads the untrusted payload. Null if it is not a known action with a finite number. */
 export function parseDebugRound(message: unknown): DebugRoundPayload | null {
@@ -17,6 +17,7 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
   }
   if (m.action === "hold") return { action: "hold" };
   if (m.action === "calm") return { action: "calm" };
+  if (m.action === "hot") return { action: "hot" };
   if (m.action === "clear") return { action: "clear" };
   if (m.action === "water") {
     const radius = Number((m as { radius?: unknown }).radius);
@@ -61,6 +62,16 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
       ...(spray !== undefined && { spray }),
       ...(extra !== undefined && { extra }),
       ...(soak !== undefined && { soak }),
+    };
+  }
+  if (m.action === "moluchan") {
+    const raw = m as { distance?: unknown; seconds?: unknown };
+    const distance = Number(raw.distance);
+    const seconds = Number(raw.seconds);
+    return {
+      action: "moluchan",
+      ...(raw.distance !== undefined && Number.isFinite(distance) && { distance: Math.max(0, Math.min(20, distance)) }),
+      ...(raw.seconds !== undefined && Number.isFinite(seconds) && { seconds: Math.max(1, Math.min(120, seconds)) }),
     };
   }
   if (m.action === "time") {

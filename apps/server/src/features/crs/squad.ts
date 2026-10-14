@@ -3,6 +3,8 @@ import {
   applyImpulse,
   BAC_BEHAVIOUR,
   BRAVM_BEHAVIOUR,
+  LBD_BEHAVIOUR,
+  MAX_LBD,
   CrsMount,
   HEAVY_IMPULSE,
   bacStalkAt,
@@ -44,6 +46,7 @@ import {
   strikeCrs,
   stunCrs,
   vanDoors,
+  type CalmStreet,
   type CircleShape,
   type CollisionWorld,
   type CrsBehaviour,
@@ -57,8 +60,10 @@ import {
   type LineStepResult,
   type ShieldContact,
   type ShieldLine,
+  type BallBody,
   type Level,
   type MeleeTarget,
+  type ShopRoom,
   type Vec2,
 } from "@manif/shared";
 import { Crs } from "./schema.js";
@@ -87,6 +92,8 @@ const ROTATION_EPSILON = 0.01;
  * it at once), `spawnBravm` brings a BRAV-M bike. The squad does the bike's
  * bookkeeping: the passenger it drops and picks up again, riders knocked off
  * or getting off when blocked, the wreck left behind, a bike that rides off.
+ * `spawnLbd` brings a CRS LBD (#73), at most MAX_LBD at once; the room flies
+ * its balls (`LbdShots`) against `shotBlockers`.
  */
 export class CrsSquad {
   /** Keep this many bots on the street by replacing those taken out. 0 turns it off (#12). */
@@ -126,6 +133,11 @@ export class CrsSquad {
     private readonly behaviour?: CrsBehaviour,
     /** A knockback the squad gave a bot on its own (#13: riders knocked off a bike, the wreck), for the room to announce. */
     private readonly onImpulse?: (id: string, res: ImpulseResult) => void,
+    /**
+     * This round's shop rooms (#84): bots go in after a protester and drag them out square through the doorways.
+     * Held, not copied: the room hands over `Props.rooms`, which each layout refills in place.
+     */
+    rooms: readonly ShopRoom[] = [],
   ) {
     // One grid for every unit on foot, cleared for the widest of them.
     const clearance = Math.max(...Object.values(CRS_STATS).map((s) => s.radius));
@@ -135,7 +147,7 @@ export class CrsSquad {
     const bikeClearance = Math.max(clearance, ...Object.values(CRS_STATS).map((s) => s.bike?.radius ?? 0));
     this.bikeNav = new NavGrid(this.avoid, bikeClearance);
     this.vans = vanDoors(level);
-    this.ctx = { world, avoid: this.avoid, nav: this.nav, vans: this.vans, bots: this.bots, now: 0, dt: 0 };
+    this.ctx = { world, avoid: this.avoid, nav: this.nav, vans: this.vans, rooms, bots: this.bots, now: 0, dt: 0 };
     this.bikeCtx = { ...this.ctx, nav: this.bikeNav };
   }
 
@@ -155,6 +167,16 @@ export class CrsSquad {
     this.avoid.circles = h && h.circles.length > 0 ? [...this.world.circles, ...h.circles] : this.world.circles;
     this.nav.rebuild(this.avoid);
     this.bikeNav.rebuild(this.avoid);
+  }
+
+  /**
+   * The street is calm (#98): every unit only goes after recent offenders and
+   * escorts the cortège otherwise. Null: hot, anyone is fair game. From the
+   * next tick; the room passes the same object every tick, its `front` updated.
+   */
+  setCalm(calm: CalmStreet | null): void {
+    this.ctx.calm = calm;
+    this.bikeCtx.calm = calm;
   }
 
   /**
@@ -315,6 +337,29 @@ export class CrsSquad {
     this.mirror(bot, view);
     this.views.set(id, view);
     return bot;
+  }
+
+  /** A CRS LBD (#73) at (x, z). Null at the MAX_CRS cap, or with MAX_LBD of them already on the street. */
+  spawnLbd(x: number, z: number): CrsBot | null {
+    let lbds = 0;
+    for (const b of this.bots) if (b.kind === CrsKind.Lbd && b.status !== CrsStatus.Out) lbds++;
+    if (lbds >= MAX_LBD) return null;
+    return this.spawn(x, z, CrsKind.Lbd);
+  }
+
+  /**
+   * What stops an LBD's ball (#73): every bot standing on the street, a
+   * formed shield line's members as wide as their shields. Not a bot out or
+   * lying down, and not a BAC still in disguise. Appended to `out`; the ball
+   * skips its own shooter.
+   */
+  shotBlockers(out: BallBody[]): BallBody[] {
+    for (const bot of this.bots) {
+      if (bot.status === CrsStatus.Out || !bot.revealed || isDown(bot.body)) continue;
+      const shield = this.lineOf.get(bot.id)?.formed === true;
+      out.push({ id: bot.id, x: bot.body.x, z: bot.body.z, r: shield ? LINE_SHIELD_RADIUS : crsRadius(bot.kind, bot.mount) });
+    }
+    return out;
   }
 
   /**
@@ -587,8 +632,9 @@ export class CrsSquad {
         bot.grabReadyAt = this.ctx.now + bot.stats.grabCooldown;
         bot.path = null;
       }
-      // A grab winding up on them (#70) just stops.
+      // A grab winding up on them (#70), or an aim (#73), just stops.
       if (bot.windupId === protesterId) bot.windupId = null;
+      if (bot.aimId === protesterId) bot.aimId = null;
       if (bot.targetId === protesterId) {
         bot.targetId = null;
         bot.retargetAt = 0;
@@ -706,6 +752,7 @@ export class CrsSquad {
       if (own) return own;
       if (bot.kind === CrsKind.Bac) return BAC_BEHAVIOUR;
       if (bot.kind === CrsKind.BravM) return BRAVM_BEHAVIOUR;
+      if (bot.kind === CrsKind.Lbd) return LBD_BEHAVIOUR;
       return this.behaviour;
     }
     let b = this.lineBehaviours.get(line);
@@ -768,6 +815,9 @@ export class CrsSquad {
     // #70: the grab's tell; the target and the timer stay here.
     const windup = bot.windupId !== null;
     if (view.windup !== windup) view.windup = windup;
+    // #73: the LBD's laser; the timer stays here.
+    const aim = bot.aimId ?? "";
+    if (view.aim !== aim) view.aim = aim;
   }
 
   /** Mirror every bot now (after the room moved some, e.g. a member pushed back by a pinned protester). */

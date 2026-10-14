@@ -2,6 +2,7 @@ import { useCallback, useRef, useSyncExternalStore } from "react";
 import { DODGE_COOLDOWN } from "@manif/shared";
 import { useArchetypeStats } from "../archetype/index.ts";
 import { net } from "../../shared/net/index.ts";
+import { useKeyLabels } from "../controls/index.ts";
 
 const FIELDS = ["dodging"] as const;
 
@@ -55,12 +56,13 @@ export function DodgeCooldownFill({ started, cooldown = DODGE_COOLDOWN }: { star
 export function DodgeHud({ localId, touch = false }: { localId: string | null; touch?: boolean }) {
   const started = useDodgeStart(localId);
   const cooldown = useDodgeCooldown(localId);
+  const keys = useKeyLabels();
   return (
     <div className="hud-dodge">
       <div className="hud-dodge-bar" aria-hidden="true">
         <DodgeCooldownFill started={started} cooldown={cooldown} />
       </div>
-      <span>{touch ? "Esquive" : "Plongeon (Maj)"}</span>
+      <span>{touch ? "Esquive" : `Plongeon (${keys.dodge})`}</span>
     </div>
   );
 }

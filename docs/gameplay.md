@@ -12,7 +12,9 @@ private lobby by code or invite link, a lobby screen where the host starts the
 march, and a long street (start zone at one end, the Préfecture at the other)
 with walls and obstacles the server collides players against, with names above
 the players walking it, synced through the server. Players swing (left
-click) to smash breakable props: bins, bus shelters, shop windows and cars.
+click) to smash breakable props: bins, bus shelters, shops and cars. The
+shops are big storefronts built into the facades, laid out afresh with a new
+mix of kinds every round (the lobby already shows the next round's street).
 Space hops (#45): half a second in the air to get over a wheelie bin or a CRS
 lying in the street (not over cars, walls or a shield line), and a baton swing
 that lands while you are in the air misses. A grab still gets you. A short
@@ -25,7 +27,7 @@ them and drag them to the police vans; protesters can hit them back, or dodge
 (Shift) with a short burst of speed that has a 3 s cooldown. A teammate being
 dragged away can be rescued: hold E next to them for a second (or floor the CRS
 holding them) and they are free, with a moment of grab immunity. Pavés lie in
-the street and fall out of broken bus shelters, shop windows and cars: press E
+the street and fall out of broken bus shelters, shops and cars: press E
 next to one to pick it up, then click to throw it towards the mouse.
 A pavé floors and stuns the CRS it hits, which drops whoever it was dragging,
 and lands on the ground again wherever it stops.
@@ -106,6 +108,36 @@ duos charge in, the passenger hops off, whacks someone and they ride off
 bike skids away). An end
 screen shows the result and a few joke awards for 10 s, then the street resets
 and everyone is back on the lobby screen for the next round.
+
+## CRS LBD (#73)
+
+Further down the march, one or two CRS carry a cartoon LBD instead of a shield:
+an orange band on the uniform and helmet, and a fat orange toy launcher. It
+hangs back 10 to 16 m from the cortège and only aims at protesters who broke,
+hit or threw something in the last 8 s. When it aims, a red laser runs from the
+launcher to the target's feet for 0.8 s, with a rising beep, then it fires a
+big rubber ball. Dodging, stepping behind cover, a teammate in the way (who
+takes the ball instead), a tomato on its visor or rushing it (it is weak up
+close) all foil it; hopping does not. A hit knocks you on your bum with a
+"boing" for 10 HP, and you can't be grabbed for 2.2 s afterwards.
+
+## Jeun-Lac Moluchan (#85)
+
+About one round in seven, a surprise guest joins the protesters: Jeun-Lac
+Moluchan, a big caricature of a tribune with a red scarf and a megaphone, and
+nothing but made-up lines ("Je suis la manif !"). He turns up once the front
+has covered somewhere between a quarter and three quarters of the street, from
+a side street just behind it or from the back of the cortège, with a banner and
+a squeal of megaphone feedback and a cheer. For 45 s he walks to the thickest group of protesters,
+a little behind the front, and everyone free inside his ring (6 m) walks 15%
+faster, struggles out of a grab half again as fast, and heals 1 HP a second (on
+top of a CGT's heal). Then he leaves by a side street, and once he is gone untouched the HUD says "Moluchan protégé !".
+The CRS want him badly (he counts as three times closer than anyone else), and
+a grab ends his visit at once ("Moluchan embarqué !"). The LBD never shoots
+him: he never breaks or throws anything. He is not a protester: he counts for
+neither the win, the wipe, the bot fill nor the scores. Bots drift a little
+towards him. Dev builds: `debug:round {action: "moluchan", distance, seconds}`
+brings him in now.
 
 ## Archetypes (#14)
 

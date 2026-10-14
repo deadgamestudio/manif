@@ -2,28 +2,26 @@ import { useEffect, useState } from "react";
 import {
   MAX_FIRES,
   PLAYER_RADIUS,
-  PROP_TYPES,
   PlayerStatus,
   STREET_LEVEL,
+  flammableProps,
+  hasFuel,
   pickFireAction,
   pickRescueTarget,
-  propShape,
   type BurningView,
   type FireAction,
   type LightableView,
   type RescueSubject,
 } from "@manif/shared";
 import { net, type LobbyPlayer } from "../../shared/net/index.ts";
+import { inSentence, useKeyLabels } from "../controls/index.ts";
 import { carryTargetFor } from "../carry/index.ts";
-import { FIRE_TEXT } from "./fireVisuals.tsx";
+import { FIRE_TEXT } from "./fireText.ts";
 
 /** How often the prompt looks around, in ms (like the rescue prompt). */
 const POLL_MS = 100;
 
-const FLAMMABLE: readonly (LightableView & { kind: string })[] = STREET_LEVEL.propSlots.flatMap((slot) => {
-  const shape = PROP_TYPES[slot.kind].flammable ? propShape(slot, false) : null;
-  return shape ? [{ id: slot.id, kind: slot.kind, shape }] : [];
-});
+const FLAMMABLE = flammableProps(STREET_LEVEL.propSlots);
 
 /**
  * What holding interact would do for the local player right now (pat out a
@@ -45,13 +43,16 @@ export function fireActionFor(localId: string, players: readonly LobbyPlayer[]):
   // A rescue comes first; its prompt is the rescue HUD's.
   if (pickRescueTarget({ id: localId, x: me.x, z: me.z, status: me.status }, subjects) !== null) return null;
   const fires = net.getFireIds();
-  const lightable =
-    fires.length >= MAX_FIRES
-      ? []
-      : FLAMMABLE.filter((p) => {
-          const prop = net.getProp(p.id);
-          return prop !== undefined && prop.hp > 0 && !prop.charred && !fires.includes(p.id);
-        });
+  const lightable: LightableView[] = [];
+  if (fires.length < MAX_FIRES) {
+    for (const p of FLAMMABLE) {
+      const prop = net.getProp(p.id);
+      if (!prop || prop.charred || fires.includes(p.id) || !hasFuel(p.kind, prop.hp, prop.broken)) continue;
+      // A smashed car still burns, around its wreck (#91).
+      const view = prop.broken ? p.wreck : p.intact;
+      if (view) lightable.push(view);
+    }
+  }
   const action = pickFireAction({ id: localId, x: me.x, z: me.z }, PLAYER_RADIUS, burning, lightable);
   // A teammate in reach comes before lighting (#11): the press picks them up.
   if (action?.kind === "light" && carryTargetFor(localId, players) !== null) return null;
@@ -84,14 +85,16 @@ export function FireHud({
   touch?: boolean;
 }) {
   const [text, setText] = useState("");
+  // The player's own interact key (#72).
+  const keys = useKeyLabels();
   useEffect(() => {
     if (!localId) return undefined;
-    const key = touch ? "Action" : "E";
+    const key = touch ? "Action" : inSentence(keys.interact);
     const update = () => setText(prompt(localId, players, key));
     update();
     const timer = window.setInterval(update, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [localId, players, touch]);
+  }, [localId, players, touch, keys]);
   if (!text) return null;
   return <div className="hud-status">{text}</div>;
 }

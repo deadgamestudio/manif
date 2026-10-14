@@ -81,6 +81,11 @@ export const SYNTH_SOUNDS = {
   "sad-trombone": { bus: "music", gain: 0.5, maxVoices: 1 },
   megaphone: { bus: "music", gain: 0.3, maxVoices: 1 },
   blip: { bus: "sfx", gain: 0.3, maxVoices: 1 },
+  // The CRS LBD (#73): its aim's rising beeps, and the rubber ball's boing.
+  charge: { bus: "sfx", gain: 0.3, maxVoices: 2 },
+  boing: { bus: "sfx", gain: 0.55, maxVoices: 3 },
+  // Jeun-Lac Moluchan turning up (#85): feedback squeal, then his bullhorn "hé ho !".
+  moluchan: { bus: "sfx", gain: 0.4, maxVoices: 1 },
 } as const satisfies Record<string, { bus: Bus; gain: number; maxVoices: number }>;
 export type SynthSoundName = keyof typeof SYNTH_SOUNDS;
 

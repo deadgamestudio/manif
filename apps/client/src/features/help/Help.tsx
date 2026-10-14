@@ -4,7 +4,11 @@ import { net, type LobbyPlayer } from "../../shared/net/index.ts";
 import { rescueTarget } from "../rescue/index.ts";
 import { carryTargetFor } from "../carry/index.ts";
 import { fireActionFor } from "../fire/index.ts";
-import { BASIC_TIP_COUNT, HELP_KEY, HELP_KEY_LABEL, controls, pickTip, type TipSituation } from "./tips.ts";
+import { useActions, useKeyLabels } from "../controls/index.ts";
+import { BASIC_TIP_COUNT, controls, pickTip, type TipSituation } from "./tips.ts";
+import { HelpLink } from "./HelpPage.tsx";
+
+const HELP = ["help"] as const;
 
 /** How often the tip looks at the player, in ms, like the other prompts. */
 const POLL_MS = 150;
@@ -39,17 +43,18 @@ function situation(localId: string, players: readonly LobbyPlayer[]): TipSituati
  */
 export function HelpTip({ localId, players, touch }: { localId: string | null; players: readonly LobbyPlayer[]; touch: boolean }) {
   const [text, setText] = useState("");
+  const keys = useKeyLabels();
   useEffect(() => {
     if (!localId) return undefined;
     const started = performance.now();
     const update = () => {
       const turn = Math.floor((performance.now() - started) / TURN_MS) % BASIC_TIP_COUNT;
-      setText(pickTip(situation(localId, players), touch, turn));
+      setText(pickTip(situation(localId, players), touch, turn, keys));
     };
     update();
     const timer = window.setInterval(update, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [localId, players, touch]);
+  }, [localId, players, touch, keys]);
   if (!text) return null;
   return (
     <p className="hud-tip" key={text}>
@@ -59,18 +64,23 @@ export function HelpTip({ localId, players, touch }: { localId: string | null; p
 }
 
 /**
- * The "?" button and the full controls list it opens, also toggled by C on a
- * keyboard (H is a debug key in dev builds) and closed by Échap.
+ * The "?" button and the full controls list it opens, also toggled by the
+ * help key on a keyboard (C by default, #72; H is a debug key in dev builds)
+ * and closed by Échap. The list names the player's own keys, and links to
+ * the full help (#71), opened over the street.
  */
 export function HelpMenu({ touch }: { touch: boolean }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
+  const keys = useKeyLabels();
+
+  useActions(HELP, (_, pressed) => {
+    if (pressed) setOpen((o) => !o);
+  });
 
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
-      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.code === HELP_KEY) setOpen((o) => !o);
-      else if (e.code === "Escape") setOpen(false);
+      if (e.code === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onDown);
     return () => window.removeEventListener("keydown", onDown);
@@ -84,7 +94,7 @@ export function HelpMenu({ touch }: { touch: boolean }) {
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={open ? "Cacher les commandes" : "Voir les commandes"}
-        title={touch ? "Commandes" : `Commandes (${HELP_KEY_LABEL})`}
+        title={touch ? "Commandes" : `Commandes (${keys.help})`}
         onClick={() => setOpen((o) => !o)}
       >
         {open ? (
@@ -99,8 +109,8 @@ export function HelpMenu({ touch }: { touch: boolean }) {
         <section id={panelId} className="hud-help-panel" aria-label="Commandes">
           <h2 className="hud-help-title">Les commandes</h2>
           <dl className="hud-help-list">
-            {controls(touch).map(([key, what]) => (
-              <div key={key} className="hud-help-row">
+            {controls(touch, keys).map(([key, what]) => (
+              <div key={what} className="hud-help-row">
                 <dt>
                   <kbd>{key}</kbd>
                 </dt>
@@ -108,7 +118,13 @@ export function HelpMenu({ touch }: { touch: boolean }) {
               </div>
             ))}
           </dl>
-          <p className="hud-help-goal">Objectif : la moitié du cortège à la Préfecture avant la fin du chrono.</p>
+          <p className="hud-help-goal">
+            Objectif : la moitié du cortège à la Préfecture avant la fin du chrono.
+            {/* #71: the full help, over the street, without leaving the room. */}
+            <HelpLink className="help-link hud-help-more" onOpen={() => setOpen(false)}>
+              Tout comprendre →
+            </HelpLink>
+          </p>
         </section>
       )}
     </>

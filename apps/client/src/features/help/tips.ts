@@ -1,14 +1,29 @@
 /**
  * What the HUD says about the controls. One short tip at a time, picked from
  * the local player's situation, and the full list behind the "?" button.
- * French keyboards are AZERTY: movement reads key positions, so ZQSD works
- * there and WASD on QWERTY; the text names ZQSD.
+ * The keyboard text names the player's own keys (#72), passed in as `keys`;
+ * by default ZQSD, clic, Espace, Maj, E... on AZERTY.
  */
 import { ThrowableKind } from "@manif/shared";
 
-/** The key that opens and closes the full list (KeyboardEvent.code): C, the same spot on AZERTY and QWERTY. */
-export const HELP_KEY = "KeyC";
-export const HELP_KEY_LABEL = "C";
+/**
+ * The key names the text uses: the controls feature's KeyLabels (#72), restated
+ * here so this file stays plain data the unit tests can load without the UI.
+ */
+export interface TipKeys {
+  /** "ZQSD ou flèches". */
+  move: string;
+  attack: string;
+  jump: string;
+  dodge: string;
+  interact: string;
+  board: string;
+  help: string;
+  mute: string;
+}
+
+/** In the middle of a sentence, "Clic" reads "clic". */
+const inSentence = (label: string) => (label.startsWith("Clic") ? `c${label.slice(1)}` : label);
 
 /** What the tip needs to know about the local player. */
 export interface TipSituation {
@@ -30,47 +45,54 @@ const ITEM: Record<number, string> = {
   [ThrowableKind.Trottinette]: "ta trottinette",
 };
 
-/** The objective first, then the basics, one every few seconds. */
-const BASICS = {
-  keyboard: [
-    "Objectif : la moitié du cortège à la Préfecture avant la fin du chrono.",
-    "ZQSD ou flèches pour marcher, clic pour taper.",
-    "Espace pour sauter par-dessus une poubelle ou un CRS à terre.",
-    "Maj pour plonger et esquiver la matraque.",
-    "E pour ramasser un pavé, une tomate, une crotte… ou un·e camarade.",
-    "Maintiens E près d'une poubelle pour y mettre le feu.",
-    "Regarde où tu marches : les crottes, ça glisse.",
-  ],
-  touch: [
-    "Objectif : la moitié du cortège à la Préfecture avant la fin du chrono.",
-    "Joystick à gauche pour marcher, Taper pour frapper.",
-    "Sauter par-dessus une poubelle ou un CRS à terre.",
-    "Esquive pour plonger sous la matraque.",
-    "Action pour ramasser un pavé, une tomate… ou un·e camarade.",
-    "Maintiens Action près d'une poubelle pour y mettre le feu.",
-    "Regarde où tu marches : les crottes, ça glisse.",
-  ],
-} as const;
+const OBJECTIVE = "Objectif : la moitié du cortège à la Préfecture avant la fin du chrono.";
 
-export const BASIC_TIP_COUNT = BASICS.keyboard.length;
+/** The objective first, then the basics, one every few seconds. */
+function keyboardBasics(k: TipKeys): readonly string[] {
+  return [
+    OBJECTIVE,
+    `${k.move} pour marcher, ${inSentence(k.attack)} pour taper.`,
+    `${k.jump} pour sauter par-dessus une poubelle ou un CRS à terre.`,
+    `${k.dodge} pour plonger et esquiver la matraque.`,
+    `${k.interact} pour ramasser un pavé, une tomate, une crotte… ou un·e camarade.`,
+    `Maintiens ${inSentence(k.interact)} près d'une poubelle pour y mettre le feu.`,
+    "Regarde où tu marches : les crottes, ça glisse.",
+  ];
+}
+
+const TOUCH_BASICS: readonly string[] = [
+  OBJECTIVE,
+  "Joystick à gauche pour marcher, Taper pour frapper.",
+  "Sauter par-dessus une poubelle ou un CRS à terre.",
+  "Esquive pour plonger sous la matraque.",
+  "Action pour ramasser un pavé, une tomate… ou un·e camarade.",
+  "Maintiens Action près d'une poubelle pour y mettre le feu.",
+  "Regarde où tu marches : les crottes, ça glisse.",
+];
+
+export const BASIC_TIP_COUNT = TOUCH_BASICS.length;
 
 /**
  * The one tip to show, or "" for none. `turn` picks the basic tip when the
  * situation says nothing in particular.
  */
-export function pickTip(s: TipSituation, touch: boolean, turn: number): string {
+export function pickTip(s: TipSituation, touch: boolean, turn: number, keys: TipKeys): string {
   // Grabbed (#70): helpless no more, whatever else is going on.
-  if (s.grabbed === true) return touch ? "Martèle Débats-toi pour t'échapper !" : "Martèle clic pour te débattre !";
+  if (s.grabbed === true) return touch ? "Martèle Débats-toi pour t'échapper !" : `Martèle ${inSentence(keys.attack)} pour te débattre !`;
   if (s.prompted || s.helpless) return "";
-  if (s.gassed) return touch ? "Kof ! Esquive pour plonger hors des lacrymos." : "Kof ! Maj pour plonger hors des lacrymos.";
+  if (s.gassed) return touch ? "Kof ! Esquive pour plonger hors des lacrymos." : `Kof ! ${keys.dodge} pour plonger hors des lacrymos.`;
   const item = ITEM[s.carrying];
-  if (item) return touch ? `Taper pour lancer ${item} (vise au joystick).` : `Clic pour lancer ${item} vers la souris.`;
-  const list = touch ? BASICS.touch : BASICS.keyboard;
+  if (item) return touch ? `Taper pour lancer ${item} (vise au joystick).` : `${keys.attack} pour lancer ${item} vers la souris.`;
+  const list = touch ? TOUCH_BASICS : keyboardBasics(keys);
   return list[((turn % list.length) + list.length) % list.length] ?? "";
 }
 
-/** The full controls list, as [key, what it does]. */
-export function controls(touch: boolean): readonly (readonly [string, string])[] {
+/**
+ * The full controls list, as [key, what it does]. `where` is who shows it:
+ * the in-game "?" panel, or the "Comment on joue" page (#71), where the help
+ * key opens that panel rather than "this help".
+ */
+export function controls(touch: boolean, keys: TipKeys, where: "panel" | "page" = "panel"): readonly (readonly [string, string])[] {
   return touch
     ? [
         ["Joystick", "marcher (pose le pouce n'importe où à gauche)"],
@@ -82,19 +104,19 @@ export function controls(touch: boolean): readonly (readonly [string, string])[]
         ["Action maintenue", "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
         // The round feature's board chip (#63).
         ["📋", "afficher ou cacher le tableau du cortège (qui est libre, qui est embarqué·e)"],
+        // The sound chip (#60).
+        ["🔊", "régler ou couper le son"],
       ]
     : [
-        ["ZQSD / flèches", "marcher"],
-        ["Clic", "taper, ou lancer ce que tu tiens vers la souris"],
-        ["Clic martelé", "attrapé·e par un CRS : te débattre pour t'échapper avant le panier à salade"],
-        ["Espace", "sauter par-dessus une poubelle ou un CRS à terre"],
-        ["Maj", "plonger : sous la matraque, hors des lacrymos"],
-        ["E", "ramasser un pavé, une tomate, une crotte, une trottinette, ou soulever un·e camarade"],
-        ["E maintenu", "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
-        // The sound feature's MUTE_KEY_LABEL (#57); spelled out here so this file stays plain data.
-        ["M", "couper ou remettre le son"],
-        // The round feature's BOARD_KEY (#63), held.
-        ["Tab maintenu", "voir le tableau du cortège (qui est libre, qui est embarqué·e)"],
-        [HELP_KEY_LABEL, "afficher ou cacher cette aide"],
+        [keys.move.replace(" ou ", " / "), "marcher"],
+        [keys.attack, "taper, ou lancer ce que tu tiens vers la souris"],
+        [`${keys.attack} martelé`, "attrapé·e par un CRS : te débattre pour t'échapper avant le panier à salade"],
+        [keys.jump, "sauter par-dessus une poubelle ou un CRS à terre"],
+        [keys.dodge, "plonger : sous la matraque, hors des lacrymos"],
+        [keys.interact, "ramasser un pavé, une tomate, une crotte, une trottinette, ou soulever un·e camarade"],
+        [`${keys.interact} maintenu`, "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
+        [keys.mute, "couper ou remettre le son"],
+        [`${keys.board} maintenu`, "voir le tableau du cortège (qui est libre, qui est embarqué·e)"],
+        [keys.help, where === "page" ? "en pleine manif, afficher ou cacher la liste des commandes" : "afficher ou cacher cette aide"],
       ];
 }

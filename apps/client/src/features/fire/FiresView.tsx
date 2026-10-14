@@ -1,5 +1,6 @@
 import { useRef, useSyncExternalStore } from "react";
 import { useFrame } from "@react-three/fiber";
+import { FIRE_REACH, zoneGrowth } from "@manif/shared";
 import type { Group, Material, Mesh } from "three";
 import { net } from "../../shared/net/index.ts";
 import { FLAME_LOOK, SMOKE_LOOK } from "./fireVisuals.tsx";
@@ -7,7 +8,8 @@ import { FLAME_LOOK, SMOKE_LOOK } from "./fireVisuals.tsx";
 /**
  * Burning props (#16): flames and smoke on each one. Re-renders only when a
  * prop catches fire or stops burning; the flicker and the smoke are useFrame
- * work from the synced `intensity` and `radius`.
+ * work from the synced `intensity` and `radius`. The flames spread out with
+ * the zone as it grows over its first seconds (#91).
  */
 export function FiresView() {
   const ids = useSyncExternalStore(net.subscribeFires, net.getFireIds);
@@ -35,7 +37,8 @@ function FireView({ id }: { id: string }) {
     const age = (now - (net.getFireSeenAt(id) ?? now)) / 1000;
     const grow = Math.min(1, age / FLAME_LOOK.growIn);
     const height = (FLAME_LOOK.intensityScale[live.intensity] ?? 1) * grow;
-    const r = live.radius;
+    // The synced radius is the full zone; a new fire's zone grows from the prop's edge (`zoneGrowth`).
+    const r = live.radius - FIRE_REACH * (1 - zoneGrowth(age));
     g.scale.set(r, r * height, r);
     FLAME_LOOK.cones.forEach((_, i) => {
       const c = cones.current[i];

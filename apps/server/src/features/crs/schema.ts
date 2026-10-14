@@ -43,6 +43,11 @@ export const Crs = schema(
      * a dodge, a hop, a hit or stepping away foils it. The target and the timer stay in `CrsBot`.
      */
     windup: t.boolean(),
+    /**
+     * An LBD aiming (#73): the session id of the protester under its laser, "" otherwise.
+     * The tell clients draw (laser and dot); the timer stays in `CrsBot.aimUntil`.
+     */
+    aim: t.string().default(""),
   },
   "Crs",
 );

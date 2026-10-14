@@ -103,18 +103,25 @@ export interface UnitStage {
   bac: number;
   /** BRAV-M motorbike duos, arriving from ahead. */
   bravm: number;
+  /** CRS LBD (#73), arriving from ahead at their shooting distance. MAX_LBD caps how many are on the street at once. */
+  lbd: number;
 }
 
 export const UNIT_STAGES: readonly UnitStage[] = [
   // 0-25 %: CRS only.
-  { from: 0, bac: 0, bravm: 0 },
-  // 25-50 %: the first BAC hidden in the cortège.
-  { from: 0.25, bac: 1, bravm: 0 },
+  { from: 0, bac: 0, bravm: 0, lbd: 0 },
+  // 25-35 %: the first BAC hidden in the cortège.
+  { from: 0.25, bac: 1, bravm: 0, lbd: 0 },
+  // 35-50 %: the first LBD (#73), on top.
+  { from: 0.35, bac: 1, bravm: 0, lbd: 1 },
   // 50-75 %: BRAV-M raids.
-  { from: 0.5, bac: 0, bravm: 1 },
+  { from: 0.5, bac: 0, bravm: 1, lbd: 1 },
   // 75-100 %: everything.
-  { from: 0.75, bac: 1, bravm: 1 },
+  { from: 0.75, bac: 1, bravm: 1, lbd: 1 },
 ];
+
+/** CRS LBD (#73) appear on the CRS points at least this far ahead of the front (about 15 m): about their shooting distance. */
+export const WAVE_LBD_AHEAD = 0.08;
 
 /** BRAV-M duos appear on the CRS points at least this far ahead of the front (about 15 m): room to charge. */
 export const WAVE_BRAVM_AHEAD = 0.08;

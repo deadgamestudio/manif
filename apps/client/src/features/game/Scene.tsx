@@ -1,9 +1,9 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Object3D, Vector3, type DirectionalLight } from "three";
-import { STREET_LEVEL, isBotId } from "@manif/shared";
+import { CrsStatus, STREET_LEVEL, isBotId } from "@manif/shared";
 import { CAMERA_OFFSET, damp } from "../../shared/iso/index.ts";
-import { LevelView } from "../level/index.ts";
+import { LevelView, type Point3 } from "../level/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { PlayerAvatar } from "../player/index.ts";
 import { PropsView } from "../prop/index.ts";
@@ -12,6 +12,7 @@ import { AimTracker, ThrowablesView } from "../throwable/index.ts";
 import { GasView } from "../gas/index.ts";
 import { FiresView } from "../fire/index.ts";
 import { TrucksView } from "../pompier/index.ts";
+import { MoluchanView } from "../moluchan/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
 
 const LEVEL = STREET_LEVEL;
@@ -25,6 +26,8 @@ const START_CENTRE = new Vector3(
 const SUN_OFFSET = new Vector3(15, 25, 10);
 /** Half size of the shadow box around the followed point. The street is too long to shadow all at once. */
 const SHADOW_HALF = 30;
+/** Height of the point on a character that a building must not hide (#80): about the chest. */
+const BODY_Y = 1;
 
 export function Scene({
   players,
@@ -36,6 +39,7 @@ export function Scene({
   localId: string | null;
 }) {
   const ids = players.map((p) => p.id);
+  const fadeTargets = useFadeTargets(ids, crs);
   return (
     <>
       <FollowRig localId={localId} />
@@ -43,7 +47,7 @@ export function Scene({
       <color attach="background" args={["#2a2d34"]} />
       <hemisphereLight args={["#dfe8ff", "#3a3a3a", 0.8]} />
 
-      <LevelView level={LEVEL} />
+      <LevelView level={LEVEL} fadeTargets={fadeTargets} />
       <PropsView level={LEVEL} />
 
       {players.map((p) => (
@@ -56,8 +60,40 @@ export function Scene({
       <GasView />
       <FiresView />
       <TrucksView />
+      <MoluchanView />
     </>
   );
+}
+
+/**
+ * Who the buildings fade for (#80): every protester, human or bot (the local
+ * player among them), and any CRS holding someone, so a friend dragged
+ * behind a building stays in sight. Reuses its points: it runs ~10 times a second.
+ */
+function useFadeTargets(playerIds: readonly string[], crsIds: readonly string[]): () => readonly Point3[] {
+  return useCallback(() => {
+    FADE_TARGETS.length = 0;
+    for (const id of playerIds) {
+      const p = net.getPlayer(id);
+      if (p) addFadeTarget(p.x, p.z);
+    }
+    for (const id of crsIds) {
+      const c = net.getCrs(id);
+      if (c && c.status === CrsStatus.Grabbing) addFadeTarget(c.x, c.z);
+    }
+    return FADE_TARGETS;
+  }, [playerIds, crsIds]);
+}
+
+// Scratch for useFadeTargets, reused so the test makes no garbage. One Scene at a time.
+const FADE_POINTS: Point3[] = [];
+const FADE_TARGETS: Point3[] = [];
+function addFadeTarget(x: number, z: number) {
+  const point = FADE_POINTS[FADE_TARGETS.length] ?? { x: 0, y: BODY_Y, z: 0 };
+  FADE_POINTS[FADE_TARGETS.length] = point;
+  point.x = x;
+  point.z = z;
+  FADE_TARGETS.push(point);
 }
 
 /**

@@ -1,7 +1,11 @@
 import type { MapSchema } from "@colyseus/schema";
 import {
   applyPropDamage,
+  carveLevel,
   createPropState,
+  generateShops,
+  shopCode,
+  shopSlot,
   propCollisionWorld,
   propShape,
   type CollisionWorld,
@@ -9,6 +13,8 @@ import {
   type MeleeTarget,
   type PropSlot,
   type PropState,
+  type ShopLot,
+  type ShopRoom,
 } from "@manif/shared";
 import { Prop } from "./schema.js";
 
@@ -27,26 +33,62 @@ export interface PropDamageResult {
  * `world` to the bodies once; when a prop breaks its shape list is rebuilt in
  * place, so the very next tick collides against the broken shape. Broken
  * shapes fit inside intact ones, so nobody ends up inside one.
+ *
+ * Walk-in shops (#84): each layout carves the building blocks around the
+ * shops' rooms (`carveLevel`), once per round, never per tick. `world`,
+ * `staticWorld` and `rooms` are stable objects updated in place, so whoever
+ * holds them (bodies, CRS, swings, the brigade) sees the new walls at once.
  */
 export class Props {
   readonly world: MutableWorld;
+  /**
+   * The carved level's static obstacles, without any prop (#84): what blocks
+   * a swing, the hose or a line of sight. Updated in place on each layout.
+   */
+  readonly staticWorld: MutableWorld;
+  /** This round's shop rooms (#84), behind each shop front. The same array, refilled on each layout. */
+  readonly rooms: readonly ShopRoom[] = [];
+  /** The level with its building blocks carved around this round's rooms (#84). */
+  private carved: Level;
   private readonly slots = new Map<string, PropSlot>();
   private readonly states = new Map<string, PropState>();
   /** Burning or charred (#16): swings and throws pass them by, their HP is the fire's. */
   private readonly locked = new Set<string>();
+  /** This round's shops (#83), in street order. */
+  private lots: ShopLot[] = [];
+  /** How many layouts so far: each one's shops get fresh ids, so a client sees old shops go and new ones come. */
+  private layouts = 0;
 
-  constructor(private readonly level: Level) {
+  /** `random`: the shop generator's (Math.random in the room, seeded in tests). */
+  constructor(
+    private readonly level: Level,
+    private readonly random: () => number = Math.random,
+  ) {
     for (const slot of level.propSlots) {
       this.slots.set(slot.id, slot);
       this.states.set(slot.id, createPropState(slot));
     }
+    this.carved = level;
     this.world = { ...propCollisionWorld(level, () => false) };
+    this.staticWorld = { bounds: level.bounds, boxes: level.boxes, circles: level.circles };
   }
 
-  /** Every prop back to intact, mirrored into the synced map (created on first call). */
-  reset(views: MapSchema<Prop>): void {
+  /** This round's shops (#83), in street order. */
+  get shops(): readonly ShopLot[] {
+    return this.lots;
+  }
+
+  /**
+   * A fresh street for a new round: every prop back to intact at its kind's
+   * HP, mirrored into the synced map (created on first call). With `relayout`
+   * (and always on the first call) the shops are built anew too (#83): new
+   * places, sizes and kinds, the old ones removed from the map. The only
+   * place shops change, so never mid-round.
+   */
+  reset(views: MapSchema<Prop>, relayout = true): void {
     this.locked.clear();
-    for (const slot of this.level.propSlots) {
+    if (relayout || this.layouts === 0) this.layOut(views);
+    for (const slot of this.slots.values()) {
       const state = createPropState(slot);
       this.states.set(slot.id, state);
       let view = views.get(slot.id);
@@ -61,6 +103,46 @@ export class Props {
     this.rebuild();
   }
 
+  /** Swap last round's shops for a newly generated street, slots and synced views alike. */
+  private layOut(views: MapSchema<Prop>): void {
+    for (const lot of this.lots) {
+      this.slots.delete(lot.id);
+      this.states.delete(lot.id);
+      views.delete(lot.id);
+    }
+    this.layouts++;
+    this.lots = generateShops(this.level, this.random, { previous: this.lots, prefix: `shop${this.layouts}` });
+    for (const lot of this.lots) {
+      this.slots.set(lot.id, shopSlot(lot));
+      // Every field before it goes in the map, so a client gets the whole shop in one patch.
+      const view = new Prop();
+      view.kind = shopCode(lot.kind);
+      view.side = lot.side;
+      view.z = lot.z;
+      view.width = lot.width;
+      view.face = lot.face;
+      view.out = lot.out;
+      view.height = lot.height;
+      view.interior = lot.interior;
+      view.style = lot.style;
+      views.set(lot.id, view);
+    }
+    // #84: the rooms behind the new shops, and the walls around them. Per layout, never per tick.
+    const carved = carveLevel(this.level, this.lots);
+    this.carved = carved.level;
+    const rooms = this.rooms as ShopRoom[];
+    rooms.length = 0;
+    rooms.push(...carved.rooms);
+    this.staticWorld.boxes = carved.level.boxes;
+    this.staticWorld.circles = carved.level.circles;
+  }
+
+  /** The room behind shop `id` this round (#84), or undefined (not a shop, or no room). */
+  room(id: string): ShopRoom | undefined {
+    return this.rooms.find((r) => r.id === id);
+  }
+
+  /** Prop `id` as it plays this round: a shop comes back with its kind and its own box (#83). */
   slot(id: string): PropSlot | undefined {
     return this.slots.get(id);
   }
@@ -125,7 +207,7 @@ export class Props {
   }
 
   private rebuild(): void {
-    const next = propCollisionWorld(this.level, (id) => this.states.get(id)?.broken ?? false);
+    const next = propCollisionWorld(this.carved, (id) => this.states.get(id)?.broken ?? false, this.slots.values());
     this.world.boxes = next.boxes;
     this.world.circles = next.circles;
   }

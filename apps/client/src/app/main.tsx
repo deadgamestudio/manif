@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import { App } from "./App.tsx";
+import { scrubBreadcrumb, scrubEvent } from "./errorReport.ts";
 import { loadSavedName } from "../features/home/index.ts";
 import { net, readInviteCode } from "../shared/net/index.ts";
 import { startAudio } from "../features/audio/index.ts";
@@ -9,9 +10,17 @@ import "./styles.css";
 
 // Error tracking with Rustrak (Sentry-protocol). The DSN is a public ingest
 // key, inlined at build time (VITE_SENTRY_DSN, see apps/client/Dockerfile).
-// Unset in dev, which just turns reporting off.
+// Unset in dev, which just turns reporting off. Reports never carry a lobby
+// code or console lines (errorReport.ts).
 const dsn = import.meta.env.VITE_SENTRY_DSN;
-if (dsn) Sentry.init({ dsn, environment: import.meta.env.MODE });
+if (dsn) {
+  Sentry.init({
+    dsn,
+    environment: import.meta.env.MODE,
+    beforeBreadcrumb: scrubBreadcrumb,
+    beforeSend: scrubEvent,
+  });
+}
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root element missing");

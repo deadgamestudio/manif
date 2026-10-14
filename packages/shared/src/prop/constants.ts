@@ -1,7 +1,7 @@
 // Breakable prop tunables (#4). Shapes are in world units, local to the prop
 // before its rotation (Z runs along the street). HP is synced as a uint8.
 
-import type { PropKind } from "../level/index.js";
+import type { PropKind, ShopKind } from "../level/index.js";
 // The constants file only: the throwable index pulls in prop/ itself.
 import { ThrowableKind, type ItemKind } from "../throwable/constants.js";
 
@@ -28,6 +28,22 @@ export interface PropType {
   hoppable: boolean;
 }
 
+/**
+ * A shop's nominal box. Every real shop brings its own, generated each round
+ * (#83: `PropSlot.footprint`, from `shopFootprint`), so this is only what a
+ * shop kind would collide as without one. Once smashed a shop is walkable.
+ */
+export const SHOP_FRONT: PropShapeDef = { type: "box", halfX: 0.5, halfZ: 2 };
+
+/**
+ * A shop front with its HP and drops. Never flammable nor hoppable: the room
+ * builds its list of things that can burn from the level's own slots, which
+ * hold no shop (tested).
+ */
+function shop(maxHp: number, drops: number, dropKind: ItemKind): PropType {
+  return { maxHp, intact: SHOP_FRONT, broken: null, drops, dropKind, flammable: false, hoppable: false };
+}
+
 export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
   // A wheelie bin: two whacks and the lid flies. Nothing left to stand behind. Low enough to hop over (#45).
   bin: { maxHp: 2, intact: { type: "circle", r: 0.5 }, broken: null, drops: 0, dropKind: ThrowableKind.Pave, flammable: true, hoppable: true },
@@ -41,8 +57,19 @@ export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
     flammable: false,
     hoppable: false,
   },
-  // A shop front: once smashed you can step into the gap.
-  shop_window: { maxHp: 3, intact: { type: "box", halfX: 0.5, halfZ: 1.5 }, broken: null, drops: 1, dropKind: ThrowableKind.Pave, flammable: false, hoppable: false },
+  // The shop kinds dealt each round (#68; signs and dealing in `SHOP_TYPES`). Drops are existing throwables only.
+  // Flimsy windows; the tomatoes were for the sandwiches.
+  boulangerie: shop(2, 2, ThrowableKind.Tomate),
+  // The terrace paving comes up with the window.
+  cafe: shop(2, 2, ThrowableKind.Pave),
+  // A display trottinette rolls out.
+  sneakers: shop(3, 1, ThrowableKind.Trottinette),
+  // Heavy shutters: many whacks, and a pile of pavés from the cladding. Worth the same +10 as any prop (#41).
+  banque: shop(6, 4, ThrowableKind.Pave),
+  // Salade, tomate, oignon.
+  kebab: shop(3, 3, ThrowableKind.Tomate),
+  // A dog groomer: best not to ask what spills out.
+  toilettage: shop(2, 2, ThrowableKind.Crotte),
   // A burnt-out car is still a car.
   car: {
     maxHp: 6,
@@ -65,3 +92,20 @@ export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
     hoppable: false,
   },
 };
+
+/**
+ * Loot inside a broken shop's room (#84): how many of its kind's `dropKind`
+ * lie in the room, on top of what falls out of the window (`drops`). The
+ * bank, toughest to break, keeps the most.
+ */
+export const ROOM_LOOT: Readonly<Record<ShopKind, number>> = {
+  boulangerie: 3,
+  cafe: 3,
+  sneakers: 1,
+  banque: 6,
+  kebab: 3,
+  toilettage: 2,
+};
+
+/** Seconds after a room's loot has all been taken before it comes back, once a round (#84). */
+export const ROOM_LOOT_REFILL = 25;

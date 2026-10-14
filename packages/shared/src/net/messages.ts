@@ -80,20 +80,26 @@ export const ClientMessage = {
   Throw: "throw",
   /**
    * DEBUG, dev builds only: knock yourself or the nearest player over.
-   * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) give real hits.
+   * The server accepts it only when NODE_ENV is "development". Remove once CRS (#5) give real hits.
    */
   DebugKnockback: "debug:knockback",
   /**
    * DEBUG, dev builds only: hurt or grab yourself to see health and arrest (#3).
-   * The server ignores it when NODE_ENV is "production". Remove once CRS (#5) exist.
+   * The server accepts it only when NODE_ENV is "development". Remove once CRS (#5) exist.
    */
   DebugHealth: "debug:health",
   /**
    * DEBUG, dev builds only (#12): jump down the street or cut the round timer,
    * to test waves, the win and the timeout without an 8-minute march.
-   * The server ignores it when NODE_ENV is "production".
+   * The server accepts it only when NODE_ENV is "development".
    */
   DebugRound: "debug:round",
+  /**
+   * DEBUG, dev builds only (#84): break a shop and step inside its room, to
+   * test walking in, the loot and CRS coming in after you.
+   * The server accepts it only when NODE_ENV is "development".
+   */
+  DebugShop: "debug:shop",
 } as const;
 export type ClientMessage = (typeof ClientMessage)[keyof typeof ClientMessage];
 
@@ -119,6 +125,18 @@ export interface ClientMessagePayloads {
   [ClientMessage.DebugKnockback]: DebugKnockbackPayload;
   [ClientMessage.DebugHealth]: DebugHealthPayload;
   [ClientMessage.DebugRound]: DebugRoundPayload;
+  [ClientMessage.DebugShop]: DebugShopPayload;
+}
+
+/**
+ * DEBUG payload (#84): break shop `index` (0-based, in street order; the one
+ * nearest to you when absent) if it still stands, and put yourself in its
+ * room, `depth` of the way from the doorway to the back wall (0..1, default
+ * 0.75), facing the street.
+ */
+export interface DebugShopPayload {
+  index?: number;
+  depth?: number;
 }
 
 /**
@@ -135,6 +153,8 @@ export type DebugRoundPayload =
   | { action: "water"; radius: number }
   /** #16: no CRS on the street and no more waves this round, for scripted tests that need a calm street. */
   | { action: "calm" }
+  /** #98: the street turns hot now (CRS chase anyone), as if the tension had boiled over. Not the opposite of `calm`. */
+  | { action: "hot" }
   /** #13: no bots on the street right now, but the waves still to come still come. */
   | { action: "clear" }
   /** #45: a CRS lying out cold `distance` m in front of yourself for `seconds`, to hop over it. */
@@ -149,7 +169,12 @@ export type DebugRoundPayload =
    * `crew` pompiers per truck, `spray` the accidental spray chance per second (0 turns it off), `extra` seconds of
    * fire before another truck comes, `soak` the hose's water per second (a slow hose keeps a pompier busy). Each is optional.
    */
-  | { action: "brigade"; delay?: number; crew?: number; spray?: number; extra?: number; soak?: number };
+  | { action: "brigade"; delay?: number; crew?: number; spray?: number; extra?: number; soak?: number }
+  /**
+   * #85: Jeun-Lac Moluchan turns up now, whatever the roll (unless he is already on the street), `distance` m in front of
+   * yourself (absent: by his usual way in), rallying for `seconds` (absent: MOLUCHAN.duration).
+   */
+  | { action: "moluchan"; distance?: number; seconds?: number };
 
 /** Payload of `ClientMessage.PickArchetype`: an `Archetype` id. */
 export interface PickArchetypePayload {
@@ -231,6 +256,13 @@ export const ServerMessage = {
   ScoreToken: "score:token",
   /** The lasting leaderboard (#41), to one player: the top and their own line. After a join, a banked round and a rename. */
   Leaderboard: "score:leaderboard",
+  /**
+   * A CRS LBD fired (#73): where from and which way. Clients fly the ball
+   * themselves at the unit's `ballSpeed` until the matching `LbdImpact`. Not in Schema.
+   */
+  LbdShot: "lbd:shot",
+  /** That ball stopped (#73): on a protester (`hit`), or on a wall, a prop, a CRS or the ground. The knockdown comes as an Impulse. */
+  LbdImpact: "lbd:impact",
 } as const;
 export type ServerMessage = (typeof ServerMessage)[keyof typeof ServerMessage];
 
@@ -245,6 +277,30 @@ export interface ImpulseEvent {
   strength: number;
   /** True if this impulse knocked the body down. */
   down: boolean;
+}
+
+/** Payload of `ServerMessage.LbdShot` (#73). */
+export interface LbdShotEvent {
+  /** The ball's id, matched by its `LbdImpact`. */
+  id: string;
+  /** The CRS that fired. */
+  by: string;
+  /** Start point and unit ground direction. */
+  x: number;
+  z: number;
+  dirX: number;
+  dirZ: number;
+}
+
+/** Payload of `ServerMessage.LbdImpact` (#73). */
+export interface LbdImpactEvent {
+  /** The ball's id, from its `LbdShot`. */
+  id: string;
+  /** Where it stopped. */
+  x: number;
+  z: number;
+  /** The protester it knocked down (session id), or "" when it hit something else or dropped. */
+  hit: string;
 }
 
 /** Payload of `ServerMessage.Swing`. */

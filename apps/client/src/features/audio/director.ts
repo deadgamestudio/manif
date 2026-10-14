@@ -7,7 +7,7 @@
  * the server's own updates come 20 times a second at most, and nothing here
  * needs to be frame-exact.
  */
-import { CrsKind, Phase, STREET_LEVEL, type StreetStateShape } from "@manif/shared";
+import { CrsKind, MOLUCHAN_ID, Phase, STREET_LEVEL, type ShopLot, type StreetStateShape } from "@manif/shared";
 import { net, type NetEvent } from "../../shared/net/index.ts";
 import { ambienceLevels, diffCues, messageCues, type Cue, type CrsView, type ItemView, type MessageMemory, type NetCueEvent, type PlayerView, type PropTable, type WorldView } from "./cues.ts";
 import { audio, type LoopWish } from "./engine.ts";
@@ -21,7 +21,21 @@ const MAX_HOSE_LOOPS = 2;
 /** After a round ends, the sting plays, then the music comes in. */
 const MUSIC_AFTER_END_MS = 2500;
 
-const PROPS: PropTable = new Map(STREET_LEVEL.propSlots.map((p) => [p.id, { kind: p.kind, x: p.x, z: p.z }]));
+/** The level's own props. */
+const LEVEL_PROPS = new Map(STREET_LEVEL.propSlots.map((p) => [p.id, { kind: p.kind, x: p.x, z: p.z }]));
+/** ...plus the round's shops (#83), which sound like their kind; rebuilt only when a new layout arrives. */
+let propsFor: readonly ShopLot[] | null = null;
+let propTable: PropTable = LEVEL_PROPS;
+function props(): PropTable {
+  const shops = net.getShops();
+  if (shops !== propsFor) {
+    propsFor = shops;
+    const table = new Map(LEVEL_PROPS);
+    for (const s of shops) table.set(s.id, { kind: s.kind, x: s.side * s.face, z: s.z });
+    propTable = table;
+  }
+  return propTable;
+}
 
 let started = false;
 /** The last street snapshot, or null for "next one is a baseline". */
@@ -41,7 +55,7 @@ function buildView(state: StreetStateShape): WorldView {
   });
   const crs = new Map<string, CrsView>();
   state.crs?.forEach((c, id) => {
-    crs.set(id, { x: c.x, z: c.z, kind: c.kind, status: c.status, mount: c.mount, revealed: c.revealed, onFire: c.onFire, spraying: c.spraying, windup: c.windup === true });
+    crs.set(id, { x: c.x, z: c.z, kind: c.kind, status: c.status, mount: c.mount, revealed: c.revealed, onFire: c.onFire, spraying: c.spraying, windup: c.windup === true, aim: c.aim ?? "" });
   });
   const broken = new Set<string>();
   state.props?.forEach((p, id) => {
@@ -55,7 +69,9 @@ function buildView(state: StreetStateShape): WorldView {
   state.gas?.forEach((g, id) => gas.set(id, { x: g.x, z: g.z }));
   const fires = new Map<string, Point>();
   state.fires?.forEach((f, id) => fires.set(id, { x: f.x, z: f.z }));
-  return { phase: state.phase, timeLeft: state.timeLeft, players, crs, broken, projectiles, canisters, gas, fires };
+  const m = state.moluchan?.get(MOLUCHAN_ID);
+  const moluchan = m ? { x: m.x, z: m.z, phase: m.phase } : null;
+  return { phase: state.phase, timeLeft: state.timeLeft, players, crs, broken, projectiles, canisters, gas, fires, moluchan };
 }
 
 function listenerOf(view: WorldView | null, localId: string | null): Point | null {
@@ -142,7 +158,7 @@ function tick() {
   if (prev && prev.phase !== view.phase && view.phase === Phase.Ended) endedAt = now;
   if (!prev && view.phase === Phase.Ended) endedAt = now - MUSIC_AFTER_END_MS;
   const listener = listenerOf(view, localId);
-  for (const cue of diffCues(prev, view, localId, PROPS)) playCue(cue, listener);
+  for (const cue of diffCues(prev, view, localId, props())) playCue(cue, listener);
   prev = view;
   timedSounds(view, localId, now);
   audio.setLoops(loopsFor(view, localId, now));
@@ -158,6 +174,10 @@ function toCueEvent(event: NetEvent): NetCueEvent {
       return { type: "hit", kind: event.event.kind, target: event.event.target, x: event.event.x, z: event.event.z, broke: event.event.broke };
     case "impulse":
       return { type: "impulse", id: event.event.id };
+    case "lbdShot":
+      return { type: "lbdShot", x: event.event.x, z: event.event.z };
+    case "lbdImpact":
+      return { type: "lbdImpact", x: event.event.x, z: event.event.z, hit: event.event.hit !== "" };
     case "roundEnd":
       return { type: "roundEnd", result: event.event.result };
   }
@@ -166,7 +186,7 @@ function toCueEvent(event: NetEvent): NetCueEvent {
 function onEvent(event: NetEvent) {
   const localId = net.getSnapshot().sessionId;
   // Our own swing may come before the next tick: the latest view is close enough for where we are.
-  const cues = messageCues(toCueEvent(event), prev, PROPS, performance.now(), memory);
+  const cues = messageCues(toCueEvent(event), prev, props(), performance.now(), memory);
   const listener = listenerOf(prev, localId);
   for (const cue of cues) playCue(cue, listener);
 }

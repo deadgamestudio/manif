@@ -13,8 +13,20 @@ export type BoxKind = "building" | "wall" | "kiosk" | "barrier" | "van" | "prefe
 /** What a round obstacle looks like. */
 export type CircleKind = "bollard" | "tree" | "lamp";
 
-/** Breakable prop types (#4 owns their HP, shapes and state). */
-export type PropKind = "bin" | "bus_shelter" | "shop_window" | "car" | "market_stall";
+/**
+ * The kinds of shop the server deals at each round (#68). Each round also
+ * builds the shops afresh into the facades, each with its own size (#83,
+ * `generateShops` in prop/). Kinds differ in look, sign, HP and drops
+ * (`PROP_TYPES`, `SHOP_TYPES` in prop/).
+ */
+export type ShopKind = "boulangerie" | "cafe" | "sneakers" | "banque" | "kebab" | "toilettage";
+
+/**
+ * Breakable prop types (#4 owns their HP, shapes and state). Shops are not in
+ * the level data: the server generates them at each round reset (#83) and
+ * syncs them as props.
+ */
+export type PropKind = "bin" | "bus_shelter" | "car" | "market_stall" | ShopKind;
 
 export interface BoxObstacle extends BoxShape {
   id: string;
@@ -33,7 +45,8 @@ export interface CircleObstacle extends CircleShape {
 /**
  * A place where a breakable prop stands. Only position and type live here;
  * HP, broken state and collision shapes are #4's, keyed by `id`.
- * Collided as `PROP_TYPES[kind]` shapes, intact or broken (see `propCollisionWorld`).
+ * Collided as `PROP_TYPES[kind]` shapes, intact or broken (see `propCollisionWorld`),
+ * unless the slot brings its own `footprint`.
  */
 export interface PropSlot {
   id: string;
@@ -42,6 +55,30 @@ export interface PropSlot {
   z: number;
   /** Rotation around Y, in radians. */
   rotation: number;
+  /**
+   * Its own intact box, local to the prop like the `PROP_TYPES` shapes
+   * (before the rotation), instead of its kind's. A generated shop (#83) has
+   * one. Broken, it follows its kind as usual (a shop: walkable).
+   */
+  footprint?: { halfX: number; halfZ: number };
+}
+
+/**
+ * The street side of a block of buildings (#83): where shops are built in.
+ * The block's building box runs from `face` to `face + depth` away from the
+ * centre line.
+ */
+export interface Facade {
+  /** -1: the left side of the street (negative X); 1: the right. */
+  side: -1 | 1;
+  minZ: number;
+  maxZ: number;
+  /** Distance from the centre line (x = 0) to the street-facing face. */
+  face: number;
+  /** How deep the building is behind its face. */
+  depth: number;
+  /** Building height. */
+  height: number;
 }
 
 /** An item lying on the ground when the march starts (#8: pavés; #15: dog poo, trottinettes). */
@@ -62,6 +99,8 @@ export interface Level {
   boxes: readonly BoxObstacle[];
   circles: readonly CircleObstacle[];
   propSlots: readonly PropSlot[];
+  /** The street side of each building block, where the round's shops are built in (#83). */
+  facades: readonly Facade[];
   /**
    * Where CRS bots appear (#5): ahead of the cortège and in the side streets.
    * Must be clear of obstacles for a CRS and outside the start zone (checked by tests).

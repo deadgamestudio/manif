@@ -5,7 +5,8 @@ import { STREET_LEVEL, type Level, type PropSlot } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
 import { Debris } from "./Debris.tsx";
 import { spawnDebris } from "./debris.ts";
-import { PROP_LOOKS } from "./propVisuals.tsx";
+import { PROP_LOOKS, type LevelPropKind } from "./propVisuals.tsx";
+import { ShopsView } from "./ShopView.tsx";
 import { CHARRED_COLOR } from "../fire/index.ts";
 
 /** How long a hit flashes and wobbles the prop, ms. */
@@ -16,8 +17,9 @@ const FLASH_COLOR = new Color("#ffffff");
 const BLACK = new Color("#000000");
 
 /**
- * Every breakable prop of the level (#4) plus the debris pool. Positions and
- * types come from the shared level; only `hp` and `broken` are synced.
+ * Every breakable prop of the level (#4), the round's shops (#83) and the
+ * debris pool. A level prop's position and type come from the shared level;
+ * `hp`, `broken` and `charred` are synced. A shop is synced whole.
  */
 export function PropsView({ level = STREET_LEVEL }: { level?: Level }) {
   return (
@@ -25,6 +27,7 @@ export function PropsView({ level = STREET_LEVEL }: { level?: Level }) {
       {level.propSlots.map((slot) => (
         <PropView key={slot.id} slot={slot} />
       ))}
+      <ShopsView />
       <Debris />
     </group>
   );
@@ -36,7 +39,8 @@ export function PropsView({ level = STREET_LEVEL }: { level?: Level }) {
  * is in useFrame; React re-renders only when the model swaps.
  */
 function PropView({ slot }: { slot: PropSlot }) {
-  const look = PROP_LOOKS[slot.kind];
+  // The level holds no shop (#83: ShopsView draws them).
+  const look = PROP_LOOKS[slot.kind as LevelPropKind];
   const group = useRef<Group>(null);
   const [broken, setBroken] = useState(() => net.getProp(slot.id)?.broken ?? false);
   const sprayedAt = useRef<number | undefined>(undefined);

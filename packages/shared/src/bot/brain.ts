@@ -12,6 +12,11 @@
  *
  * It never picks up or throws a teammate and never lights a fire: those stay
  * players' choices, and the room gives bots no way to do them.
+ *
+ * While the street is calm (#98, `BotWorld.calm`) a bot never starts the
+ * trouble: it only goes for a CRS that is dragging someone (to free them),
+ * so a cortège of bots alone keeps the street calm until the march is far
+ * enough along to heat it up.
  */
 import { detectStuck, steerTo, type NavContext } from "../crs/index.js";
 import { PlayerStatus } from "../health/index.js";
@@ -111,6 +116,8 @@ export interface BotSeenCrs extends Vec2 {
   down: boolean;
   /** The protester it is dragging, or null. */
   grabbing: string | null;
+  /** An LBD's laser on a protester (#73): their id, or absent. */
+  aimingAt?: string;
 }
 
 /** A round thing: a tear gas cloud, or a hurdle (an intact bin, a fallen CRS). */
@@ -141,6 +148,13 @@ export interface BotWorld {
   items: readonly Vec2[];
   gas: readonly BotCircle[];
   hurdles: readonly BotCircle[];
+  /** Jeun-Lac Moluchan (#85), while his ring is on: bots drift a little towards him. Absent or null: not there. */
+  moluchan?: Vec2 | null;
+  /**
+   * The street is still calm (#98): bots don't provoke, they only hit or throw
+   * at a CRS that is dragging someone. Absent or false: hot, today's bots.
+   */
+  calm?: boolean;
 }
 
 /** What the bot does this think. The room checks every action like a player's (control, cooldowns). */
@@ -197,6 +211,10 @@ const dist = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.z - b.z);
  * Where a bot keeps in the cortège: its lead past the leading free human (or,
  * with none free, the leading free protester, or itself), on its own lane,
  * never past the middle of the Préfecture zone.
+ *
+ * With Moluchan's ring on (#85) and him within BOT.moluchanRange of the bot,
+ * that spot is pulled BOT.moluchanPull of the way towards him: each bot keeps
+ * most of its own lead and lane, so they gather round him without piling up.
  */
 export function marchGoal(mind: BotMind, world: BotWorld): Vec2 {
   const { level } = world;
@@ -218,7 +236,13 @@ export function marchGoal(mind: BotMind, world: BotWorld): Vec2 {
   // Sideways: the street's left-right, perpendicular to its axis.
   const sx = -(to.z - from.z) / len;
   const sz = (to.x - from.x) / len;
-  return { x: from.x + (to.x - from.x) * t + sx * mind.lane, z: from.z + (to.z - from.z) * t + sz * mind.lane };
+  const goal = { x: from.x + (to.x - from.x) * t + sx * mind.lane, z: from.z + (to.z - from.z) * t + sz * mind.lane };
+  const m = world.moluchan;
+  if (m && dist(world.self, m) <= BOT.moluchanRange) {
+    goal.x += (m.x - goal.x) * BOT.moluchanPull;
+    goal.z += (m.z - goal.z) * BOT.moluchanPull;
+  }
+  return goal;
 }
 
 /** What catches the bot's eye right now, before the reaction delay. March when nothing does (or the dice say no). */
@@ -242,10 +266,14 @@ export function chooseBotPlan(mind: BotMind, world: BotWorld): BotPlan {
       return { kind: "flee", x: cloud.x + dx * (cloud.r + 1.5), z: cloud.z + dz * (cloud.r + 1.5) };
     }
   }
-  // Something in hand: at the nearest standing CRS in reach, else keep it and march.
+  const calm = world.calm === true;
+  // Something in hand: at the nearest standing CRS in reach (calm, #98: only one dragging someone), else keep it and march.
   if (self.carrying) {
     let best: BotSeenCrs | undefined;
-    for (const c of world.crs) if (!c.down && dist(self, c) <= BOT.throwRange && (!best || dist(self, c) < dist(self, best))) best = c;
+    for (const c of world.crs) {
+      if (c.down || (calm && c.grabbing === null) || dist(self, c) > BOT.throwRange) continue;
+      if (!best || dist(self, c) < dist(self, best)) best = c;
+    }
     return best ? { kind: "throw", id: best.id } : MARCH;
   }
   // A grabbed teammate: humans first (they count as half as far), then fellow bots.
@@ -264,15 +292,15 @@ export function chooseBotPlan(mind: BotMind, world: BotWorld): BotPlan {
   if (mate && rollFor(mind, `rescue:${mate.id}`, mate.bot ? BOT.rescueChanceBot : BOT.rescueChanceHuman, now, random)) {
     return { kind: "rescue", id: mate.id };
   }
-  // A CRS dragging someone nearby, or right on a teammate (or on the bot).
+  // A CRS dragging someone nearby, or right on a teammate (or on the bot). Calm (#98): only one dragging someone.
   let foe: BotSeenCrs | undefined;
   let foeD = Infinity;
   for (const c of world.crs) {
     if (c.down) continue;
     const d = dist(self, c);
     if (d > BOT.helpRange) continue;
-    let busy = c.grabbing !== null || d <= BOT.brawlRange;
-    if (!busy) {
+    let busy = c.grabbing !== null || (!calm && d <= BOT.brawlRange);
+    if (!busy && !calm) {
       for (const p of world.protesters) {
         if (p.id !== mind.id && p.status === PlayerStatus.Free && dist(p, c) <= BOT.brawlRange) {
           busy = true;
@@ -353,6 +381,10 @@ export function thinkBot(mind: BotMind, world: BotWorld): BotIntent {
   }
   // A CRS right there (not one it is going for), or gas: maybe a dodge, along the walk.
   if (self.gassed && mind.plan.kind === "flee" && rollFor(mind, "dodge:gas", BOT.dodgeChance, now, random)) out.dodge = true;
+  // An LBD's laser on it (#73): maybe a dodge, which foils the shot.
+  for (const c of world.crs) {
+    if (c.aimingAt === mind.id && !c.down && rollFor(mind, `dodge:aim:${c.id}`, BOT.dodgeChance, now, random)) out.dodge = true;
+  }
   for (const c of world.crs) {
     if (c.down || c.grabbing !== null || dist(self, c) - c.radius > BOT.dodgeRange) continue;
     if (mind.plan.kind === "fight" && mind.plan.id === c.id) continue;

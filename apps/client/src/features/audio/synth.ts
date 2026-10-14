@@ -45,6 +45,55 @@ function hop(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
   return 0.24;
 }
 
+/**
+ * A CRS LBD taking aim (#73): quick beeps climbing in pitch and coming
+ * closer together, like a toy locking on. About as long as the aim.
+ */
+function charge(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
+  const beeps = 7;
+  let t = t0;
+  for (let i = 0; i < beeps; i++) {
+    const f = 660 * Math.pow(2, i / (beeps - 1));
+    const length = 0.045;
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(f, t);
+    osc.frequency.linearRampToValueAtTime(f * 1.06, t + length);
+    osc.connect(envelope(ctx, out, t, length, 0.6, 0.005));
+    osc.start(t);
+    osc.stop(t + length + 0.02);
+    t += length + 0.11 * (1 - i / beeps);
+  }
+  return t - t0;
+}
+
+/**
+ * The LBD's rubber ball landing (#73): a cartoon boing, a quick swoop up
+ * then a wobbling tone settling down, the wobble dying out. Slapstick only.
+ */
+function boing(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
+  const seconds = 0.6;
+  const osc = ctx.createOscillator();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(140, t0);
+  osc.frequency.exponentialRampToValueAtTime(520, t0 + 0.05);
+  osc.frequency.exponentialRampToValueAtTime(300, t0 + seconds);
+  // The wobble: a fast vibrato whose depth dies away.
+  const lfo = ctx.createOscillator();
+  const depth = ctx.createGain();
+  lfo.frequency.setValueAtTime(16, t0);
+  lfo.frequency.linearRampToValueAtTime(9, t0 + seconds);
+  depth.gain.setValueAtTime(110, t0 + 0.05);
+  depth.gain.exponentialRampToValueAtTime(4, t0 + seconds);
+  lfo.connect(depth).connect(osc.frequency);
+  osc.connect(envelope(ctx, out, t0, seconds, 1, 0.008));
+  lfo.start(t0);
+  osc.start(t0);
+  lfo.stop(t0 + seconds + 0.02);
+  osc.stop(t0 + seconds + 0.02);
+  return seconds;
+}
+
 /** The sad trombone of a lost march: four notes down, the last one wobbling. */
 function sadTrombone(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
   const filter = ctx.createBiquadFilter();
@@ -132,6 +181,66 @@ function megaphone(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
   return t + 0.1 - t0;
 }
 
+/**
+ * Jeun-Lac Moluchan turning up (#85): his megaphone squealing with feedback
+ * as it switches on, then a short chirpy bullhorn "hé ho !" (two buzzy
+ * syllables, no words, nobody's voice). About a second.
+ */
+function moluchan(ctx: BaseAudioContext, out: AudioNode, t0: number): number {
+  // The feedback squeal: a high whistle swelling and wavering, then cut.
+  const squeal = ctx.createOscillator();
+  squeal.type = "sine";
+  squeal.frequency.setValueAtTime(2300, t0);
+  squeal.frequency.exponentialRampToValueAtTime(3100, t0 + 0.38);
+  const waver = ctx.createOscillator();
+  const waverDepth = ctx.createGain();
+  waver.frequency.value = 11;
+  waverDepth.gain.value = 45;
+  waver.connect(waverDepth).connect(squeal.frequency);
+  const squealAmp = ctx.createGain();
+  squealAmp.gain.setValueAtTime(0.0001, t0);
+  squealAmp.gain.exponentialRampToValueAtTime(0.5, t0 + 0.3);
+  squealAmp.gain.linearRampToValueAtTime(0, t0 + 0.42);
+  squeal.connect(squealAmp).connect(out);
+  waver.start(t0);
+  squeal.start(t0);
+  waver.stop(t0 + 0.45);
+  squeal.stop(t0 + 0.45);
+
+  // The bullhorn: a buzzy tone through the same narrow, crackly band as the cortège's megaphones.
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = 1500;
+  band.Q.value = 1.6;
+  const shaper = ctx.createWaveShaper();
+  shaper.curve = distortion();
+  shaper.connect(band).connect(out);
+  const voice = ctx.createOscillator();
+  voice.type = "sawtooth";
+  const amp = ctx.createGain();
+  amp.gain.setValueAtTime(0, t0);
+  voice.connect(amp).connect(shaper);
+  // "Hé": up and bright. "Ho !": higher still, held, then dropping off.
+  const syllables: readonly [from: number, to: number, start: number, length: number][] = [
+    [230, 330, 0.5, 0.16],
+    [300, 420, 0.72, 0.28],
+  ];
+  for (const [from, to, start, length] of syllables) {
+    const t = t0 + start;
+    voice.frequency.setValueAtTime(from, t);
+    voice.frequency.exponentialRampToValueAtTime(to, t + length * 0.4);
+    voice.frequency.exponentialRampToValueAtTime(to * 0.8, t + length);
+    amp.gain.setValueAtTime(0, t);
+    amp.gain.linearRampToValueAtTime(0.9, t + 0.02);
+    amp.gain.setValueAtTime(0.9, t + length * 0.7);
+    amp.gain.linearRampToValueAtTime(0, t + length);
+  }
+  const end = t0 + 0.72 + 0.28;
+  voice.start(t0 + 0.5);
+  voice.stop(end + 0.05);
+  return end + 0.05 - t0;
+}
+
 /** Builds sound `name` into `out` at `t0`; returns its length in seconds. */
 export function synthesize(ctx: BaseAudioContext, name: SynthSoundName, out: AudioNode, t0: number): number {
   switch (name) {
@@ -161,5 +270,11 @@ export function synthesize(ctx: BaseAudioContext, name: SynthSoundName, out: Aud
       return sadTrombone(ctx, out, t0);
     case "megaphone":
       return megaphone(ctx, out, t0);
+    case "moluchan":
+      return moluchan(ctx, out, t0);
+    case "charge":
+      return charge(ctx, out, t0);
+    case "boing":
+      return boing(ctx, out, t0);
   }
 }

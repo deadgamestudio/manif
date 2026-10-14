@@ -11,6 +11,7 @@ import {
   type DebugRoundPayload,
 } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
+import { actionFor, controls } from "../controls/index.ts";
 
 const KEYS: Record<string, DebugKnockbackPayload> = {
   /** Heavy hit on yourself: you fly forward and fall. */
@@ -35,12 +36,35 @@ const ROUND_KEYS: Record<string, DebugRoundPayload> = {
   KeyT: { action: "time", seconds: 10 },
   /** Throw water around you (#16), standing in for the pompiers' hose (#17): fires and burning bodies within 4 go out. */
   KeyY: { action: "water", radius: 4 },
+  /** Jeun-Lac Moluchan (#85) turns up 3 m in front of you, whatever the roll. */
+  KeyO: { action: "moluchan", distance: 3 },
+  /** The street turns hot now (#98): the CRS stop escorting and chase anyone. */
+  KeyU: { action: "hot" },
 };
+
+const DEBUG_CODES = [...Object.keys(KEYS), ...Object.keys(HEALTH_KEYS), ...Object.keys(ROUND_KEYS)];
+
+/** A debug key the player bound to an action (#72) is theirs: say so in the console, once per keymap. */
+let warnedFor: unknown = null;
+function warnCollisions() {
+  const km = controls.get();
+  if (km === warnedFor) return;
+  warnedFor = km;
+  for (const code of DEBUG_CODES) {
+    const action = actionFor(km, code);
+    if (action) console.warn(`[debug] ${code} est lié à « ${action} » dans les touches : la touche de debug est ignorée.`);
+  }
+}
 
 export function DebugKnockbackKeys() {
   useEffect(() => {
+    warnCollisions();
+    return controls.subscribe(warnCollisions);
+  }, []);
+
+  useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
-      if (e.repeat) return;
+      if (e.repeat || controls.isCapturing() || actionFor(controls.get(), e.code)) return;
       const knock = KEYS[e.code];
       const health = HEALTH_KEYS[e.code];
       const round = ROUND_KEYS[e.code];
@@ -57,7 +81,7 @@ export function DebugKnockbackKeys() {
   return (
     <div className="hud-debug">
       debug : K te renverse · J te pousse · L renverse le plus proche · H te blesse (−{DEBUG_DAMAGE}) · G te fait
-      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour
+      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan
     </div>
   );
 }

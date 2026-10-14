@@ -1,4 +1,4 @@
-import { Room, type Client } from "@colyseus/core";
+import { Room, ServerError, type AuthContext, type Client } from "@colyseus/core";
 import {
   CARRY_DROP_PUSH,
   CARRY_SPEED_FACTOR,
@@ -37,7 +37,6 @@ import {
   isItemKind,
   pickRescueTarget,
   propShape,
-  levelWorld,
   meleeHits,
   nameOrDefault,
   normalizeMove,
@@ -48,6 +47,19 @@ import {
   RoundResult,
   CrsKind,
   WAVE_BRAVM_AHEAD,
+  WAVE_LBD_AHEAD,
+  CRS_STATS,
+  Offenders,
+  addOffence,
+  createMood,
+  heatUp,
+  stepMood,
+  syncedTension,
+  type CalmStreet,
+  type Offence,
+  type BallBody,
+  type LbdImpactEvent,
+  type LbdShotEvent,
   crsRadius,
   disguiseName,
   unitStageAt,
@@ -98,6 +110,7 @@ import {
   type ThrowPayload,
   type CrsHitResult,
   type CrsHost,
+  MOLUCHAN_ID,
   type ProtesterView,
   type ShoveEvent,
   type SwingEvent,
@@ -154,8 +167,8 @@ import { MeleeCooldowns } from "../features/melee/index.js";
 import { DodgeCooldowns } from "../features/dodge/index.js";
 import { JumpCooldowns } from "../features/jump/index.js";
 import { Player } from "../features/player/index.js";
-import { Props } from "../features/prop/index.js";
-import { CrsSquad } from "../features/crs/index.js";
+import { DEBUG_SHOP_ENABLED, Props, RoomLoot, debugShopSpot, parseDebugShop } from "../features/prop/index.js";
+import { CrsSquad, LbdShots } from "../features/crs/index.js";
 import { Rescues, Struggles } from "../features/rescue/index.js";
 import { Throwables } from "../features/throwable/index.js";
 import { Gas } from "../features/gas/index.js";
@@ -165,19 +178,36 @@ import { FireBrigade, type BrigadeHost, type HoseTarget } from "../features/pomp
 import { DEBUG_ROUND_ENABLED, IDLE_BOARD, RoundStats, boardKey, parseDebugRound, stepBoard, taintsRound, type BoardThrottle } from "../features/round/index.js";
 import { bankEntries, hashToken, newDeviceToken, scoreStore } from "../features/score/index.js";
 import { HealAuras } from "../features/archetype/index.js";
+import { MoluchanEvent } from "../features/moluchan/index.js";
 import { Bots, DIAG_ENABLED, TickStats, leftovers } from "../features/bot/index.js";
+import { CreateLimit, DEFAULT_CREATE_LIMIT, UNKNOWN_VISITOR, maxRoomsFromEnv, visitorKey } from "../features/lobby/index.js";
+import { MessageBudget, gateMessages } from "../features/net/index.js";
 import { StreetState } from "./state.js";
+
+/**
+ * The lobby creation budget, shared by every street on this process: per
+ * visitor, plus a cap on lobbies alive at once (MANIF_MAX_ROOMS). Joining a
+ * lobby never counts.
+ */
+const createLimit = new CreateLimit({ ...DEFAULT_CREATE_LIMIT, maxRooms: maxRoomsFromEnv(process.env.MANIF_MAX_ROOMS) });
+/**
+ * Where onAuth leaves the visitor key for onCreate. Written on every request,
+ * so whatever a client puts under this name is overwritten.
+ */
+const VISITOR_OPTION = "__visitor";
+/** HTTP statuses for a refused creation. Never 520-527: Cloudflare would replace the answer. */
+const TOO_MANY_LOBBIES = 429;
+const SERVER_FULL = 503;
+/** How long a seat is held before its client connects. A new lobby nobody reaches is disposed then. */
+const SEAT_RESERVATION_SECONDS = 10;
+/** All messages one client may send in a second before Colyseus disconnects it (see `maxMessagesPerSecond`). */
+const MAX_MESSAGES_PER_SECOND = 400;
+/** Close code for a client disconnected for flooding (4011-4999 are free for the app). */
+const CLOSE_TOO_MANY_MESSAGES = 4029;
 
 // The level is static shared data, imported by the client too. It is not synced.
 const LEVEL = STREET_LEVEL;
-/** What blocks a swing: the static walls and obstacles only, not props (#4). */
-const SWING_OBSTACLES = levelWorld(LEVEL);
 const NO_INPUT: MoveInput = { x: 0, z: 0 };
-/** The props that can ever burn (#16), with their shape: what a held interact may light. */
-const FLAMMABLE: readonly LightableView[] = LEVEL.propSlots.flatMap((slot) => {
-  const shape = PROP_TYPES[slot.kind].flammable ? propShape(slot, false) : null;
-  return shape ? [{ id: slot.id, shape }] : [];
-});
 
 /**
  * One lobby and its street, round after round (#12): `waiting` (the lobby
@@ -256,19 +286,25 @@ export class StreetRoom extends Room<{ state: StreetState }> {
 
   /**
    * Police bots (#5): full bot state server-side, synced fields in `state.crs`.
-   * They walk the same collision world as the protesters.
+   * They walk the same collision world as the protesters, and go into the
+   * shop rooms (#84, `props.rooms`) after them.
    */
   private crs = new CrsSquad(LEVEL, this.props.world, this.state.crs, undefined, (id, res) => {
     // Riders knocked off a bike, the wreck skidding away (#13): every client tips them the right way.
     if (res.strength === 0) return;
     const event: ImpulseEvent = { id, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
     this.broadcast(ServerMessage.Impulse, event);
-  });
+  }, this.props.rooms);
   /**
    * Throwables (#8): items on the ground and in flight, synced as
    * `state.items` and `state.projectiles`. The room applies what a hit does.
    */
   private throwables = new Throwables(this.state.items, this.state.projectiles);
+  /** The loot inside broken shops (#84), refilled once after it has all been taken. Server-only; the items are ordinary ground items. */
+  private roomLoot = new RoomLoot(
+    (kind, x, z) => this.throwables.drop(kind, x, z),
+    (id) => this.throwables.ground.get(id) !== undefined,
+  );
   /**
    * Tear gas (#7): canisters and clouds, synced as `state.canisters` and
    * `state.gas`, and who is coughing. The room applies the damage and the slow.
@@ -287,9 +323,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * in the CRS squad (`CrsKind.Pompier`), so they count towards MAX_CRS.
    * The room applies what their water does.
    */
-  private brigade = new FireBrigade(LEVEL, this.crs, this.props.world, SWING_OBSTACLES, this.state.trucks);
+  private brigade = new FireBrigade(LEVEL, this.crs, this.props.world, this.props.staticWorld, this.state.trucks);
   /** Scratch for the hose (#17), reused every tick. */
   private hoseTargets: HoseTarget[] = [];
+  /** Jeun-Lac Moluchan (#85): the roll, his visit and his ring. Shown to the CRS only, never a player. */
+  private moluchan = new MoluchanEvent(LEVEL, this.state.moluchan, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`));
   /** The room as the brigade sees it (#17). */
   private brigadeHost: BrigadeHost = {
     fires: () => this.fires.burning(),
@@ -323,13 +361,29 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   /** Scratch for the fire actions (#16), reused every tick. */
   private burningViews: BurningView[] = [];
   private lightable: LightableView[] = [];
+  /** Who broke, hit or threw something lately (#73): the LBD only aims at them. Server-only. */
+  private offenders = new Offenders();
+  /**
+   * The street's mood (#98): calm until the tension boils over or the front
+   * gets far enough, then hot for the rest of the round. Mirrored into
+   * `state.hot` and `state.tension`; the CRS see it as `calmStreet`.
+   */
+  private mood = createMood();
+  /** What the CRS are told while calm (#98), reused every tick with the front updated; null once hot. */
+  private calmStreet: CalmStreet = { level: LEVEL, front: 0 };
+  /** The LBD's balls in flight (#73), and the round's shot counts. Clients get the shot and impact as events. */
+  private lbdShots = new LbdShots();
+  /** Scratch for the balls (#73), reused every tick: what stops them and whom they can hit. */
+  private ballBlockers: BallBody[] = [];
+  private ballTargets: BallBody[] = [];
   /** What the bots see of each protester, reused across ticks (see `crsHost`). */
   private protesterViews = new Map<string, ProtesterView>();
   /** The room as the bots see it: effects on protesters go through the same hooks as every other system. */
   private crsHost: CrsHost = {
-    protesters: () => this.allProtesterViews(),
-    protester: (id) => this.protesterView(id),
-    canBeHurt: (id) => this.healths.canBeHurt(id, this.now),
+    // #85: Moluchan too, a priority target the baton never touches.
+    protesters: () => this.crsProtesterViews(),
+    protester: (id) => (id === MOLUCHAN_ID ? this.moluchan.view() : this.protesterView(id)),
+    canBeHurt: (id) => id !== MOLUCHAN_ID && this.healths.canBeHurt(id, this.now),
     batonHit: (by, id, dirX, dirZ, amount, impulse) => {
       const swing: SwingEvent = { id: by };
       this.broadcast(ServerMessage.Swing, swing);
@@ -347,9 +401,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const swing: SwingEvent = { id: by };
       this.broadcast(ServerMessage.Swing, swing);
     },
-    grab: (id, duration) => this.grabPlayer(id, duration),
+    // #85: grabbing Moluchan ends his visit; nobody to drag, so the bot is told no and goes back to work.
+    grab: (id, duration) => {
+      if (id !== MOLUCHAN_ID) return this.grabPlayer(id, duration);
+      this.moluchan.grab(this.now);
+      return false;
+    },
     // #70: checked before a wind-up, so a bot never winds up on someone it can't grab.
-    canGrab: (id) => this.canBeGrabbed(id),
+    canGrab: (id) => (id === MOLUCHAN_ID ? this.moluchan.view() !== undefined : this.canBeGrabbed(id)),
     // #70: the van reached; arrested on the next tick, like a drag that ran out of time.
     arrest: (id) => {
       const player = this.state.players.get(id);
@@ -379,6 +438,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const swing: SwingEvent = { id: by };
       this.broadcast(ServerMessage.Swing, swing);
       return true;
+    },
+    // The LBD (#73): the bot aimed from the room's own positions; the room flies the ball (`stepLbdBalls`).
+    fireLbd: (by, from, dirX, dirZ) => {
+      const stats = this.crs.get(by)?.stats.lbd;
+      if (!stats) return;
+      const ball = this.lbdShots.fire(by, from, dirX, dirZ, stats);
+      const event: LbdShotEvent = { id: ball.id, by, x: ball.x, z: ball.z, dirX, dirZ };
+      this.broadcast(ServerMessage.LbdShot, event);
     },
   };
   /**
@@ -412,8 +479,17 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private joinCounter = 0;
   /** When each player's last rename was processed (#61), wall-clock ms, for the rate limit. Server-only. */
   private lastRename = new Map<string, number>();
+  /** Per-client, per-type message budget: excess is dropped, a client that keeps flooding is disconnected. */
+  private messageBudget = new MessageBudget();
+  /**
+   * A hard ceiling on all messages from one client in a second, checked by
+   * Colyseus before decoding them: past it the client is disconnected. Far
+   * above the per-type budget, so only a flood reaches it.
+   */
+  override maxMessagesPerSecond = MAX_MESSAGES_PER_SECOND;
 
-  override messages = {
+  // Every handler runs only within the sender's budget (see `allowMessage`).
+  override messages = gateMessages({
     // Input only: the client says where it wants to go, the server moves it.
     // Re-normalize so a tampered client can't move faster than PLAYER_SPEED.
     // Still recorded while knocked down or not free, so the held direction applies on getting up
@@ -565,6 +641,20 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       },
     }),
 
+    // DEBUG (#84): dev-only, break a shop and step into its room.
+    ...(DEBUG_SHOP_ENABLED && {
+      [ClientMessage.DebugShop]: (client: Client, message: unknown) => {
+        const player = this.state.players.get(client.sessionId);
+        if (this.state.phase !== Phase.Marching || !player) return;
+        const spot = debugShopSpot(this.props.shops, this.props.rooms, parseDebugShop(message), player);
+        if (!spot) return;
+        this.roundTainted = true;
+        if (this.props.hp(spot.id) > 0) this.damageProp(client.sessionId, spot.id, 1000, spot.x, spot.z);
+        this.bodies.place(client.sessionId, player, spot.x, spot.z);
+        player.rotation = spot.rotation;
+      },
+    }),
+
     // DEBUG (#12): dev-only jump down the street or round timer cut, to test waves, the win and the timeout.
     ...(DEBUG_ROUND_ENABLED && {
       [ClientMessage.DebugRound]: (client: Client, message: unknown) => {
@@ -583,6 +673,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
           this.crs.clear();
           this.brigade.clear();
           this.round.fired = ROUND_WAVES.map(() => true);
+        } else if (cmd?.action === "hot") {
+          // #98: the street turns hot now (not the opposite of `calm`, which removes the CRS).
+          if (heatUp(this.mood)) this.turnedHot("debug");
+          this.syncMood();
         } else if (cmd?.action === "fallen") {
           const self = this.state.players.get(client.sessionId);
           if (self) {
@@ -598,6 +692,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
             // #13: any unit type; a BAC with its disguise (and a set blend time, for scripted tests).
             if (cmd.kind === CrsKind.Bac) this.crs.spawnBac(x, z, this.pickDisguiseName(), cmd.blend);
             else if (cmd.kind === CrsKind.BravM) this.crs.spawnBravm(x, z);
+            // #73: within MAX_LBD, like a wave.
+            else if (cmd.kind === CrsKind.Lbd) this.crs.spawnLbd(x, z);
             // #17: pompiers come off a truck, never on their own.
             else if (cmd.kind === CrsKind.Pompier) return;
             else this.crs.spawn(x, z);
@@ -606,11 +702,56 @@ export class StreetRoom extends Room<{ state: StreetState }> {
           const self = this.state.players.get(client.sessionId);
           if (self) this.extinguishAt(self.x, self.z, cmd.radius);
         } else if (cmd?.action === "brigade") this.brigade.tune(cmd);
+        // #85: Moluchan now, in front of you or by his usual way in.
+        else if (cmd?.action === "moluchan") {
+          const self = this.state.players.get(client.sessionId);
+          const d = cmd.distance;
+          const at = self && d !== undefined ? resolveCircle(this.props.world, self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d, PLAYER_RADIUS) : undefined;
+          this.moluchan.force(this.moluchanTick(0), at, cmd.seconds);
+        }
       },
     }),
-  };
+  }, (client: Client, type: string) => this.allowMessage(client, type));
 
-  override onCreate() {
+  /** Is this message within the sender's budget? Over it: dropped; far over, again and again: disconnected. */
+  private allowMessage(client: Client, type: string): boolean {
+    const verdict = this.messageBudget.take(client.sessionId, type, Date.now());
+    if (verdict === "ok") return true;
+    if (verdict === "kick") {
+      console.log(`[street ${this.roomId}] ${client.sessionId} disconnected: too many messages`);
+      this.messageBudget.remove(client.sessionId);
+      client.leave(CLOSE_TOO_MANY_MESSAGES);
+    }
+    return false;
+  }
+
+  /** Who created this lobby, for the creation budget. Null until the creation is accepted. */
+  private creator: string | null = null;
+
+  /**
+   * Runs on every matchmaking request (create and join), before any room
+   * exists: it only notes who is asking, from the proxy headers. onCreate
+   * then decides whether that visitor may open a lobby.
+   */
+  static override async onAuth(_token: string, options: unknown, context: AuthContext): Promise<unknown> {
+    if (!options || typeof options !== "object" || Array.isArray(options)) return false;
+    (options as Record<string, unknown>)[VISITOR_OPTION] = visitorKey(context.headers);
+    return true;
+  }
+
+  override onCreate(options?: Record<string, unknown>) {
+    // Before anything else: too many lobbies from this visitor, or on the whole server.
+    const raw = options?.[VISITOR_OPTION];
+    const visitor = typeof raw === "string" && raw ? raw : UNKNOWN_VISITOR;
+    const check = createLimit.tryOpen(visitor, Date.now());
+    if (!check.ok) {
+      console.log(`[street] create refused (${check.reason}), ${createLimit.live} lobbies alive`);
+      throw check.reason === "server"
+        ? new ServerError(SERVER_FULL, "server full")
+        : new ServerError(TOO_MANY_LOBBIES, "too many lobbies");
+    }
+    this.creator = visitor;
+    this.seatReservationTimeout = SEAT_RESERVATION_SECONDS;
     // Invite only: reachable by joinById(code), never by joinOrCreate/join.
     void this.setPrivate(true);
     // A fresh room looks exactly like the street after a reset (#12).
@@ -642,7 +783,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     );
   }
 
+  override onDispose() {
+    if (this.creator !== null) createLimit.closed(this.creator);
+    this.creator = null;
+  }
+
   override onLeave(client: Client) {
+    this.messageBudget.remove(client.sessionId);
     this.removePlayer(client.sessionId);
     console.log(`[street ${this.roomId}] leave ${client.sessionId}`);
   }
@@ -670,6 +817,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.rescues.remove(id);
     this.struggles.end(id);
     this.batonDowned.delete(id);
+    this.offenders.forget(id);
     this.bodies.remove(id);
     // Systems that point at a player see unknown ids as no-ops; the CRS let go and look elsewhere at once (#59).
     this.crs.forget(id);
@@ -831,7 +979,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     for (const c of this.crs.all) {
       // Out, a pompier (on nobody's side), or a BAC still in disguise (a bot is fooled like anyone): not a foe.
       if (c.status === CrsStatus.Out || c.kind === CrsKind.Pompier || !c.revealed) continue;
-      crs.push({ id: c.id, x: c.body.x, z: c.body.z, radius: crsRadius(c.kind, c.mount), down: isDown(c.body), grabbing: c.status === CrsStatus.Grabbing ? c.grabbedId : null });
+      const seen: BotSeenCrs = { id: c.id, x: c.body.x, z: c.body.z, radius: crsRadius(c.kind, c.mount), down: isDown(c.body), grabbing: c.status === CrsStatus.Grabbing ? c.grabbedId : null };
+      // #73: an LBD's laser, so the bot under it may dodge.
+      if (c.aimId !== null) seen.aimingAt = c.aimId;
+      crs.push(seen);
     }
     const items = this.botItems;
     items.length = 0;
@@ -857,18 +1008,25 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       items,
       gas,
       hurdles,
+      // #85: bots drift a little towards Moluchan's ring.
+      moluchan: this.moluchan.aura,
+      // #98: while calm, bots don't start the trouble.
+      calm: !this.mood.hot,
     };
   }
 
   /** Waiting -> marching (#12), everyone at once from a clean street, with the opening wave. */
   private startMarch() {
-    this.resetStreet();
+    // The shops stay where the lobby showed them (#83): only the end of a round lays out a new street.
+    this.resetStreet(false);
     if (!startRound(this.round)) return;
     // #59: the empty seats fill with bots, on a clean street (resetStreet placed the humans).
     this.removeBots();
     this.fillWithBots();
     // #17: the dev-only brigade tuning lasts one round.
     this.brigade.resetTuning();
+    // #85: the roll for Moluchan's visit this round.
+    this.moluchan.startRound();
     this.roundHeld = false;
     this.roundTainted = false;
     this.roundStats.clear();
@@ -886,24 +1044,33 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * or grabs; props whole; the level's pavés back on the ground; every
    * protester in the start zone with full HP, clear of the props put back, and
    * no cooldown, rescue or held input left over. Used when a round ends and
-   * again when the next one starts.
+   * again when the next one starts. `relayout`: build new shops (#83), not
+   * when a march starts from the lobby's street.
    */
-  private resetStreet() {
+  private resetStreet(relayout = true) {
     this.rescues.clear();
     this.struggles.clear();
     this.batonDowned.clear();
+    // #73: nobody is an offender yet, no ball in the air.
+    this.offenders.clear();
+    // #98: every round starts calm.
+    this.mood = createMood();
+    this.lbdShots.clear();
     // Nobody carried or flying (#11).
     this.carry.clear();
-    this.props.reset(this.state.props);
+    this.props.reset(this.state.props, relayout);
     this.fires.reset();
     this.crs.clear();
     // No fire truck or pompier left (#17).
     this.brigade.clear();
+    // #85: Moluchan gone, no visit planned (startMarch rolls the next one).
+    this.moluchan.clear();
     this.crs.reinforceTo = 0;
     // No fire left for the bots to avoid; rebuilds their grid for the props put back.
     this.crs.setHazards(null);
     this.fires.takeChanged();
     this.throwables.reset(LEVEL.items);
+    this.roomLoot.reset();
     // Dog poo (#15): nobody remembers slipping.
     this.slips.clear();
     this.gas.reset();
@@ -928,6 +1095,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     });
     this.front = 0;
     this.state.progress = 0;
+    this.syncMood();
   }
 
   /**
@@ -968,11 +1136,16 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     for (const pt of waveChaserPoints(LEVEL, this.front, stage.bravm, people, CRS_SPAWN_CLEARANCE, WAVE_BRAVM_AHEAD)) {
       if (this.crs.spawnBravm(pt.x, pt.z)) bikes++;
     }
+    // The LBD (#73), from about its shooting distance ahead; MAX_LBD caps how many are out at once.
+    let lbds = 0;
+    for (const pt of waveChaserPoints(LEVEL, this.front, stage.lbd, people, CRS_SPAWN_CLEARANCE, WAVE_LBD_AHEAD)) {
+      if (this.crs.spawnLbd(pt.x, pt.z)) lbds++;
+    }
     let spawned = 0;
     for (const pt of waveChaserPoints(LEVEL, this.front, chasers, people, CRS_SPAWN_CLEARANCE)) {
       if (this.crs.spawn(pt.x, pt.z)) spawned++;
     }
-    const extra = bacs + bikes > 0 ? ` + ${bacs} BAC + ${bikes} BRAV-M` : "";
+    const extra = bacs + bikes + lbds > 0 ? ` + ${bacs} BAC + ${bikes} BRAV-M + ${lbds} LBD` : "";
     console.log(`[street ${this.roomId}] wave at ${wave.at}: ${spawned} chasers${line}${extra} (${this.crs.size} bots)`);
   }
 
@@ -1028,6 +1201,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   private endRound() {
     this.rescues.clear();
+    // #73: how often an LBD hit turned into a grab, for tuning.
+    const lbd = this.lbdShots.summary();
+    if (lbd) console.log(`[street ${this.roomId}] lbd: ${lbd}`);
     const won = this.round.result === RoundResult.Won;
     this.state.players.forEach((p, id) => {
       const arrived = p.status === PlayerStatus.Free && inRect(LEVEL.destination, p.x, p.z);
@@ -1214,6 +1390,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (!this.healths.grab(id, player, this.now, drag)) return false;
     // A grabbed carrier drops their teammate at once.
     this.endCarry(id);
+    // #73: counted when an LBD hit led to it.
+    this.lbdShots.noteGrab(id, this.now);
     return true;
   }
 
@@ -1233,7 +1411,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private struggle(id: string) {
     const player = this.state.players.get(id);
     if (!player || player.status !== PlayerStatus.Grabbed) return;
-    if (this.struggles.press(id, this.now)) this.breakFree(id);
+    // #85: inside Moluchan's ring, each press counts for more.
+    if (this.struggles.press(id, this.now, this.moluchan.struggleAt(player))) this.breakFree(id);
     else player.struggle = this.struggles.percent(id);
   }
 
@@ -1311,6 +1490,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const healer = target ? bestHealer(target, healers) : null;
       if (healer) this.roundStats.add(healer, "hpHealed", given);
     }
+    // #85: Moluchan's ring heals on top (the rates add up), and scores for nobody.
+    for (const [id, hp] of this.moluchan.heals(targets, dt)) {
+      const player = this.state.players.get(id);
+      if (player) this.healths.heal(id, player, hp, this.now);
+    }
   }
 
   /** May act (attack #4, throw and pick up #8, dodge #9, rescue #10): free, not knocked down and not carried (#11). */
@@ -1337,14 +1521,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (swinger) this.broadcast(ServerMessage.Swing, swing, { except: swinger });
     else this.broadcast(ServerMessage.Swing, swing);
 
-    for (const hit of meleeHits(player, this.props.targets(), SWING_OBSTACLES)) {
+    for (const hit of meleeHits(player, this.props.targets(), this.props.staticWorld)) {
       this.damageProp(id, hit.id, MELEE_PROP_DAMAGE, hit.point.x, hit.point.z);
     }
     // CRS (#5): pushed away from the swinger, every third quick hit knocks one
     // over, and at 0 HP it is out. A knocked-down or out CRS lets go of its grab
     // on its next tick: the other way to free a grabbed teammate (#10), with the
     // same grab immunity as a rescue (CrsHost.release -> rescuePlayer).
-    for (const hit of meleeHits(player, this.crs.meleeTargets(), SWING_OBSTACLES)) {
+    for (const hit of meleeHits(player, this.crs.meleeTargets(), this.props.staticWorld)) {
       const res = this.crs.hit(hit.id, player.x, player.z, bot ? BOT_MELEE_CRS_DAMAGE : MELEE_CRS_DAMAGE, this.now);
       if (res) this.announceCrsHit(id, hit.id, res, hit.point.x, hit.point.z);
     }
@@ -1355,6 +1539,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // The black bloc's hits count double (#14): every prop hit goes through here, swing, throw or thrown teammate.
     const res = this.props.damage(propId, propDamageOf(amount, this.statsOf(by).propDamage), this.state.props.get(propId));
     if (!res) return;
+    // #73: breaking things makes you a target for the LBD. #98: and heats the street up, a break most of all.
+    this.offend(by, res.broke ? "propBreak" : "propHit");
     const event: HitEvent = { by, kind: "prop", target: propId, x, z, broke: res.broke };
     this.broadcast(ServerMessage.Hit, event);
     if (res.broke) {
@@ -1365,9 +1551,36 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     }
   }
 
+  /**
+   * `by` broke, hit or threw something (#73): an offender for a while (the LBD,
+   * and every unit while calm, go after them), and the street's tension goes up
+   * (#98), which may turn it hot.
+   */
+  private offend(by: string, offence: Offence) {
+    this.offenders.mark(by, this.now);
+    if (addOffence(this.mood, offence)) this.turnedHot(`tension (${offence} by ${by})`);
+    this.syncMood();
+  }
+
+  /** The street just turned hot (#98): CRS chase anyone from the next tick; clients show their banner on `state.hot`. */
+  private turnedHot(why: string) {
+    console.log(`[street ${this.roomId}] the street turns hot: ${why}`);
+  }
+
+  /** Mirror the mood (#98) into the synced state and tell the CRS (calm with the current front, or null once hot). */
+  private syncMood() {
+    const tension = syncedTension(this.mood);
+    if (this.state.tension !== tension) this.state.tension = tension;
+    if (this.state.hot !== this.mood.hot) this.state.hot = this.mood.hot;
+    this.calmStreet.front = this.front;
+    this.crs.setCalm(this.mood.hot ? null : this.calmStreet);
+  }
+
   /** Tell everyone a CRS was hit (to flash it) and pushed (to tip it the right way). */
   private announceCrsHit(by: string, crsId: string, res: CrsHitResult, x: number, z: number) {
     if (res.out) this.roundStats.add(by, "crsOut");
+    // #73: so does hitting a CRS (#98: being hit by one is no offence).
+    this.offend(by, "crsHit");
     const event: HitEvent = { by, kind: "crs", target: crsId, x, z, broke: res.out };
     this.broadcast(ServerMessage.Hit, event);
     const imp = res.impulse;
@@ -1400,6 +1613,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (!this.throwables.launch(id, player.carrying, player.x, player.z, dir.x, dir.z, stats.throwRange)) return;
     player.carrying = ThrowableKind.None;
     player.rotation = Math.atan2(dir.x, dir.z);
+    // #73: and throwing anything.
+    this.offend(id, "throw");
     // A player already played the arm swing locally; a bot's is news to everyone.
     const swing: SwingEvent = { id };
     if (thrower) this.broadcast(ServerMessage.Swing, swing, { except: thrower });
@@ -1424,6 +1639,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (!res) return;
     this.carry.startFlight(mateId, id, mate.x, mate.z, res.dirX, res.dirZ);
     player.rotation = facing;
+    this.offend(id, "throw");
     this.roundStats.add(id, "teammatesThrown");
     this.roundStats.add(mateId, "knockdowns");
     // The flailing flight: every client's ragdoll kicks along the throw.
@@ -1638,6 +1854,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const shape = propShape(slot, false);
     if (type.drops <= 0 || !shape) return;
     for (const spot of dropSpots(shape, type.drops, this.props.world)) this.throwables.drop(type.dropKind, spot.x, spot.z);
+    // #84: a shop's room gets its loot too.
+    const room = this.props.room(slot.id);
+    if (room) this.roomLoot.open(room, slot.kind, this.props.world);
   }
 
   /**
@@ -1726,6 +1945,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const started = this.tickStats ? performance.now() : 0;
       this.simulate(dt);
       this.updateFront();
+      // #98: the tension cools, and the front far enough turns the street hot.
+      if (stepMood(this.mood, dt, this.front)) this.turnedHot(`the front reached ${Math.round(this.front * 100)}%`);
+      this.syncMood();
       this.tickStats?.add(performance.now() - started, this.now, () => `${this.bots.size} bots, ${this.crs.size} CRS, ${this.state.players.size} protesters`);
     }
     if (this.state.phase !== Phase.Waiting) this.stepRoundClock(dt);
@@ -1790,7 +2012,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       // A carrier walks slower (#11), and so does someone lugging a trottinette (#15).
       // A bot (#59) walks a little slower than its archetype.
       const botSpeed = isBotId(sessionId) ? BOT.speed : 1;
-      const speed = gas.speed * fire.speed * botSpeed * (this.carry.isCarrying(sessionId) ? CARRY_SPEED_FACTOR : 1) * carrySpeedOf(player.carrying);
+      // #85: faster inside Moluchan's ring.
+      const speed = gas.speed * fire.speed * botSpeed * (this.carry.isCarrying(sessionId) ? CARRY_SPEED_FACTOR : 1) * carrySpeedOf(player.carrying) * this.moluchan.speedAt(player);
       const input = speed === 1 ? held : { x: held.x * speed, z: held.z * speed };
       // Walk (or dodge) from the held input (ignored while down) plus knockback
       // velocity, collided against the street (sub-stepped, bounces off walls).
@@ -1814,6 +2037,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // Dog poo (#15): a handful at most (its ground cap), so every body against every poo is cheap.
     const poos = Array.from(this.throwables.slippery());
     if (poos.length > 0) this.slipProtesters(poos);
+    // #84: loot taken from a shop's room comes back once.
+    this.roomLoot.step(this.now);
     this.throwables.step(
       dt,
       this.props.world,
@@ -1830,6 +2055,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (res.broke) console.log(`[street ${this.roomId}] ${line.id} broke (${res.broke})`);
     });
     if (poos.length > 0) this.slipCrs(poos);
+    // The LBD's balls (#73), after the bots moved and fired.
+    this.stepLbdBalls(dt);
     // Where each grabbed protester is being taken (#70), for the van marker and the arrow.
     this.state.players.forEach((player, sessionId) => {
       const van = player.status === PlayerStatus.Grabbed ? this.crs.dragVanOf(sessionId) : -1;
@@ -1837,6 +2064,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     });
     // Pompiers (#17): trucks come and go, the crews pick fires and spray (puts out fires, pushes whoever is in the water).
     this.brigade.step(this.now, dt, this.brigadeHost);
+    // Moluchan (#85): arrives when the front reaches his point, walks with the cortège, leaves or is grabbed.
+    this.moluchan.step(this.moluchanTick(dt));
     this.burnCrs();
     this.stepFires(dt);
     // Members walked into protesters: push them out of the shields (walls win; a
@@ -1931,8 +2160,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.state.players.forEach((p, pid) => {
       if (p.onFire) this.burningViews.push({ id: pid, x: p.x, z: p.z, onFire: true });
     });
-    this.lightable.length = 0;
-    for (const p of FLAMMABLE) if (this.fires.canIgnite(p.id, this.props.hp(p.id))) this.lightable.push(p);
+    this.fires.lightable(this.propHp, this.propBroken, this.lightable);
     return pickFireAction(self, PLAYER_RADIUS, this.burningViews, this.lightable);
   }
 
@@ -1967,17 +2195,21 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * so they path around the fires.
    */
   private stepFires(dt: number) {
-    for (const e of this.fires.step(dt, (id) => this.props.hp(id))) {
+    for (const e of this.fires.step(dt, this.propHp, this.propBroken)) {
       if (e.type === "burnt") this.props.char(e.id, this.state.props.get(e.id));
       else this.props.lock(e.to);
     }
-    for (const f of this.fires.burning()) this.props.burnTo(f.id, Math.ceil(f.fuel - 1e-9), this.state.props.get(f.id));
+    for (const f of this.fires.burning()) this.props.burnTo(f.id, this.fires.hp(f), this.state.props.get(f.id));
     if (this.fires.takeChanged()) this.crs.setHazards(this.fires.size > 0 ? this.fires.hazards(LEVEL.bounds) : null);
   }
 
+  private readonly propHp = (id: string): number => this.props.hp(id);
+  /** A smashed prop: a car's wreck can still burn (#91). */
+  private readonly propBroken = (id: string): boolean => this.state.props.get(id)?.broken === true;
+
   /** Set prop `id` on fire (#16): a held interact, and the hook for future igniters (#15 fumigènes). False if it can't burn now. */
   lightProp(id: string): boolean {
-    if (!this.fires.ignite(id, this.props.hp(id))) return false;
+    if (!this.fires.ignite(id, this.props.hp(id), this.propBroken(id))) return false;
     this.props.lock(id);
     console.log(`[street ${this.roomId}] fire: ${id} lit (${this.fires.size} burning)`);
     return true;
@@ -2057,7 +2289,58 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // The black bloc is chased first (#14): a weight on distance, see `pickTarget`.
     // A bot (#59) is chased after a human at a similar distance, on top of its archetype's weight.
     view.priority = archetypeStats(player.archetype).targetWeight * (isBotId(id) ? BOT.targetWeight : 1);
+    // #73: when they last broke, hit or threw something (the LBD's targets).
+    view.offendedAt = this.offenders.lastAt(id);
     return view;
+  }
+
+  /**
+   * The LBD's balls (#73), once a tick: stopped by walls, props, cars and
+   * standing CRS (shield lines at their shields' width), they hit the first
+   * protester in their way who is free, on their feet and not mid-dodge (a
+   * hop does not help, a carried or flying body is out of reach). A hit
+   * knocks them down along the shot with a little damage, and no CRS may
+   * grab them for the unit's `grabImmunity`. Every client is told where each
+   * ball stopped.
+   */
+  private stepLbdBalls(dt: number) {
+    if (this.lbdShots.flying === 0) return;
+    this.ballBlockers.length = 0;
+    const blockers = this.crs.shotBlockers(this.ballBlockers);
+    const targets = this.ballTargets;
+    targets.length = 0;
+    this.state.players.forEach((p, id) => {
+      if (p.status !== PlayerStatus.Free || p.down || p.dodging || this.carry.isCarried(id) || this.carry.isFlying(id)) return;
+      targets.push({ id, x: p.x, z: p.z, r: PLAYER_RADIUS });
+    });
+    const stats = CRS_STATS[CrsKind.Lbd].lbd;
+    this.lbdShots.step(dt, this.props.world, blockers, targets, (ball, res) => {
+      const hit = res.type === "hit" ? res.id : "";
+      if (hit && stats) {
+        this.damagePlayer(hit, stats.damage);
+        this.applyImpulse(hit, ball.dirX, ball.dirZ, stats.impulse, "always");
+        const player = this.state.players.get(hit);
+        if (player) this.healths.shieldFromGrabs(hit, player, this.now, stats.grabImmunity);
+        this.lbdShots.noteHit(hit, this.now);
+      }
+      const event: LbdImpactEvent = { id: ball.id, x: res.x, z: res.z, hit };
+      this.broadcast(ServerMessage.LbdImpact, event);
+    });
+  }
+
+  /** What the CRS chase (#5): the protesters, plus Moluchan while he is there (#85). */
+  private *crsProtesterViews(): Generator<ProtesterView> {
+    yield* this.allProtesterViews();
+    const m = this.moluchan.view();
+    if (m) yield m;
+  }
+
+  /** What Moluchan's walk needs this tick (#85). */
+  private moluchanTick(dt: number) {
+    const protesters: { x: number; z: number; status: number }[] = [];
+    this.state.players.forEach((p) => protesters.push({ x: p.x, z: p.z, status: p.status }));
+    const rear = respawnPoint(LEVEL, PLAYER_RADIUS, protesters.filter((p) => p.status === PlayerStatus.Free));
+    return { now: this.now, dt, front: this.front, protesters, rear, nav: this.crs.navGrid, world: this.props.world };
   }
 
   private *allProtesterViews(): Generator<ProtesterView> {

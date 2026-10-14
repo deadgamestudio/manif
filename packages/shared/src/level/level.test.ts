@@ -58,6 +58,19 @@ describe("street level data", () => {
     }
   });
 
+  test("every building block has its facade (#83), matching the box", () => {
+    const buildings = L.boxes.filter((b) => b.kind === "building");
+    expect(L.facades.length).toBe(buildings.length);
+    for (const f of L.facades) {
+      const b = buildings.find((o) => Math.sign(o.x) === f.side && o.z - o.halfZ === f.minZ && o.z + o.halfZ === f.maxZ);
+      expect(b).toBeDefined();
+      if (!b) continue;
+      expect(Math.abs(b.x) - b.halfX).toBe(f.face);
+      expect(b.halfX * 2).toBe(f.depth);
+      expect(b.height).toBe(f.height);
+    }
+  });
+
   test("ids are unique", () => {
     const ids = [...L.boxes, ...L.circles, ...L.propSlots].map((o) => o.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -152,6 +165,18 @@ describe("walking the street", () => {
       for (let tick = 0; tick < 60 * 30; tick++) {
         p = moveCircle(world, p, dx * step, dz * step, PLAYER_RADIUS);
         expect(circleOverlaps(world, p.x, p.z, PLAYER_RADIUS)).toBe(false);
+      }
+    }
+  });
+
+  test("the facades and side-street barriers close the street at its sides, though the bounds reach behind them (#84)", () => {
+    for (let z = L.bounds.minZ + 1; z < L.bounds.maxZ - 1; z += 0.5) {
+      for (const side of [-1, 1]) {
+        let p = { x: 0, z };
+        if (circleOverlaps(world, p.x, p.z, PLAYER_RADIUS)) continue;
+        for (let tick = 0; tick < 400; tick++) p = moveCircle(world, p, side * step * 2, 0, PLAYER_RADIUS);
+        // The barriers' street face is at 11.5; nothing gets past it, or into a building.
+        expect(Math.abs(p.x)).toBeLessThanOrEqual(11.5 - PLAYER_RADIUS + 1e-6);
       }
     }
   });

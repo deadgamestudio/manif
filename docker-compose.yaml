@@ -22,7 +22,7 @@ services:
     expose:
       - "2567"
     environment:
-      # production also refuses the debug knockback message.
+      # production: no debug messages (only "development" accepts them).
       NODE_ENV: production
       PORT: "2567"
       # Rustrak DSN for error tracking (public ingest key). A literal default,
@@ -52,6 +52,12 @@ services:
         # Rustrak DSN, inlined into the browser bundle at build time.
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-https://d0c9bddd10f34714ac2833a55eaf7678@rustrack.bazlab.si/5}
     restart: unless-stopped
+    environment:
+      # For the Cloudflare purge after each deploy (scripts/cf-purge.sh, run
+      # by Coolify's post-deployment command). Secrets: set them in Coolify,
+      # never here. Empty, the purge does nothing.
+      CF_ZONE_ID: ${CF_ZONE_ID:-}
+      CF_API_TOKEN: ${CF_API_TOKEN:-}
     expose:
       - "80"
     depends_on:

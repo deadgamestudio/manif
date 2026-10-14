@@ -15,10 +15,12 @@ import { RescueHud } from "../rescue/index.ts";
 import { GasOverlay } from "../gas/index.ts";
 import { FireHud } from "../fire/index.ts";
 import { CarryHud } from "../carry/index.ts";
-import { EndScreen, RoundBoard, RoundHud } from "../round/index.ts";
+import { MoluchanHud } from "../moluchan/index.ts";
+import { EndScreen, RoundBoard, RoundHud, TensionBanner } from "../round/index.ts";
 import { TouchControls, useInputMode } from "../touch/index.ts";
 import { HelpMenu, HelpTip } from "../help/index.ts";
 import { SoundControl } from "../audio/index.ts";
+import { KeysControl, useMouseGuard } from "../controls/index.ts";
 
 /**
  * The street, while marching and on the end screen (#12). Not mounted on the
@@ -30,6 +32,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
   useDodgeInput();
   useJumpInput();
   useInteractInput();
+  useMouseGuard();
   // Touch mode also caps the pixel ratio: phones pay for every pixel of the fire and gas layers.
   const touch = useInputMode() === "touch";
   const ended = snap.phase === Phase.Ended;
@@ -47,7 +50,7 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         shadows="percentage"
         orthographic
         dpr={[1, touch ? 1.5 : 2]}
-        camera={{ position: CAMERA_OFFSET.toArray(), zoom: 40, near: 0.1, far: 200 }}
+        camera={{ position: [CAMERA_OFFSET.x, CAMERA_OFFSET.y, CAMERA_OFFSET.z], zoom: 40, near: 0.1, far: 200 }}
       >
         <Scene players={snap.players} crs={snap.crs} localId={snap.sessionId} />
       </Canvas>
@@ -73,8 +76,12 @@ export function Game({ snap }: { snap: NetSnapshot }) {
           </div>
         )}
         {!ended && <RoundHud localId={snap.sessionId} />}
+        {!ended && <MoluchanHud />}
+        {!ended && <TensionBanner />}
         <div className="hud-corner">
           <SoundControl placement="hud" touch={touch} />
+          {/* #72: rebind keys and mouse buttons; hidden on touch screens. */}
+          <KeysControl placement="hud" />
           {!ended && <HelpMenu touch={touch} />}
           {/* #63: the live scoreboard (hold Tab; the "📋" chip on touch). Its panel is fixed, centred on the street. */}
           <RoundBoard localId={snap.sessionId} players={snap.players} touch={touch} ended={ended} />

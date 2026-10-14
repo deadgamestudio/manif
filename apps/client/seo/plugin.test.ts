@@ -93,9 +93,20 @@ describe("the built HTML", () => {
     expect(entryScript(invite)).toBe(entryScript(home));
   });
 
+  test("the help page (#71) is indexable, has its own title and canonical URL, and boots the same bundle", () => {
+    const help = read("aide.html");
+    expect(title(help)).toStartWith("Comment on joue");
+    expect(meta(help, "og:title")).toBe(title(help));
+    expect(meta(help, "robots")).toBeNull();
+    expect(canonical(help)).toBe(`${SITE_ORIGIN}/aide`);
+    expect(meta(help, "og:url")).toBe(`${SITE_ORIGIN}/aide`);
+    expect(entryScript(help)).toBe(entryScript(home));
+  });
+
   test("robots.txt and sitemap.xml are there", () => {
     expect(read("robots.txt")).toContain(`Sitemap: ${SITE_ORIGIN}/sitemap.xml`);
     expect(read("sitemap.xml")).toContain(`<loc>${SITE_ORIGIN}/</loc>`);
+    expect(read("sitemap.xml")).toContain(`<loc>${SITE_ORIGIN}/aide</loc>`);
   });
 });
 
@@ -127,6 +138,11 @@ describe("vite preview", () => {
     const page = await (await get("/?lobby=abc123")).text();
     expect(page).toBe(read("invite.html"));
     expect(page).not.toContain("abc123");
+  });
+
+  test("serves the help page at /aide, with or without an invite code", async () => {
+    expect(await (await get("/aide")).text()).toBe(read("aide.html"));
+    expect(await (await get("/aide?lobby=abc123")).text()).toBe(read("aide.html"));
   });
 
   test("serves robots.txt, sitemap.xml and the share image as files", async () => {

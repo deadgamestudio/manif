@@ -131,6 +131,24 @@ describe("what catches a bot's eye", () => {
     expect(chooseBotPlan(m, world(m, { crs: crsList }, { carrying: true }))).toEqual({ kind: "throw", id: "near" });
   });
 
+  test("calm street (#98): no throw at a CRS standing around, only at one dragging someone", () => {
+    const m = mindAt(0.3);
+    expect(chooseBotPlan(m, world(m, { crs: [crs("near", 0.32)], calm: true }, { carrying: true }))).toEqual({ kind: "march" });
+    const crsList = [crs("near", 0.32), crs("dragging", 0.3, 5, "x")];
+    expect(chooseBotPlan(m, world(m, { crs: crsList, calm: true }, { carrying: true }))).toEqual({ kind: "throw", id: "dragging" });
+  });
+
+  test("calm street (#98): no swing at a CRS right on a teammate or on itself, but still at one dragging someone", () => {
+    const m = mindAt(0.3);
+    const protesters = [human("h", 0.3, PlayerStatus.Free, 2)];
+    expect(chooseBotPlan(m, world(m, { protesters, crs: [crs("on", 0.3, 1)], calm: true }))).toEqual({ kind: "march" });
+    // The same CRS is worth a swing once the street is hot.
+    const hot = mindAt(0.3);
+    expect(chooseBotPlan(hot, world(hot, { protesters, crs: [crs("on", 0.3, 1)] }))).toEqual({ kind: "fight", id: "on" });
+    const m2 = mindAt(0.3);
+    expect(chooseBotPlan(m2, world(m2, { crs: [crs("c", 0.3, 4, "x")], calm: true }))).toEqual({ kind: "fight", id: "c" });
+  });
+
   test("in gas: out, away from the cloud's centre", () => {
     const m = mindAt(0.3);
     const p = at(0.3);
@@ -190,6 +208,21 @@ describe("thinking", () => {
     const m = mindAt(0.1);
     const goal = marchGoal(m, world(m, { protesters: [human("h", 0.5), human("slow", 0.2), fellow("b", 0.9), human("g", 0.8, PlayerStatus.Grabbed)] }));
     expect(progressAt(L, goal.x, goal.z)).toBeCloseTo(0.5 + m.lead, 5);
+  });
+
+  test("drifts part of the way towards Moluchan's ring when he is near (#85), not onto him", () => {
+    const m = mindAt(0.4);
+    const w = world(m, { protesters: [human("h", 0.4)] });
+    const plain = marchGoal(m, w);
+    const him = at(0.38, 2);
+    const drawn = marchGoal(m, { ...w, moluchan: him });
+    const before = Math.hypot(plain.x - him.x, plain.z - him.z);
+    const after = Math.hypot(drawn.x - him.x, drawn.z - him.z);
+    expect(after).toBeCloseTo(before * (1 - BOT.moluchanPull), 5);
+    expect(after).toBeGreaterThan(0);
+    // Too far away: no pull at all.
+    expect(marchGoal(m, { ...w, moluchan: at(0.9) })).toEqual(plain);
+    expect(marchGoal(m, { ...w, moluchan: null })).toEqual(plain);
   });
 
   test("hops a hurdle right in its way, not one beside it or behind", () => {

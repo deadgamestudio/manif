@@ -5,8 +5,11 @@ import { STREET_LEVEL as L, levelWorld, type PropSlot } from "../level/index.js"
 import { ThrowableKind } from "../throwable/index.js";
 import { PROP_TYPES } from "./constants.js";
 import { applyPropDamage, createPropState, propCollisionWorld, propShape, type PropShape } from "./prop.js";
+import { generateShops, shopSlot } from "./shops.js";
 
 const slot = (kind: PropSlot["kind"], x = 0, z = 0, rotation = 0): PropSlot => ({ id: `${kind}-t`, kind, x, z, rotation });
+/** The first shop of a fixed round (#83), as a prop slot. */
+const SHOP = shopSlot(generateShops(L, () => 0.5)[0]!);
 
 describe("applyPropDamage", () => {
   test("takes HP off without breaking above 0", () => {
@@ -85,22 +88,32 @@ describe("propShape", () => {
     expect(s).toMatchObject({ halfX: 2.1, halfZ: 1 });
   });
 
-  test("a broken bin and shop window are walkable, a broken car is not", () => {
+  test("a broken bin and shop are walkable, a broken car is not", () => {
     expect(propShape(slot("bin"), true)).toBeNull();
-    expect(propShape(slot("shop_window"), true)).toBeNull();
+    expect(propShape(slot("cafe"), true)).toBeNull();
+    expect(propShape(SHOP, true)).toBeNull();
     expect(propShape(slot("car"), true)).not.toBeNull();
+  });
+
+  test("a slot's own footprint (#83) replaces its kind's shape, turned like any other", () => {
+    const own = { ...slot("banque", 3, -4), footprint: { halfX: 1.25, halfZ: 4 } };
+    expect(propShape(own, false)).toEqual({ type: "box", x: 3, z: -4, halfX: 1.25, halfZ: 4 });
+    expect(propShape({ ...own, rotation: Math.PI }, false)).toMatchObject({ halfX: 1.25, halfZ: 4 });
+    expect(propShape({ ...own, rotation: Math.PI / 2 }, false)).toMatchObject({ halfX: 4, halfZ: 1.25 });
   });
 });
 
 describe("propCollisionWorld", () => {
-  const windowSlot = L.propSlots.find((s) => s.kind === "shop_window")!;
   const carSlot = L.propSlots.find((s) => s.kind === "car")!;
-
-  test("intact props block, broken shop windows stop blocking", () => {
-    const intact = propCollisionWorld(L, () => false);
-    const broken = propCollisionWorld(L, () => true);
-    expect(circleOverlaps(intact, windowSlot.x, windowSlot.z, PLAYER_RADIUS)).toBe(true);
-    expect(circleOverlaps(broken, windowSlot.x, windowSlot.z, PLAYER_RADIUS)).toBe(false);
+  test("intact props block, broken shops stop blocking (the building behind still does)", () => {
+    const slots = [...L.propSlots, SHOP];
+    const intact = propCollisionWorld(L, () => false, slots);
+    const broken = propCollisionWorld(L, () => true, slots);
+    // A player just touching the shop's front.
+    const x = SHOP.x - Math.sign(SHOP.x) * (SHOP.footprint!.halfX + PLAYER_RADIUS - 0.05);
+    expect(circleOverlaps(intact, x, SHOP.z, PLAYER_RADIUS)).toBe(true);
+    expect(circleOverlaps(broken, x, SHOP.z, PLAYER_RADIUS)).toBe(false);
+    expect(circleOverlaps(broken, SHOP.x, SHOP.z, PLAYER_RADIUS)).toBe(true);
     // The burnt car is still in the way.
     expect(circleOverlaps(broken, carSlot.x, carSlot.z, PLAYER_RADIUS)).toBe(true);
   });
@@ -114,10 +127,10 @@ describe("propCollisionWorld", () => {
   });
 
   test("only the given props are broken", () => {
-    const world = propCollisionWorld(L, (id) => id === windowSlot.id);
+    const world = propCollisionWorld(L, (id) => id === SHOP.id, [...L.propSlots, SHOP]);
     const base = levelWorld(L);
     const count = world.boxes.length + world.circles.length - base.boxes.length - base.circles.length;
-    expect(count).toBe(L.propSlots.length - 1);
+    expect(count).toBe(L.propSlots.length);
   });
 });
 
@@ -159,10 +172,10 @@ describe("street props", () => {
 });
 
 describe("market stalls (#15)", () => {
-  test("a broken market stall drops tomatoes; every other prop drops pavés (or nothing)", () => {
+  test("a broken market stall drops tomatoes; the street furniture drops pavés (or nothing)", () => {
     expect(PROP_TYPES.market_stall.dropKind).toBe(ThrowableKind.Tomate);
     expect(PROP_TYPES.market_stall.drops).toBeGreaterThan(0);
-    for (const [kind, t] of Object.entries(PROP_TYPES)) if (kind !== "market_stall") expect(t.dropKind).toBe(ThrowableKind.Pave);
+    for (const kind of ["bin", "bus_shelter", "car"] as const) expect(PROP_TYPES[kind].dropKind).toBe(ThrowableKind.Pave);
   });
 
   test("the street has market stalls, and they neither burn nor get hopped over", () => {

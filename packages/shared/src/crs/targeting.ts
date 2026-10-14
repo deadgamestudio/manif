@@ -25,6 +25,11 @@ export interface ProtesterView extends Vec2 {
   airborne?: boolean;
   /** Target priority (#14, an archetype's `targetWeight`): chased as if 1/priority as far. 1 when absent. */
   priority?: number;
+  /**
+   * Room time they last broke, hit or threw something (#73), see `Offenders`.
+   * Absent: never did. Only the LBD cares (`isOffender`).
+   */
+  offendedAt?: number;
 }
 
 /**
@@ -65,6 +70,58 @@ export function pickTarget(
     }
   }
   if (currentId !== null && currentD !== Infinity && bestD > currentD - switchMargin) return currentId;
+  return bestId;
+}
+
+/**
+ * Whether `p` broke, hit or threw something in the last `memory` seconds
+ * (#73, decision 1): only those are fair game for the LBD.
+ */
+export function isOffender(p: Pick<ProtesterView, "offendedAt">, now: number, memory: number): boolean {
+  const at = p.offendedAt;
+  return at !== undefined && now - at <= memory && now >= at;
+}
+
+/** What the LBD's target choice needs besides the protesters (#73). */
+export interface LbdTargetQuery {
+  now: number;
+  /** Farthest it shoots, centre to centre. */
+  range: number;
+  /** How long an offence keeps someone a target (OFFENDER_MEMORY). */
+  memory: number;
+  /** The current target, kept while valid unless another is `switchMargin` closer (weighted). */
+  currentId: string | null;
+  switchMargin: number;
+  /** Whether the ball would reach them (no wall, prop, car or other CRS in the way). Checked only on candidates. */
+  inLine: (p: ProtesterView) => boolean;
+}
+
+/**
+ * Whom an LBD at `from` aims at (#73): a free protester standing on their
+ * feet who offended recently (`isOffender`), within `range` and in a clear
+ * line. Among those, the nearest by weighted distance (#14 priority, like
+ * `pickTarget`), sticky on the current one; ties go to the smaller id.
+ * Someone who broke, hit or threw nothing is never picked. Null when nobody
+ * qualifies.
+ */
+export function pickLbdTarget(from: Vec2, protesters: Iterable<ProtesterView>, q: LbdTargetQuery): string | null {
+  let bestId: string | null = null;
+  let bestD = Infinity;
+  let currentD = Infinity;
+  const rangeSq = q.range * q.range;
+  for (const p of protesters) {
+    if (p.status !== PlayerStatus.Free || p.down || !isOffender(p, q.now, q.memory)) continue;
+    const dSq = (p.x - from.x) ** 2 + (p.z - from.z) ** 2;
+    if (!(dSq <= rangeSq) || !q.inLine(p)) continue;
+    const w = p.priority;
+    const d = Math.sqrt(dSq) / (w !== undefined && w > 0 ? w : 1);
+    if (p.id === q.currentId) currentD = d;
+    if (d < bestD || (d === bestD && bestId !== null && p.id < bestId)) {
+      bestD = d;
+      bestId = p.id;
+    }
+  }
+  if (q.currentId !== null && currentD !== Infinity && bestD > currentD - q.switchMargin) return q.currentId;
   return bestId;
 }
 

@@ -2,48 +2,25 @@ import { useEffect, useId, useState } from "react";
 import { ARCHETYPES, PlayerStatus, archetypeOf } from "@manif/shared";
 import { net, type LobbyPlayer } from "../../shared/net/index.ts";
 import { archetypeLook } from "../archetype/index.ts";
+import { useActions } from "../controls/index.ts";
 import { useRound } from "./useRound.ts";
 import { BOARD_COLUMNS, boardRows, statusLabel } from "./board.ts";
 import "./board.css";
 
-/** The key held to see the board (KeyboardEvent.code). */
-export const BOARD_KEY = "Tab";
 /** How often the open board re-reads everyone's status from Schema, in ms, like the HUD prompts. */
 const STATUS_POLL_MS = 150;
 
+const BOARD = ["board"] as const;
+
 /**
- * True while Tab is held. Tab's default (moving focus to the HUD's buttons,
- * where a later Space would "click" one) is always cancelled while the street
- * is mounted. A Tab released while the window was in the background never
- * sends its keyup, so losing focus or going hidden lets go too.
+ * True while the board key (Tab by default, #72) is held. Its default (Tab
+ * moving focus to the HUD's buttons, where a later Space would "click" one) is
+ * cancelled while it is bound; rebound away, Tab gets its browser behaviour
+ * back. The keymap lets go on blur and when the page goes hidden.
  */
-function useHeldTab(): boolean {
+function useHeldBoardKey(): boolean {
   const [held, setHeld] = useState(false);
-  useEffect(() => {
-    const onDown = (e: KeyboardEvent) => {
-      if (e.code !== BOARD_KEY) return;
-      e.preventDefault();
-      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-      setHeld(true);
-    };
-    const onUp = (e: KeyboardEvent) => {
-      if (e.code === BOARD_KEY) setHeld(false);
-    };
-    const release = () => setHeld(false);
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") release();
-    };
-    window.addEventListener("keydown", onDown);
-    window.addEventListener("keyup", onUp);
-    window.addEventListener("blur", release);
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      window.removeEventListener("keydown", onDown);
-      window.removeEventListener("keyup", onUp);
-      window.removeEventListener("blur", release);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, []);
+  useActions(BOARD, (_, pressed) => setHeld(pressed));
   return held;
 }
 
@@ -68,7 +45,7 @@ function useStatuses(ids: readonly string[], open: boolean): string {
 }
 
 /**
- * The live round scoreboard (#63): hold Tab on a keyboard; on touch, the "📋"
+ * The live round scoreboard (#63): hold Tab (or its rebind, #72) on a keyboard; on touch, the "📋"
  * chip (rendered here, in the HUD corner) toggles it. Display only: it takes
  * no clicks or touches, so walking, hitting and dodging go on underneath.
  * Mounted with the street, end screen included, so Tab never moves focus
@@ -85,7 +62,7 @@ export function RoundBoard({
   touch: boolean;
   ended: boolean;
 }) {
-  const held = useHeldTab();
+  const held = useHeldBoardKey();
   const [toggled, setToggled] = useState(false);
   const open = !ended && (held || toggled);
   const panelId = useId();

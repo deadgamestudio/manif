@@ -43,7 +43,7 @@ two disagree. For what each mechanic feels like in play, see
   knocks it down (synced `down` flag) for a moment: input is ignored, then it
   gets up with a short immunity. Each hit is broadcast as an `impulse` event so
   clients tip the avatar the right way. In dev builds, K / J / L in the street
-  trigger a debug knockback (the server refuses it when `NODE_ENV=production`).
+  trigger a debug knockback (the server accepts it only when `NODE_ENV=development`).
 - Health (#3): each protester has HP (100) and a status: free, grabbed, KO or
   arrested. 0 HP means KO for 1.5 s, then arrested; after 10 s in the van they
   come back free with full HP behind the rearmost free protester, briefly
@@ -58,8 +58,12 @@ two disagree. For what each mechanic feels like in play, see
   facing (or that the facing line meets within 1.2), unless a static wall or
   obstacle is in between. Each swing takes 1 HP; at 0 the prop breaks. Only
   `hp` and `broken` are synced per prop (`state.props`, keyed by level prop
-  id); position and type come from the level. A broken prop switches to its
-  broken collision shape (none for bins and shop windows) on the next tick.
+  id); position and type come from the level. The shops are the exception
+  (#83): the server generates them at each round reset (`generateShops`) and
+  syncs each one whole (kind, side, place, width, depth, height, look seed),
+  and every side builds the same collision box from it (`shopFootprint`). A
+  broken prop switches to its broken collision shape (none for bins and
+  shops) on the next tick.
   `swing` and `hit` are broadcast events, not state. Debris is local to each
   client and never collides. Props reset between rounds.
 - CRS bots (#5): `state.crs` holds only `x`, `z`, `rotation`, `hp`, `status`

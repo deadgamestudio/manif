@@ -10,8 +10,9 @@
 // them go through `pageFor()` below, so dev, preview, tests and production
 // send the same tags.
 //
-// manif has one page path, `/`: the app goes Home -> Lobby -> Game by state,
-// not by URL. An invite link is `/?lobby=<code>`. Every invite gets the same
+// manif has two page paths: `/`, where the app goes Home -> Lobby -> Game by
+// state, not by URL, and `/aide`, the "Comment on joue" help (#71), written
+// to dist/aide.html. An invite link is `/?lobby=<code>`. Every invite gets the same
 // generic page: the lobby code is never written into the HTML (it can't be,
 // the files are static), so nothing from the URL is echoed into the page.
 //
@@ -78,21 +79,38 @@ const INVITE: PageMeta = {
   noindex: true,
 };
 
+/** The help page's path (the client's features/help/route.ts reads the same). */
+export const HELP_PATH = "/aide";
+
+const HELP: PageMeta = {
+  // Keep in step with the document title HelpPage sets (apps/client/src/features/help/HelpPage.tsx).
+  title: "Comment on joue à Manif : règles, commandes et CRS",
+  description:
+    "Le mode d'emploi de Manif, le jeu de manif multijoueur : le but, les commandes au clavier et au tactile, " +
+    "comment échapper aux CRS, casser, lancer des pavés, les personnages et les points.",
+  path: HELP_PATH,
+  image: SITE_IMAGE,
+  imageAlt: IMAGE_ALT,
+  noindex: false,
+};
+
 /**
  * The page for a request URL (path and query, e.g. `/?lobby=abc`): its tags
- * and the HTML file the build wrote them to. Any URL with a `lobby` query
- * parameter is an invite; anything else gets the home page (the SPA has no
- * other page).
+ * and the HTML file the build wrote them to. `/aide` is the help, even with
+ * a `lobby` parameter (the overlay keeps the invite code on it, so a refresh
+ * rejoins). Any other URL with a `lobby` query parameter is an invite;
+ * anything else gets the home page (the SPA has no other page).
  */
 export function pageFor(url: string): Page {
-  const query = url.split("#")[0]?.split("?")[1] ?? "";
+  const [path = "/", query = ""] = (url.split("#")[0] ?? "").split("?");
+  if (path === HELP_PATH || path === `${HELP_PATH}/`) return { file: "aide.html", meta: HELP };
   if (new URLSearchParams(query).has(LOBBY_QUERY_PARAM)) return { file: "invite.html", meta: INVITE };
   return { file: "index.html", meta: HOME };
 }
 
 /** Every page the build writes, the home page first. */
 export function allPages(): Page[] {
-  return [pageFor("/"), pageFor(`/?${LOBBY_QUERY_PARAM}=code`)];
+  return [pageFor("/"), pageFor(`/?${LOBBY_QUERY_PARAM}=code`), pageFor(HELP_PATH)];
 }
 
 const abs = (path: string) => SITE_ORIGIN + path;
@@ -185,12 +203,15 @@ export function robotsTxt(): string {
   return ["User-agent: *", "Allow: /", "", `Sitemap: ${abs("/sitemap.xml")}`, ""].join("\n");
 }
 
-/** The one page worth indexing: the home page. */
+/** The pages worth indexing: every page with its own URL that isn't noindex (home, then the help). */
 export function sitemapXml(): string {
+  const urls = allPages()
+    .filter((p) => p.meta.path !== null && !p.meta.noindex)
+    .map((p) => `  <url><loc>${escapeHtml(abs(p.meta.path ?? "/"))}</loc></url>`);
   return [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`,
-    `  <url><loc>${escapeHtml(abs("/"))}</loc></url>`,
+    ...urls,
     `</urlset>`,
     ``,
   ].join("\n");

@@ -22,7 +22,9 @@ slapstick. The game itself is in French.
 - **The police.** CRS chase and grab protesters, form shield lines across the
   street and lob tear gas. Further down, a plain-clothes BAC slips into the
   cortège looking like one of you, and BRAV-M motorbike duos charge in.
-- **Fight back, or help out.** Smash bins, bus shelters and shop windows,
+- **Fight back, or help out.** Smash bins, bus shelters and shops (big
+  storefronts in the facades, laid out afresh every round with a new mix of
+  boulangeries, cafés, banks and more),
   throw the pavés (and tomatoes, dog poo, trottinettes, even a teammate),
   dodge, hop over things, and pull a grabbed friend free before the van.
 - **Fire and pompiers.** Set a bin or a car alight. The fire spreads, anyone
@@ -120,9 +122,10 @@ row for nearly every number and rule in the game.
 | Almost any number (speeds, HP, cooldowns, ranges) | `packages/shared/src/<feature>/constants.ts` |
 | The street: walls, props, spawn points, the Préfecture | `packages/shared/src/level/street.ts` |
 | Police units (CRS, BAC, BRAV-M, pompiers): stats | `CRS_STATS` in `packages/shared/src/crs/constants.ts` |
-| What the police bots decide | `packages/shared/src/crs/brain.ts`, `bac.ts`, `bravm.ts`, `line.ts` |
+| What the police bots decide | `packages/shared/src/crs/brain.ts`, `bac.ts`, `bravm.ts`, `line.ts`, `lbd.ts` (the CRS LBD and its ball) |
 | Round length, win rule, reinforcement waves | `packages/shared/src/round/constants.ts` |
 | Archetypes | `ARCHETYPES` in `packages/shared/src/archetype/constants.ts`; looks in `apps/client/src/features/archetype/archetypeVisuals.tsx` |
+| Shop kinds, signs, dealing rules and layout (sizes, clearances) | `PROP_TYPES` in `packages/shared/src/prop/constants.ts`, `SHOP_TYPES` and `SHOP_LAYOUT` in `prop/shops.ts`; looks in `apps/client/src/features/prop/shopVisuals.tsx` |
 | Throwables (pavé, tomate, crotte, trottinette) | `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts` |
 | Points per action and per-round caps | `ACTION_POINTS` in `packages/shared/src/score/constants.ts` |
 | Bot protesters | `BOT` in `packages/shared/src/bot/constants.ts`, `bot/brain.ts` |
@@ -144,9 +147,10 @@ everything.
 | `VITE_SERVER_URL` | client, build time | Game server address. Unset: `ws://<page host>:2567`. A path such as `/colyseus` means the page's own origin (production). See `apps/client/.env.example` |
 | `VITE_SENTRY_DSN` | client, build time | Error tracking (self-hosted Rustrak). Unset turns it off |
 | `PORT` | server | Listening port, default `2567` |
-| `NODE_ENV` | server | `production` refuses the dev-only debug messages |
+| `NODE_ENV` | server | `development` (set by `bun run dev`) is the only value that accepts the debug messages; unset or anything else refuses them. A built server run by hand for scripted checks needs `NODE_ENV=development` |
 | `SENTRY_DSN` | server | Error tracking. Unset turns it off |
 | `SCORE_DB_PATH` | server | SQLite file for the lasting scores. Unset (the dev default): round scores only. A missing folder is created; an unreadable file is logged and the game carries on without it |
+| `MANIF_MAX_ROOMS` | server | Most lobbies alive at once on the server, default `100`. Past it, creating a lobby is refused until one ends. Each visitor also has a small creation budget (`apps/server/src/features/lobby/`) |
 | `MANIF_DIAG` | server | `1` logs tick time during a march and anything still keyed by a bot that left |
 | `CLIENT_PORT` | local compose only | Port for `docker-compose.local.yaml`, default `8080` |
 
@@ -205,6 +209,90 @@ Two things that bite:
 - **A new workspace package** needs its `package.json` copied in the manifest
   step of both Dockerfiles, and a new server runtime dependency must be a
   `dependency`, not a `devDependency`.
+
+### Cloudflare in front
+
+The domain goes through Cloudflare, then Coolify's proxy, then Caddy. Caddy's
+headers decide what is cached; Cloudflare is set to follow them (#90):
+
+| Path | Browser | Cloudflare |
+|---|---|---|
+| `/assets/*` (hashed bundles) | 1 year, `immutable` | 1 year |
+| `/sounds/*`, `/models/*`, `/og/*`, `favicon.svg`, `apple-touch-icon.png` | 1 minute | 1 day, purged on each deploy |
+| Pages (`/`, `/aide`, `/?lobby=…`), `robots.txt`, `sitemap.xml` | revalidates (`no-cache`) | not cached |
+| `/colyseus/*` (matchmaking, WebSockets, health) | `no-store` | bypassed |
+| `/colyseus/leaderboard` | revalidates | 15 s, only with the optional rule below |
+| A 404 or any other error | `no-store` | not cached |
+
+Cloudflare's longer edge time for unhashed files comes from a separate
+`Cloudflare-CDN-Cache-Control` header that Cloudflare reads and strips. It
+carries `stale-while-revalidate`, which `s-maxage` would turn off.
+
+To rebuild the Cloudflare side, in the zone's dashboard:
+
+- **Caching → Configuration → Browser Cache TTL: "Respect existing
+  headers".** Otherwise Cloudflare raises `no-cache` and short `max-age`s to
+  4 hours, and browsers keep an old sound after a deploy.
+- **Caching → Cache Rules**, in this order (a later rule wins over an earlier
+  one):
+  1. *Bypass the game server*: URI path starts with `/colyseus/` → **Bypass
+     cache**.
+  2. *(Optional) Leaderboard*: URI path equals `/colyseus/leaderboard` →
+     **Eligible for cache**, Edge TTL "Use cache-control header if present,
+     bypass cache if not", Browser TTL "Respect origin". It absorbs refresh
+     spam for 15 s.
+  3. *Static files*: URI path starts with `/assets/`, `/sounds/`, `/models/`
+     or `/og/`, or equals `/favicon.svg` or `/apple-touch-icon.png` →
+     **Eligible for cache**, Edge TTL "Use cache-control header if present,
+     bypass cache if not", Browser TTL "Respect origin". Needed for the models:
+     Cloudflare does not cache `.glb` files by default.
+- **Network → WebSockets: on.** The rooms run over WebSockets.
+- **Speed: Rocket Loader, Email Obfuscation and Mirage off.** They inject
+  scripts that the CSP (`script-src 'self'`) blocks, which breaks the page
+  without an error. Check that the page's HTML only loads our own scripts.
+
+None of this touches `CF-Connecting-IP`/`X-Forwarded-For`, which the
+lobby-creation limit reads.
+
+**The purge after each deploy.** A deploy can change a sound or a model under
+the same name, and Cloudflare would keep its copy for a day.
+[`scripts/cf-purge.sh`](scripts/cf-purge.sh) empties Cloudflare's copies of
+`/sounds`, `/models`, `/og` and the icons (purge by prefix, available on every
+plan). It leaves `/assets` alone, so a tab opened before the deploy still gets
+its old chunks. The client image has it as `cf-purge`. To set it up:
+
+1. In Cloudflare, *My Profile → API Tokens → Create Token*, custom token,
+   permission **Zone → Cache Purge → Purge**, zone resources **only this
+   zone**. Nothing else: the token sits in the client container's environment.
+2. In Coolify, on the resource's *Environment Variables* page, add `CF_ZONE_ID`
+   (the zone's id, on its *Overview* page) and `CF_API_TOKEN`, both marked as
+   secrets (locked). Never commit them; the compose file only passes them
+   through to the `client` service.
+3. In Coolify, on the resource's *General* page, under *Pre/Post Deployment
+   Commands*: post-deployment command `cf-purge`, container name `client` (the
+   Compose service name). Coolify runs it with `sh -c` inside the new
+   container once the deploy is up. If that field is missing for this
+   resource, run the purge by hand after a deploy (below).
+
+A run prints one line to the deploy log. With either variable empty it only
+says so and exits 0, so the deploy never fails because of it. A refused purge
+exits 1 and prints Cloudflare's reason (never the token). To run it by hand
+from a checkout:
+
+```sh
+CF_ZONE_ID=<zone id> CF_API_TOKEN=<token> sh scripts/cf-purge.sh
+```
+
+**The ~1 minute of 503s during a deploy.** Coolify's rolling updates (the old
+container serves until the new one is healthy) only exist for single-image
+resources, not for Docker Compose ones: Compose stops and recreates the
+containers itself. Both services have a healthcheck, so the `client` waits for
+a healthy `server` and a broken build shows up as an unhealthy deploy, but
+there is no toggle that removes the gap with this setup. The only way out is
+to split the `client` into its own Coolify application (Dockerfile type, no
+host port, on the server's network) with rolling updates on. Even then, a
+redeploy of the `server` ends every game in progress, since lobbies live in
+its memory.
 
 ## For contributors and AI agents
 

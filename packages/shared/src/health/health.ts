@@ -136,6 +136,17 @@ export function rescue(h: Health, now: number): Health {
   return { ...h, status: PlayerStatus.Free, until: 0, hp: Math.max(h.hp, RESCUE_MIN_HP), grabImmuneUntil: now + GRAB_IMMUNITY };
 }
 
+/**
+ * No grab for `seconds` from `now` (#73: after an LBD hit), on top of any
+ * immunity already running (the longer wins). Hits still land. Ignored for a
+ * non-positive or non-finite duration.
+ */
+export function shieldFromGrabs(h: Health, now: number, seconds: number): Health {
+  if (!Number.isFinite(seconds) || seconds <= 0) return h;
+  const until = now + seconds;
+  return until > h.grabImmuneUntil ? { ...h, grabImmuneUntil: until } : h;
+}
+
 /** Back in the street: free, full HP (`maxHp`), briefly invulnerable. */
 export function respawn(now: number, maxHp = MAX_HP): Health {
   const max = validMaxHp(maxHp);

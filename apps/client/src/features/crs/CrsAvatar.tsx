@@ -11,6 +11,8 @@ import { WaterJet } from "../water/index.ts";
 import { disguiseSource, forgetDisguise } from "./disguise.ts";
 import { BodyFire, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
 import { WindupMark } from "./WindupMark.tsx";
+import { LbdLaser } from "./LbdLaser.tsx";
+import { LbdBalls } from "./LbdBalls.tsx";
 
 const FALLEN_ANGLE = Math.PI / 2;
 const FALL_RATE = 14;
@@ -46,6 +48,9 @@ const HIT_FLASH_MS = 160;
 /** Shield line shove (#6): the shield punches forward and comes back, ms and metres. */
 const SHOVE_MS = 350;
 const SHOVE_REACH = 0.45;
+/** A CRS LBD firing (#73): the launcher kicks up and settles back, ms and radians. */
+const RECOIL_MS = 260;
+const RECOIL = 0.45;
 const FLASH = new Color("#ffffff");
 const BAR_WIDTH = 0.8;
 /** The BAC's reveal (#13): the placard shown over it for this long, ms, and the little "ta-da" pop. */
@@ -246,7 +251,10 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
         const s = swungAt === undefined ? 1 : (performance.now() - swungAt) / SWING_MS;
         baton.rotation.x =
           s >= 1 ? ARM_REST : s < 0.35 ? ARM_REST + (ARM_RAISED - ARM_REST) * (s / 0.35) : ARM_RAISED + (ARM_SMASH - ARM_RAISED) * ((s - 0.35) / 0.65);
-        shield.rotation.x = 0;
+        // A CRS LBD (#73): the launcher arm is posed forward in its look; it only kicks up on a shot.
+        const firedAt = kind === CrsKind.Lbd ? net.getLastLbdShot(id) : undefined;
+        const r = firedAt === undefined ? 1 : (performance.now() - firedAt) / RECOIL_MS;
+        shield.rotation.x = r >= 1 ? 0 : -RECOIL * Math.sin(Math.min(1, r) * Math.PI) * (1 - r);
       }
     }
 
@@ -279,43 +287,47 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
   });
 
   return (
-    <group ref={group}>
-      <group ref={tilt}>
-        <group ref={yaw}>
-          {look.render({ body: bodyMat, batonArm, shieldArm, lineShield, splat } satisfies CrsRig)}
-          <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} />
-          {kind === CrsKind.Pompier && HOSE && (
-            <WaterJet
-              isOn={() => {
-                const s = net.getCrs(id);
-                return s?.spraying === true && !s.down;
-              }}
-              range={HOSE.range}
-              halfAngle={HOSE.halfAngle}
-              y={POMPIER_NOZZLE_Y}
-            />
-          )}
+    <>
+      <group ref={group}>
+        <group ref={tilt}>
+          <group ref={yaw}>
+            {look.render({ body: bodyMat, batonArm, shieldArm, lineShield, splat } satisfies CrsRig)}
+            <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} />
+            {kind === CrsKind.Pompier && HOSE && (
+              <WaterJet
+                isOn={() => {
+                  const s = net.getCrs(id);
+                  return s?.spraying === true && !s.down;
+                }}
+                range={HOSE.range}
+                halfAngle={HOSE.halfAngle}
+                y={POMPIER_NOZZLE_Y}
+              />
+            )}
+          </group>
+        </group>
+        {look.ragdoll && ragdoll.view}
+        <StinkCloud group={stink} height={look.height} />
+        <WindupMark group={windupMark} y={look.height + 1} />
+        {kind === CrsKind.Bac && (
+          <group ref={revealTag}>
+            <NameTag name={REVEAL_TAG} isLocal y={look.height + 0.55} />
+          </group>
+        )}
+        {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
+        <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} anchor={(out) => ragdoll.torso(out)} />
+        <group ref={bar} position-y={look.height + 0.4} visible={false}>
+          <sprite scale={[BAR_WIDTH + 0.06, 0.13, 1]} renderOrder={10}>
+            <spriteMaterial color="#141414" depthTest={false} depthWrite={false} />
+          </sprite>
+          <sprite ref={barFill} scale={[BAR_WIDTH, 0.07, 1]} renderOrder={11}>
+            <spriteMaterial color="#4f8cff" depthTest={false} depthWrite={false} />
+          </sprite>
         </group>
       </group>
-      {look.ragdoll && ragdoll.view}
-      <StinkCloud group={stink} height={look.height} />
-      <WindupMark group={windupMark} y={look.height + 1} />
-      {kind === CrsKind.Bac && (
-        <group ref={revealTag}>
-          <NameTag name={REVEAL_TAG} isLocal y={look.height + 0.55} />
-        </group>
-      )}
-      {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
-      <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} anchor={(out) => ragdoll.torso(out)} />
-      <group ref={bar} position-y={look.height + 0.4} visible={false}>
-        <sprite scale={[BAR_WIDTH + 0.06, 0.13, 1]} renderOrder={10}>
-          <spriteMaterial color="#141414" depthTest={false} depthWrite={false} />
-        </sprite>
-        <sprite ref={barFill} scale={[BAR_WIDTH, 0.07, 1]} renderOrder={11}>
-          <spriteMaterial color="#4f8cff" depthTest={false} depthWrite={false} />
-        </sprite>
-      </group>
-    </group>
+      {/* The LBD's laser (#73), in world space beside the body. */}
+      {kind === CrsKind.Lbd && <LbdLaser id={id} body={group} yaw={yaw} />}
+    </>
   );
 }
 
@@ -326,6 +338,8 @@ export function CrsView({ ids }: { ids: readonly string[] }) {
       {ids.map((id) => (
         <CrsAvatar key={id} id={id} />
       ))}
+      {/* The CRS LBD's rubber balls (#73), flown from the shot messages. */}
+      <LbdBalls />
     </>
   );
 }
