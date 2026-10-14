@@ -35,6 +35,9 @@ RUN cd packages/shared && bun run build \
 FROM caddy:2-alpine
 COPY apps/client/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /repo/apps/client/dist /srv
+# The Cloudflare purge Coolify runs after each deploy (README "Deploy"),
+# outside /srv so Caddy never serves it.
+COPY scripts/cf-purge.sh /usr/local/bin/cf-purge
 EXPOSE 80
 HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
   CMD wget -q -O /dev/null http://127.0.0.1/ || exit 1

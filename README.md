@@ -210,6 +210,90 @@ Two things that bite:
   step of both Dockerfiles, and a new server runtime dependency must be a
   `dependency`, not a `devDependency`.
 
+### Cloudflare in front
+
+The domain goes through Cloudflare, then Coolify's proxy, then Caddy. Caddy's
+headers decide what is cached; Cloudflare is set to follow them (#90):
+
+| Path | Browser | Cloudflare |
+|---|---|---|
+| `/assets/*` (hashed bundles) | 1 year, `immutable` | 1 year |
+| `/sounds/*`, `/models/*`, `/og/*`, `favicon.svg`, `apple-touch-icon.png` | 1 minute | 1 day, purged on each deploy |
+| Pages (`/`, `/aide`, `/?lobby=…`), `robots.txt`, `sitemap.xml` | revalidates (`no-cache`) | not cached |
+| `/colyseus/*` (matchmaking, WebSockets, health) | `no-store` | bypassed |
+| `/colyseus/leaderboard` | revalidates | 15 s, only with the optional rule below |
+| A 404 or any other error | `no-store` | not cached |
+
+Cloudflare's longer edge time for unhashed files comes from a separate
+`Cloudflare-CDN-Cache-Control` header that Cloudflare reads and strips. It
+carries `stale-while-revalidate`, which `s-maxage` would turn off.
+
+To rebuild the Cloudflare side, in the zone's dashboard:
+
+- **Caching → Configuration → Browser Cache TTL: "Respect existing
+  headers".** Otherwise Cloudflare raises `no-cache` and short `max-age`s to
+  4 hours, and browsers keep an old sound after a deploy.
+- **Caching → Cache Rules**, in this order (a later rule wins over an earlier
+  one):
+  1. *Bypass the game server*: URI path starts with `/colyseus/` → **Bypass
+     cache**.
+  2. *(Optional) Leaderboard*: URI path equals `/colyseus/leaderboard` →
+     **Eligible for cache**, Edge TTL "Use cache-control header if present,
+     bypass cache if not", Browser TTL "Respect origin". It absorbs refresh
+     spam for 15 s.
+  3. *Static files*: URI path starts with `/assets/`, `/sounds/`, `/models/`
+     or `/og/`, or equals `/favicon.svg` or `/apple-touch-icon.png` →
+     **Eligible for cache**, Edge TTL "Use cache-control header if present,
+     bypass cache if not", Browser TTL "Respect origin". Needed for the models:
+     Cloudflare does not cache `.glb` files by default.
+- **Network → WebSockets: on.** The rooms run over WebSockets.
+- **Speed: Rocket Loader, Email Obfuscation and Mirage off.** They inject
+  scripts that the CSP (`script-src 'self'`) blocks, which breaks the page
+  without an error. Check that the page's HTML only loads our own scripts.
+
+None of this touches `CF-Connecting-IP`/`X-Forwarded-For`, which the
+lobby-creation limit reads.
+
+**The purge after each deploy.** A deploy can change a sound or a model under
+the same name, and Cloudflare would keep its copy for a day.
+[`scripts/cf-purge.sh`](scripts/cf-purge.sh) empties Cloudflare's copies of
+`/sounds`, `/models`, `/og` and the icons (purge by prefix, available on every
+plan). It leaves `/assets` alone, so a tab opened before the deploy still gets
+its old chunks. The client image has it as `cf-purge`. To set it up:
+
+1. In Cloudflare, *My Profile → API Tokens → Create Token*, custom token,
+   permission **Zone → Cache Purge → Purge**, zone resources **only this
+   zone**. Nothing else: the token sits in the client container's environment.
+2. In Coolify, on the resource's *Environment Variables* page, add `CF_ZONE_ID`
+   (the zone's id, on its *Overview* page) and `CF_API_TOKEN`, both marked as
+   secrets (locked). Never commit them; the compose file only passes them
+   through to the `client` service.
+3. In Coolify, on the resource's *General* page, under *Pre/Post Deployment
+   Commands*: post-deployment command `cf-purge`, container name `client` (the
+   Compose service name). Coolify runs it with `sh -c` inside the new
+   container once the deploy is up. If that field is missing for this
+   resource, run the purge by hand after a deploy (below).
+
+A run prints one line to the deploy log. With either variable empty it only
+says so and exits 0, so the deploy never fails because of it. A refused purge
+exits 1 and prints Cloudflare's reason (never the token). To run it by hand
+from a checkout:
+
+```sh
+CF_ZONE_ID=<zone id> CF_API_TOKEN=<token> sh scripts/cf-purge.sh
+```
+
+**The ~1 minute of 503s during a deploy.** Coolify's rolling updates (the old
+container serves until the new one is healthy) only exist for single-image
+resources, not for Docker Compose ones: Compose stops and recreates the
+containers itself. Both services have a healthcheck, so the `client` waits for
+a healthy `server` and a broken build shows up as an unhealthy deploy, but
+there is no toggle that removes the gap with this setup. The only way out is
+to split the `client` into its own Coolify application (Dockerfile type, no
+host port, on the server's network) with rolling updates on. Even then, a
+redeploy of the `server` ends every game in progress, since lobbies live in
+its memory.
+
 ## For contributors and AI agents
 
 - [AGENTS.md](AGENTS.md): git workflow (no direct pushes to `main`, squash
