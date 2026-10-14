@@ -33,11 +33,18 @@ function prompt(localId: string, players: readonly LobbyPlayer[], key: string): 
   return `Maintiens ${key} pour libérer ${name} !`;
 }
 
+/** The local player's struggle meter (#70), 0..100, or -1 when not grabbed. */
+function struggleMeter(localId: string): number {
+  const me = net.getPlayer(localId);
+  return me && me.status === PlayerStatus.Grabbed ? Math.max(0, Math.min(100, me.struggle ?? 0)) : -1;
+}
+
 /**
  * The rescue prompt in the HUD (#10): "hold E to free X" next to a grabbed
  * teammate, and a word of hope for the grabbed player while someone pulls.
- * On touch (#42) it names the Action button instead of E.
- * Polls a few times a second and re-renders only when the text changes.
+ * On touch (#42) it names the Action button instead of E. While grabbed, the
+ * local player's struggle meter too (#70): it fills as they mash.
+ * Polls a few times a second and re-renders only when something shown changes.
  */
 export function RescueHud({
   localId,
@@ -49,14 +56,30 @@ export function RescueHud({
   touch?: boolean;
 }) {
   const [text, setText] = useState("");
+  const [meter, setMeter] = useState(-1);
   useEffect(() => {
     if (!localId) return undefined;
     const key = touch ? "Action" : "E";
-    const update = () => setText(prompt(localId, players, key));
+    const update = () => {
+      setText(prompt(localId, players, key));
+      setMeter(struggleMeter(localId));
+    };
     update();
     const timer = window.setInterval(update, POLL_MS);
     return () => window.clearInterval(timer);
   }, [localId, players, touch]);
-  if (!text) return null;
-  return <div className="hud-status">{text}</div>;
+  if (!text && meter < 0) return null;
+  return (
+    <>
+      {meter >= 0 && (
+        <div className="hud-struggle" role="meter" aria-label="Te débattre" aria-valuemin={0} aria-valuemax={100} aria-valuenow={meter}>
+          <span className="hud-struggle-label">Débats-toi</span>
+          <span className="hud-struggle-bar">
+            <span className="hud-struggle-fill" style={{ transform: `scaleX(${meter / 100})` }} />
+          </span>
+        </div>
+      )}
+      {text && <div className="hud-status">{text}</div>}
+    </>
+  );
 }

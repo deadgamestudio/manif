@@ -4,7 +4,9 @@ import {
   canMove,
   createHealth,
   damage,
+  deliver,
   grab,
+  isGrabImmune,
   heal,
   rescue,
   secondsLeft,
@@ -78,6 +80,17 @@ export class Healths {
   /** Free -> grabbed (#5). Returns true if the grab took. */
   grab(id: string, view: HealthView, now: number, duration?: number): boolean {
     return this.apply(id, view, now, (h) => grab(h, now, duration));
+  }
+
+  /** Whether a grab would be refused for immunity right now (#70: a CRS checks before winding up). False for an unknown id. */
+  isGrabImmune(id: string, now: number): boolean {
+    const h = this.records.get(id);
+    return h ? isGrabImmune(h, now) : false;
+  }
+
+  /** The drag reached the van (#70): arrested on the next `tick`. Returns true if it changed anything. */
+  deliver(id: string, view: HealthView, now: number): boolean {
+    return this.apply(id, view, now, (h) => deliver(h, now));
   }
 
   /** Grabbed -> free, with a short grab immunity (#10). Returns true if the rescue took. */

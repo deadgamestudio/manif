@@ -91,6 +91,7 @@ class FakeHost implements CrsHost {
     return false;
   }
   release() {}
+  arrest() {}
   drag() {}
   shove(by: string, id: string, dirX: number, dirZ: number, strength: number, floor: boolean) {
     this.shoves.push({ by, id, floor });

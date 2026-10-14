@@ -31,6 +31,8 @@ export function disguiseSource(id: string): PlayerShape | undefined {
       dodging: false,
       airborne: false,
       rescue: 0,
+      struggle: 0,
+      dragVan: -1,
       carrying: ThrowableKind.None,
       gassed: false,
       onFire: false,

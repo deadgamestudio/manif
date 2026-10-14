@@ -13,6 +13,7 @@ import {
   RESCUE_CRS_IMPULSE,
   RESCUE_PROTESTER_IMPULSE,
   RESCUE_TIME,
+  STRUGGLE_FREE_CRS_IMPULSE,
   MELEE_PROP_DAMAGE,
   PLAYER_RADIUS,
   PLAYER_SPEED,
@@ -155,7 +156,7 @@ import { JumpCooldowns } from "../features/jump/index.js";
 import { Player } from "../features/player/index.js";
 import { Props } from "../features/prop/index.js";
 import { CrsSquad } from "../features/crs/index.js";
-import { Rescues } from "../features/rescue/index.js";
+import { Rescues, Struggles } from "../features/rescue/index.js";
 import { Throwables } from "../features/throwable/index.js";
 import { Gas } from "../features/gas/index.js";
 import { Fires } from "../features/fire/index.js";
@@ -206,6 +207,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private healths = new Healths();
   /** Who is holding interact and pulling which grabbed teammate (#10). Server-only; progress is synced on the grabbed player. */
   private rescues = new Rescues();
+  /** Grabbed protesters mashing to break free (#70). Server-only; the meter is synced on the player (`struggle`). */
+  private struggles = new Struggles();
+  /** Protesters lying down because a baton floored them (#70): that alone never makes them grabbable. Server-only. */
+  private batonDowned = new Set<string>();
   /**
    * Room time in seconds: advances by the fixed dt each tick while playing.
    * Every health timer uses it (never Date.now()), so they pause with the sim.
@@ -333,7 +338,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       // bot's baton cooldown is spent all the same. A grab still lands.
       if (this.bodies.isAirborne(id)) return;
       this.damagePlayer(id, amount);
-      this.applyImpulse(id, dirX, dirZ, impulse);
+      const res = this.applyImpulse(id, dirX, dirZ, impulse);
+      // #70: floored by the baton is not "down" enough to be grabbed (see `isWeakened`).
+      if (res?.knockedDown) this.batonDowned.add(id);
     },
     // Splatted (#15): the swing is seen, and hits nothing.
     batonMiss: (by) => {
@@ -341,6 +348,18 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.broadcast(ServerMessage.Swing, swing);
     },
     grab: (id, duration) => this.grabPlayer(id, duration),
+    // #70: checked before a wind-up, so a bot never winds up on someone it can't grab.
+    canGrab: (id) => this.canBeGrabbed(id),
+    // #70: the van reached; arrested on the next tick, like a drag that ran out of time.
+    arrest: (id) => {
+      const player = this.state.players.get(id);
+      if (player) this.healths.deliver(id, player, this.now);
+    },
+    // #14: a gilet jaune or a retraité drags slower, and so does anyone a bobo is filming.
+    dragFactor: (id) => {
+      const player = this.state.players.get(id);
+      return player ? this.statsOf(id).grabTime * this.filmedFactor(player) : 1;
+    },
     // Same transition as a rescue (#10): the protester is free again.
     release: (id) => {
       this.rescuePlayer(id);
@@ -410,6 +429,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     [ClientMessage.Attack]: (client: Client) => {
       if (this.state.phase !== Phase.Marching) return;
       this.attack(client.sessionId, client);
+    },
+
+    // Struggle (#70). No payload: only a grabbed player's press counts, at most
+    // STRUGGLE_RATE a second (the shared rule); a full meter frees them. Never a swing.
+    [ClientMessage.Struggle]: (client: Client) => {
+      if (this.state.phase !== Phase.Marching) return;
+      this.struggle(client.sessionId);
     },
 
     // Dodge (#9). No payload: the server uses the held move direction (or the
@@ -642,6 +668,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.jumpCooldowns.remove(id);
     // A rescue aimed at this player ends on the next tick (unknown target).
     this.rescues.remove(id);
+    this.struggles.end(id);
+    this.batonDowned.delete(id);
     this.bodies.remove(id);
     // Systems that point at a player see unknown ids as no-ops; the CRS let go and look elsewhere at once (#59).
     this.crs.forget(id);
@@ -862,6 +890,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   private resetStreet() {
     this.rescues.clear();
+    this.struggles.clear();
+    this.batonDowned.clear();
     // Nobody carried or flying (#11).
     this.carry.clear();
     this.props.reset(this.state.props);
@@ -887,6 +917,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       // Every stat comes from the archetype picked in the lobby (#14); only max HP is kept per player (in health).
       this.healths.reset(sessionId, player, archetypeStats(player.archetype).maxHp);
       player.rescue = 0;
+      player.struggle = 0;
+      player.dragVan = -1;
       player.carrying = ThrowableKind.None;
       player.gassed = false;
       player.onFire = false;
@@ -1185,6 +1217,49 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     return true;
   }
 
+  /** Whether a grab on `id` would take right now (#70): free, not immune, not held overhead or flying (#11). */
+  private canBeGrabbed(id: string): boolean {
+    const player = this.state.players.get(id);
+    if (!player || player.status !== PlayerStatus.Free || this.carry.isCarried(id) || this.carry.isFlying(id)) return false;
+    return !this.healths.isGrabImmune(id, this.now);
+  }
+
+  /**
+   * One press of a grabbed protester's struggle (#70). Ignored unless grabbed;
+   * the meter counts at most STRUGGLE_RATE presses a second. Full, they break
+   * free: the same transition as a rescue (GRAB_IMMUNITY included), the CRS
+   * stumbles back a step and the protester away from it. Scores nothing.
+   */
+  private struggle(id: string) {
+    const player = this.state.players.get(id);
+    if (!player || player.status !== PlayerStatus.Grabbed) return;
+    if (this.struggles.press(id, this.now)) this.breakFree(id);
+    else player.struggle = this.struggles.percent(id);
+  }
+
+  /** A full struggle meter (#70): free, and the two bodies pushed apart (no one floored). */
+  private breakFree(id: string) {
+    const holder = this.crs.holderOf(id);
+    if (!this.rescuePlayer(id)) return;
+    this.struggles.end(id);
+    const player = this.state.players.get(id);
+    if (player) player.struggle = 0;
+    const bot = holder === null ? undefined : this.crs.get(holder);
+    if (!player || !bot || holder === null) return;
+    let dx = bot.body.x - player.x;
+    let dz = bot.body.z - player.z;
+    if (Math.hypot(dx, dz) < 1e-6) {
+      dx = Math.sin(bot.rotation);
+      dz = Math.cos(bot.rotation);
+    }
+    const res = this.crs.push(holder, dx, dz, STRUGGLE_FREE_CRS_IMPULSE, "never");
+    if (res && res.strength > 0) {
+      const push: ImpulseEvent = { id: holder, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
+      this.broadcast(ServerMessage.Impulse, push);
+    }
+    this.applyImpulse(id, -dx, -dz, RESCUE_PROTESTER_IMPULSE, "never");
+  }
+
   /**
    * A grabbed protester is free again (#10), with a short grab immunity: pulled
    * out by a teammate (see `pullFree`), or let go by a CRS that was stunned or
@@ -1425,7 +1500,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * along the held move direction or the facing. Only a protester with control
    * (free, not knocked down) dodges, at most once per DODGE_COOLDOWN, counted
    * from the start of the last one. A grabbed protester cannot dodge out of the
-   * grab: only a rescue (#10) frees them. Returns true if the dodge started.
+   * grab: only a rescue (#10) or their own struggle (#70) frees them. Returns
+   * true if the dodge started.
    */
   dodge(id: string): boolean {
     const player = this.state.players.get(id);
@@ -1675,6 +1751,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       (id) => RESCUE_TIME * this.statsOf(id).rescueTime * (isBotId(id) ? BOT.rescueTime : 1),
     );
     this.stepFireHolds(dt);
+    // Struggle meters (#70) drain when the mashing stops.
+    this.struggles.step(this.now, dt);
     // Bots (#59) decide a few times a second and act like players, before everyone moves.
     this.stepBots();
     const crowd = this.buildCrowdWorld();
@@ -1687,6 +1765,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       // The ring over a grabbed protester (#10); 0 once free, arrested or gone.
       const rescue = player.status === PlayerStatus.Grabbed ? this.rescues.percent(sessionId) : 0;
       if (player.rescue !== rescue) player.rescue = rescue;
+      // Their own struggle meter (#70): it belongs to this grab only.
+      if (player.status !== PlayerStatus.Grabbed) this.struggles.end(sessionId);
+      const struggle = this.struggles.percent(sessionId);
+      if (player.struggle !== struggle) player.struggle = struggle;
+      // #70: back on their feet, a baton knockdown is forgotten.
+      if (!player.down) this.batonDowned.delete(sessionId);
       // Only free protesters walk; the others keep their knockback slide (a KO'd body still flies).
       // A carried teammate (#11) is held overhead: no walking, placed on the carrier after this loop.
       const carried = this.carry.isCarried(sessionId);
@@ -1746,6 +1830,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (res.broke) console.log(`[street ${this.roomId}] ${line.id} broke (${res.broke})`);
     });
     if (poos.length > 0) this.slipCrs(poos);
+    // Where each grabbed protester is being taken (#70), for the van marker and the arrow.
+    this.state.players.forEach((player, sessionId) => {
+      const van = player.status === PlayerStatus.Grabbed ? this.crs.dragVanOf(sessionId) : -1;
+      if (player.dragVan !== van) player.dragVan = van;
+    });
     // Pompiers (#17): trucks come and go, the crews pick fires and spray (puts out fires, pushes whoever is in the water).
     this.brigade.step(this.now, dt, this.brigadeHost);
     this.burnCrs();
@@ -1960,6 +2049,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     view.z = player.z;
     view.status = player.status;
     view.down = player.down;
+    // #70: what decides a grab and foils its wind-up.
+    view.hp = player.hp;
+    view.batonDown = player.down && this.batonDowned.has(id);
+    view.dodging = player.dodging;
+    view.airborne = player.airborne;
     // The black bloc is chased first (#14): a weight on distance, see `pickTarget`.
     // A bot (#59) is chased after a human at a similar distance, on top of its archetype's weight.
     view.priority = archetypeStats(player.archetype).targetWeight * (isBotId(id) ? BOT.targetWeight : 1);

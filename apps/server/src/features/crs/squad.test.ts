@@ -14,6 +14,7 @@ import {
   PlayerStatus,
   STREET_LEVEL,
   TICK_DT,
+  levelVans,
   propCollisionWorld,
   type CrsHost,
   type ProtesterView,
@@ -50,6 +51,10 @@ function setup() {
     release: (id) => {
       const p = people.get(id);
       if (p) p.status = PlayerStatus.Free;
+    },
+    arrest: (id) => {
+      const p = people.get(id);
+      if (p) p.status = PlayerStatus.Arrested;
     },
     drag: () => {},
     shove: () => {},
@@ -186,5 +191,41 @@ describe("CrsSquad unit types (#13)", () => {
     // ...then it rode back to where it came from and left the street.
     expect(squad.size).toBe(0);
     expect(views.size).toBe(0);
+  });
+});
+
+describe("CrsSquad grabs (#70)", () => {
+  test("the wind-up is synced as the tell, then the drag's van is known for the protester", () => {
+    const { squad, views, people, step } = setup();
+    const bot = squad.spawn(MID.x, MID.z)!;
+    const stats = CRS_STATS[CrsKind.Crs];
+    // A weakened protester leaning on the bot.
+    people.set("p", { id: "p", x: MID.x, z: MID.z + stats.radius + 0.4 + 0.1, status: PlayerStatus.Free, down: false, hp: 30 });
+    let sawTell = false;
+    step(stats.grabWindup + 0.3, () => {
+      if (views.get(bot.id)?.windup) sawTell = true;
+    });
+    expect(sawTell).toBe(true);
+    expect(views.get(bot.id)!.windup).toBe(false);
+    expect(views.get(bot.id)!.status).toBe(CrsStatus.Grabbing);
+    // The nearest van to the middle of the street (z 40) is van-4 (z 48 to 53).
+    const van = squad.dragVanOf("p");
+    expect(van).toBeGreaterThanOrEqual(0);
+    expect(levelVans(LEVEL)[van]!.id).toBe("van-4");
+    expect(squad.dragVanOf("nobody")).toBe(-1);
+  });
+
+  test("a protester leaving mid wind-up: the bot just stops", () => {
+    const { squad, views, people, step } = setup();
+    const bot = squad.spawn(MID.x, MID.z)!;
+    const stats = CRS_STATS[CrsKind.Crs];
+    people.set("p", { id: "p", x: MID.x, z: MID.z + stats.radius + 0.5, status: PlayerStatus.Free, down: false, hp: 10 });
+    step(2 * TICK_DT);
+    expect(views.get(bot.id)!.windup).toBe(true);
+    people.delete("p");
+    squad.forget("p");
+    step(TICK_DT);
+    expect(views.get(bot.id)!.windup).toBe(false);
+    expect(squad.get(bot.id)!.status).toBe(CrsStatus.Active);
   });
 });

@@ -1,4 +1,5 @@
-import { useCallback, useRef, type MouseEvent, type PointerEvent } from "react";
+import { useCallback, useRef, useSyncExternalStore, type MouseEvent, type PointerEvent } from "react";
+import { PlayerStatus } from "@manif/shared";
 import { net, type LobbyPlayer } from "../../shared/net/index.ts";
 import { tryThrow } from "../throwable/index.ts";
 import { DodgeCooldownFill, useDodgeCooldown, useDodgeStart } from "../dodge/index.ts";
@@ -23,7 +24,8 @@ const jump = () => net.sendJump();
  * that appears where the thumb lands. Right thumb: Taper (hit, or throw along
  * the stick), Esquive (dodge, with its cooldown), Sauter (hop, #45) and
  * Action (pick up an item or a teammate (#11), held to rescue; lit when it would do something). Carrying a teammate, Taper throws them. Each control follows its own
- * finger, so walking and hitting at once works.
+ * finger, so walking and hitting at once works. Grabbed by a CRS (#70), Taper
+ * becomes "Débats-toi": mash it to break free.
  */
 export function TouchControls({ localId, players }: { localId: string | null; players: readonly LobbyPlayer[] }) {
   const stickPointer = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -68,10 +70,12 @@ export function TouchControls({ localId, players }: { localId: string | null; pl
     if (e.pointerId === stickPointer.current?.id) releaseStick();
   };
 
-  // Carrying, Taper throws along the stick (or the facing when it is idle); otherwise it swings.
+  // Grabbed (#70), Taper struggles. Carrying, it throws along the stick (or the facing when it is idle); otherwise it swings.
   const attack = useCallback(() => {
-    if (!tryThrow(touchAim(stickDir.current))) net.sendAttack();
+    if (net.isGrabbed()) net.sendStruggle();
+    else if (!tryThrow(touchAim(stickDir.current))) net.sendAttack();
   }, []);
+  const grabbed = useGrabbed(localId);
   const taper = useHoldButton(attack);
   const esquive = useHoldButton(dodge);
   const sauter = useHoldButton(jump);
@@ -107,10 +111,25 @@ export function TouchControls({ localId, players }: { localId: string | null; pl
             <DodgeCooldownFill started={dodgeStarted} cooldown={dodgeCooldown} />
           </span>
         </button>
-        <button type="button" className="touch-btn touch-btn-hit" data-held={taper.held || undefined} {...taper.handlers}>
-          Taper
+        <button
+          type="button"
+          className="touch-btn touch-btn-hit"
+          data-held={taper.held || undefined}
+          data-struggle={grabbed || undefined}
+          {...taper.handlers}
+        >
+          {grabbed ? "Débats-toi" : "Taper"}
         </button>
       </div>
     </div>
   );
+}
+
+/** Whether the local player is grabbed (#70), re-rendering only when their status changes. */
+function useGrabbed(localId: string | null): boolean {
+  const subscribe = useCallback(
+    (listener: () => void) => (localId ? net.watchPlayer(localId, ["status"], listener) : () => undefined),
+    [localId],
+  );
+  return useSyncExternalStore(subscribe, () => (localId ? net.getPlayer(localId)?.status === PlayerStatus.Grabbed : false));
 }

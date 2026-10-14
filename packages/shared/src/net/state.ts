@@ -28,6 +28,13 @@ export interface PlayerShape {
   airborne: boolean;
   /** While grabbed: how far a teammate's rescue has got (#10), 0..100. 0 otherwise. */
   rescue: number;
+  /** While grabbed: how full their own struggle meter is (#70), 0..100. 0 otherwise. */
+  struggle: number;
+  /**
+   * While grabbed: the police van they are dragged to (#70), an index into
+   * `levelVans(STREET_LEVEL)` (same order as `vanDoors`); -1 when none.
+   */
+  dragVan: number;
   /** The item in hand (#8), a `ThrowableKind`; `ThrowableKind.None` (0) when empty-handed. */
   carrying: ThrowableKind;
   /** In tear gas (#7): coughing and slowed, for the wobble and the screen tint. */
@@ -103,6 +110,8 @@ export interface CrsShape {
   mount: CrsMount;
   /** A pompier's hose is on (#17): the water jet goes out along `rotation`. Always false for the police. */
   spraying: boolean;
+  /** Winding up a grab (#70): arms out, about to grab whoever it faces. Draw the tell; dodge or hop to foil it. */
+  windup: boolean;
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   canTransition,
   createHealth,
   damage,
+  deliver,
   grab,
   rescue,
   respawn,
@@ -162,6 +163,23 @@ describe("grab and rescue", () => {
     expect(health.status).toBe(S.Arrested);
     expect(events).toHaveLength(1);
     expect(events[0]?.at).toBeCloseTo(GRAB_DURATION, 5);
+  });
+
+  test("delivered at the van (#70): arrested on the next tick, long before the fallback", () => {
+    const g = grab(createHealth(), 0);
+    const d = deliver(g, 5);
+    expect(d.status).toBe(S.Grabbed);
+    expect(d.until).toBe(5);
+    const { health, event } = tickHealth(d, 5 + 1 / 30);
+    expect(event).toBe("arrested");
+    expect(health.status).toBe(S.Arrested);
+  });
+
+  test("deliver is ignored unless grabbed", () => {
+    const f = createHealth();
+    expect(deliver(f, 1)).toBe(f);
+    const k = ko(0);
+    expect(deliver(k, 0.5)).toBe(k);
   });
 
   test("refuses grabbing a grabbed, KO or arrested protester", () => {

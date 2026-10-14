@@ -41,7 +41,7 @@ function buildView(state: StreetStateShape): WorldView {
   });
   const crs = new Map<string, CrsView>();
   state.crs?.forEach((c, id) => {
-    crs.set(id, { x: c.x, z: c.z, kind: c.kind, status: c.status, mount: c.mount, revealed: c.revealed, onFire: c.onFire, spraying: c.spraying });
+    crs.set(id, { x: c.x, z: c.z, kind: c.kind, status: c.status, mount: c.mount, revealed: c.revealed, onFire: c.onFire, spraying: c.spraying, windup: c.windup === true });
   });
   const broken = new Set<string>();
   state.props?.forEach((p, id) => {

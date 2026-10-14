@@ -1,10 +1,17 @@
 /**
  * The base police bot (#5): what one bot does each fixed tick.
  *
- *   active ──touches a free protester──> grabbing ──protester arrested / gone──> active
- *     │  └─(in reach) baton hit             │ stunned or knocked down: lets go (protester free)
- *     └──stun──> stunned ──time──> active   │
+ *   active ──touches a weakened protester──> wind-up ──time, still in reach──> grabbing ──at the van──> active
+ *     │  └─(in reach) baton hit                │ dodge, hop, hit, out of reach:     │ stunned or knocked down: lets go
+ *     │                                        └─ cancelled (grab cooldown)         │ rescued or struggled free (#10, #70)
+ *     └──stun──> stunned ──time──> active
  *   any ──0 HP──> out ──time──> removed by the room
+ *
+ * Grabs (#70): only a weakened protester (down, or at or below
+ * GRAB_HP_THRESHOLD HP) is grabbed, after a wind-up the clients see
+ * (`windupId`); then the bot drags them to the nearest reachable police van
+ * and they are arrested on arrival, after at least DRAG_MIN_TIME (the
+ * room's fallback timer ends a drag that never gets there).
  *
  * Active with nobody in sight: walks back to its post (spawn point) and waits.
  *
@@ -17,7 +24,7 @@
  * unit type can replace one at a time.
  */
 import { GAS_MAX_RANGE, GAS_SCATTER, pickGasAim, scatterAim } from "../gas/index.js";
-import { PlayerStatus } from "../health/index.js";
+import { DRAG_MIN_TIME, PlayerStatus } from "../health/index.js";
 import {
   applyImpulse,
   createBody,
@@ -36,6 +43,8 @@ import {
   CRS_STATS,
   CRS_STUCK_PROGRESS,
   CRS_STUCK_TIME,
+  GRAB_HP_THRESHOLD,
+  GRAB_WINDUP_SLACK,
   CrsMount,
   CrsStatus,
   type CrsKind,
@@ -86,6 +95,18 @@ export interface CrsBot {
   grabReadyAt: number;
   /** Protester being dragged, while `grabbing`. */
   grabbedId: string | null;
+  /** A grab winding up (#70): the protester it will grab, or null. Synced as `Crs.windup` for the tell. */
+  windupId: string | null;
+  /** Room time the wind-up ends and the grab lands. */
+  windupUntil: number;
+  /**
+   * While grabbing (#70): when the grab landed, the van it drags to (an index
+   * into `CrsContext.vans`, -1 for none), and how much slower this protester
+   * drags (`CrsHost.dragFactor`, 1 otherwise).
+   */
+  grabbedAt: number;
+  dragVan: number;
+  dragFactor: number;
   /** Stuck detector: where the bot was when the current window started, and when. */
   anchor: Vec2;
   anchorAt: number;
@@ -155,6 +176,11 @@ export function createCrsBot(id: string, kind: CrsKind, x: number, z: number, ro
     batonReadyAt: 0,
     grabReadyAt: 0,
     grabbedId: null,
+    windupId: null,
+    windupUntil: 0,
+    grabbedAt: 0,
+    dragVan: -1,
+    dragFactor: 1,
     anchor: { x, z },
     anchorAt: 0,
     stuckCount: 0,
@@ -186,8 +212,26 @@ export interface CrsHost {
   batonHit(by: string, id: string, dirX: number, dirZ: number, damage: number, impulse: number): void;
   /** Bot `by` swings its baton and misses (#15: splatted, it can't see). Only shown. Optional. */
   batonMiss?(by: string): void;
-  /** Start a grab. False if the protester is not free (already grabbed, KO...) or gone. */
+  /**
+   * Start a grab, arrested after `duration` (the fallback, #70) unless the van
+   * is reached first. False if the protester is not free (already grabbed,
+   * KO...), immune or gone.
+   */
   grab(id: string, duration: number): boolean;
+  /**
+   * Whether a grab would take right now (free, not immune, not carried...),
+   * checked before a wind-up starts (#70). Optional: absent, the free status
+   * alone decides, and `grab` may still refuse at the end.
+   */
+  canGrab?(id: string): boolean;
+  /** The drag reached the van (#70): the protester goes in (arrested) on the room's next tick. */
+  arrest(id: string): void;
+  /**
+   * How much slower protester `id` is to drag (#14: a gilet jaune, a retraité,
+   * a bobo filming), at least 1: the drag speed is divided by it and the
+   * minimum drag time multiplied. Optional: 1 when absent.
+   */
+  dragFactor?(id: string): number;
   /** Let go of a grabbed protester, who is free again. */
   release(id: string): void;
   /** Move a grabbed protester's body to (x, z), collided. */
@@ -271,7 +315,7 @@ export interface CrsBehaviour {
   updateTarget(bot: CrsBot, ctx: CrsContext, host: CrsHost): void;
   /** Hit or grab the target if possible. Returns true when the bot should stand still this tick. */
   act(bot: CrsBot, target: ProtesterView, ctx: CrsContext, host: CrsHost): boolean;
-  /** While grabbing: set `bot.input` towards the van. */
+  /** While grabbing: set `bot.input` towards the van, and hand the protester over (`host.arrest`) on arrival. */
   drag(bot: CrsBot, ctx: CrsContext, host: CrsHost): void;
   /**
    * Optional standing orders, checked before the chase while active: a bot
@@ -292,8 +336,10 @@ const LOOK_AHEAD = 6;
 const GOAL_DRIFT = 1.5;
 /** A bot back at its post stops within this distance of it. */
 const POST_REACHED = 0.5;
-/** A dragging bot stops this close to the van's door. */
+/** A dragging bot stops this close to the van's door, and hands the protester over (#70). */
 const VAN_REACHED = 0.6;
+/** Vans compared by walking distance when picking where to drag (#70): the nearest few as the crow flies. */
+const VAN_CANDIDATES = 3;
 
 /** Edge-to-edge gap between a bot and a protester. */
 export function gapTo(bot: CrsBot, p: Vec2): number {
@@ -317,10 +363,100 @@ export function updateTarget(bot: CrsBot, ctx: CrsContext, host: CrsHost): void 
 }
 
 /**
- * Grab when touching and the grab is ready, and the protester is down or the
- * baton is not ready (so a fresh target usually gets the baton first). Else
- * swing the baton when in reach. Only one grab per protester: `host.grab`
- * refuses anyone not free, so a second bot arriving the same tick gets nothing.
+ * Whether `target` counts as weakened (#70): at or below GRAB_HP_THRESHOLD HP,
+ * or knocked over by anything but a baton (every baton hit floors, so that
+ * alone would make any contact a grab again).
+ */
+export function isWeakened(target: ProtesterView): boolean {
+  return (target.down && target.batonDown !== true) || (target.hp !== undefined && target.hp <= GRAB_HP_THRESHOLD);
+}
+
+/**
+ * Whether bot `bot` may start grabbing `target` (#70): a free protester who is
+ * weakened (`isWeakened`), unless the unit grabs anyone (`grabAnyHp`, the
+ * BAC), and whom the room would let it grab.
+ */
+export function canStartGrab(bot: CrsBot, target: ProtesterView, host: CrsHost): boolean {
+  if (target.status !== PlayerStatus.Free) return false;
+  const weakened = bot.stats.grabAnyHp === true || isWeakened(target);
+  return weakened && (host.canGrab?.(target.id) ?? true);
+}
+
+/**
+ * Start a grab's wind-up on `target` (#70): the bot stands, arms out, for
+ * `stats.grabWindup`, then grabs if nothing foiled it (see `stepWindup`).
+ */
+export function startWindup(bot: CrsBot, target: ProtesterView, now: number): void {
+  bot.windupId = target.id;
+  bot.windupUntil = now + bot.stats.grabWindup;
+  bot.path = null;
+  const dx = target.x - bot.body.x;
+  const dz = target.z - bot.body.z;
+  if (dx !== 0 || dz !== 0) bot.rotation = Math.atan2(dx, dz);
+}
+
+/**
+ * Drop a wind-up (#70). `cooldown`: it was foiled (a dodge, a hop, a hit, out
+ * of reach), so the bot waits its grab cooldown before the next try; without
+ * it (the protester just stopped being free) it may try again at once.
+ */
+export function cancelWindup(bot: CrsBot, now: number, cooldown = true): void {
+  if (bot.windupId === null) return;
+  bot.windupId = null;
+  if (cooldown) bot.grabReadyAt = Math.max(bot.grabReadyAt, now + bot.stats.grabCooldown);
+}
+
+/**
+ * One tick of a wind-up (#70): stands facing the protester. Foiled (with the
+ * grab cooldown) when they dodge, hop or get out of reach, or the bot is
+ * splatted or backing off; dropped quietly if they are no longer free. When
+ * the time is up and they are still there, the grab lands and the drag starts
+ * towards the van picked now (`pickVan`).
+ */
+export function stepWindup(bot: CrsBot, ctx: CrsContext, host: CrsHost): void {
+  const now = ctx.now;
+  setInput(bot, NO_MOVE);
+  const id = bot.windupId;
+  if (id === null) return;
+  const target = host.protester(id);
+  if (!target || target.status !== PlayerStatus.Free) {
+    cancelWindup(bot, now, false);
+    return;
+  }
+  if (
+    target.dodging === true ||
+    target.airborne === true ||
+    gapTo(bot, target) > bot.stats.grabReach + GRAB_WINDUP_SLACK ||
+    isSplatted(bot, now) ||
+    isBackingOff(bot, now)
+  ) {
+    cancelWindup(bot, now);
+    return;
+  }
+  const dx = target.x - bot.body.x;
+  const dz = target.z - bot.body.z;
+  if (dx !== 0 || dz !== 0) bot.rotation = Math.atan2(dx, dz);
+  if (now < bot.windupUntil) return;
+  bot.windupId = null;
+  if (!host.grab(id, bot.stats.grabDuration)) {
+    // Refused at the last moment (immune, lifted by a teammate...): a short pause, then back to work.
+    bot.grabReadyAt = Math.max(bot.grabReadyAt, now + bot.stats.retargetInterval);
+    return;
+  }
+  bot.status = CrsStatus.Grabbing;
+  bot.grabbedId = id;
+  bot.grabbedAt = now;
+  bot.dragFactor = Math.max(1, host.dragFactor?.(id) ?? 1);
+  bot.dragVan = pickVan(bot.body, ctx.vans, ctx.nav);
+  bot.targetId = null;
+  bot.path = null;
+}
+
+/**
+ * Touching a protester it may grab (`canStartGrab`) with the grab ready: the
+ * wind-up starts (#70). Else swing the baton when in reach. Only one grab per
+ * protester: `host.grab` refuses anyone not free, so a second bot winding up
+ * on the same protester gets nothing.
  */
 export function act(bot: CrsBot, target: ProtesterView, ctx: CrsContext, host: CrsHost): boolean {
   const s = bot.stats;
@@ -337,15 +473,9 @@ export function act(bot: CrsBot, target: ProtesterView, ctx: CrsContext, host: C
     }
     return gap <= s.grabReach;
   }
-  if (gap <= s.grabReach && now >= bot.grabReadyAt && (target.down || now < bot.batonReadyAt)) {
-    if (host.grab(target.id, s.grabDuration)) {
-      bot.status = CrsStatus.Grabbing;
-      bot.grabbedId = target.id;
-      bot.targetId = null;
-      bot.path = null;
-      if (dx !== 0 || dz !== 0) bot.rotation = Math.atan2(dx, dz);
-      return true;
-    }
+  if (gap <= s.grabReach && now >= bot.grabReadyAt && canStartGrab(bot, target, host)) {
+    startWindup(bot, target, now);
+    return true;
   }
   if (gap <= s.batonRange && now >= bot.batonReadyAt && host.canBeHurt(target.id)) {
     bot.batonReadyAt = now + s.batonCooldown;
@@ -356,20 +486,64 @@ export function act(bot: CrsBot, target: ProtesterView, ctx: CrsContext, host: C
   return gap <= s.grabReach;
 }
 
-/** Walk to the nearest van, slowly; the room moves the protester behind us after the body step. */
-export function drag(bot: CrsBot, ctx: CrsContext): void {
-  const van = nearest(bot.body, ctx.vans);
-  if (!van || Math.hypot(van.x - bot.body.x, van.z - bot.body.z) <= VAN_REACHED) {
+/**
+ * Walk to the van picked at the grab (#70), slowly; the room moves the
+ * protester behind us after the body step. At the van door, the protester is
+ * handed over (`host.arrest`) once the drag has lasted DRAG_MIN_TIME (times
+ * the protester's drag factor); until then the bot waits there. No van at all:
+ * it stands, and the room's fallback timer ends the drag.
+ */
+export function drag(bot: CrsBot, ctx: CrsContext, host: CrsHost): void {
+  const van = ctx.vans[bot.dragVan] ?? nearest(bot.body, ctx.vans);
+  if (!van) {
     setInput(bot, NO_MOVE);
+    return;
+  }
+  if (Math.hypot(van.x - bot.body.x, van.z - bot.body.z) <= VAN_REACHED) {
+    setInput(bot, NO_MOVE);
+    if (bot.grabbedId !== null && ctx.now >= bot.grabbedAt + DRAG_MIN_TIME * bot.dragFactor) host.arrest(bot.grabbedId);
     return;
   }
   steerTo(bot, van.x, van.z, ctx);
 }
 
+/**
+ * The van a bot at `from` drags to (#70): the one with the shortest walk on
+ * `nav` among the few nearest as the crow flies; the nearest as the crow
+ * flies when none can be reached (the fallback timer then ends that drag).
+ * An index into `vans`, -1 when there are none.
+ */
+export function pickVan(from: Vec2, vans: readonly Vec2[], nav: NavGrid): number {
+  const byDistance = vans.map((v, i) => ({ i, d: Math.hypot(v.x - from.x, v.z - from.z) })).sort((a, b) => a.d - b.d);
+  let best = -1;
+  let bestLen = Infinity;
+  for (const { i } of byDistance.slice(0, VAN_CANDIDATES)) {
+    const van = vans[i];
+    if (!van) continue;
+    const path = nav.findPath(from, van);
+    if (path === null) continue;
+    let len = 0;
+    let x = from.x;
+    let z = from.z;
+    for (const cell of path) {
+      nav.centre(cell, scratch);
+      len += Math.hypot(scratch.x - x, scratch.z - z);
+      x = scratch.x;
+      z = scratch.z;
+    }
+    len += Math.hypot(van.x - x, van.z - z);
+    if (len < bestLen) {
+      bestLen = len;
+      best = i;
+    }
+  }
+  return best >= 0 ? best : (byDistance[0]?.i ?? -1);
+}
+
 export const DEFAULT_BEHAVIOUR: CrsBehaviour = {
   updateTarget,
   act,
-  drag: (bot, ctx) => drag(bot, ctx),
+  drag,
 };
 
 /**
@@ -386,13 +560,17 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
   let ordered = false;
   const down = isDown(bot.body);
   if (bot.status === CrsStatus.Out || bot.status === CrsStatus.Stunned || down) {
-    // Out, dazed or on the floor: lets go of any grab and does nothing.
+    // Out, dazed or on the floor: lets go of any grab (or the one winding up, #70) and does nothing.
     if (bot.grabbedId !== null) releaseGrab(bot, host, now);
+    cancelWindup(bot, now);
     setInput(bot, NO_MOVE);
+  } else if (bot.windupId !== null) {
+    // Winding up a grab (#70): stands, arms out, until it grabs or something foils it.
+    stepWindup(bot, ctx, host);
   } else if (bot.status === CrsStatus.Grabbing) {
     if (holdsGrab(bot, host)) {
       behaviour.drag(bot, ctx, host);
-      speedFactor = s.dragSpeedFactor;
+      speedFactor = s.dragSpeedFactor / bot.dragFactor;
     } else {
       // Arrested (drag over), rescued (#10) or disconnected: back to work.
       endGrab(bot, now);
@@ -510,6 +688,8 @@ function holdsGrab(bot: CrsBot, host: CrsHost): boolean {
 /** Stop holding without touching the protester (they are arrested or gone). */
 function endGrab(bot: CrsBot, now: number): void {
   bot.grabbedId = null;
+  bot.dragVan = -1;
+  bot.dragFactor = 1;
   if (bot.status === CrsStatus.Grabbing) bot.status = CrsStatus.Active;
   bot.grabReadyAt = now + bot.stats.grabCooldown;
   bot.path = null;
@@ -553,6 +733,8 @@ export function hitCrs(bot: CrsBot, fromX: number, fromZ: number, damage: number
     const away = awayFrom(bot, fromX, fromZ);
     return { impulse: applyImpulse(bot.body, away.x, away.z, s.heavyHitImpulse, "always"), out: false };
   }
+  // Any hit staggers it out of a grab's wind-up (#70).
+  cancelWindup(bot, now);
   bot.staggerCount = now - bot.lastHitAt <= s.staggerWindow ? bot.staggerCount + 1 : 1;
   bot.lastHitAt = now;
   const heavy = bot.staggerCount >= s.staggerHits;
@@ -600,6 +782,8 @@ export function strikeCrs(
   if (bot.status === CrsStatus.Out) return null;
   // A pompier (#17): knocked over by anything that pushes it, never hurt or stunned.
   if (bot.stats.invulnerable === true) return { impulse: applyImpulse(bot.body, dirX, dirZ, impulse, impulse > 0 ? "always" : "auto"), out: false };
+  // Anything thrown at it foils a grab's wind-up (#70), a tomato included.
+  cancelWindup(bot, now);
   bot.hp = Math.max(0, bot.hp - Math.max(0, damage));
   const out = bot.hp === 0;
   const res = applyImpulse(bot.body, dirX, dirZ, impulse, out ? "always" : "auto");

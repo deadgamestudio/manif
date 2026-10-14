@@ -42,6 +42,14 @@ export const ClientMessage = {
    */
   Attack: "attack",
   /**
+   * Struggle in a CRS's hold (#70): one press of the mash (attack, or the
+   * touch button, while grabbed). No payload. The server ignores it unless the
+   * sender is grabbed, counts at most STRUGGLE_RATE presses a second, and
+   * frees them (with GRAB_IMMUNITY) once the meter is full. Never a swing:
+   * an attack from a grabbed player still does nothing.
+   */
+  Struggle: "struggle",
+  /**
    * Dodge (#9): a short burst of speed in the held move direction, or the
    * facing when standing still. No payload: the server picks the direction
    * and enforces the cooldown and the player's state (free, not knocked down).
@@ -103,6 +111,7 @@ export interface ClientMessagePayloads {
   [ClientMessage.Rename]: RenamePayload;
   [ClientMessage.FillBots]: FillBotsPayload;
   [ClientMessage.Attack]: undefined;
+  [ClientMessage.Struggle]: undefined;
   [ClientMessage.Dodge]: undefined;
   [ClientMessage.Jump]: undefined;
   [ClientMessage.Interact]: InteractPayload;

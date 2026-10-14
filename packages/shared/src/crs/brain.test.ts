@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { GRAB_IMMUNITY, PlayerStatus, createHealth, damage, grab, rescue, tickHealth, type Health } from "../health/index.js";
+import { DRAG_MIN_TIME, GRAB_IMMUNITY, PlayerStatus, createHealth, damage, deliver, grab, isGrabImmune, rescue, tickHealth, type Health } from "../health/index.js";
 import { STREET_LEVEL, levelWorld } from "../level/index.js";
 import { TICK_DT } from "../net/index.js";
 import { KNOCKDOWN_THRESHOLD, applyImpulse, circleOverlaps, createBody, isDown, stepBody, type Body, type CollisionWorld } from "../physics/index.js";
 import { PLAYER_RADIUS, PLAYER_SPEED } from "../player/index.js";
 import { GAS_SLOW } from "../gas/index.js";
-import { burnCrs, createCrsBot, hitCrs, stepCrs, steerTo, strikeCrs, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
-import { CRS_STATS, CrsKind, CrsStatus } from "./constants.js";
+import { burnCrs, createCrsBot, hitCrs, isWeakened, pickVan, stepCrs, steerTo, strikeCrs, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
+import { CRS_STATS, CrsKind, CrsStatus, GRAB_HP_THRESHOLD, GRAB_WINDUP_SLACK } from "./constants.js";
 import { NavGrid } from "./nav.js";
 import { vanDoors, type ProtesterView } from "./targeting.js";
 
@@ -26,6 +26,9 @@ class FakeHost implements CrsHost {
   readonly people = new Map<string, FakeProtester>();
   readonly batonHits: { by: string; id: string }[] = [];
   readonly releases: string[] = [];
+  readonly arrests: string[] = [];
+  /** Floored by a baton (like the room, #70): that knockdown alone is not "down" enough to be grabbed. */
+  readonly batonDowned = new Set<string>();
   now = 0;
 
   add(id: string, x: number, z: number): FakeProtester {
@@ -39,6 +42,9 @@ class FakeHost implements CrsHost {
     p.view.x = p.body.x;
     p.view.z = p.body.z;
     p.view.down = isDown(p.body);
+    p.view.hp = p.health.hp;
+    if (!p.view.down) this.batonDowned.delete(p.view.id);
+    p.view.batonDown = p.view.down && this.batonDowned.has(p.view.id);
   }
 
   protesters(): Iterable<ProtesterView> {
@@ -56,7 +62,7 @@ class FakeHost implements CrsHost {
     if (!p) return;
     this.batonHits.push({ by, id });
     p.health = damage(p.health, amount, this.now);
-    applyImpulse(p.body, dirX, dirZ, impulse);
+    if (applyImpulse(p.body, dirX, dirZ, impulse).knockedDown) this.batonDowned.add(id);
     this.sync(p);
   }
   grab(id: string, duration: number) {
@@ -67,6 +73,16 @@ class FakeHost implements CrsHost {
     p.health = next;
     this.sync(p);
     return true;
+  }
+  canGrab(id: string) {
+    const p = this.people.get(id);
+    return !!p && p.health.status === PlayerStatus.Free && !isGrabImmune(p.health, this.now);
+  }
+  arrest(id: string) {
+    const p = this.people.get(id);
+    if (!p) return;
+    this.arrests.push(id);
+    p.health = deliver(p.health, this.now);
   }
   release(id: string) {
     const p = this.people.get(id);
@@ -116,7 +132,9 @@ function setup(world: CollisionWorld = OPEN, vans = [VAN]) {
     bots.push(b);
     return b;
   };
-  return { host, ctx, bots, tick, run, addBot };
+  /** Run until a bot holds someone: the wind-up (#70) and a tick or two. */
+  const windUp = () => run(STATS.grabWindup + 3 * TICK_DT, () => bots.some((b) => b.status === CrsStatus.Grabbing));
+  return { host, ctx, bots, tick, run, addBot, windUp };
 }
 
 /** A protester "touching" a bot: edges within grab reach. */
@@ -197,13 +215,18 @@ describe("chasing", () => {
 });
 
 describe("grabbing", () => {
-  test("a free protester who is down when touched gets grabbed", () => {
-    const { host, tick, addBot, bots } = setup();
+  test("a free protester who is down when touched gets grabbed, after the wind-up (#70)", () => {
+    const { host, tick, addBot, bots, windUp } = setup();
     addBot("crs-1", 0, 0);
     const p = host.add("p", 0, touching);
     p.body.downTime = 1;
     tick();
+    // The wind-up: arms out, nobody grabbed yet.
+    expect(bots[0]!.windupId).toBe("p");
+    expect(p.health.status).toBe(PlayerStatus.Free);
+    windUp();
     expect(p.health.status).toBe(PlayerStatus.Grabbed);
+    expect(bots[0]!.windupId).toBeNull();
     expect(bots[0]!.status).toBe(CrsStatus.Grabbing);
     expect(bots[0]!.grabbedId).toBe("p");
   });
@@ -219,12 +242,12 @@ describe("grabbing", () => {
   });
 
   test("two CRS touching the same protester on the same tick make one grab", () => {
-    const { host, tick, addBot, bots } = setup();
+    const { host, tick, addBot, bots, windUp } = setup();
     addBot("crs-1", 0, 0);
     addBot("crs-2", 0, 2 * touching);
     const p = host.add("p", 0, touching);
     p.body.downTime = 1;
-    tick();
+    windUp();
     const grabbing = bots.filter((b) => b.status === CrsStatus.Grabbing);
     expect(grabbing.length).toBe(1);
     expect(grabbing[0]!.grabbedId).toBe("p");
@@ -246,30 +269,79 @@ describe("grabbing", () => {
     expect(bots[0]!.grabbedId).toBeNull();
   });
 
-  test("drags towards the van, and the protester is arrested after the drag time", () => {
-    const { host, run, addBot, bots } = setup();
+  test("drags to the van and the protester is arrested on arrival (#70), before the fallback", () => {
+    const { host, run, addBot, bots, windUp, ctx } = setup();
     addBot("crs-1", 0, 0);
     const p = host.add("p", 0, touching);
     p.body.downTime = 1;
-    const startDist = Math.hypot(VAN.x - 0, VAN.z - touching);
-    run(STATS.grabDuration - 0.2);
+    windUp();
+    const grabbedAt = ctx.now;
+    const startDist = Math.hypot(VAN.x - p.body.x, VAN.z - p.body.z);
+    run(2);
     expect(p.health.status).toBe(PlayerStatus.Grabbed);
     // Dragged closer to the van, at reduced speed, right behind the bot.
-    const dist = Math.hypot(VAN.x - p.body.x, VAN.z - p.body.z);
-    expect(dist).toBeLessThan(startDist - 3);
+    expect(Math.hypot(VAN.x - p.body.x, VAN.z - p.body.z)).toBeLessThan(startDist - 2);
     expect(Math.hypot(p.body.x - bots[0]!.body.x, p.body.z - bots[0]!.body.z)).toBeLessThan(STATS.radius + PLAYER_RADIUS + 0.2);
-    run(0.3);
-    expect(p.health.status).toBe(PlayerStatus.Arrested);
+    expect(run(STATS.grabDuration, () => p.health.status === PlayerStatus.Arrested)).toBe(true);
+    const took = ctx.now - grabbedAt;
+    // About the walk at drag speed (15 m at 4.2 x 0.55), well before the fallback.
+    expect(took).toBeLessThan(STATS.grabDuration - 2);
+    expect(took).toBeGreaterThan(startDist / (STATS.speed * STATS.dragSpeedFactor) - 1);
+    expect(host.arrests).toEqual(["p"]);
+    expect(Math.hypot(VAN.x - bots[0]!.body.x, VAN.z - bots[0]!.body.z)).toBeLessThan(0.8);
+    run(2 * TICK_DT);
     expect(bots[0]!.status).toBe(CrsStatus.Active);
     expect(bots[0]!.grabbedId).toBeNull();
   });
 
+  test("a van right beside the grab: the bot waits at the door until DRAG_MIN_TIME (#70)", () => {
+    const near = { x: 0, z: -1.2 };
+    const { host, run, addBot, windUp, ctx } = setup(OPEN, [near]);
+    addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, touching);
+    p.body.downTime = 1;
+    windUp();
+    const grabbedAt = ctx.now;
+    run(DRAG_MIN_TIME - 0.2);
+    expect(p.health.status).toBe(PlayerStatus.Grabbed);
+    expect(run(0.5, () => p.health.status === PlayerStatus.Arrested)).toBe(true);
+    expect(ctx.now - grabbedAt).toBeGreaterThanOrEqual(DRAG_MIN_TIME - 1e-6);
+  });
+
+  test("a van it can never reach: the fallback (grabDuration) still ends the drag (#70)", () => {
+    // The van's door is boxed in by walls: no path, and the bot gets stuck against them.
+    const door = { x: 0, z: -15 };
+    const world: CollisionWorld = {
+      bounds,
+      boxes: [
+        { x: 0, z: -12.5, halfX: 3, halfZ: 0.5 },
+        { x: 0, z: -17.5, halfX: 3, halfZ: 0.5 },
+        { x: -2.5, z: -15, halfX: 0.5, halfZ: 2 },
+        { x: 2.5, z: -15, halfX: 0.5, halfZ: 2 },
+      ],
+      circles: [],
+    };
+    const { host, run, addBot, bots, windUp, ctx } = setup(world, [door]);
+    addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, touching);
+    p.body.downTime = 1;
+    windUp();
+    const grabbedAt = ctx.now;
+    run(STATS.grabDuration - 0.3);
+    expect(p.health.status).toBe(PlayerStatus.Grabbed);
+    expect(host.arrests).toEqual([]);
+    expect(run(0.6, () => p.health.status === PlayerStatus.Arrested)).toBe(true);
+    expect(ctx.now - grabbedAt).toBeCloseTo(STATS.grabDuration, 0);
+    run(2 * TICK_DT);
+    expect(bots[0]!.status).toBe(CrsStatus.Active);
+  });
+
   test("a stunned CRS lets go and the protester is free again", () => {
-    const { host, tick, run, addBot, bots, ctx } = setup();
+    const { host, tick, run, addBot, bots, ctx, windUp } = setup();
     const bot = addBot("crs-1", 0, 0);
     const p = host.add("p", 0, touching);
     p.body.downTime = 1;
-    tick();
+    windUp();
     expect(bot.status).toBe(CrsStatus.Grabbing);
     expect(stunCrs(bot, ctx.now)).toBe(true);
     tick();
@@ -287,11 +359,11 @@ describe("grabbing", () => {
   });
 
   test("a knocked-down CRS lets go", () => {
-    const { host, tick, addBot } = setup();
+    const { host, tick, addBot, windUp } = setup();
     const bot = addBot("crs-1", 0, 0);
     const p = host.add("p", 0, touching);
     p.body.downTime = 1;
-    tick();
+    windUp();
     expect(bot.status).toBe(CrsStatus.Grabbing);
     applyImpulse(bot.body, 1, 0, KNOCKDOWN_THRESHOLD + 1);
     tick();
@@ -300,11 +372,11 @@ describe("grabbing", () => {
   });
 
   test("a rescued protester is not grabbed again during GRAB_IMMUNITY, even by another CRS touching them (#10)", () => {
-    const { host, tick, addBot, ctx } = setup();
+    const { host, tick, addBot, ctx, windUp } = setup();
     const holder = addBot("crs-1", 0, 0);
     const p = host.add("p", 0, touching);
     p.body.downTime = 1;
-    tick();
+    windUp();
     expect(holder.status).toBe(CrsStatus.Grabbing);
     // A teammate pulls them free (what the room's rescue does).
     p.health = rescue(p.health, ctx.now);
@@ -314,7 +386,7 @@ describe("grabbing", () => {
     // A fresh CRS, ready to grab, keeps touching them while they lie on the floor.
     const fresh = addBot("crs-2", 15, 0);
     let grabbedAt = -1;
-    for (let t = 0; t < GRAB_IMMUNITY + 0.5 && grabbedAt < 0; t += TICK_DT) {
+    for (let t = 0; t < GRAB_IMMUNITY + STATS.grabWindup + 0.5 && grabbedAt < 0; t += TICK_DT) {
       p.body.x = fresh.body.x - touching;
       p.body.z = fresh.body.z;
       p.body.vx = 0;
@@ -324,22 +396,219 @@ describe("grabbing", () => {
       if (p.health.status === PlayerStatus.Grabbed) grabbedAt = ctx.now;
     }
     expect(grabbedAt).toBeGreaterThan(0);
-    expect(grabbedAt - freedAt).toBeGreaterThanOrEqual(GRAB_IMMUNITY - 1e-6);
-    expect(grabbedAt - freedAt).toBeLessThan(GRAB_IMMUNITY + 2 * TICK_DT);
+    // #70: the fresh CRS winds up only once the immunity is over, then grabs.
+    expect(grabbedAt - freedAt).toBeGreaterThanOrEqual(GRAB_IMMUNITY + STATS.grabWindup - 1e-6);
+    expect(grabbedAt - freedAt).toBeLessThan(GRAB_IMMUNITY + STATS.grabWindup + 3 * TICK_DT);
   });
 
   test("the grabbed protester disconnects: the CRS is free next tick, no error", () => {
-    const { host, tick, addBot } = setup();
+    const { host, tick, addBot, windUp } = setup();
     const bot = addBot("crs-1", 0, 0);
     const p = host.add("p", 0, touching);
     p.body.downTime = 1;
-    tick();
+    windUp();
     expect(bot.status).toBe(CrsStatus.Grabbing);
     host.people.delete("p");
     expect(() => tick()).not.toThrow();
     expect(bot.status).toBe(CrsStatus.Active);
     expect(bot.grabbedId).toBeNull();
     expect(host.releases).toEqual([]);
+  });
+});
+
+describe("only a weakened protester is grabbed (#70)", () => {
+  /** Keep `p` standing in contact with the bot at (0, 0), as if they leaned on it. */
+  const holdInContact = (p: { body: Body }) => {
+    p.body.x = 0;
+    p.body.z = touching;
+    p.body.vx = p.body.vz = 0;
+  };
+
+  test("a full-HP protester leaning on a CRS gets the baton, never a grab, even floored by it", () => {
+    const { host, run, addBot, bots } = setup();
+    addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, touching);
+    let windups = 0;
+    // Two hits take 100 HP to 60: still above the threshold.
+    run(STATS.batonCooldown + 0.3, () => {
+      holdInContact(p);
+      if (bots[0]!.windupId !== null) windups++;
+      return false;
+    });
+    expect(host.batonHits.length).toBe(2);
+    expect(p.health.hp).toBe(100 - 2 * STATS.batonDamage);
+    expect(p.health.hp).toBeGreaterThan(GRAB_HP_THRESHOLD);
+    expect(windups).toBe(0);
+    expect(p.health.status).toBe(PlayerStatus.Free);
+  });
+
+  test("beaten down to the threshold, the next contact winds up a grab", () => {
+    const { host, run, addBot, bots } = setup();
+    addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, touching);
+    expect(
+      run(6, () => {
+        holdInContact(p);
+        return p.health.status === PlayerStatus.Grabbed;
+      }),
+    ).toBe(true);
+    // Three baton hits (100 -> 40), then the wind-up, then the grab.
+    expect(host.batonHits.length).toBe(Math.ceil((100 - GRAB_HP_THRESHOLD) / STATS.batonDamage));
+    expect(p.health.hp).toBeLessThanOrEqual(GRAB_HP_THRESHOLD);
+    expect(bots[0]!.status).toBe(CrsStatus.Grabbing);
+  });
+
+  test("isWeakened: low HP, or knocked over by anything but a baton", () => {
+    const view = { id: "p", x: 0, z: 0, status: PlayerStatus.Free, down: false, hp: 100 };
+    expect(isWeakened(view)).toBe(false);
+    expect(isWeakened({ ...view, hp: GRAB_HP_THRESHOLD })).toBe(true);
+    expect(isWeakened({ ...view, hp: GRAB_HP_THRESHOLD + 1 })).toBe(false);
+    expect(isWeakened({ ...view, down: true })).toBe(true);
+    expect(isWeakened({ ...view, down: true, batonDown: true })).toBe(false);
+    expect(isWeakened({ ...view, down: true, batonDown: true, hp: 20 })).toBe(true);
+  });
+
+  test("the BAC grabs whatever the HP (grabAnyHp), after its shorter wind-up", () => {
+    const { host, ctx, bots, run } = setup();
+    const bac = createCrsBot("bac-1", CrsKind.Bac, 0, 0);
+    bac.revealed = true;
+    bots.push(bac);
+    const bacStats = CRS_STATS[CrsKind.Bac];
+    expect(bacStats.grabWindup).toBeLessThan(STATS.grabWindup);
+    const p = host.add("p", 0, bacStats.radius + PLAYER_RADIUS + bacStats.grabReach / 2);
+    expect(run(bacStats.grabWindup + 3 * TICK_DT, () => p.health.status === PlayerStatus.Grabbed)).toBe(true);
+    expect(p.health.hp).toBe(100);
+    expect(ctx.now).toBeGreaterThanOrEqual(bacStats.grabWindup);
+  });
+});
+
+describe("the grab's wind-up (#70)", () => {
+  /** A bot about to grab a downed protester: the wind-up has just started. */
+  function windingUp() {
+    const t = setup();
+    const bot = t.addBot("crs-1", 0, 0);
+    const p = t.host.add("p", 0, touching);
+    p.body.downTime = 2;
+    t.tick();
+    expect(bot.windupId).toBe("p");
+    return { ...t, bot, p };
+  }
+
+  test("starts on contact and lasts grabWindup: the bot stands still meanwhile", () => {
+    const { bot, p, run, ctx } = windingUp();
+    const started = ctx.now;
+    const x = bot.body.x;
+    run(STATS.grabWindup - 2 * TICK_DT);
+    expect(p.health.status).toBe(PlayerStatus.Free);
+    expect(bot.windupId).toBe("p");
+    expect(bot.body.x).toBe(x);
+    expect(run(4 * TICK_DT, () => p.health.status === PlayerStatus.Grabbed)).toBe(true);
+    expect(ctx.now - started).toBeGreaterThanOrEqual(STATS.grabWindup - 1e-6);
+  });
+
+  test("a dodge cancels it, and the bot waits its grab cooldown", () => {
+    const { bot, p, tick, run, ctx } = windingUp();
+    p.view.dodging = true;
+    tick();
+    expect(bot.windupId).toBeNull();
+    expect(bot.grabReadyAt).toBeCloseTo(ctx.now + STATS.grabCooldown, 5);
+    p.view.dodging = false;
+    run(STATS.grabWindup + 0.2);
+    expect(p.health.status).toBe(PlayerStatus.Free);
+  });
+
+  test("a hop cancels it", () => {
+    const { bot, p, tick } = windingUp();
+    p.view.airborne = true;
+    tick();
+    expect(bot.windupId).toBeNull();
+    expect(p.health.status).toBe(PlayerStatus.Free);
+  });
+
+  test("a hit that staggers the bot cancels it", () => {
+    const { bot, p, tick, ctx } = windingUp();
+    hitCrs(bot, 0, touching, 1, ctx.now);
+    expect(bot.windupId).toBeNull();
+    tick();
+    expect(p.health.status).toBe(PlayerStatus.Free);
+    expect(bot.grabReadyAt).toBeGreaterThan(ctx.now);
+  });
+
+  test("a thrown item cancels it too", () => {
+    const { bot, ctx } = windingUp();
+    strikeCrs(bot, 0, 1, 0, 0, 0, ctx.now);
+    expect(bot.windupId).toBeNull();
+  });
+
+  test("stepping out of reach cancels it", () => {
+    const { bot, p, tick } = windingUp();
+    p.body.z = touching + GRAB_WINDUP_SLACK + 0.3;
+    p.body.vz = 0;
+    tick();
+    expect(bot.windupId).toBeNull();
+    expect(p.health.status).toBe(PlayerStatus.Free);
+  });
+
+  test("a stunned bot drops it", () => {
+    const { bot, p, tick, ctx } = windingUp();
+    stunCrs(bot, ctx.now);
+    tick();
+    expect(bot.windupId).toBeNull();
+    expect(p.health.status).toBe(PlayerStatus.Free);
+  });
+});
+
+describe("where the drag goes (#70)", () => {
+  test("pickVan: the nearest van by walking distance, not as the crow flies", () => {
+    // A wall between the bot and the closer van makes the walk there longer than to the other one.
+    const world: CollisionWorld = { bounds, boxes: [{ x: 0, z: -3, halfX: 15, halfZ: 0.5 }], circles: [] };
+    const nav = new NavGrid(world, STATS.radius);
+    const behindWall = { x: 0, z: -6 };
+    const open = { x: 0, z: 9 };
+    expect(pickVan({ x: 0, z: 0 }, [behindWall, open], nav)).toBe(1);
+    // Without the wall, the closer one.
+    expect(pickVan({ x: 0, z: 0 }, [behindWall, open], new NavGrid(OPEN, STATS.radius))).toBe(0);
+  });
+
+  test("pickVan: none reachable, the nearest as the crow flies; no vans, -1", () => {
+    const world: CollisionWorld = {
+      bounds,
+      boxes: [
+        { x: 0, z: -12.5, halfX: 3, halfZ: 0.5 },
+        { x: 0, z: -17.5, halfX: 3, halfZ: 0.5 },
+        { x: -2.5, z: -15, halfX: 0.5, halfZ: 2 },
+        { x: 2.5, z: -15, halfX: 0.5, halfZ: 2 },
+      ],
+      circles: [],
+    };
+    const nav = new NavGrid(world, STATS.radius);
+    expect(pickVan({ x: 0, z: 0 }, [{ x: 0, z: -15 }], nav)).toBe(0);
+    expect(pickVan({ x: 0, z: 0 }, [], nav)).toBe(-1);
+  });
+
+  test("the grab picks the van, and the drag heads for it", () => {
+    const vans = [
+      { x: 15, z: 15 },
+      { x: -15, z: 0 },
+    ];
+    const { host, run, addBot, windUp } = setup(OPEN, vans);
+    const bot = addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, touching);
+    p.body.downTime = 1;
+    windUp();
+    expect(bot.dragVan).toBe(1);
+    run(1.5);
+    expect(bot.body.x).toBeLessThan(-1.5);
+  });
+
+  test("the street: every van door can be reached and each one is picked from somewhere", () => {
+    const world = levelWorld(STREET_LEVEL);
+    const nav = new NavGrid(world, STATS.radius);
+    const doors = vanDoors(STREET_LEVEL);
+    expect(doors.length).toBeGreaterThanOrEqual(5);
+    const picked = new Set<number>();
+    for (let z = 95; z >= -95; z -= 5) picked.add(pickVan({ x: 0, z }, doors, nav));
+    expect(picked.size).toBe(doors.length);
   });
 });
 
@@ -389,11 +658,11 @@ describe("a thrown item hitting a CRS (#8)", () => {
   });
 
   test("a grabbing CRS struck lets go on its next tick, with the rescue's grab immunity", () => {
-    const { host, tick, addBot, bots, ctx } = setup();
+    const { host, tick, addBot, bots, ctx, windUp } = setup();
     addBot("crs-1", 0, 0);
     const p = host.add("p", 0, touching);
     p.body.downTime = 1;
-    tick();
+    windUp();
     expect(bots[0]!.status).toBe(CrsStatus.Grabbing);
     strikeCrs(bots[0]!, 0, 1, 2, KNOCKDOWN_THRESHOLD + 4, 1.5, ctx.now);
     tick();

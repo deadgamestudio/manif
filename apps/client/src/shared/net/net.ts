@@ -770,6 +770,24 @@ export const net = {
   },
 
   /**
+   * One press of the struggle (#70), while grabbed: the server fills the meter
+   * (at most STRUGGLE_RATE presses a second count) and frees us when it is
+   * full. Not sent unless grabbed. Never a swing.
+   */
+  sendStruggle() {
+    if (!room || room.state.phase !== Phase.Marching) return;
+    const me = room.state.players.get(room.sessionId);
+    if (!me || me.status !== PlayerStatus.Grabbed) return;
+    room.send(ClientMessage.Struggle);
+  },
+
+  /** Whether the local player is grabbed right now (#70: attack becomes a struggle). */
+  isGrabbed(): boolean {
+    const me = room?.state.players.get(room.sessionId);
+    return me?.status === PlayerStatus.Grabbed;
+  },
+
+  /**
    * Throw the carried item (#8), or the carried teammate (#11), along a
    * ground direction (the server normalizes it; zero throws along the
    * facing). Plays the arm swing locally right away; the flight itself is the

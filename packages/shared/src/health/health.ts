@@ -105,13 +105,24 @@ export function damage(h: Health, amount: number, now: number): Health {
 }
 
 /**
- * A CRS grabs a free protester (#5): it is dragged for `duration` seconds,
- * then arrested unless rescued. Refused unless free, during respawn
+ * A CRS grabs a free protester (#5): it is dragged to a van (#70) and
+ * arrested on arrival (`deliver`), or when `duration` (the fallback) runs out,
+ * unless rescued or struggling free first. Refused unless free, during respawn
  * invulnerability, and during the grab immunity after a rescue.
  */
 export function grab(h: Health, now: number, duration = GRAB_DURATION): Health {
   if (!canTransition(h.status, PlayerStatus.Grabbed) || isGrabImmune(h, now)) return h;
   return { ...h, status: PlayerStatus.Grabbed, until: now + Math.max(0, duration) };
+}
+
+/**
+ * The drag reached a police van (#70): the protester goes into it on the next
+ * `tickHealth`, through the same arrest as a drag that ran out of time.
+ * Ignored unless grabbed.
+ */
+export function deliver(h: Health, now: number): Health {
+  if (h.status !== PlayerStatus.Grabbed || h.until <= now) return h;
+  return { ...h, until: now };
 }
 
 /**

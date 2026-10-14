@@ -90,7 +90,34 @@ function CentreLine({ level }: { level: Level }) {
   );
 }
 
+/**
+ * A police van, the "panier à salade" (#70: where the CRS drag people):
+ * the collision box in police blue, a white stripe along it and a blue light
+ * bar on the roof, so it reads as a van from far off. Placeholder until the real model (#28).
+ */
+function VanMesh({ box }: { box: BoxObstacle }) {
+  const long = box.halfZ >= box.halfX;
+  const stripe: [number, number, number] = long ? [box.halfX * 2 + 0.02, 0.25, box.halfZ * 2 - 0.4] : [box.halfX * 2 - 0.4, 0.25, box.halfZ * 2 + 0.02];
+  return (
+    <group position={[box.x, 0, box.z]}>
+      <mesh position-y={box.height / 2} castShadow receiveShadow>
+        <boxGeometry args={[box.halfX * 2, box.height, box.halfZ * 2]} />
+        <meshStandardMaterial color={BOX_COLORS.van[0]} />
+      </mesh>
+      <mesh position-y={box.height * 0.55}>
+        <boxGeometry args={stripe} />
+        <meshStandardMaterial color="#f5f5f5" />
+      </mesh>
+      <mesh position-y={box.height + 0.1}>
+        <boxGeometry args={long ? [0.9, 0.2, 0.35] : [0.35, 0.2, 0.9]} />
+        <meshStandardMaterial color="#4f8cff" emissive="#4f8cff" emissiveIntensity={0.8} />
+      </mesh>
+    </group>
+  );
+}
+
 function BoxMesh({ box, index }: { box: BoxObstacle; index: number }) {
+  if (box.kind === "van") return <VanMesh box={box} />;
   const palette = BOX_COLORS[box.kind];
   const color = palette[index % palette.length] ?? "#999999";
   return (

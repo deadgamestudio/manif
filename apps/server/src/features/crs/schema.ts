@@ -38,6 +38,11 @@ export const Crs = schema(
     stinky: t.boolean(),
     /** A pompier's hose is on (#17), along `rotation`. Set by the brigade; always false for the police. */
     spraying: t.boolean(),
+    /**
+     * Winding up a grab (#70): arms out, about to grab whoever it faces. The tell clients draw;
+     * a dodge, a hop, a hit or stepping away foils it. The target and the timer stay in `CrsBot`.
+     */
+    windup: t.boolean(),
   },
   "Crs",
 );

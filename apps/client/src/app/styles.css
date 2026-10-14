@@ -757,6 +757,41 @@ body,
   transform: rotate(-0.6deg);
 }
 
+/* The struggle meter while grabbed (#70): fills as you mash. */
+.hud-struggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-struggle-label {
+  font-family: var(--font-placard);
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
+.hud-struggle-bar {
+  width: 150px;
+  height: 14px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: rgb(22 22 22 / 0.7);
+  box-shadow: 2px 2px 0 rgb(0 0 0 / 0.4);
+  overflow: hidden;
+}
+
+.hud-struggle-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #ff8a1f;
+  transform-origin: left;
+  transition: transform 0.1s linear;
+}
+
 /* One short tip, on a strip of cloth. */
 .hud-tip {
   max-width: 100%;
@@ -1534,6 +1569,26 @@ html.playing body {
   background: rgb(212 42 32 / 0.85);
   color: #fff;
   font-size: 19px;
+}
+
+/* Grabbed (#70): the hit button turns into the struggle button, and throbs to say "mash me". */
+.touch-btn-hit[data-struggle] {
+  background: rgb(255 212 0 / 0.92);
+  color: var(--ink);
+  font-size: 14px;
+  animation: struggle-throb 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes struggle-throb {
+  to {
+    scale: 1.08;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .touch-btn-hit[data-struggle] {
+    animation: none;
+  }
 }
 
 .touch-btn-dodge {

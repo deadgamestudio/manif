@@ -40,6 +40,24 @@ describe("street level data", () => {
     for (const c of L.circles) expect(c.r).toBeGreaterThanOrEqual(MIN_OBSTACLE_HALF_THICKNESS);
   });
 
+  test("police vans (#70) wait all along the route, flush with the side, never blocking the march", () => {
+    const vans = L.boxes.filter((b) => b.kind === "van");
+    expect(vans.length).toBeGreaterThanOrEqual(5);
+    // Every point of the march has a van within 45 along the street.
+    for (let z = L.start.minZ; z >= L.destination.maxZ; z -= 1) {
+      expect(Math.min(...vans.map((v) => Math.abs(v.z - z)))).toBeLessThanOrEqual(45);
+    }
+    for (const v of vans) {
+      // Parked by a facade: at least 12 of the street's width left free beside it.
+      const free = Math.max(v.x - v.halfX - L.bounds.minX, L.bounds.maxX - (v.x + v.halfX));
+      expect(free).toBeGreaterThanOrEqual(12);
+      // Not in the start zone.
+      const s = L.start;
+      const overlapsStart = v.x + v.halfX > s.minX && v.x - v.halfX < s.maxX && v.z + v.halfZ > s.minZ && v.z - v.halfZ < s.maxZ;
+      expect(overlapsStart).toBe(false);
+    }
+  });
+
   test("ids are unique", () => {
     const ids = [...L.boxes, ...L.circles, ...L.propSlots].map((o) => o.id);
     expect(new Set(ids).size).toBe(ids.length);

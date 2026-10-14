@@ -10,6 +10,7 @@ import { POMPIER_NOZZLE_Y, StinkCloud, crsLookFor, type CrsRig } from "./crsVisu
 import { WaterJet } from "../water/index.ts";
 import { disguiseSource, forgetDisguise } from "./disguise.ts";
 import { BodyFire, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
+import { WindupMark } from "./WindupMark.tsx";
 
 const FALLEN_ANGLE = Math.PI / 2;
 const FALL_RATE = 14;
@@ -21,6 +22,12 @@ const ARM_RAISED = 2.7;
 const ARM_SMASH = -1.2;
 /** Grabbing: both arms out in front, tugging. */
 const ARM_GRAB = 1.3;
+/** A grab winding up (#70): both arms reaching out wide and a little high, trembling, under a popping "!". */
+const ARM_WINDUP = 1.65;
+const WINDUP_TREMBLE_SPEED = 30;
+const WINDUP_TREMBLE = 0.08;
+const WINDUP_POP_MS = 180;
+const WINDUP_POP = 0.5;
 /** A pompier spraying (#17): both arms forward on the hose, and the hose shaking a little. */
 const ARM_HOSE = 1.5;
 const HOSE_SHAKE_SPEED = 22;
@@ -126,6 +133,9 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
   /** A revealed BAC (#13): when this body appeared, for the placard and the pop. */
   const [shownAt] = useState(() => performance.now());
   const revealTag = useRef<Group>(null);
+  /** The grab's tell (#70), and when the current wind-up was first seen (for the pop). */
+  const windupMark = useRef<Group>(null);
+  const windupSeen = useRef<number | null>(null);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -190,6 +200,18 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
     }
 
     const grabbing = c.status === CrsStatus.Grabbing;
+    // A grab winding up (#70): the "!" pops over its head; the arms reach out below.
+    const windup = c.windup === true && !lying;
+    if (windup && windupSeen.current === null) windupSeen.current = performance.now();
+    if (!windup) windupSeen.current = null;
+    const mark = windupMark.current;
+    if (mark) {
+      mark.visible = windup;
+      if (windup) {
+        const age = performance.now() - (windupSeen.current ?? 0);
+        mark.scale.setScalar(age < WINDUP_POP_MS ? 1 + WINDUP_POP * Math.sin((age / WINDUP_POP_MS) * Math.PI) : 1);
+      }
+    }
     const stunned = c.status === CrsStatus.Stunned || (c.splatted === true && !lying);
     // On fire (#16): flails like a protester on fire.
     const burning = c.onFire === true && !lying;
@@ -209,7 +231,12 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
       baton.rotation.x = spraying ? ARM_HOSE + shake : ARM_REST;
       shield.rotation.x = spraying ? ARM_HOSE - shake : ARM_REST;
     } else if (baton && shield) {
-      if (grabbing) {
+      if (windup) {
+        // Arms out, about to grab: the tell to dodge or hop (#70).
+        const tremble = Math.sin((performance.now() / 1000) * WINDUP_TREMBLE_SPEED) * WINDUP_TREMBLE;
+        baton.rotation.x = ARM_WINDUP + tremble;
+        shield.rotation.x = ARM_WINDUP - tremble;
+      } else if (grabbing) {
         // Clumsy tug of war.
         const tug = Math.sin(phase.current * TUG_SPEED) * TUG_ANGLE;
         baton.rotation.x = ARM_GRAB + tug;
@@ -272,6 +299,7 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
       </group>
       {look.ragdoll && ragdoll.view}
       <StinkCloud group={stink} height={look.height} />
+      <WindupMark group={windupMark} y={look.height + 1} />
       {kind === CrsKind.Bac && (
         <group ref={revealTag}>
           <NameTag name={REVEAL_TAG} isLocal y={look.height + 0.55} />

@@ -4,7 +4,7 @@
  */
 import { PlayerStatus } from "../health/index.js";
 import type { Vec2 } from "../physics/index.js";
-import type { Level } from "../level/index.js";
+import type { BoxObstacle, Level } from "../level/index.js";
 
 /** What the bots see of a protester. */
 export interface ProtesterView extends Vec2 {
@@ -12,6 +12,17 @@ export interface ProtesterView extends Vec2 {
   status: number;
   /** Knocked down (#2). */
   down: boolean;
+  /** HP (#70: only a weakened protester is grabbed, see GRAB_HP_THRESHOLD). Absent: treated as healthy. */
+  hp?: number;
+  /**
+   * Down because a baton floored them (#70). Every baton hit floors (#2), so
+   * that knockdown alone never makes a protester grabbable; being knocked
+   * over by anything else (a BRAV-M ram, a shield line, a slip...) does.
+   */
+  batonDown?: boolean;
+  /** In a dodge burst (#9) or a hop (#45): either cancels a grab's wind-up (#70). */
+  dodging?: boolean;
+  airborne?: boolean;
   /** Target priority (#14, an archetype's `targetWeight`): chased as if 1/priority as far. 1 when absent. */
   priority?: number;
 }
@@ -85,17 +96,19 @@ export function pickSpawn(points: readonly Vec2[], protesters: readonly Vec2[], 
   return best ?? farthest;
 }
 
+/** The police vans of the level, in level order: index i here is door i of `vanDoors` (and `Player.dragVan`, #70). */
+export function levelVans(level: Level): BoxObstacle[] {
+  return level.boxes.filter((b) => b.kind === "van");
+}
+
 /**
  * Where a grabbing bot drags its protester (#5): a point beside each police
  * van of the level, on the side facing the middle of the street, `gap` out
- * from the van's flank.
+ * from the van's flank. Same order as `levelVans`.
  */
 export function vanDoors(level: Level, gap = 1): Vec2[] {
-  const doors: Vec2[] = [];
-  for (const b of level.boxes) {
-    if (b.kind !== "van") continue;
+  return levelVans(level).map((b) => {
     const side = b.x > 0 ? -1 : 1;
-    doors.push({ x: b.x + side * (b.halfX + gap), z: b.z });
-  }
-  return doors;
+    return { x: b.x + side * (b.halfX + gap), z: b.z };
+  });
 }

@@ -22,6 +22,7 @@ function situation(localId: string, players: readonly LobbyPlayer[]): TipSituati
     carryTargetFor(localId, players) !== null ||
     fireActionFor(localId, players) !== null;
   return {
+    grabbed: me.status === PlayerStatus.Grabbed,
     prompted,
     helpless: me.down || me.status !== PlayerStatus.Free,
     gassed: me.gassed,

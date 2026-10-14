@@ -7,7 +7,7 @@ import { LevelView } from "../level/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { PlayerAvatar } from "../player/index.ts";
 import { PropsView } from "../prop/index.ts";
-import { CrsView } from "../crs/index.ts";
+import { CrsView, DragTargets } from "../crs/index.ts";
 import { AimTracker, ThrowablesView } from "../throwable/index.ts";
 import { GasView } from "../gas/index.ts";
 import { FiresView } from "../fire/index.ts";
@@ -35,6 +35,7 @@ export function Scene({
   crs: readonly string[];
   localId: string | null;
 }) {
+  const ids = players.map((p) => p.id);
   return (
     <>
       <FollowRig localId={localId} />
@@ -49,6 +50,8 @@ export function Scene({
         <PlayerAvatar key={p.id} id={p.id} name={p.name} isLocal={p.id === localId} bot={isBotId(p.id)} />
       ))}
       <CrsView ids={crs} />
+      {/* #70: the van each grabbed protester is dragged to, and the local player's off-screen arrow. */}
+      <DragTargets ids={ids} localId={localId} />
       <ThrowablesView />
       <GasView />
       <FiresView />
