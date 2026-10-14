@@ -81,9 +81,11 @@ export type ModelLink = (on: boolean) => void;
 
 /** The model for a bot of `kind` riding `mount`; `fromMount` is what it rode before this look (for the hop off, the fall). */
 export function PoliceModel({ id, kind, mount, fromMount, link }: { id: string; kind: CrsKind; mount: CrsMount; fromMount: CrsMount | null; link: ModelLink }) {
+  // Made once: the body copy is rebuilt whenever the spec changes.
+  const spec = useMemo(() => footSpec(id, kind, fromMount), [id, kind, fromMount]);
   if (kind === CrsKind.BravM && (mount === CrsMount.Duo || mount === CrsMount.Solo)) return <BikeModel id={id} mount={mount} fromMount={fromMount} link={link} />;
   if (kind === CrsKind.BravM && mount === CrsMount.Wreck) return <WreckModel id={id} link={link} />;
-  return <FootModel id={id} spec={footSpec(id, kind, fromMount)} link={link} />;
+  return <FootModel id={id} spec={spec} link={link} />;
 }
 
 // --- Bodies on foot --------------------------------------------------------
@@ -455,17 +457,12 @@ function poseClip(clip: AnimationClip, name: string): AnimationClip {
 
 const frustum = new Frustum();
 const viewProj = new Matrix4();
-let frustumFrame = -1;
 
-/** Whether a body standing at `at` is near enough the screen to animate. One frustum per frame for everyone. */
+/** Whether a body standing at `at` is near enough the screen to animate (a matrix product and six planes: cheap enough per body). */
 function onScreen(state: RootState, at: Vector3): boolean {
-  const frame = state.clock.elapsedTime;
-  if (frame !== frustumFrame) {
-    frustumFrame = frame;
-    const cam = state.camera;
-    viewProj.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
-    frustum.setFromProjectionMatrix(viewProj);
-  }
+  const cam = state.camera;
+  viewProj.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+  frustum.setFromProjectionMatrix(viewProj);
   return frustum.planes.every((p) => p.distanceToPoint(at) > -SCREEN_MARGIN);
 }
 
