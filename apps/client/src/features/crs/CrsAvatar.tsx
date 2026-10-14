@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, Vector3, type Group, type MeshStandardMaterial, type Sprite } from "three";
 import { CRS_STATS, CrsKind, CrsMount, CrsStatus, crsMaxHp, crsRadius, isBotId } from "@manif/shared";
@@ -13,6 +13,8 @@ import { BodyFire, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/inde
 import { WindupMark } from "./WindupMark.tsx";
 import { LbdLaser } from "./LbdLaser.tsx";
 import { LbdBalls } from "./LbdBalls.tsx";
+import { BonkStars, PoliceModel } from "./policeModels.tsx";
+import { getPoseOwner } from "../models/index.ts";
 
 const FALLEN_ANGLE = Math.PI / 2;
 const FALL_RATE = 14;
@@ -66,6 +68,12 @@ function lookKey(id: string): string {
   return `${c.kind}:${c.mount ?? CrsMount.Foot}:${c.revealed === false ? 0 : 1}`;
 }
 
+/** The mount in a look key. */
+function keyMount(key: string): CrsMount | null {
+  const m = key.split(":")[1];
+  return m === undefined ? null : (Number(m) as CrsMount);
+}
+
 /**
  * One police bot (#5). Picks how to draw it, and redraws it when that
  * changes (#13): a disguised BAC is drawn by the protester's own avatar
@@ -75,16 +83,18 @@ function lookKey(id: string): string {
  * a rider on foot). Only re-renders when the look changes.
  */
 export function CrsAvatar({ id }: { id: string }) {
-  const [key, setKey] = useState(() => lookKey(id));
+  // The look, and the mount of the look before it (Jordan's models play the hop off or the fall off the bike, #28).
+  const [look, setLook] = useState(() => ({ key: lookKey(id), fromMount: null as CrsMount | null }));
+  const key = look.key;
   useFrame(() => {
     const k = lookKey(id);
-    if (k !== key && k !== "") setKey(k);
+    if (k !== key && k !== "") setLook({ key: k, fromMount: keyMount(key) });
   });
   const c = net.getCrs(id);
   if (!c) return null;
   const kind = c.kind as CrsKind;
   if (kind === CrsKind.Bac && c.revealed === false) return <BacDisguise key={key} id={id} name={c.name} />;
-  return <CrsBody key={key} id={id} kind={kind} mount={(c.mount ?? CrsMount.Foot) as CrsMount} />;
+  return <CrsBody key={key} id={id} kind={kind} mount={(c.mount ?? CrsMount.Foot) as CrsMount} fromMount={look.fromMount} />;
 }
 
 /**
@@ -109,8 +119,13 @@ function botsMarching(): boolean {
  * ragdolls are playing, or always for a bike), wobbles while stunned,
  * tugs with both arms while grabbing, swings its baton on the server's swing
  * event, flashes on a protester's hit. All in useFrame: no React state per frame.
+ *
+ * Jordan's model (#28, PoliceModel) takes over once loaded: the placeholder
+ * hides, and the model plays its own clips for all of that (falls included,
+ * so no ragdoll or tipping over then). The rest (splat, stink, fire, water,
+ * marks, bars) stays.
  */
-function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMount }) {
+function CrsBody({ id, kind, mount, fromMount }: { id: string; kind: CrsKind; mount: CrsMount; fromMount: CrsMount | null }) {
   const group = useRef<Group>(null);
   const tilt = useRef<Group>(null);
   const yaw = useRef<Group>(null);
@@ -141,6 +156,12 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
   /** The grab's tell (#70), and when the current wind-up was first seen (for the pop). */
   const windupMark = useRef<Group>(null);
   const windupSeen = useRef<number | null>(null);
+  /** Jordan's model is drawn (#28): the placeholder hides. */
+  const modelOn = useRef(false);
+  const setModelOn = useCallback((on: boolean) => {
+    modelOn.current = on;
+  }, []);
+  const placeholder = useRef<Group>(null);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -154,21 +175,27 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
       return;
     }
 
+    const model = modelOn.current;
+    if (placeholder.current) placeholder.current.visible = !model;
+    // A grab pair (#28) places this body itself while it holds the pose.
+    const owned = getPoseOwner(id) !== null;
     if (!placed.current) {
       g.position.set(c.x, 0, c.z);
       y.rotation.y = c.rotation;
       placed.current = true;
     }
     const k = damp(15, dt);
-    g.position.x += (c.x - g.position.x) * k;
-    g.position.z += (c.z - g.position.z) * k;
-    let dr = c.rotation - y.rotation.y;
-    dr = Math.atan2(Math.sin(dr), Math.cos(dr));
-    y.rotation.y += dr * k;
+    if (!owned) {
+      g.position.x += (c.x - g.position.x) * k;
+      g.position.z += (c.z - g.position.z) * k;
+      let dr = c.rotation - y.rotation.y;
+      dr = Math.atan2(Math.sin(dr), Math.cos(dr));
+      y.rotation.y += dr * k;
+    }
 
-    // Fall over like a bowling pin, along the last push.
+    // Fall over like a bowling pin, along the last push. A model falls with its own clips.
     const lying = c.down || c.status === CrsStatus.Out;
-    const ragdolling = ragdoll.update(dt, lying && look.ragdoll !== null, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id));
+    const ragdolling = ragdoll.update(dt, lying && look.ragdoll !== null && !model, g.position.x, g.position.z, y.rotation.y, net.getLastImpulse(id));
     t.visible = !ragdolling;
     if (ragdolling) fall.current = 0;
     else if (lying && fall.current < 0.3) {
@@ -177,7 +204,7 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
       const dz = hit ? hit.dirZ : -Math.cos(c.rotation);
       fallAxis.set(dz, 0, -dx).normalize();
     }
-    const target = lying && !ragdolling ? 1 : 0;
+    const target = lying && !ragdolling && !model ? 1 : 0;
     fall.current += (target - fall.current) * damp(lying ? FALL_RATE : GETUP_RATE, dt);
     if (Math.abs(target - fall.current) < 1e-3) fall.current = target;
     const angle = fall.current * FALLEN_ANGLE;
@@ -291,7 +318,9 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
       <group ref={group}>
         <group ref={tilt}>
           <group ref={yaw}>
-            {look.render({ body: bodyMat, batonArm, shieldArm, lineShield, splat } satisfies CrsRig)}
+            <group ref={placeholder}>{look.render({ body: bodyMat, batonArm, shieldArm, lineShield, splat } satisfies CrsRig)}</group>
+            {look.Keep && <look.Keep rig={{ body: bodyMat, batonArm, shieldArm, lineShield, splat }} />}
+            <PoliceModel id={id} kind={kind} mount={mount} fromMount={fromMount} link={setModelOn} />
             <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} />
             {kind === CrsKind.Pompier && HOSE && (
               <WaterJet
@@ -308,6 +337,7 @@ function CrsBody({ id, kind, mount }: { id: string; kind: CrsKind; mount: CrsMou
         </group>
         {look.ragdoll && ragdoll.view}
         <StinkCloud group={stink} height={look.height} />
+        <BonkStars id={id} y={look.height + 0.15} />
         <WindupMark group={windupMark} y={look.height + 1} />
         {kind === CrsKind.Bac && (
           <group ref={revealTag}>
