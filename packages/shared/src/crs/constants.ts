@@ -163,7 +163,11 @@ export interface LbdStats {
   aimTime: number;
   /** Between two shots (counted from the shot): it re-aims each time. */
   cooldown: number;
-  /** After an aim that was foiled (a dodge, cover, a hit, the target out of range), it waits this long before the next. */
+  /**
+   * After an aim that was foiled (a dodge, cover, a hit, the target out of
+   * range), it waits this long before the next. With `aimTime`, at least
+   * DODGE_COOLDOWN: a well-timed dodge can foil every aim, not just the first.
+   */
   reaimDelay: number;
   /** The first shot of a fresh unit waits this long, so a new wave does not fire on arrival. */
   firstShotDelay: number;
@@ -455,7 +459,7 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
       range: 18,
       aimTime: 0.8,
       cooldown: 7,
-      reaimDelay: 1.5,
+      reaimDelay: 2.5,
       firstShotDelay: 2,
       ballSpeed: 30,
       ballRadius: 0.18,

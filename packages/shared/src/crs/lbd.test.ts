@@ -4,6 +4,7 @@
  * (first protester in line, stopped by walls and CRS, never tunnelling).
  */
 import { describe, expect, test } from "bun:test";
+import { DODGE_COOLDOWN } from "../dodge/index.js";
 import { PlayerStatus } from "../health/index.js";
 import { TICK_DT } from "../net/index.js";
 import { createBody, type CollisionWorld, type Vec2 } from "../physics/index.js";
@@ -374,6 +375,10 @@ describe("the LBD's numbers (#73)", () => {
     expect(LBD.standoffMin).toBeLessThan(LBD.standoffMax);
     expect(LBD.range).toBeGreaterThan(LBD.standoffMax);
     expect(LBD.damage).toBeLessThanOrEqual(10);
+  });
+
+  test("a dodge is back in time for the next aim: dodging can foil every shot, not only the first", () => {
+    expect(LBD.reaimDelay + LBD.aimTime).toBeGreaterThanOrEqual(DODGE_COOLDOWN);
   });
 
   test("createCrsBot body is a plain CRS-sized body", () => {
