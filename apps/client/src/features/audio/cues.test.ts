@@ -29,6 +29,7 @@ const crs = (patch: Partial<CrsView> = {}): CrsView => ({
   revealed: true,
   onFire: false,
   spraying: false,
+  windup: false,
   ...patch,
 });
 
@@ -137,6 +138,24 @@ describe("diffCues", () => {
       ]),
     });
     expect(sounds(diffCues(before, after, "me", props))).toEqual(["car", "moped", "whistle"]);
+  });
+
+  test("a CRS winding up a grab whistles once, where it stands (#70)", () => {
+    const before = world({ crs: new Map([["c", crs()]]) });
+    const during = world({ crs: new Map([["c", crs({ windup: true })]]) });
+    expect(diffCues(before, during, "me", props)).toEqual([{ sound: "whistle", at: { x: 3, z: 0 }, gain: 0.8 }]);
+    expect(diffCues(during, during, "me", props)).toEqual([]);
+    expect(diffCues(during, before, "me", props)).toEqual([]);
+  });
+
+  test("the van door slams when a dragged protester is arrested at the van, the cuffs on the grab (#70)", () => {
+    const free = world({ players: new Map([["a", player()]]) });
+    const grabbed = world({ players: new Map([["a", player({ status: PlayerStatus.Grabbed })]]) });
+    const arrested = world({ players: new Map([["a", player({ status: PlayerStatus.Arrested })]]) });
+    expect(sounds(diffCues(free, grabbed, "me", props))).toEqual(["cuffs"]);
+    expect(sounds(diffCues(grabbed, arrested, "me", props))).toEqual(["van-door"]);
+    // Struggled free: the rescue blip, no door.
+    expect(sounds(diffCues(grabbed, free, "me", props))).toEqual(["rescue"]);
   });
 
   test("the last ten seconds tick once a second", () => {

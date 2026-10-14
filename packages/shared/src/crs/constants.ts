@@ -171,8 +171,22 @@ export interface CrsStats {
   grabReach: number;
   /** Time between the end of one grab and the next. */
   grabCooldown: number;
-  /** Drag time from grab to arrest, unless rescued (#10). */
+  /**
+   * The drag's fallback (#70): the protester is arrested on arrival at the van,
+   * or after this long if the van is never reached (path blocked, bot stuck).
+   */
   grabDuration: number;
+  /**
+   * The grab's wind-up (#70): the bot stands, arms out, for this long before it
+   * grabs, and a dodge, a hop, a hit or stepping out of reach cancels it.
+   */
+  grabWindup: number;
+  /**
+   * Grabs anyone it touches, whatever their HP (#70: the BAC, whose surprise is
+   * the point). Absent: only a weakened protester (down, or at or below
+   * GRAB_HP_THRESHOLD HP) is grabbed; the others get the baton.
+   */
+  grabAnyHp?: boolean;
   /** Walking speed while dragging, as a fraction of `speed`. */
   dragSpeedFactor: number;
   /** How long a stun lasts. */
@@ -223,6 +237,7 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
     grabReach: 0.25,
     grabCooldown: 3,
     grabDuration: GRAB_DURATION,
+    grabWindup: 0.5,
     dragSpeedFactor: 0.55,
     stunDuration: 2,
     hitImpulse: LIGHT_IMPULSE,
@@ -249,6 +264,9 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
     grabReach: 0.3,
     grabCooldown: 4,
     grabDuration: GRAB_DURATION,
+    // Its surprise is the point (#70): a shorter wind-up, and any HP will do.
+    grabWindup: 0.3,
+    grabAnyHp: true,
     dragSpeedFactor: 0.55,
     stunDuration: 2.5,
     hitImpulse: LIGHT_IMPULSE,
@@ -282,6 +300,7 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
     grabReach: 0.25,
     grabCooldown: 3,
     grabDuration: GRAB_DURATION,
+    grabWindup: 0.5,
     dragSpeedFactor: 0.55,
     stunDuration: 2,
     hitImpulse: LIGHT_IMPULSE,
@@ -327,6 +346,7 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
     grabReach: -1,
     grabCooldown: 1,
     grabDuration: GRAB_DURATION,
+    grabWindup: 0,
     dragSpeedFactor: 1,
     stunDuration: 0,
     hitImpulse: HEAVY_IMPULSE,
@@ -385,6 +405,20 @@ export function crsMaxHp(kind: CrsKind, mount: CrsMount = CrsMount.Foot): number
  * wrecked bike one more. Keeps the tick and the patches bounded.
  */
 export const MAX_CRS = 24;
+
+/**
+ * A grab needs a weakened protester (#70): down, or at or below this many HP
+ * (MAX_HP is 100; a tougher archetype has to lose more first). Units with
+ * `grabAnyHp` (the BAC) skip it. Above it, the bot uses its baton.
+ */
+export const GRAB_HP_THRESHOLD = 40;
+
+/**
+ * During a grab's wind-up (#70), the protester counts as out of reach once the
+ * gap between the two bodies is more than `grabReach` plus this (bodies jostle
+ * a little while standing in contact).
+ */
+export const GRAB_WINDUP_SLACK = 0.35;
 
 /** A CRS taken out is replaced after this long, at a spawn point (until #12 owns spawning). */
 export const CRS_RESPAWN_DELAY = 10;

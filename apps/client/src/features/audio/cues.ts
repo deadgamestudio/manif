@@ -28,6 +28,8 @@ export interface CrsView extends Point {
   revealed: boolean;
   onFire: boolean;
   spraying: boolean;
+  /** Winding up a grab (#70). */
+  windup: boolean;
 }
 
 export interface ItemView extends Point {
@@ -129,6 +131,8 @@ export function diffCues(prev: WorldView | null, next: WorldView, localId: strin
     }
     // A BAC pulling on its armband (#13): the cortège whistles.
     if (!was.revealed && c.revealed) cues.push({ sound: "whistle", at: at(c) });
+    // A grab winding up (#70): a sharp whistle with the "!", the cue to dodge or hop.
+    if (!was.windup && c.windup) cues.push({ sound: "whistle", at: at(c), gain: 0.8 });
     if (was.mount !== CrsMount.Wreck && c.mount === CrsMount.Wreck) cues.push({ sound: "car", at: at(c), gain: 0.8 });
     if (!was.onFire && c.onFire) cues.push({ sound: "ignite", at: at(c), gain: 0.6 });
   }

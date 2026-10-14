@@ -13,8 +13,19 @@ export const RESPAWN_DELAY = 10;
 /** After a respawn, hits and grabs are ignored for this long. */
 export const RESPAWN_INVULNERABILITY = 2;
 
-/** Default drag time from grab to arrest, unless rescued (#10). #5 owns the real drag and can pass its own. */
-export const GRAB_DURATION = 4;
+/**
+ * The drag's fallback (#70): a grabbed protester is arrested when the CRS gets
+ * them to a police van, or after this long if it never does (path blocked, the
+ * bot stuck somewhere). Unless rescued (#10) or struggling free first.
+ */
+export const GRAB_DURATION = 12;
+
+/**
+ * The drag lasts at least this long (#70), even with a van right beside the
+ * grab: the CRS waits at the van door until then, so there is always time to
+ * struggle or be rescued.
+ */
+export const DRAG_MIN_TIME = 3;
 
 /** A protester rescued from a grab at 0 HP gets at least this much back (#10). */
 export const RESCUE_MIN_HP = 1;

@@ -42,6 +42,7 @@ function setup(water = true) {
     batonHit: () => {},
     grab: () => false,
     release: () => {},
+    arrest: () => {},
     drag: () => {},
     shove: () => {},
   };

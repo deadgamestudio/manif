@@ -10,6 +10,16 @@ describe("pickTip", () => {
     expect(pickTip({ ...calm, helpless: true }, true, 0)).toBe("");
   });
 
+  test("grabbed (#70): mash to struggle, even with another prompt up", () => {
+    expect(pickTip({ ...calm, grabbed: true, helpless: true }, false, 0)).toBe("Martèle clic pour te débattre !");
+    expect(pickTip({ ...calm, grabbed: true, prompted: true, helpless: true }, true, 0)).toContain("Débats-toi");
+  });
+
+  test("the controls list says how to struggle (#70)", () => {
+    expect(controls(false).some(([k, v]) => k.includes("Clic") && v.includes("débattre"))).toBe(true);
+    expect(controls(true).some(([k]) => k === "Débats-toi")).toBe(true);
+  });
+
   test("the gas comes before the item in hand", () => {
     expect(pickTip({ ...calm, gassed: true, carrying: ThrowableKind.Pave }, false, 0)).toContain("Maj");
     expect(pickTip({ ...calm, gassed: true }, true, 0)).toContain("Esquive");

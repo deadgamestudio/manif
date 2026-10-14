@@ -12,6 +12,8 @@ export const HELP_KEY_LABEL = "C";
 
 /** What the tip needs to know about the local player. */
 export interface TipSituation {
+  /** Held by a CRS (#70): the one thing to do is mash to struggle free. */
+  grabbed?: boolean;
   /** Another prompt (rescue, carry, fire, grabbed...) already says what to do: no tip on top of it. */
   prompted: boolean;
   /** Down, KO, grabbed or in the van: nothing to do but wait. */
@@ -57,6 +59,8 @@ export const BASIC_TIP_COUNT = BASICS.keyboard.length;
  * situation says nothing in particular.
  */
 export function pickTip(s: TipSituation, touch: boolean, turn: number): string {
+  // Grabbed (#70): helpless no more, whatever else is going on.
+  if (s.grabbed === true) return touch ? "Martèle Débats-toi pour t'échapper !" : "Martèle clic pour te débattre !";
   if (s.prompted || s.helpless) return "";
   if (s.gassed) return touch ? "Kof ! Esquive pour plonger hors des lacrymos." : "Kof ! Maj pour plonger hors des lacrymos.";
   const item = ITEM[s.carrying];
@@ -71,6 +75,7 @@ export function controls(touch: boolean): readonly (readonly [string, string])[]
     ? [
         ["Joystick", "marcher (pose le pouce n'importe où à gauche)"],
         ["Taper", "frapper, ou lancer ce que tu tiens"],
+        ["Débats-toi", "attrapé·e par un CRS : martèle-le pour t'échapper avant le panier à salade"],
         ["Sauter", "par-dessus une poubelle ou un CRS à terre"],
         ["Esquive", "plonger : sous la matraque, hors des lacrymos"],
         ["Action", "ramasser un pavé, une tomate, une crotte, une trottinette, ou soulever un·e camarade"],
@@ -81,6 +86,7 @@ export function controls(touch: boolean): readonly (readonly [string, string])[]
     : [
         ["ZQSD / flèches", "marcher"],
         ["Clic", "taper, ou lancer ce que tu tiens vers la souris"],
+        ["Clic martelé", "attrapé·e par un CRS : te débattre pour t'échapper avant le panier à salade"],
         ["Espace", "sauter par-dessus une poubelle ou un CRS à terre"],
         ["Maj", "plonger : sous la matraque, hors des lacrymos"],
         ["E", "ramasser un pavé, une tomate, une crotte, une trottinette, ou soulever un·e camarade"],

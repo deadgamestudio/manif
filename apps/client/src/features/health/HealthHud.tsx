@@ -9,7 +9,8 @@ const FIELDS = ["hp", "status", "stateLeft"] as const;
 function describe(status: number, left: number): string {
   switch (status) {
     case PlayerStatus.Grabbed:
-      return `Attrapé·e ! Direction le panier à salade dans ${left} s`;
+      // #70: no countdown any more, the drag ends at the van (the arrow points to it).
+      return "Attrapé·e ! Direction le panier à salade…";
     case PlayerStatus.Ko:
       return "K.O. ! Tu vois des étoiles…";
     case PlayerStatus.Arrested:

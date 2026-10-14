@@ -84,6 +84,10 @@ class FakeHost implements CrsHost {
     const p = this.people.get(id);
     if (p) p.view.status = PlayerStatus.Free;
   }
+  arrest(id: string) {
+    const p = this.people.get(id);
+    if (p) p.view.status = PlayerStatus.Arrested;
+  }
   drag(id: string, x: number, z: number) {
     const p = this.people.get(id);
     if (!p) return;
@@ -168,7 +172,7 @@ describe("the unit table (#13)", () => {
   test("a BAC is a protester's size and walking speed, so the disguise holds", () => {
     expect(BAC.radius).toBe(PLAYER_RADIUS);
     expect(BAC.speed).toBe(PLAYER_SPEED);
-    // It grabs on the tick it reveals itself.
+    // It reaches out (its grab wind-up, #70) on the tick it reveals itself.
     expect(DISGUISE.revealRange).toBeLessThanOrEqual(BAC.grabReach);
     expect(DISGUISE.blendMin).toBeLessThanOrEqual(DISGUISE.blendMax);
     // Weak once revealed: fewer HP than a CRS, never gases.
@@ -218,7 +222,7 @@ describe("BAC (#13)", () => {
     expect(minGap).toBeGreaterThan(DISGUISE.followGap - 0.5);
   });
 
-  test("after blending, sidles up to someone and reveals itself only once close, grabbing them on that tick", () => {
+  test("after blending, sidles up to someone and reveals itself only once close, then grabs after its short wind-up", () => {
     const { host, run, addBac } = setup();
     const bac = addBac("bac", 0, 6, 1);
     host.add("p", 0, 0);
@@ -233,8 +237,12 @@ describe("BAC (#13)", () => {
     expect(bac.revealed).toBe(true);
     expect(revealedAt).toBeGreaterThanOrEqual(1);
     expect(revealedGap).toBeLessThanOrEqual(DISGUISE.revealRange + 1e-6);
-    // Grab on the same tick: the big comedic beat.
-    expect(host.grabs).toEqual([{ id: "p", at: revealedAt }]);
+    // Reveal and reach out at once (#70: a short wind-up, the only warning), then the grab: the big comedic beat.
+    expect(bac.windupId).toBe("p");
+    expect(host.grabs).toEqual([]);
+    run(CRS_STATS[CrsKind.Bac].grabWindup + 3 * TICK_DT, () => host.grabs.length > 0);
+    expect(host.grabs.map((g) => g.id)).toEqual(["p"]);
+    expect(host.grabs[0]!.at - revealedAt).toBeCloseTo(CRS_STATS[CrsKind.Bac].grabWindup, 1);
     expect(bac.status).toBe(CrsStatus.Grabbing);
   });
 

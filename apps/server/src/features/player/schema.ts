@@ -27,6 +27,13 @@ export const Player = schema(
     airborne: t.boolean(),
     /** While grabbed: a teammate's rescue progress (#10), 0..100. 0 otherwise. Progress per rescuer stays server-side. */
     rescue: t.uint8().default(0),
+    /** While grabbed: how full their own struggle meter is (#70), 0..100. 0 otherwise. Press timing stays server-side. */
+    struggle: t.uint8().default(0),
+    /**
+     * While grabbed: the police van they are being dragged to (#70), an index into `levelVans(STREET_LEVEL)`
+     * (the same order as `vanDoors`); -1 when not being dragged anywhere.
+     */
+    dragVan: t.int8().default(-1),
     /** The item in hand (#8), a `ThrowableKind` from @manif/shared; 0 when empty-handed. */
     carrying: t.uint8().default(0),
     /** In tear gas (#7): coughing and slowed. Exposure timers stay server-side in the gas feature. */

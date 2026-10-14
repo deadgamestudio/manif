@@ -52,6 +52,7 @@ class Host implements CrsHost {
     return false;
   }
   release() {}
+  arrest() {}
   drag() {}
   shove() {}
 }

@@ -94,9 +94,17 @@ const boxes: BoxObstacle[] = [
   // A kiosk flush against the works wall: an inner corner to get stuck in.
   box("kiosk-4", "kiosk", -5, -3, -59.5, -57.5, 2.6),
 
-  // Police vans parked in front of the Préfecture (drag destination for #5).
+  // Police vans ("paniers à salade"): where a CRS drags whoever it grabbed (#5, #70).
+  // Two in front of the Préfecture, and one every 30 to 40 down the street,
+  // parked flush against a facade, clear of the lanes the cortège and the
+  // shield lines use.
   box("van-1", "van", -8.2, -5.8, -88, -83, 2.4),
   box("van-2", "van", 5.8, 8.2, -91, -86, 2.4),
+  box("van-3", "van", -10, -7.6, 81.5, 86.5, 2.4),
+  box("van-4", "van", 7.1, 9.5, 48, 53, 2.4),
+  box("van-5", "van", 7.6, 10, 12, 17, 2.4),
+  box("van-6", "van", -10, -7.6, -18, -13, 2.4),
+  box("van-7", "van", 6.6, 9, -48, -43, 2.4),
 ];
 
 const circles: CircleObstacle[] = [

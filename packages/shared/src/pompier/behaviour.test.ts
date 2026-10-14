@@ -22,6 +22,7 @@ function setup(order: PompierOrder) {
       return true;
     },
     release: () => calls.push("release"),
+    arrest: () => calls.push("arrest"),
     drag: () => calls.push("drag"),
     shove: () => calls.push("shove"),
     throwGas: () => {

@@ -5,7 +5,7 @@ import { PLAYER_RADIUS, PlayerStatus, type PlayerShape } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { HealthBar } from "../health/index.ts";
-import { RescueBar } from "../rescue/index.ts";
+import { RescueBar, StruggleBar } from "../rescue/index.ts";
 import { CarriedItem } from "../throwable/index.ts";
 import { COUGH_ANGLE, COUGH_SPEED } from "../gas/index.ts";
 import { BodyFire, FireHoldBar, ON_FIRE_FLAIL_ANGLE, ON_FIRE_FLAIL_SPEED } from "../fire/index.ts";
@@ -331,6 +331,8 @@ export function PlayerAvatar({
         {!isLocal && <HealthBar id={id} y={HEIGHT + 0.95} source={source} />}
         {/* Over everyone, the local player included: help is coming (#10). */}
         <RescueBar id={id} y={HEIGHT + 1.25} />
+        {/* Their own struggle to break free (#70), above any rescue in progress. */}
+        <StruggleBar id={id} y={HEIGHT + 1.5} />
         {/* Lighting a prop or patting someone out (#16). */}
         <FireHoldBar id={id} y={HEIGHT + 1.25} />
       </group>

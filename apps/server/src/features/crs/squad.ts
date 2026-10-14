@@ -582,10 +582,13 @@ export class CrsSquad {
     for (const bot of this.bots) {
       if (bot.grabbedId === protesterId) {
         bot.grabbedId = null;
+        bot.dragVan = -1;
         if (bot.status === CrsStatus.Grabbing) bot.status = CrsStatus.Active;
         bot.grabReadyAt = this.ctx.now + bot.stats.grabCooldown;
         bot.path = null;
       }
+      // A grab winding up on them (#70) just stops.
+      if (bot.windupId === protesterId) bot.windupId = null;
       if (bot.targetId === protesterId) {
         bot.targetId = null;
         bot.retargetAt = 0;
@@ -598,6 +601,17 @@ export class CrsSquad {
   /** The squad's navigation grid (#59: protester bots walk it too), fire zones included, rebuilt when a prop breaks. */
   get navGrid(): NavGrid {
     return this.nav;
+  }
+
+  /**
+   * The van protester `protesterId` is being dragged to (#70): an index into
+   * `levelVans` (and `vanDoors`), or -1 when nobody drags them or the bot has no van.
+   */
+  dragVanOf(protesterId: string): number {
+    for (const bot of this.bots) {
+      if (bot.status === CrsStatus.Grabbing && bot.grabbedId === protesterId) return bot.dragVan;
+    }
+    return -1;
   }
 
   /** The bot holding protester `protesterId`, if any (#10). */
@@ -751,6 +765,9 @@ export class CrsSquad {
     // #13: the BAC's disguise and what a BRAV-M rides.
     if (view.revealed !== bot.revealed) view.revealed = bot.revealed;
     if (view.mount !== bot.mount) view.mount = bot.mount;
+    // #70: the grab's tell; the target and the timer stay here.
+    const windup = bot.windupId !== null;
+    if (view.windup !== windup) view.windup = windup;
   }
 
   /** Mirror every bot now (after the room moved some, e.g. a member pushed back by a pinned protester). */
