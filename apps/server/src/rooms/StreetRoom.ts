@@ -48,6 +48,12 @@ import {
   RoundResult,
   CrsKind,
   WAVE_BRAVM_AHEAD,
+  WAVE_LBD_AHEAD,
+  CRS_STATS,
+  Offenders,
+  type BallBody,
+  type LbdImpactEvent,
+  type LbdShotEvent,
   crsRadius,
   disguiseName,
   unitStageAt,
@@ -155,7 +161,7 @@ import { DodgeCooldowns } from "../features/dodge/index.js";
 import { JumpCooldowns } from "../features/jump/index.js";
 import { Player } from "../features/player/index.js";
 import { Props } from "../features/prop/index.js";
-import { CrsSquad } from "../features/crs/index.js";
+import { CrsSquad, LbdShots } from "../features/crs/index.js";
 import { Rescues, Struggles } from "../features/rescue/index.js";
 import { Throwables } from "../features/throwable/index.js";
 import { Gas } from "../features/gas/index.js";
@@ -341,6 +347,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   /** Scratch for the fire actions (#16), reused every tick. */
   private burningViews: BurningView[] = [];
   private lightable: LightableView[] = [];
+  /** Who broke, hit or threw something lately (#73): the LBD only aims at them. Server-only. */
+  private offenders = new Offenders();
+  /** The LBD's balls in flight (#73), and the round's shot counts. Clients get the shot and impact as events. */
+  private lbdShots = new LbdShots();
+  /** Scratch for the balls (#73), reused every tick: what stops them and whom they can hit. */
+  private ballBlockers: BallBody[] = [];
+  private ballTargets: BallBody[] = [];
   /** What the bots see of each protester, reused across ticks (see `crsHost`). */
   private protesterViews = new Map<string, ProtesterView>();
   /** The room as the bots see it: effects on protesters go through the same hooks as every other system. */
@@ -397,6 +410,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const swing: SwingEvent = { id: by };
       this.broadcast(ServerMessage.Swing, swing);
       return true;
+    },
+    // The LBD (#73): the bot aimed from the room's own positions; the room flies the ball (`stepLbdBalls`).
+    fireLbd: (by, from, dirX, dirZ) => {
+      const stats = this.crs.get(by)?.stats.lbd;
+      if (!stats) return;
+      const ball = this.lbdShots.fire(by, from, dirX, dirZ, stats);
+      const event: LbdShotEvent = { id: ball.id, by, x: ball.x, z: ball.z, dirX, dirZ };
+      this.broadcast(ServerMessage.LbdShot, event);
     },
   };
   /**
@@ -625,6 +646,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
             // #13: any unit type; a BAC with its disguise (and a set blend time, for scripted tests).
             if (cmd.kind === CrsKind.Bac) this.crs.spawnBac(x, z, this.pickDisguiseName(), cmd.blend);
             else if (cmd.kind === CrsKind.BravM) this.crs.spawnBravm(x, z);
+            // #73: within MAX_LBD, like a wave.
+            else if (cmd.kind === CrsKind.Lbd) this.crs.spawnLbd(x, z);
             // #17: pompiers come off a truck, never on their own.
             else if (cmd.kind === CrsKind.Pompier) return;
             else this.crs.spawn(x, z);
@@ -741,6 +764,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.rescues.remove(id);
     this.struggles.end(id);
     this.batonDowned.delete(id);
+    this.offenders.forget(id);
     this.bodies.remove(id);
     // Systems that point at a player see unknown ids as no-ops; the CRS let go and look elsewhere at once (#59).
     this.crs.forget(id);
@@ -902,7 +926,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     for (const c of this.crs.all) {
       // Out, a pompier (on nobody's side), or a BAC still in disguise (a bot is fooled like anyone): not a foe.
       if (c.status === CrsStatus.Out || c.kind === CrsKind.Pompier || !c.revealed) continue;
-      crs.push({ id: c.id, x: c.body.x, z: c.body.z, radius: crsRadius(c.kind, c.mount), down: isDown(c.body), grabbing: c.status === CrsStatus.Grabbing ? c.grabbedId : null });
+      const seen: BotSeenCrs = { id: c.id, x: c.body.x, z: c.body.z, radius: crsRadius(c.kind, c.mount), down: isDown(c.body), grabbing: c.status === CrsStatus.Grabbing ? c.grabbedId : null };
+      // #73: an LBD's laser, so the bot under it may dodge.
+      if (c.aimId !== null) seen.aimingAt = c.aimId;
+      crs.push(seen);
     }
     const items = this.botItems;
     items.length = 0;
@@ -965,6 +992,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.rescues.clear();
     this.struggles.clear();
     this.batonDowned.clear();
+    // #73: nobody is an offender yet, no ball in the air.
+    this.offenders.clear();
+    this.lbdShots.clear();
     // Nobody carried or flying (#11).
     this.carry.clear();
     this.props.reset(this.state.props, relayout);
@@ -1041,11 +1071,16 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     for (const pt of waveChaserPoints(LEVEL, this.front, stage.bravm, people, CRS_SPAWN_CLEARANCE, WAVE_BRAVM_AHEAD)) {
       if (this.crs.spawnBravm(pt.x, pt.z)) bikes++;
     }
+    // The LBD (#73), from about its shooting distance ahead; MAX_LBD caps how many are out at once.
+    let lbds = 0;
+    for (const pt of waveChaserPoints(LEVEL, this.front, stage.lbd, people, CRS_SPAWN_CLEARANCE, WAVE_LBD_AHEAD)) {
+      if (this.crs.spawnLbd(pt.x, pt.z)) lbds++;
+    }
     let spawned = 0;
     for (const pt of waveChaserPoints(LEVEL, this.front, chasers, people, CRS_SPAWN_CLEARANCE)) {
       if (this.crs.spawn(pt.x, pt.z)) spawned++;
     }
-    const extra = bacs + bikes > 0 ? ` + ${bacs} BAC + ${bikes} BRAV-M` : "";
+    const extra = bacs + bikes + lbds > 0 ? ` + ${bacs} BAC + ${bikes} BRAV-M + ${lbds} LBD` : "";
     console.log(`[street ${this.roomId}] wave at ${wave.at}: ${spawned} chasers${line}${extra} (${this.crs.size} bots)`);
   }
 
@@ -1101,6 +1136,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   private endRound() {
     this.rescues.clear();
+    // #73: how often an LBD hit turned into a grab, for tuning.
+    const lbd = this.lbdShots.summary();
+    if (lbd) console.log(`[street ${this.roomId}] lbd: ${lbd}`);
     const won = this.round.result === RoundResult.Won;
     this.state.players.forEach((p, id) => {
       const arrived = p.status === PlayerStatus.Free && inRect(LEVEL.destination, p.x, p.z);
@@ -1287,6 +1325,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (!this.healths.grab(id, player, this.now, drag)) return false;
     // A grabbed carrier drops their teammate at once.
     this.endCarry(id);
+    // #73: counted when an LBD hit led to it.
+    this.lbdShots.noteGrab(id, this.now);
     return true;
   }
 
@@ -1428,6 +1468,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // The black bloc's hits count double (#14): every prop hit goes through here, swing, throw or thrown teammate.
     const res = this.props.damage(propId, propDamageOf(amount, this.statsOf(by).propDamage), this.state.props.get(propId));
     if (!res) return;
+    // #73: breaking things makes you a target for the LBD.
+    this.offenders.mark(by, this.now);
     const event: HitEvent = { by, kind: "prop", target: propId, x, z, broke: res.broke };
     this.broadcast(ServerMessage.Hit, event);
     if (res.broke) {
@@ -1441,6 +1483,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   /** Tell everyone a CRS was hit (to flash it) and pushed (to tip it the right way). */
   private announceCrsHit(by: string, crsId: string, res: CrsHitResult, x: number, z: number) {
     if (res.out) this.roundStats.add(by, "crsOut");
+    // #73: so does hitting a CRS.
+    this.offenders.mark(by, this.now);
     const event: HitEvent = { by, kind: "crs", target: crsId, x, z, broke: res.out };
     this.broadcast(ServerMessage.Hit, event);
     const imp = res.impulse;
@@ -1473,6 +1517,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (!this.throwables.launch(id, player.carrying, player.x, player.z, dir.x, dir.z, stats.throwRange)) return;
     player.carrying = ThrowableKind.None;
     player.rotation = Math.atan2(dir.x, dir.z);
+    // #73: and throwing anything.
+    this.offenders.mark(id, this.now);
     // A player already played the arm swing locally; a bot's is news to everyone.
     const swing: SwingEvent = { id };
     if (thrower) this.broadcast(ServerMessage.Swing, swing, { except: thrower });
@@ -1497,6 +1543,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (!res) return;
     this.carry.startFlight(mateId, id, mate.x, mate.z, res.dirX, res.dirZ);
     player.rotation = facing;
+    this.offenders.mark(id, this.now);
     this.roundStats.add(id, "teammatesThrown");
     this.roundStats.add(mateId, "knockdowns");
     // The flailing flight: every client's ragdoll kicks along the throw.
@@ -1903,6 +1950,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (res.broke) console.log(`[street ${this.roomId}] ${line.id} broke (${res.broke})`);
     });
     if (poos.length > 0) this.slipCrs(poos);
+    // The LBD's balls (#73), after the bots moved and fired.
+    this.stepLbdBalls(dt);
     // Where each grabbed protester is being taken (#70), for the van marker and the arrow.
     this.state.players.forEach((player, sessionId) => {
       const van = player.status === PlayerStatus.Grabbed ? this.crs.dragVanOf(sessionId) : -1;
@@ -2133,7 +2182,43 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // The black bloc is chased first (#14): a weight on distance, see `pickTarget`.
     // A bot (#59) is chased after a human at a similar distance, on top of its archetype's weight.
     view.priority = archetypeStats(player.archetype).targetWeight * (isBotId(id) ? BOT.targetWeight : 1);
+    // #73: when they last broke, hit or threw something (the LBD's targets).
+    view.offendedAt = this.offenders.lastAt(id);
     return view;
+  }
+
+  /**
+   * The LBD's balls (#73), once a tick: stopped by walls, props, cars and
+   * standing CRS (shield lines at their shields' width), they hit the first
+   * protester in their way who is free, on their feet and not mid-dodge (a
+   * hop does not help, a carried or flying body is out of reach). A hit
+   * knocks them down along the shot with a little damage, and no CRS may
+   * grab them for the unit's `grabImmunity`. Every client is told where each
+   * ball stopped.
+   */
+  private stepLbdBalls(dt: number) {
+    if (this.lbdShots.flying === 0) return;
+    this.ballBlockers.length = 0;
+    const blockers = this.crs.shotBlockers(this.ballBlockers);
+    const targets = this.ballTargets;
+    targets.length = 0;
+    this.state.players.forEach((p, id) => {
+      if (p.status !== PlayerStatus.Free || p.down || p.dodging || this.carry.isCarried(id) || this.carry.isFlying(id)) return;
+      targets.push({ id, x: p.x, z: p.z, r: PLAYER_RADIUS });
+    });
+    const stats = CRS_STATS[CrsKind.Lbd].lbd;
+    this.lbdShots.step(dt, this.props.world, blockers, targets, (ball, res) => {
+      const hit = res.type === "hit" ? res.id : "";
+      if (hit && stats) {
+        this.damagePlayer(hit, stats.damage);
+        this.applyImpulse(hit, ball.dirX, ball.dirZ, stats.impulse, "always");
+        const player = this.state.players.get(hit);
+        if (player) this.healths.shieldFromGrabs(hit, player, this.now, stats.grabImmunity);
+        this.lbdShots.noteHit(hit, this.now);
+      }
+      const event: LbdImpactEvent = { id: ball.id, x: res.x, z: res.z, hit };
+      this.broadcast(ServerMessage.LbdImpact, event);
+    });
   }
 
   private *allProtesterViews(): Generator<ProtesterView> {

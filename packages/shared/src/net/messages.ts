@@ -231,6 +231,13 @@ export const ServerMessage = {
   ScoreToken: "score:token",
   /** The lasting leaderboard (#41), to one player: the top and their own line. After a join, a banked round and a rename. */
   Leaderboard: "score:leaderboard",
+  /**
+   * A CRS LBD fired (#73): where from and which way. Clients fly the ball
+   * themselves at the unit's `ballSpeed` until the matching `LbdImpact`. Not in Schema.
+   */
+  LbdShot: "lbd:shot",
+  /** That ball stopped (#73): on a protester (`hit`), or on a wall, a prop, a CRS or the ground. The knockdown comes as an Impulse. */
+  LbdImpact: "lbd:impact",
 } as const;
 export type ServerMessage = (typeof ServerMessage)[keyof typeof ServerMessage];
 
@@ -245,6 +252,30 @@ export interface ImpulseEvent {
   strength: number;
   /** True if this impulse knocked the body down. */
   down: boolean;
+}
+
+/** Payload of `ServerMessage.LbdShot` (#73). */
+export interface LbdShotEvent {
+  /** The ball's id, matched by its `LbdImpact`. */
+  id: string;
+  /** The CRS that fired. */
+  by: string;
+  /** Start point and unit ground direction. */
+  x: number;
+  z: number;
+  dirX: number;
+  dirZ: number;
+}
+
+/** Payload of `ServerMessage.LbdImpact` (#73). */
+export interface LbdImpactEvent {
+  /** The ball's id, from its `LbdShot`. */
+  id: string;
+  /** Where it stopped. */
+  x: number;
+  z: number;
+  /** The protester it knocked down (session id), or "" when it hit something else or dropped. */
+  hit: string;
 }
 
 /** Payload of `ServerMessage.Swing`. */

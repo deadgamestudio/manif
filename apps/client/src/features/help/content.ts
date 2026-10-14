@@ -232,6 +232,7 @@ export function policeCards(): PoliceCard[] {
   const crs = CRS_STATS[CrsKind.Crs];
   const bac = CRS_STATS[CrsKind.Bac];
   const bravm = CRS_STATS[CrsKind.BravM];
+  const lbd = CRS_STATS[CrsKind.Lbd];
   return [
     {
       kind: CrsKind.Crs,
@@ -259,6 +260,13 @@ export function policeCards(): PoliceCard[] {
       name: "BRAV-M",
       what: "Des duos à moto qui foncent dans le tas. Le passager descend, frappe, et ils repartent.",
       tip: `Un pavé, un·e camarade lancé·e ou ${bravm.staggerHits} coups d'affilée sur la moto, et les deux tombent.`,
+    },
+    {
+      kind: CrsKind.Lbd,
+      icon: "🎯",
+      name: "CRS LBD",
+      what: `Un gros lanceur en plastique orange. Il reste à distance et ne vise que qui vient de casser, taper ou lancer quelque chose : laser rouge sur tes pieds, puis boing, sur les fesses (${lbd.lbd?.damage ?? 0} PV).`,
+      tip: `Plonge quand le laser est sur toi, planque-toi derrière une voiture, ou fonce : ${plural(lbd.maxHp, "coup")} et il est au tapis. Une tomate le fait rater.`,
     },
   ];
 }

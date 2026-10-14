@@ -10,6 +10,7 @@ import {
   heal,
   rescue,
   secondsLeft,
+  shieldFromGrabs,
   tickHealth,
   type Health,
   type HealthEvent,
@@ -91,6 +92,11 @@ export class Healths {
   /** The drag reached the van (#70): arrested on the next `tick`. Returns true if it changed anything. */
   deliver(id: string, view: HealthView, now: number): boolean {
     return this.apply(id, view, now, (h) => deliver(h, now));
+  }
+
+  /** No grab for `seconds` (#73: an LBD hit). Returns true if it lengthened the immunity. */
+  shieldFromGrabs(id: string, view: HealthView, now: number, seconds: number): boolean {
+    return this.apply(id, view, now, (h) => shieldFromGrabs(h, now, seconds));
   }
 
   /** Grabbed -> free, with a short grab immunity (#10). Returns true if the rescue took. */

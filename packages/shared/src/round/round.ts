@@ -250,7 +250,7 @@ export function syncedProgress(progress: number): number {
 
 /** The unit stage (#13) for a wave firing at `progress`: the last row of `stages` whose `from` is at most it. */
 export function unitStageAt(progress: number, stages: readonly UnitStage[] = UNIT_STAGES): UnitStage {
-  let stage: UnitStage = { from: 0, bac: 0, bravm: 0 };
+  let stage: UnitStage = { from: 0, bac: 0, bravm: 0, lbd: 0 };
   for (const s of stages) if (s.from <= progress && s.from >= stage.from) stage = s;
   return stage;
 }

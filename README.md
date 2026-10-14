@@ -122,7 +122,7 @@ row for nearly every number and rule in the game.
 | Almost any number (speeds, HP, cooldowns, ranges) | `packages/shared/src/<feature>/constants.ts` |
 | The street: walls, props, spawn points, the Préfecture | `packages/shared/src/level/street.ts` |
 | Police units (CRS, BAC, BRAV-M, pompiers): stats | `CRS_STATS` in `packages/shared/src/crs/constants.ts` |
-| What the police bots decide | `packages/shared/src/crs/brain.ts`, `bac.ts`, `bravm.ts`, `line.ts` |
+| What the police bots decide | `packages/shared/src/crs/brain.ts`, `bac.ts`, `bravm.ts`, `line.ts`, `lbd.ts` (the CRS LBD and its ball) |
 | Round length, win rule, reinforcement waves | `packages/shared/src/round/constants.ts` |
 | Archetypes | `ARCHETYPES` in `packages/shared/src/archetype/constants.ts`; looks in `apps/client/src/features/archetype/archetypeVisuals.tsx` |
 | Shop kinds, signs, dealing rules and layout (sizes, clearances) | `PROP_TYPES` in `packages/shared/src/prop/constants.ts`, `SHOP_TYPES` and `SHOP_LAYOUT` in `prop/shops.ts`; looks in `apps/client/src/features/prop/shopVisuals.tsx` |

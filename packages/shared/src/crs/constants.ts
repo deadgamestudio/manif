@@ -35,6 +35,12 @@ export const CrsKind = {
    * can knock one over but never hurt it; CRS never grab it.
    */
   Pompier: 3,
+  /**
+   * A CRS with a (cartoon) LBD launcher instead of a shield (#73): keeps its
+   * distance, aims at a protester who just broke, hit or threw something, and
+   * fires a big rubber ball that knocks them on their bum. Never grabs.
+   */
+  Lbd: 4,
 } as const;
 export type CrsKind = (typeof CrsKind)[keyof typeof CrsKind];
 
@@ -143,6 +149,45 @@ export interface BrigadeStats {
   boardTimeout: number;
 }
 
+/**
+ * The LBD (#73): a chunky toy-like launcher firing a big rubber ball. All its
+ * numbers; the unit's body, walk and (weak) baton are the rest of the row.
+ */
+export interface LbdStats {
+  /** It keeps the nearest free protester between `standoffMin` and `standoffMax` away (centre to centre)... */
+  standoffMin: number;
+  standoffMax: number;
+  /** ...and only aims at a protester at most this far (centre to centre), in a clear line. */
+  range: number;
+  /** The aim: a red laser on the target's feet for this long, then it fires. */
+  aimTime: number;
+  /** Between two shots (counted from the shot): it re-aims each time. */
+  cooldown: number;
+  /**
+   * After an aim that was foiled (a dodge, cover, a hit, the target out of
+   * range), it waits this long before the next. With `aimTime`, at least
+   * DODGE_COOLDOWN: a well-timed dodge can foil every aim, not just the first.
+   */
+  reaimDelay: number;
+  /** The first shot of a fresh unit waits this long, so a new wave does not fire on arrival. */
+  firstShotDelay: number;
+  /** The ball: speed (m/s), radius and how far it flies before it drops. */
+  ballSpeed: number;
+  ballRadius: number;
+  ballRange: number;
+  /** A hit: HP off the protester, and a knockback along the shot (at KNOCKDOWN_THRESHOLD or more it floors). */
+  damage: number;
+  impulse: number;
+  /**
+   * After a hit, the protester cannot be grabbed for this long (#73, decision
+   * 2): a sniper plus a grabber is not an instant arrest. Longer than the
+   * knockdown (DOWN_DURATION), so they are back on their feet first.
+   */
+  grabImmunity: number;
+  /** Splatted (#15): a tomato on the visor, the shot goes off by this angle (radians, either side) and misses. */
+  splatMiss: number;
+}
+
 /** Everything that makes one unit type play differently. Change a value here, not in the AI. */
 export interface CrsStats {
   /** Collision radius (a protester is 0.4). */
@@ -218,6 +263,8 @@ export interface CrsStats {
   hose?: HoseStats;
   /** The trucks a pompier crew comes in (#17). */
   brigade?: BrigadeStats;
+  /** Units with an LBD (#73). Absent: no launcher. */
+  lbd?: LbdStats;
 }
 
 export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
@@ -380,7 +427,63 @@ export const CRS_STATS: Readonly<Record<CrsKind, CrsStats>> = {
       boardTimeout: 20,
     },
   },
+  // The CRS LBD (#73): no shield, few HP and a slow, soft baton, so rushing it works.
+  // Never grabs (grabReach -1): it shoots, others arrest. Every number of the launcher is in `lbd`.
+  [CrsKind.Lbd]: {
+    radius: 0.45,
+    speed: 4,
+    maxHp: 3,
+    sight: 24,
+    switchMargin: 3,
+    retargetInterval: 0.4,
+    repathInterval: 0.75,
+    batonRange: 0.8,
+    batonDamage: 8,
+    batonImpulse: LIGHT_IMPULSE,
+    batonCooldown: 2.2,
+    grabReach: -1,
+    grabCooldown: 1,
+    grabDuration: GRAB_DURATION,
+    grabWindup: 0,
+    dragSpeedFactor: 1,
+    stunDuration: 2.5,
+    hitImpulse: LIGHT_IMPULSE,
+    staggerHits: 2,
+    staggerWindow: 1.5,
+    heavyHitImpulse: HEAVY_IMPULSE,
+    outDuration: 3,
+    gasCooldown: 0,
+    lbd: {
+      standoffMin: 10,
+      standoffMax: 16,
+      range: 18,
+      aimTime: 0.8,
+      cooldown: 7,
+      reaimDelay: 2.5,
+      firstShotDelay: 2,
+      ballSpeed: 30,
+      ballRadius: 0.18,
+      ballRange: 22,
+      damage: 10,
+      impulse: HEAVY_IMPULSE,
+      grabImmunity: 2.2,
+      splatMiss: 0.45,
+    },
+  },
 };
+
+/**
+ * At most this many CRS LBD on the street at once (#73), within MAX_CRS. A
+ * wave that would bring more brings fewer.
+ */
+export const MAX_LBD = 2;
+
+/**
+ * How long a protester stays a target for the LBD after breaking, hitting or
+ * throwing something (#73, decision 1): a prop hit, a CRS hit, an item or a
+ * teammate thrown. Someone who did none of that in this long is left alone.
+ */
+export const OFFENDER_MEMORY = 8;
 
 /** Whether bots of `kind` are police (#17: a pompier is not): they chase, hit, grab, count as CRS taken out. */
 export function isPolice(kind: CrsKind): boolean {

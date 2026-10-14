@@ -12,6 +12,9 @@
  * - Pompier (#17, not police): a navy capsule with yellow reflective bands,
  *   a yellow helmet with a red stripe, and a brass hose nozzle in hand. The
  *   water jet itself is the water feature's (WaterJet).
+ * - CRS LBD (#73): a CRS without a shield, with bright orange bands on the
+ *   uniform and the helmet, and a fat, stubby, toy-coloured launcher held
+ *   forward in the left hand. Clearly a toy: no realistic gun.
  * Sizes come from CRS_STATS (crsRadius), so what you see is what you bump into.
  */
 import type { ReactNode, RefObject } from "react";
@@ -381,6 +384,91 @@ function pompierLook(radius: number): CrsLook {
   };
 }
 
+const LBD_BAND = "#ff7a00";
+const LAUNCHER = "#ff8f1f";
+const LAUNCHER_TRIM = "#ffd600";
+
+/** The launcher's muzzle, local to the facing group of a CRS LBD (#73), +z forward: the laser starts there. */
+export const LBD_MUZZLE = { x: -0.12, y: 1.09, z: 0.95 } as const;
+
+/**
+ * A CRS LBD (#73): the CRS capsule and riot helmet with no shield, a wide
+ * orange band round the chest and an orange stripe over the helmet, the
+ * left arm held forward on a chunky toy launcher (a fat orange tube with a
+ * yellow muzzle ring and a yellow grip), the baton on the right as usual.
+ * The arm and the launcher are posed forward inside `shieldArm`, which
+ * CrsAvatar kicks up a little on a shot.
+ */
+function lbdLook(radius: number): CrsLook {
+  const height = CAPSULE_LENGTH + radius * 2;
+  return {
+    height,
+    color: CRS_UNIFORM,
+    ragdoll: crsRagdoll(radius),
+    render: (rig) => (
+      <>
+        <mesh position-y={height / 2} castShadow>
+          <capsuleGeometry args={[radius, CAPSULE_LENGTH, 4, 12]} />
+          <meshStandardMaterial ref={rig.body} color={CRS_UNIFORM} />
+        </mesh>
+        {/* The orange band round the chest: tells it apart from a plain CRS at a glance. */}
+        <mesh position-y={height * 0.56}>
+          <cylinderGeometry args={[radius + 0.015, radius + 0.015, 0.16, 16, 1, true]} />
+          <meshStandardMaterial color={LBD_BAND} emissive={LBD_BAND} emissiveIntensity={0.4} />
+        </mesh>
+        {/* Riot helmet with an orange stripe front to back, and the visor. */}
+        <mesh position-y={height - 0.12} castShadow>
+          <sphereGeometry args={[radius * 0.82, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshStandardMaterial color="#0d1526" metalness={0.3} roughness={0.4} />
+        </mesh>
+        <mesh position-y={height - 0.12} rotation-z={Math.PI / 2}>
+          <torusGeometry args={[radius * 0.83, 0.045, 6, 20, Math.PI]} />
+          <meshStandardMaterial color={LBD_BAND} emissive={LBD_BAND} emissiveIntensity={0.4} />
+        </mesh>
+        <mesh position={[0, height - 0.28, radius * 0.72]}>
+          <boxGeometry args={[radius * 1.3, 0.18, 0.06]} />
+          <meshStandardMaterial color="#9fb7d6" transparent opacity={0.6} />
+        </mesh>
+        <Splat group={rig.splat} radius={radius} at={[0, height - 0.28, radius * 0.76]} />
+        {/* Left arm held forward on the launcher (posed here: CrsAvatar only adds the recoil). */}
+        <group ref={rig.shieldArm} position={[-radius - 0.05, height * 0.62, 0.1]}>
+          <mesh position={[0.15, -0.1, 0.25]} rotation-y={0.5} castShadow>
+            <boxGeometry args={[0.15, 0.15, 0.55]} />
+            <meshStandardMaterial color={CRS_UNIFORM} />
+          </mesh>
+          {/* The launcher: a fat, short orange tube pointing forward... */}
+          <mesh position={[LBD_MUZZLE.x + radius + 0.05, -0.12, 0.55]} rotation-x={Math.PI / 2} castShadow>
+            <cylinderGeometry args={[0.13, 0.15, 0.55, 14]} />
+            <meshStandardMaterial color={LAUNCHER} roughness={0.5} />
+          </mesh>
+          {/* ...a big yellow ring at the muzzle... */}
+          <mesh position={[LBD_MUZZLE.x + radius + 0.05, -0.12, 0.83]}>
+            <torusGeometry args={[0.13, 0.05, 8, 18]} />
+            <meshStandardMaterial color={LAUNCHER_TRIM} roughness={0.4} />
+          </mesh>
+          {/* ...and a chunky yellow grip under it. */}
+          <mesh position={[LBD_MUZZLE.x + radius + 0.05, -0.28, 0.42]} rotation-x={0.3}>
+            <boxGeometry args={[0.1, 0.22, 0.12]} />
+            <meshStandardMaterial color={LAUNCHER_TRIM} roughness={0.4} />
+          </mesh>
+        </group>
+        <group ref={rig.lineShield} visible={false} />
+        {/* Baton arm on the right, as a plain CRS (a slow, soft one). */}
+        <group ref={rig.batonArm} position={[radius + 0.08, height * 0.66, 0]}>
+          <mesh position-y={-0.3} castShadow>
+            <boxGeometry args={[0.15, 0.6, 0.15]} />
+            <meshStandardMaterial color={CRS_UNIFORM} />
+          </mesh>
+          <mesh position={[0, -0.6, 0.25]} rotation-x={Math.PI / 2} castShadow>
+            <cylinderGeometry args={[0.04, 0.04, 0.7, 8]} />
+            <meshStandardMaterial color="#111111" />
+          </mesh>
+        </group>
+      </>
+    ),
+  };
+}
+
 const LOOKS = {
   crs: crsLook(CRS_STATS[CrsKind.Crs].radius),
   bac: bacLook(),
@@ -389,12 +477,14 @@ const LOOKS = {
   solo: bikeLook(1),
   wreck: bikeLook(0),
   pompier: pompierLook(CRS_STATS[CrsKind.Pompier].radius),
+  lbd: lbdLook(CRS_STATS[CrsKind.Lbd].radius),
 };
 
 /** The look of a bot of `kind` riding `mount` (a disguised BAC is drawn as a protester, not with these). */
 export function crsLookFor(kind: CrsKind, mount: CrsMount): CrsLook {
   if (kind === CrsKind.Bac) return LOOKS.bac;
   if (kind === CrsKind.Pompier) return LOOKS.pompier;
+  if (kind === CrsKind.Lbd) return LOOKS.lbd;
   if (kind === CrsKind.BravM) {
     if (mount === CrsMount.Duo) return LOOKS.duo;
     if (mount === CrsMount.Solo) return LOOKS.solo;

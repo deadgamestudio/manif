@@ -55,7 +55,7 @@ function buildView(state: StreetStateShape): WorldView {
   });
   const crs = new Map<string, CrsView>();
   state.crs?.forEach((c, id) => {
-    crs.set(id, { x: c.x, z: c.z, kind: c.kind, status: c.status, mount: c.mount, revealed: c.revealed, onFire: c.onFire, spraying: c.spraying, windup: c.windup === true });
+    crs.set(id, { x: c.x, z: c.z, kind: c.kind, status: c.status, mount: c.mount, revealed: c.revealed, onFire: c.onFire, spraying: c.spraying, windup: c.windup === true, aim: c.aim ?? "" });
   });
   const broken = new Set<string>();
   state.props?.forEach((p, id) => {
@@ -172,6 +172,10 @@ function toCueEvent(event: NetEvent): NetCueEvent {
       return { type: "hit", kind: event.event.kind, target: event.event.target, x: event.event.x, z: event.event.z, broke: event.event.broke };
     case "impulse":
       return { type: "impulse", id: event.event.id };
+    case "lbdShot":
+      return { type: "lbdShot", x: event.event.x, z: event.event.z };
+    case "lbdImpact":
+      return { type: "lbdImpact", x: event.event.x, z: event.event.z, hit: event.event.hit !== "" };
     case "roundEnd":
       return { type: "roundEnd", result: event.event.result };
   }

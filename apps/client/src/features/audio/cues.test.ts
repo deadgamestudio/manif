@@ -30,6 +30,7 @@ const crs = (patch: Partial<CrsView> = {}): CrsView => ({
   onFire: false,
   spraying: false,
   windup: false,
+  aim: "",
   ...patch,
 });
 
@@ -148,6 +149,16 @@ describe("diffCues", () => {
     expect(diffCues(during, before, "me", props)).toEqual([]);
   });
 
+  test("a CRS LBD taking aim beeps once: at it, or in your ears when you are the target (#73)", () => {
+    const before = world({ crs: new Map([["l", crs({ kind: CrsKind.Lbd })]]) });
+    const atOther = world({ crs: new Map([["l", crs({ kind: CrsKind.Lbd, aim: "other" })]]) });
+    const atMe = world({ crs: new Map([["l", crs({ kind: CrsKind.Lbd, aim: "me" })]]) });
+    expect(diffCues(before, atOther, "me", props)).toEqual([{ sound: "charge", at: { x: 3, z: 0 }, gain: 0.7 }]);
+    expect(diffCues(before, atMe, "me", props)).toEqual([{ sound: "charge" }]);
+    expect(diffCues(atMe, atMe, "me", props)).toEqual([]);
+    expect(diffCues(atMe, before, "me", props)).toEqual([]);
+  });
+
   test("the van door slams when a dragged protester is arrested at the van, the cuffs on the grab (#70)", () => {
     const free = world({ players: new Map([["a", player()]]) });
     const grabbed = world({ players: new Map([["a", player({ status: PlayerStatus.Grabbed })]]) });
@@ -205,6 +216,12 @@ describe("messageCues", () => {
 
   test("a shield line's shove clangs at each shield", () => {
     expect(sounds(messageCues({ type: "shove", ids: ["c1", "gone"] }, view, props, 0, fresh()))).toEqual(["shield"]);
+  });
+
+  test("a CRS LBD's shot pops at the shooter; its ball boings where it lands, softer off a wall (#73)", () => {
+    expect(messageCues({ type: "lbdShot", x: 4, z: 5 }, view, props, 0, fresh())).toEqual([{ sound: "launch", at: { x: 4, z: 5 } }]);
+    expect(messageCues({ type: "lbdImpact", x: 1, z: 2, hit: true }, view, props, 0, fresh())).toEqual([{ sound: "boing", at: { x: 1, z: 2 }, gain: 1 }]);
+    expect(messageCues({ type: "lbdImpact", x: 1, z: 2, hit: false }, view, props, 0, fresh())).toEqual([{ sound: "boing", at: { x: 1, z: 2 }, gain: 0.45 }]);
   });
 
   test("the round's end: a fanfare for a win, a sad trombone for a loss", () => {

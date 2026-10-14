@@ -111,6 +111,8 @@ export interface BotSeenCrs extends Vec2 {
   down: boolean;
   /** The protester it is dragging, or null. */
   grabbing: string | null;
+  /** An LBD's laser on a protester (#73): their id, or absent. */
+  aimingAt?: string;
 }
 
 /** A round thing: a tear gas cloud, or a hurdle (an intact bin, a fallen CRS). */
@@ -353,6 +355,10 @@ export function thinkBot(mind: BotMind, world: BotWorld): BotIntent {
   }
   // A CRS right there (not one it is going for), or gas: maybe a dodge, along the walk.
   if (self.gassed && mind.plan.kind === "flee" && rollFor(mind, "dodge:gas", BOT.dodgeChance, now, random)) out.dodge = true;
+  // An LBD's laser on it (#73): maybe a dodge, which foils the shot.
+  for (const c of world.crs) {
+    if (c.aimingAt === mind.id && !c.down && rollFor(mind, `dodge:aim:${c.id}`, BOT.dodgeChance, now, random)) out.dodge = true;
+  }
   for (const c of world.crs) {
     if (c.down || c.grabbing !== null || dist(self, c) - c.radius > BOT.dodgeRange) continue;
     if (mind.plan.kind === "fight" && mind.plan.id === c.id) continue;
