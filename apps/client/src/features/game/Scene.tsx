@@ -28,6 +28,18 @@ const START_CENTRE = new Vector3(
 const SUN_OFFSET = new Vector3(15, 25, 10);
 /** Half size of the shadow box around the followed point. The street is too long to shadow all at once. */
 const SHADOW_HALF = 30;
+/**
+ * Lighting (#28): Jordan's models are realistic and dark (near-black CRS,
+ * navy vans, dark outfits), so the street is lit brighter than for the old
+ * bright placeholders: a strong soft sky fill (no shadows, costs nothing on
+ * phones) plus the one shadow-casting sun, over a lighter asphalt (Level.tsx).
+ */
+const BACKGROUND = "#3b4048";
+const SKY = "#e8efff";
+/** Light bounced off the street, warm and fairly bright so dark clothes keep some shape from below. */
+const GROUND_BOUNCE = "#8a8272";
+const SKY_FILL = 1.9;
+const SUN_INTENSITY = 2.6;
 /** Height of the point on a character that a building must not hide (#80): about the chest. */
 const BODY_Y = 1;
 
@@ -47,8 +59,8 @@ export function Scene({
     <>
       <FollowRig localId={localId} />
       <AimTracker />
-      <color attach="background" args={["#2a2d34"]} />
-      <hemisphereLight args={["#dfe8ff", "#3a3a3a", 0.8]} />
+      <color attach="background" args={[BACKGROUND]} />
+      <hemisphereLight args={[SKY, GROUND_BOUNCE, SKY_FILL]} />
 
       <LevelView level={LEVEL} fadeTargets={fadeTargets} />
       <PropsView level={LEVEL} />
@@ -149,7 +161,7 @@ function FollowRig({ localId }: { localId: string | null }) {
         ref={light}
         target={lightTarget}
         castShadow
-        intensity={2}
+        intensity={SUN_INTENSITY}
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-SHADOW_HALF}
         shadow-camera-right={SHADOW_HALF}

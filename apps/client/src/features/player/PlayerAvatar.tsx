@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal, useFrame } from "@react-three/fiber";
-import { Color, Vector3, type Group, type MeshStandardMaterial } from "three";
+import { Color, MeshBasicMaterial, RingGeometry, Vector3, type Group, type MeshStandardMaterial } from "three";
 import { PLAYER_RADIUS, Phase, PlayerStatus, type PlayerShape } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
@@ -17,6 +17,7 @@ import { MODELS, bodyUrlFor, getPoseOwner, useStaticModel } from "../models/inde
 import { NameTag } from "./NameTag.tsx";
 import { actionClip, chooseStateClip } from "./clipChoice.ts";
 import { onScreen } from "./onScreen.ts";
+import { ringColorFor } from "./ringColor.ts";
 import { BodyMotion, setAvatarBody, useProtesterBody } from "./protesterBody.ts";
 
 const CAPSULE_LENGTH = 1;
@@ -31,6 +32,23 @@ const FLAIL_ANGLE = 0.35;
 const FLAIL_SPEED = 18;
 /** The local player's ring on the ground (#14: the body colour is the archetype's clothes now, for everyone). */
 const LOCAL_RING = "#ffca28";
+/**
+ * The rings on the ground: one geometry for all, one material per colour,
+ * made on first use and kept. Unlit and not tone mapped, so they read on the
+ * dark road whatever the lighting; just over the road markings (0.005-0.02).
+ */
+const RING_Y = 0.03;
+const RING_GEOMETRY = new RingGeometry(PLAYER_RADIUS + 0.1, PLAYER_RADIUS + 0.28, 32);
+const ringMaterials = new Map<string, MeshBasicMaterial>();
+function ringMaterial(color: string, opacity: number): MeshBasicMaterial {
+  const key = `${color}/${opacity}`;
+  let m = ringMaterials.get(key);
+  if (!m) {
+    m = new MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, toneMapped: false });
+    ringMaterials.set(key, m);
+  }
+  return m;
+}
 /** Grabbed, KO: the clothes go a bit pale, towards this. */
 const HURT_COLOR = new Color("#b0bec5");
 const HURT_MIX = 0.6;
@@ -95,7 +113,7 @@ const DUST_PUFFS: readonly [number, number][] = [
  *
  * Archetype (#14): the clothes colour (capsule and ragdoll) and the
  * accessories come from `archetypeVisuals.tsx`; the arm keeps the one skin
- * colour everyone shares. The local player gets a ring on the ground.
+ * colour everyone shares. The local player gets a ring on the ground, the other humans one in their own colour (ringColor.ts).
  *
  * Jordan's body (#28): once the archetype's model and the protester clips
  * have loaded, a skinned body replaces the capsule, the arm and the nose
@@ -435,11 +453,10 @@ export function PlayerAvatar({
             <primitive object={footRing} dispose={null} />
           </group>
         ) : (
-          <mesh position-y={0.03} rotation-x={-Math.PI / 2}>
-            <ringGeometry args={[PLAYER_RADIUS + 0.12, PLAYER_RADIUS + 0.24, 28]} />
-            <meshBasicMaterial color={LOCAL_RING} transparent opacity={0.85} depthWrite={false} />
-          </mesh>
+          <GroundRing material={ringMaterial(LOCAL_RING, 0.9)} />
         ))}
+      {/* The other humans (#28): a ring in their own colour, to pick friends out of a dark crowd. Bots get none. On the root, so it stays flat on the ground whatever the body does. */}
+      {!isLocal && !bot && <GroundRing material={ringMaterial(ringColorFor(id), 0.95)} />}
       {/* The ragdoll (#26), in world space under the root: never tilted or turned with the capsule. */}
       {ragdoll.view}
       {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
@@ -474,6 +491,11 @@ export function PlayerAvatar({
       </group>
     </group>
   );
+}
+
+/** A flat ring on the ground around the feet, casting no shadow. */
+function GroundRing({ material }: { material: MeshBasicMaterial }) {
+  return <mesh position-y={RING_Y} rotation-x={-Math.PI / 2} geometry={RING_GEOMETRY} material={material} dispose={null} />;
 }
 
 /** Props authored in the avatar's frame (feet at 0), drawn on the spine bone so they follow the body as it falls. */

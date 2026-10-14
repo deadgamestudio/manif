@@ -33,8 +33,9 @@ const BOX_COLORS: Record<BoxKind, readonly string[]> = {
   prefecture: ["#e8e2d0"],
 };
 
-const ASPHALT = "#4a4e55";
-const PAVEMENT = "#6b6f76";
+/** Lighter than real asphalt (#28): the dark CRS and outfits must stand out against it. */
+const ASPHALT = "#767b84";
+const PAVEMENT = "#8d9198";
 const MARKING = "#d8d8d0";
 
 export function LevelView({
