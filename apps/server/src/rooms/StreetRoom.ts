@@ -196,11 +196,6 @@ const LEVEL = STREET_LEVEL;
 /** What blocks a swing: the static walls and obstacles only, not props (#4). */
 const SWING_OBSTACLES = levelWorld(LEVEL);
 const NO_INPUT: MoveInput = { x: 0, z: 0 };
-/** The props that can ever burn (#16), with their shape: what a held interact may light. */
-const FLAMMABLE: readonly LightableView[] = LEVEL.propSlots.flatMap((slot) => {
-  const shape = PROP_TYPES[slot.kind].flammable ? propShape(slot, false) : null;
-  return shape ? [{ id: slot.id, shape }] : [];
-});
 
 /**
  * One lobby and its street, round after round (#12): `waiting` (the lobby
@@ -2009,8 +2004,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.state.players.forEach((p, pid) => {
       if (p.onFire) this.burningViews.push({ id: pid, x: p.x, z: p.z, onFire: true });
     });
-    this.lightable.length = 0;
-    for (const p of FLAMMABLE) if (this.fires.canIgnite(p.id, this.props.hp(p.id))) this.lightable.push(p);
+    this.fires.lightable(this.propHp, this.propBroken, this.lightable);
     return pickFireAction(self, PLAYER_RADIUS, this.burningViews, this.lightable);
   }
 
@@ -2045,17 +2039,21 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * so they path around the fires.
    */
   private stepFires(dt: number) {
-    for (const e of this.fires.step(dt, (id) => this.props.hp(id))) {
+    for (const e of this.fires.step(dt, this.propHp, this.propBroken)) {
       if (e.type === "burnt") this.props.char(e.id, this.state.props.get(e.id));
       else this.props.lock(e.to);
     }
-    for (const f of this.fires.burning()) this.props.burnTo(f.id, Math.ceil(f.fuel - 1e-9), this.state.props.get(f.id));
+    for (const f of this.fires.burning()) this.props.burnTo(f.id, this.fires.hp(f), this.state.props.get(f.id));
     if (this.fires.takeChanged()) this.crs.setHazards(this.fires.size > 0 ? this.fires.hazards(LEVEL.bounds) : null);
   }
 
+  private readonly propHp = (id: string): number => this.props.hp(id);
+  /** A smashed prop: a car's wreck can still burn (#91). */
+  private readonly propBroken = (id: string): boolean => this.state.props.get(id)?.broken === true;
+
   /** Set prop `id` on fire (#16): a held interact, and the hook for future igniters (#15 fumigènes). False if it can't burn now. */
   lightProp(id: string): boolean {
-    if (!this.fires.ignite(id, this.props.hp(id))) return false;
+    if (!this.fires.ignite(id, this.props.hp(id), this.propBroken(id))) return false;
     this.props.lock(id);
     console.log(`[street ${this.roomId}] fire: ${id} lit (${this.fires.size} burning)`);
     return true;

@@ -5,20 +5,25 @@
  *
  * 1. A flammable prop (`PROP_TYPES[kind].flammable`) with HP left, not burning
  *    and not charred, can be lit (`FireField.ignite`), under the MAX_FIRES cap.
+ *    A broken one can be lit too if its kind leaves a wreck (`broken` shape,
+ *    today the car, #91): a bin smashed to nothing has nothing left to burn.
  * 2. It burns its HP down at maxHp / FIRE_DURATION per second. At 0 the fire
- *    is out and the prop is charred: it keeps its intact shape (still an
- *    obstacle) and can never burn again.
+ *    is out and the prop is charred: it keeps its shape (still an obstacle)
+ *    and can never burn again. A wreck has no HP left, so it burns its own
+ *    fuel instead, a full FIRE_DURATION, around its broken shape.
  * 3. After FIRE_SPREAD_DELAY, then every FIRE_SPREAD_COOLDOWN, a fire lights
  *    the nearest prop that could be lit within FIRE_SPREAD_RADIUS (edge to
  *    edge), if the cap allows.
  * 4. Anyone within FIRE_REACH of a burning prop's edge catches fire (see
- *    `burn.ts`).
+ *    `burn.ts`). A new fire's zone grows from the prop's edge to that size
+ *    over FIRE_GROW_TIME (`zoneGrowth`, #91), so whoever lit it has time to
+ *    step away.
  * 5. A fire can be put out early (`extinguish`, `extinguishNear`: the hook for
  *    the pompiers #17 and the water cannon #13). The prop keeps the HP it had
- *    left, is not charred, and can be lit again.
+ *    left (a wreck, the fuel it had left), is not charred, and can be lit again.
  */
 import type { BoxShape, CircleShape, CollisionWorld, Rect } from "../physics/index.js";
-import type { PropSlot } from "../level/index.js";
+import type { PropKind, PropSlot } from "../level/index.js";
 import { PROP_TYPES, propShape, type PropShape } from "../prop/index.js";
 import {
   FIRE_DURATION,
@@ -30,6 +35,8 @@ import {
   FIRE_SPREAD_RADIUS,
   MAX_FIRES,
 } from "./constants.js";
+
+const NOT_BROKEN = (): boolean => false;
 
 /** Timer slack, so a tick landing on a boundary counts (room time adds up 1/TICK_RATE steps). */
 const EPS = 1e-9;
@@ -57,18 +64,67 @@ export function boundingRadius(shape: PropShape, reach = FIRE_REACH): number {
   return (shape.type === "circle" ? shape.r : Math.hypot(shape.halfX, shape.halfZ)) + reach;
 }
 
-/** Whether a body of radius `r` at (x, z) is in the fire zone around `shape`: its edge within `reach` of the prop's edge. */
-export function inFireZone(shape: PropShape, x: number, z: number, r: number, reach = FIRE_REACH): boolean {
-  return distanceToShape(shape, x, z) <= r + reach + EPS;
+/**
+ * How far a fire's zone has grown `age` seconds after it was lit: 0 at first,
+ * 1 (full size) from FIRE_GROW_TIME on. Eased in, so it barely creeps past
+ * the prop at first: someone standing against a bin they just lit has about
+ * a second to step away (#91).
+ */
+export function zoneGrowth(age: number): number {
+  const g = Math.min(1, Math.max(0, age / FIRE_GROW_TIME));
+  return g * g;
+}
+
+/**
+ * Whether a body of radius `r` at (x, z) is in the fire zone around `shape`:
+ * at full size (`growth` 1), its edge within `reach` of the prop's edge.
+ * Growing, the zone reaches `growth` of that from the prop's edge to the
+ * body's centre, so at 0 only a body overlapping the prop is in it.
+ */
+export function inFireZone(shape: PropShape, x: number, z: number, r: number, reach = FIRE_REACH, growth = 1): boolean {
+  return distanceToShape(shape, x, z) <= (r + reach) * growth + EPS;
+}
+
+/**
+ * Whether a prop of `kind` has something to burn: HP left, or, broken, a
+ * wreck (its kind has a broken shape, #91). Whether it burns or is charred
+ * already is `FireField.canIgnite`'s business.
+ */
+export function hasFuel(kind: PropKind, hp: number, broken: boolean): boolean {
+  const type = PROP_TYPES[kind];
+  return type.flammable && (broken ? type.broken !== null : hp > 0);
+}
+
+/** A prop that can ever burn, with the shape a fire would burn around, intact and as a wreck (null: nothing left). */
+export interface FlammableProp {
+  readonly id: string;
+  readonly kind: PropKind;
+  readonly intact: { readonly id: string; readonly shape: PropShape };
+  readonly wreck: { readonly id: string; readonly shape: PropShape } | null;
+}
+
+/** The flammable props among `slots`, shapes worked out once (what a held interact may light). */
+export function flammableProps(slots: Iterable<PropSlot>): FlammableProp[] {
+  const out: FlammableProp[] = [];
+  for (const slot of slots) {
+    if (!PROP_TYPES[slot.kind].flammable) continue;
+    const intact = propShape(slot, false);
+    if (!intact) continue;
+    const broken = propShape(slot, true);
+    out.push({ id: slot.id, kind: slot.kind, intact: { id: slot.id, shape: intact }, wreck: broken && { id: slot.id, shape: broken } });
+  }
+  return out;
 }
 
 /** One burning prop. Server-only; position, zone radius, intensity and time left are synced. */
 export interface PropFire {
   readonly id: string;
   readonly slot: PropSlot;
-  /** The prop's intact shape (a burning prop cannot be smashed, so it keeps it). */
+  /** The prop's shape when it was lit, intact or broken (a burning prop cannot be smashed, so it keeps it). */
   readonly shape: PropShape;
-  /** HP left, fractional; the synced prop HP is this rounded up. */
+  /** A broken prop (#91): it burns its own fuel, not HP, and its synced HP stays 0 (see `fireHp`). */
+  readonly wreck: boolean;
+  /** HP left, fractional; the synced prop HP is this rounded up. A wreck's fuel counts the same way but is no HP. */
   fuel: number;
   /** HP burnt per second: maxHp / FIRE_DURATION. */
   readonly rate: number;
@@ -81,6 +137,11 @@ export interface PropFire {
 /** Whole seconds the fire has left before the prop is charred. */
 export function fireSecondsLeft(f: PropFire): number {
   return Math.max(0, Math.ceil(f.fuel / f.rate - EPS));
+}
+
+/** The prop's HP while it burns: its fuel rounded up, or 0 for a wreck (it was already smashed). */
+export function fireHp(f: PropFire): number {
+  return f.wreck ? 0 : Math.ceil(f.fuel - EPS);
 }
 
 /** Flame size for the client: 2 while catching, 3 at full blaze, 1 over the last FIRE_DYING_TIME seconds. */
@@ -114,6 +175,8 @@ export class FireField {
   private readonly slots = new Map<string, PropSlot>();
   private readonly fires = new Map<string, PropFire>();
   private readonly charred = new Set<string>();
+  /** Fuel left on a wreck whose fire was put out early, for when it is lit again. */
+  private readonly wreckFuel = new Map<string, number>();
 
   constructor(
     slots: Iterable<PropSlot>,
@@ -143,41 +206,59 @@ export class FireField {
     return this.charred.has(id);
   }
 
-  /** Whether prop `id`, with `hp` left, could be lit now: flammable, some HP, not burning, not charred, under the cap. */
-  canIgnite(id: string, hp: number): boolean {
+  /**
+   * Whether prop `id`, with `hp` left, could be lit now: flammable, not
+   * burning, not charred, under the cap, and either some HP or `broken` into
+   * a wreck (its kind has a broken shape).
+   */
+  canIgnite(id: string, hp: number, broken = false): boolean {
     const slot = this.slots.get(id);
-    if (!slot || !PROP_TYPES[slot.kind].flammable) return false;
-    if (!(hp > 0) || this.fires.has(id) || this.charred.has(id)) return false;
+    if (!slot || !hasFuel(slot.kind, hp, broken)) return false;
+    if (this.fires.has(id) || this.charred.has(id)) return false;
     return this.fires.size < this.cap;
   }
 
-  /** Set prop `id` on fire with `hp` left. Null when it can't be (see `canIgnite`). */
-  ignite(id: string, hp: number): PropFire | null {
+  /** The shape a fire on prop `id` would burn around now (intact, or the wreck), or null if it can't be lit. */
+  lightableShape(id: string, hp: number, broken = false): PropShape | null {
     const slot = this.slots.get(id);
-    if (!slot || !this.canIgnite(id, hp)) return null;
-    const shape = propShape(slot, false);
+    return slot && this.canIgnite(id, hp, broken) ? propShape(slot, broken) : null;
+  }
+
+  /**
+   * Set prop `id` on fire with `hp` left, or as a wreck when `broken` (a full
+   * FIRE_DURATION of fuel, or what it had left when last put out). Null when
+   * it can't be (see `canIgnite`).
+   */
+  ignite(id: string, hp: number, broken = false): PropFire | null {
+    const slot = this.slots.get(id);
+    if (!slot || !this.canIgnite(id, hp, broken)) return null;
+    const shape = propShape(slot, broken);
     if (!shape) return null;
+    const maxHp = PROP_TYPES[slot.kind].maxHp;
     const fire: PropFire = {
       id,
       slot,
       shape,
-      fuel: hp,
-      rate: PROP_TYPES[slot.kind].maxHp / FIRE_DURATION,
+      wreck: broken,
+      fuel: broken ? (this.wreckFuel.get(id) ?? maxHp) : hp,
+      rate: maxHp / FIRE_DURATION,
       age: 0,
       nextSpreadAt: FIRE_SPREAD_DELAY,
     };
+    this.wreckFuel.delete(id);
     this.fires.set(id, fire);
     this.hooks?.fireAdded(fire);
     return fire;
   }
 
-  /** Put out prop `id`'s fire. Returns the HP it has left (rounded up), or null if it was not burning. */
+  /** Put out prop `id`'s fire. Returns the HP it has left (`fireHp`: 0 for a wreck), or null if it was not burning. */
   extinguish(id: string): number | null {
     const fire = this.fires.get(id);
     if (!fire) return null;
     this.fires.delete(id);
+    if (fire.wreck) this.wreckFuel.set(id, fire.fuel);
     this.hooks?.fireRemoved(fire, false);
-    return Math.ceil(fire.fuel - EPS);
+    return fireHp(fire);
   }
 
   /** Every fire whose prop's edge is within `radius` of (x, z). The hook for a hose (#17) or the water cannon (#13). */
@@ -187,23 +268,23 @@ export class FireField {
     return out;
   }
 
-  /** Whether a body of radius `r` at (x, z) is in any fire's zone. */
+  /** Whether a body of radius `r` at (x, z) is in any fire's zone, each grown as far as its age allows (`zoneGrowth`). */
   touches(x: number, z: number, r: number, reach = FIRE_REACH): boolean {
-    for (const f of this.fires.values()) if (inFireZone(f.shape, x, z, r, reach)) return true;
+    for (const f of this.fires.values()) if (inFireZone(f.shape, x, z, r, reach, zoneGrowth(f.age))) return true;
     return false;
   }
 
   /**
    * The prop fire `from` would light: the nearest one that could be lit
-   * (`hpOf` gives each prop's HP) within `radius`, edge to edge. Ties go to
-   * the smaller id. Null if none.
+   * (`hpOf` gives each prop's HP, `brokenOf` whether it is smashed) within
+   * `radius`, edge to edge. Ties go to the smaller id. Null if none.
    */
-  spreadTarget(from: PropFire, hpOf: (id: string) => number, radius = FIRE_SPREAD_RADIUS): string | null {
+  spreadTarget(from: PropFire, hpOf: (id: string) => number, radius = FIRE_SPREAD_RADIUS, brokenOf: (id: string) => boolean = NOT_BROKEN): string | null {
     let best: string | null = null;
     let bestGap = Infinity;
     for (const slot of this.slots.values()) {
-      if (slot.id === from.id || !this.canIgnite(slot.id, hpOf(slot.id))) continue;
-      const shape = propShape(slot, false);
+      if (slot.id === from.id) continue;
+      const shape = this.lightableShape(slot.id, hpOf(slot.id), brokenOf(slot.id));
       if (!shape) continue;
       const gap = shapeGap(from.shape, shape);
       if (gap > radius + EPS) continue;
@@ -219,9 +300,9 @@ export class FireField {
    * One tick: every fire burns `dt` worth of HP; one that runs out is removed
    * and its prop charred. Then fires due to spread light their nearest
    * neighbour (in map order, so the cap is never crossed). New fires start
-   * burning on the next tick.
+   * burning on the next tick. `brokenOf` tells which props are wrecks.
    */
-  step(dt: number, hpOf: (id: string) => number): FireEvent[] {
+  step(dt: number, hpOf: (id: string) => number, brokenOf: (id: string) => boolean = NOT_BROKEN): FireEvent[] {
     const events: FireEvent[] = [];
     for (const [id, f] of this.fires) {
       f.age += dt;
@@ -242,8 +323,8 @@ export class FireField {
       due.push(f);
     }
     for (const f of due) {
-      const to = this.spreadTarget(f, hpOf);
-      if (to !== null && this.ignite(to, hpOf(to))) events.push({ type: "spread", from: f.id, to });
+      const to = this.spreadTarget(f, hpOf, FIRE_SPREAD_RADIUS, brokenOf);
+      if (to !== null && this.ignite(to, hpOf(to), brokenOf(to))) events.push({ type: "spread", from: f.id, to });
     }
     return events;
   }
@@ -253,11 +334,13 @@ export class FireField {
     for (const f of this.fires.values()) this.hooks?.fireRemoved(f, false);
     this.fires.clear();
     this.charred.clear();
+    this.wreckFuel.clear();
   }
 
   /**
    * The fire zones as obstacles for the bots (#5): each burning prop grown by
-   * `reach`, inside `bounds`. Bots path around them and shield lines (#6)
+   * `reach`, inside `bounds`. Always the full zone, even while it grows: the
+   * bots keep clear of a fire from the moment it is lit. Bots path around them and shield lines (#6)
    * lay their slots clear of them.
    */
   hazards(bounds: Rect, reach = FIRE_REACH): CollisionWorld {
