@@ -20,6 +20,30 @@ export function parseHexColour(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+/** Palette cells to repaint: cell index → `#rrggbb` (#109: the police uniform). */
+export type CellPaint = Readonly<Record<number, string>>;
+
+/** A stable key for `paint` (cells in order, colours lower-cased), for caching one texture per distinct set. Throws on a bad cell or colour. */
+export function paintKey(paint: CellPaint): string {
+  return Object.entries(paint)
+    .map(([cell, colour]) => {
+      const n = Number(cell);
+      if (!Number.isInteger(n) || n < 0 || n >= PALETTE_CELLS) throw new Error(`not a palette cell: ${cell}`);
+      parseHexColour(colour);
+      return [n, colour.trim().toLowerCase().replace(/^#?/, "#")] as const;
+    })
+    .sort((a, b) => a[0] - b[0])
+    .map(([n, c]) => `${n}:${c}`)
+    .join(",");
+}
+
+/** A copy of `rgba` (width × height) with every cell of `paint` painted its colour. */
+export function paintCells(rgba: ArrayLike<number>, width: number, height: number, paint: CellPaint): Uint8Array {
+  const out = Uint8Array.from(rgba);
+  for (const [cell, colour] of Object.entries(paint)) paintInto(out, width, height, Number(cell), parseHexColour(colour));
+  return out;
+}
+
 /**
  * A copy of the RGBA pixels `rgba` (width × height) with every pixel of cell
  * `cell` painted `rgb`, alpha opaque. The other cells are untouched.
@@ -31,8 +55,12 @@ export function paintCell(
   cell: number,
   rgb: readonly [number, number, number],
 ): Uint8Array {
-  if (rgba.length !== width * height * 4) throw new Error(`expected ${width * height * 4} bytes, got ${rgba.length}`);
-  const out = Uint8Array.from(rgba);
+  return paintInto(Uint8Array.from(rgba), width, height, cell, rgb);
+}
+
+/** paintCell, in place on `out`. */
+function paintInto(out: Uint8Array, width: number, height: number, cell: number, rgb: readonly [number, number, number]): Uint8Array {
+  if (out.length !== width * height * 4) throw new Error(`expected ${width * height * 4} bytes, got ${out.length}`);
   const cellWidth = width / PALETTE_CELLS;
   const x0 = Math.round(cell * cellWidth);
   const x1 = Math.round((cell + 1) * cellWidth);
