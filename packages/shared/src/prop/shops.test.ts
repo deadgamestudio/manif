@@ -6,13 +6,14 @@ import { NavGrid } from "../crs/nav.js";
 import { CRS_STATS } from "../crs/constants.js";
 import { STREET_LEVEL as L, spawnPoint, type Facade, type ShopKind } from "../level/index.js";
 import { ThrowableKind } from "../throwable/index.js";
-import { PROP_TYPES } from "./constants.js";
+import { PROP_TYPES, ROOM_LOOT } from "./constants.js";
 import { propCollisionWorld, propShape } from "./prop.js";
 import {
   REQUIRED_SHOP,
   SHOP_KINDS,
   SHOP_LAYOUT,
   SHOP_TYPES,
+  UNKNOWN_SHOP,
   dealShops,
   generateShops,
   shopCode,
@@ -104,6 +105,30 @@ describe("shop kinds (#68)", () => {
     expect(SHOP_KINDS.length).toBeLessThan(255);
   });
 
+  test("the kinds of #117 are appended after the first six, so the old codes never move", () => {
+    expect(SHOP_KINDS.slice(0, 6)).toEqual(["boulangerie", "cafe", "sneakers", "banque", "kebab", "toilettage"]);
+    expect(SHOP_KINDS.slice(6)).toEqual(["burger", "poulet", "sport", "telephone", "pharmacie", "superette", "tabac"]);
+    expect(shopCode("toilettage")).toBe(6);
+    expect(shopCode("tabac")).toBe(13);
+  });
+
+  test("every kind has at least two parody signs, a cap, a weight and room loot; none is a real brand", () => {
+    for (const k of SHOP_KINDS) {
+      expect(SHOP_TYPES[k].signs.length).toBeGreaterThanOrEqual(2);
+      expect(SHOP_TYPES[k].weight).toBeGreaterThan(0);
+      expect(SHOP_TYPES[k].cap).toBeGreaterThan(0);
+      expect(ROOM_LOOT[k]).toBeGreaterThan(0);
+    }
+    // The public repo never names a real chain: puns only (#117).
+    const real = ["mcdonald", "burger king", "kfc", "foot locker", "footlocker", "tasty crousty", "o'tacos", "carrefour", "franprix", "monoprix", "decathlon", "quick", "subway"];
+    for (const sign of SHOP_KINDS.flatMap((k) => SHOP_TYPES[k].signs)) for (const name of real) expect(sign.toLowerCase()).not.toContain(name);
+  });
+
+  test("the caps leave room for the fullest street, with every neighbour different", () => {
+    const room = SHOP_KINDS.reduce((sum, k) => sum + SHOP_TYPES[k].cap, 0);
+    expect(room).toBeGreaterThanOrEqual(SHOP_LAYOUT.maxShops + 5);
+  });
+
   test("a sign comes from the shop's style seed, and every name turns up", () => {
     expect(shopSign("cafe", 7)).toBe(shopSign("cafe", 7));
     const seen = new Set(Array.from({ length: 10 }, (_, i) => shopSign("cafe", i)));
@@ -155,7 +180,7 @@ describe("generateShops (#83)", () => {
     expect(layouts.size).toBe(20);
   });
 
-  test("8 to 12 shops a round, in street order, with unique ids", () => {
+  test("minShops to maxShops (16 to 20) a round, in street order, with unique ids", () => {
     for (const shops of streets) {
       expect(shops.length).toBeGreaterThanOrEqual(SHOP_LAYOUT.minShops);
       expect(shops.length).toBeLessThanOrEqual(SHOP_LAYOUT.maxShops);
@@ -167,6 +192,18 @@ describe("generateShops (#83)", () => {
       expect(new Set(shops.map((s) => s.id)).size).toBe(shops.length);
     }
     expect(generateShops(L, mulberry32(1), { prefix: "shop7" })[0]!.id).toBe("shop7-1");
+  });
+
+  test("a commercial street (#117): about half as many shops again as the old 8 to 12, the loot growing less than that", () => {
+    const rounds = streets.length;
+    const shops = streets.flat();
+    expect(SHOP_LAYOUT.minShops).toBeGreaterThanOrEqual(16);
+    expect(shops.length / rounds).toBeGreaterThanOrEqual(16.5);
+    // Window drops plus room loot. It was about 62 a round with 11.5 shops; it stays under 80.
+    const loot = shops.reduce((sum, s) => sum + PROP_TYPES[s.kind].drops + ROOM_LOOT[s.kind], 0) / rounds;
+    expect(loot).toBeLessThan(80);
+    // Every new kind turns up often enough to be seen most rounds.
+    for (const k of SHOP_KINDS.slice(6)) expect(shops.filter((s) => s.kind === k).length / rounds).toBeGreaterThan(0.5);
   });
 
   test("shops land on both sides of the street: neither gets more than 60% of them over 200 rounds (#84)", () => {
@@ -307,6 +344,15 @@ describe("generateShops (#83)", () => {
       expect(propShape(slot, true)).toBeNull();
     }
     expect(shopLotOf("bin-1", { kind: 0, side: 0, z: 0, width: 0, face: 0, out: 0, height: 0, interior: 0, style: 0 })).toBeNull();
+  });
+
+  test("a kind code from a newer server still comes back as a shop, marked unknown (#117)", () => {
+    const s = streets[0]![0]!;
+    const lot = shopLotOf(s.id, { ...s, kind: SHOP_KINDS.length + 1, side: s.side });
+    expect(lot?.unknown).toBe(true);
+    expect(lot?.kind).toBe(UNKNOWN_SHOP);
+    expect({ ...lot, unknown: undefined, kind: s.kind }).toEqual({ ...s, unknown: undefined });
+    expect(shopLotOf(s.id, { ...s, kind: shopCode(s.kind), side: s.side })?.unknown).toBeUndefined();
   });
 
   test("players never end up inside anything, and CRS still find their way down the whole street", () => {

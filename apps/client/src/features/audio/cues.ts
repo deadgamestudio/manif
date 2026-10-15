@@ -80,6 +80,14 @@ const BREAK_SOUND: Record<PropKind, SoundName> = {
   banque: "metal",
   kebab: "glass",
   toilettage: "glass",
+  // #117: more glass fronts; the tabac's grille clangs before its glass goes.
+  burger: "glass",
+  poulet: "glass",
+  sport: "glass",
+  telephone: "glass",
+  pharmacie: "glass",
+  superette: "glass",
+  tabac: "glass",
 };
 
 /** A hit that doesn't break the prop: a thud in the right material. */
@@ -94,6 +102,13 @@ const HIT_SOUND: Record<PropKind, SoundName> = {
   banque: "metal",
   kebab: "shield",
   toilettage: "shield",
+  burger: "shield",
+  poulet: "shield",
+  sport: "shield",
+  telephone: "shield",
+  pharmacie: "shield",
+  superette: "shield",
+  tabac: "metal",
 };
 
 /** A thrown item landing (#8, #15): the pavé thuds, the tomato and the poo splat, the trottinette clangs. */

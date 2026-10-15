@@ -125,7 +125,7 @@ row for nearly every number and rule in the game.
 | What the police bots decide | `packages/shared/src/crs/brain.ts`, `bac.ts`, `bravm.ts`, `line.ts`, `lbd.ts` (the CRS LBD and its ball) |
 | Round length, win rule, reinforcement waves | `packages/shared/src/round/constants.ts` |
 | Archetypes | `ARCHETYPES` in `packages/shared/src/archetype/constants.ts`; looks in `apps/client/src/features/archetype/archetypeVisuals.tsx` |
-| Shop kinds, signs, dealing rules and layout (sizes, clearances) | `PROP_TYPES` in `packages/shared/src/prop/constants.ts`, `SHOP_TYPES` and `SHOP_LAYOUT` in `prop/shops.ts`; looks in `apps/client/src/features/prop/shopVisuals.tsx` |
+| Shop kinds, signs, dealing rules and layout (sizes, clearances) | `PROP_TYPES` in `packages/shared/src/prop/constants.ts`, `SHOP_TYPES` and `SHOP_LAYOUT` in `prop/shops.ts`; looks in `apps/client/src/features/prop/shopVisuals.tsx` (a new kind also needs its room dressing in `features/level/roomInterior.ts`, its name in `features/help/content.ts` and its sounds in `features/audio/cues.ts`; append it to `SHOP_KINDS`, never reorder) |
 | Throwables (pavé, tomate, crotte, trottinette) | `THROWABLE_TYPES` in `packages/shared/src/throwable/constants.ts` |
 | Points per action and per-round caps | `ACTION_POINTS` in `packages/shared/src/score/constants.ts` |
 | Bot protesters | `BOT` in `packages/shared/src/bot/constants.ts`, `bot/brain.ts` |

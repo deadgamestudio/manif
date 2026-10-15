@@ -217,7 +217,10 @@ export function HelpContent() {
           <tbody>
             {shopRows().map((r) => (
               <tr key={r.name}>
-                <th scope="row">{r.name}</th>
+                <th scope="row">
+                  {r.name}
+                  <span className="help-signs">{r.signs}</span>
+                </th>
                 <td>{r.hits}</td>
                 <td>{r.drops}</td>
               </tr>

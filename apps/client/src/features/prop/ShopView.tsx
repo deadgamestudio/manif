@@ -1,11 +1,11 @@
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Mesh, MeshBasicMaterial } from "three";
-import { shopSign, type ShopLot } from "@manif/shared";
+import type { ShopLot } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
 import { spawnDebris } from "./debris.ts";
 import { ShopSignBoard } from "./ShopSign.tsx";
-import { FRAME, SHOP_STYLES, Storefront, UNIT_BOX, shopFront } from "./shopVisuals.tsx";
+import { FRAME, Storefront, UNIT_BOX, shopFront, shopSignText, shopStyle } from "./shopVisuals.tsx";
 
 /** How long a hit flashes and wobbles the shop, ms. */
 const FLASH_MS = 160;
@@ -37,7 +37,7 @@ function ShopView({ lot }: { lot: ShopLot }) {
   const [broken, setBroken] = useState(() => net.getProp(lot.id)?.broken ?? false);
   const sprayedAt = useRef<number | undefined>(undefined);
   const front = shopFront(lot);
-  const style = SHOP_STYLES[lot.kind];
+  const style = shopStyle(lot);
   const look = useMemo(() => <Storefront lot={lot} broken={broken} />, [lot, broken]);
   // The flash is the shop's own (the other materials are shared by its kind).
   const flash = useRef<Mesh>(null);
@@ -58,7 +58,11 @@ function ShopView({ lot }: { lot: ShopLot }) {
     const k = hitAt === undefined ? 0 : Math.max(0, 1 - (performance.now() - hitAt) / FLASH_MS);
     g.scale.set(1 + 0.08 * k, 1 - 0.05 * k, 1);
     const f = flash.current;
-    if (f) (f.material as MeshBasicMaterial).opacity = 0.55 * k;
+    if (f) {
+      // Hidden between hits: an invisible flash would still cost a draw call per shop.
+      f.visible = k > 0;
+      (f.material as MeshBasicMaterial).opacity = 0.55 * k;
+    }
   });
 
   return (
@@ -66,13 +70,13 @@ function ShopView({ lot }: { lot: ShopLot }) {
     <group position={[lot.side * lot.face, 0, lot.z]} rotation-y={lot.side < 0 ? 0 : Math.PI}>
       <group ref={group}>
         {look}
-        <mesh ref={flash} geometry={UNIT_BOX} position={[front + 0.06, lot.height / 2, 0]} scale={[0.02, lot.height, lot.width]}>
+        <mesh ref={flash} visible={false} geometry={UNIT_BOX} position={[front + 0.06, lot.height / 2, 0]} scale={[0.02, lot.height, lot.width]}>
           <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} />
         </mesh>
       </group>
       {/* The name painted on the sign band, facing the street. */}
       <ShopSignBoard
-        text={shopSign(lot.kind, lot.style)}
+        text={shopSignText(lot)}
         bg={style.sign[0]}
         fg={style.sign[1]}
         at={[front + 0.11, lot.height - FRAME.band / 2, 0]}

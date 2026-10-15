@@ -29,6 +29,14 @@ export const SHOP_TYPES: Readonly<Record<ShopKind, ShopType>> = {
   banque: { signs: ["Banque du Grisbi", "Crédit Ébloui"], weight: 2, cap: 2 },
   kebab: { signs: ["Kebabylone", "Sauce Blanche-Neige"], weight: 2, cap: 3 },
   toilettage: { signs: ["Wouf'Hair", "Caniche Chic"], weight: 1, cap: 2 },
+  // #117: parodies of the chains along a demo route. Never the real name or logo.
+  burger: { signs: ["McDodo", "Burger Barricade"], weight: 2, cap: 2 },
+  poulet: { signs: ["Tasty Croûte", "Crousty Party", "Tacos Cassés"], weight: 2, cap: 2 },
+  sport: { signs: ["Foot Loquet", "Pied Locker", "Décathlard"], weight: 2, cap: 2 },
+  telephone: { signs: ["Allo Réparo", "Écran Total"], weight: 1, cap: 2 },
+  pharmacie: { signs: ["Pharmacie du Cortège", "Pharmacie Lacrymo"], weight: 2, cap: 2 },
+  superette: { signs: ["Prix Cassés", "Supérette Coin-Coin"], weight: 2, cap: 2 },
+  tabac: { signs: ["Tabac-Tac", "Presse-Purée"], weight: 2, cap: 2 },
 };
 
 /**
@@ -36,7 +44,25 @@ export const SHOP_TYPES: Readonly<Record<ShopKind, ShopType>> = {
  * index here plus one, 0 meaning "not a shop". Only ever append, so codes
  * stay stable.
  */
-export const SHOP_KINDS: readonly ShopKind[] = ["boulangerie", "cafe", "sneakers", "banque", "kebab", "toilettage"];
+export const SHOP_KINDS: readonly ShopKind[] = [
+  "boulangerie",
+  "cafe",
+  "sneakers",
+  "banque",
+  "kebab",
+  "toilettage",
+  // #117, appended: codes 7 to 13.
+  "burger",
+  "poulet",
+  "sport",
+  "telephone",
+  "pharmacie",
+  "superette",
+  "tabac",
+];
+
+/** What a shop of an unknown kind code stands in as (`shopLotOf`): any glass front will do. */
+export const UNKNOWN_SHOP: ShopKind = "boulangerie";
 
 /** The kind every round must have at least one of. */
 export const REQUIRED_SHOP: ShopKind = "banque";
@@ -49,15 +75,15 @@ export const REQUIRED_SHOP: ShopKind = "banque";
 export const SHOP_LAYOUT = {
   /** Shop widths along the street; a bank is always wider than any other kind. */
   minWidth: 4,
-  maxWidth: 7,
-  bankMinWidth: 7.5,
-  bankMaxWidth: 9,
+  maxWidth: 5.5,
+  bankMinWidth: 6,
+  bankMaxWidth: 7.5,
   /** Each shop sits somewhere in a lot this long, so any kind fits whichever lot it is dealt. */
-  minLot: 7.5,
-  maxLot: 9.5,
+  minLot: 6,
+  maxLot: 7.5,
   /** Plain wall between two lots on the same block. At least `clear`, so two shops never make a narrow notch. */
   minGap: 1.25,
-  maxGap: 4,
+  maxGap: 2,
   /** Plain wall kept at each end of a block, by the side-street corners. */
   endMargin: 1,
   /** How far a front stands out of the facade into the pavement; negative: set back into the wall. */
@@ -80,9 +106,9 @@ export const SHOP_LAYOUT = {
   minInterior: 3,
   maxInterior: 5,
   /** At least this many shops on the street, when the level has room for them. */
-  minShops: 8,
+  minShops: 16,
   /** At most this many shops on the street. */
-  maxShops: 12,
+  maxShops: 20,
   /** How close a CRS spawn point may come, as a circle of this radius. */
   spawnRadius: 1,
 } as const;
@@ -111,6 +137,12 @@ export interface ShopLot {
   interior: number;
   /** Seed for the look (sign name, awning stripes...), 0..65535. */
   style: number;
+  /**
+   * Set on the client only, for a synced kind code this build doesn't know
+   * (a tab left open across a deploy that adds kinds, #117): `kind` is then
+   * only a stand-in, and the shop is drawn as a plain generic front.
+   */
+  unknown?: true;
 }
 
 /** The synced code of a shop kind (1..). */
@@ -170,11 +202,18 @@ export interface ShopFields {
   style: number;
 }
 
-/** A shop back from its synced prop; null for a prop that isn't one (kind 0, or no size yet). */
+/**
+ * A shop back from its synced prop; null for a prop that isn't one (kind 0,
+ * or no size yet). A code this build doesn't know (newer server) still comes
+ * back as a shop, marked `unknown` and standing in as `UNKNOWN_SHOP`, so its
+ * room is carved like the server's and the client draws a generic front.
+ */
 export function shopLotOf(id: string, s: ShopFields): ShopLot | null {
-  const kind = shopKindOf(s.kind);
-  if (!kind || !(s.width > 0)) return null;
+  const known = shopKindOf(s.kind);
+  if (!(s.kind > 0) || !(s.width > 0)) return null;
+  const kind = known ?? UNKNOWN_SHOP;
   return {
+    ...(known ? {} : { unknown: true as const }),
     id,
     kind,
     side: s.side < 0 ? -1 : 1,
@@ -329,14 +368,21 @@ function lotsAlong(f: Facade, blocked: readonly Blocker[], random: () => number)
   };
   let cursor = f.maxZ - L.endMargin - between(random, 0, L.maxGap - L.minGap);
   while (cursor > end) {
-    const length = between(random, L.minLot, L.maxLot);
-    const lo = cursor - length;
-    if (lo < end) break;
-    const maxOut = clear(lo, cursor, L.maxOut) ? L.maxOut : clear(lo, cursor, 0) ? 0 : null;
-    if (maxOut !== null) {
-      out.push({ facade: f, minZ: lo, maxZ: cursor, maxOut });
-      cursor = lo - between(random, L.minGap, L.maxGap);
-    } else cursor -= 0.5;
+    // A random length, cut short to what is left of the block; and when
+    // something stands in the way, a shortest lot still gets a try before
+    // moving on, so a stretch between two lamp posts is not wasted (#117).
+    const length = Math.min(between(random, L.minLot, L.maxLot), cursor - end);
+    if (length < L.minLot) break;
+    const fit = (len: number) => {
+      const lo = cursor - len;
+      const maxOut = clear(lo, cursor, L.maxOut) ? L.maxOut : clear(lo, cursor, 0) ? 0 : null;
+      return maxOut === null ? null : { facade: f, minZ: lo, maxZ: cursor, maxOut };
+    };
+    const lot = fit(length) ?? (length > L.minLot ? fit(L.minLot) : null);
+    if (lot) {
+      out.push(lot);
+      cursor = lot.minZ - between(random, L.minGap, L.maxGap);
+    } else cursor -= 0.25;
   }
   return out;
 }

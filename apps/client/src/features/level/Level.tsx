@@ -51,13 +51,15 @@ export function LevelView({
   const b = level.bounds;
   // Same array until a new layout arrives: carved once per round, never per frame.
   const shops = useSyncExternalStore(net.subscribeShops, net.getShops);
-  const { buildings, rooms } = useMemo(() => {
+  const { buildings, rooms, kinds } = useMemo(() => {
     const carved = carveBlocks(level, shops);
     // Colours by index in the full box list, as before buildings were split out.
     const specs = carved.blocks.map(
       (block): BuildingSpec => ({ box: block.box, pieces: block.pieces, rooms: block.rooms, color: pick(BOX_COLORS.building, block.index) }),
     );
-    return { buildings: specs, rooms: carved.rooms };
+    // Which kind each room's shop is, to dress it (#117); none for a kind this build doesn't know.
+    const kindOf = new Map(shops.flatMap((lot) => (lot.unknown ? [] : [[lot.id, lot.kind] as const])));
+    return { buildings: specs, rooms: carved.rooms, kinds: kindOf };
   }, [level, shops]);
   return (
     <group>
@@ -73,7 +75,7 @@ export function LevelView({
       <Crosswalks level={level} />
 
       <BuildingsView buildings={buildings} targets={fadeTargets} />
-      <RoomsView rooms={rooms} />
+      <RoomsView rooms={rooms} kinds={kinds} />
       {level.boxes.map((box, i) => box.kind !== "building" && <BoxMesh key={box.id} box={box} index={i} />)}
       <CirclesView circles={level.circles} />
     </group>

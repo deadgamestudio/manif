@@ -19,7 +19,21 @@ export type CircleKind = "bollard" | "tree" | "lamp";
  * `generateShops` in prop/). Kinds differ in look, sign, HP and drops
  * (`PROP_TYPES`, `SHOP_TYPES` in prop/).
  */
-export type ShopKind = "boulangerie" | "cafe" | "sneakers" | "banque" | "kebab" | "toilettage";
+export type ShopKind =
+  | "boulangerie"
+  | "cafe"
+  | "sneakers"
+  | "banque"
+  | "kebab"
+  | "toilettage"
+  // #117: the chains and corner shops along a real demo route, under parody names.
+  | "burger"
+  | "poulet"
+  | "sport"
+  | "telephone"
+  | "pharmacie"
+  | "superette"
+  | "tabac";
 
 /**
  * Breakable prop types (#4 owns their HP, shapes and state). Shops are not in
