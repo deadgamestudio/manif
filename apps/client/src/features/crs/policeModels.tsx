@@ -30,7 +30,6 @@ import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import {
   MODELS,
-  applySkin,
   bodyUrlFor,
   clipsOf,
   cloneMaterials,
@@ -38,6 +37,7 @@ import {
   cloneStatic,
   disposeMaterials,
   getPoseOwner,
+  repaintCells,
   useAnimator,
   useClips,
   useGltf,
@@ -51,9 +51,8 @@ import { Splat } from "./crsVisuals.tsx";
 import { disguiseArchetype } from "./disguise.ts";
 import { getLastThrow } from "./canisterThrows.ts";
 import { setCrsBody, setLbdMuzzle } from "./crsBody.ts";
+import { PLAIN_PAINT, POLICE_PAINT, wearPoliceBand } from "./policeBand.ts";
 
-/** Skin colour of every face (palette cell 6), the protesters' too (archetypeVisuals). */
-const SKIN = "#8d6e63";
 /** The tomato splat on a model's visor, in its head bone's frame (the head pivot is at 1.565 m, the visor about 0.12 above it). */
 const SPLAT_AT: readonly [number, number, number] = [0, 0.12, 0.2];
 const SPLAT_RADIUS = 0.4;
@@ -112,6 +111,8 @@ interface FootSpec {
   launcher: boolean;
   /** Just knocked off its bike: falls with fall-off rather than knockdown. */
   fromBike: boolean;
+  /** Dressed as police (#109): navy uniform, "POLICE" band. Not the disguised BAC (nor the pompier). */
+  police: boolean;
 }
 
 const POLICE_CLIPS = [
@@ -125,10 +126,10 @@ const POLICE_CLIPS = [
 const SHIELD = ["shield-frame", "shield-panel"] as const;
 
 function footSpec(id: string, kind: CrsKind, fromMount: CrsMount | null): FootSpec {
-  const none = { splatUrl: null, hide: [], baton: false, canister: false, armband: false, launcher: false, fromBike: false };
+  const none = { splatUrl: null, hide: [], baton: false, canister: false, armband: false, launcher: false, fromBike: false, police: true };
   switch (kind) {
     case CrsKind.Pompier:
-      return { ...none, role: "pompier", url: MODELS.characters.firefighter, clips: [MODELS.characters.firefighter, MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra] };
+      return { ...none, police: false, role: "pompier", url: MODELS.characters.firefighter, clips: [MODELS.characters.firefighter, MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra] };
     case CrsKind.Bac:
       return {
         ...none,
@@ -137,6 +138,8 @@ function footSpec(id: string, kind: CrsKind, fromMount: CrsMount | null): FootSp
         url: bodyUrlFor(disguiseArchetype(id), id),
         clips: [MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra, MODELS.clipLibraries.bacReveal, MODELS.clipLibraries.grabCollarCrs],
         armband: true,
+        // Must blend in with the protesters until revealed.
+        police: false,
       };
     case CrsKind.BravM:
       return {
@@ -169,6 +172,7 @@ interface Body {
 }
 
 interface Extras {
+  police: boolean;
   hide: readonly string[];
   baton: GLTF | null;
   canister: GLTF | null;
@@ -177,13 +181,13 @@ interface Extras {
 }
 
 /**
- * A skinned copy with the skin repainted, unwanted nodes hidden, borrowed
+ * A skinned copy with its palette repainted (skin, police navy), unwanted nodes hidden, borrowed
  * props on its hands, and its own materials (for the hit flash). Dispose of
  * `materials` when done.
  */
 function buildBody(gltf: GLTF, x: Extras): Body {
   const root = cloneSkinned(gltf);
-  applySkin(root, SKIN);
+  repaintCells(root, x.police ? POLICE_PAINT : PLAIN_PAINT);
   for (const name of x.hide) {
     const n = root.getObjectByName(name);
     if (n) n.visible = false;
@@ -199,6 +203,8 @@ function buildBody(gltf: GLTF, x: Extras): Body {
   const launcher = x.launcher ? holdLauncher(root, x.launcher) : null;
   const muzzle = launcher?.getObjectByName("muzzle") ?? null;
   const materials = cloneMaterials(root);
+  // After cloneMaterials: the band's material stays shared (it doesn't flash).
+  if (x.police) wearPoliceBand(root);
   return { root, materials, head: root.getObjectByName("head") ?? null, baton, canister, armband, launcher, muzzle };
 }
 
@@ -300,9 +306,10 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
   const launcherSrc = useGltf(spec.launcher ? MODELS.police.lbdLauncher : null);
   const gltf = alt ?? main;
   const hide = spec.hide;
+  const police = spec.police;
   const body = useMemo(
-    () => (gltf ? buildBody(gltf, { hide, baton: batonSrc, canister: canisterSrc, armband: armbandSrc, launcher: launcherSrc }) : null),
-    [gltf, hide, batonSrc, canisterSrc, armbandSrc, launcherSrc],
+    () => (gltf ? buildBody(gltf, { police, hide, baton: batonSrc, canister: canisterSrc, armband: armbandSrc, launcher: launcherSrc }) : null),
+    [gltf, police, hide, batonSrc, canisterSrc, armbandSrc, launcherSrc],
   );
   useEffect(() => () => disposeBody(body), [body]);
   const clips = usePoliceClips(spec.clips);
@@ -521,15 +528,15 @@ function onScreen(state: RootState, at: Vector3): boolean {
  * passenger is dropped (Duo becomes Solo), they hop off once (the rider it
  * becomes is already on the street, so the hop is quick) and vanish.
  */
-const NO_EXTRAS: Extras = { hide: [], baton: null, canister: null, armband: null };
+const BIKE_EXTRAS: Extras = { police: true, hide: [], baton: null, canister: null, armband: null };
 
 function BikeModel({ id, mount, fromMount, link }: { id: string; mount: CrsMount; fromMount: CrsMount | null; link: ModelLink }) {
   const bike = useStaticModel(MODELS.police.bravMotorbike);
   const hopping = mount === CrsMount.Solo && fromMount === CrsMount.Duo;
   const riderG = useGltf(MODELS.police.bravRider);
   const passengerG = useGltf(mount === CrsMount.Duo || hopping ? MODELS.police.bravPassenger : null);
-  const rider = useMemo(() => (riderG ? buildBody(riderG, NO_EXTRAS) : null), [riderG]);
-  const passenger = useMemo(() => (passengerG ? buildBody(passengerG, NO_EXTRAS) : null), [passengerG]);
+  const rider = useMemo(() => (riderG ? buildBody(riderG, BIKE_EXTRAS) : null), [riderG]);
+  const passenger = useMemo(() => (passengerG ? buildBody(passengerG, BIKE_EXTRAS) : null), [passengerG]);
   useEffect(() => () => disposeBody(rider), [rider]);
   useEffect(() => () => disposeBody(passenger), [passenger]);
   const riderA = useAnimator(rider?.root ?? null, riderG ? clipsOf(riderG) : null);

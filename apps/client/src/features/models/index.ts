@@ -21,7 +21,7 @@ export {
 export { clipsOf, useClips, type ClipSet } from "./clips.ts";
 export { bareClipName, findClip } from "./clipNames.ts";
 export { Animator, useAnimator, type LoopOptions, type OnceOptions } from "./animator.ts";
-export { applySkin, skinMaterial, skinPalette } from "./palette.ts";
-export { SKIN_CELL } from "./palettePixels.ts";
+export { applySkin, paintedMaterial, paintedPalette, repaintCells, skinMaterial, skinPalette } from "./palette.ts";
+export { SKIN_CELL, type CellPaint } from "./palettePixels.ts";
 export { getPoseOwner, setPoseOwner, type PoseOwner } from "./poseOwner.ts";
 export { preloadModels, roundPreloadGroups } from "./preload.ts";
