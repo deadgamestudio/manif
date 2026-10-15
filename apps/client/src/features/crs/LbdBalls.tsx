@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { CanvasTexture, LinearFilter, SRGBColorSpace, type Mesh, type MeshBasicMaterial, type Sprite, type SpriteMaterial } from "three";
 import { CRS_STATS, CrsKind } from "@manif/shared";
 import { net, type LbdBall } from "../../shared/net/index.ts";
+import { viewMarkerScale } from "../../shared/iso/index.ts";
 
 const LBD = CRS_STATS[CrsKind.Lbd].lbd;
 const SPEED = LBD?.ballSpeed ?? 30;
@@ -139,6 +140,8 @@ function BallSlot({ index, boingTexture }: { index: number; boingTexture: Canvas
   const boingRef = useRef<Sprite>(null);
   const boingMat = useRef<SpriteMaterial>(null);
   const pose = useRef<BallPose>({ x: 0, z: 0, flight: -1, puff: -1, boing: -1 });
+  // The "BOING !" keeps its size on screen on a zoomed-out phone (#107).
+  const grow = useThree((s) => viewMarkerScale(s.size.width, s.size.height));
 
   useFrame(() => {
     const ball = ballRef.current;
@@ -174,7 +177,7 @@ function BallSlot({ index, boingTexture }: { index: number; boingTexture: Canvas
       const t = p.boing;
       const pop = t < 0.2 ? 0.6 + 0.6 * (t / 0.2) : 1.2 - 0.2 * Math.min(1, (t - 0.2) / 0.2);
       boing.position.set(p.x, BOING_Y + t * 0.4, p.z);
-      boing.scale.set(BOING_W * pop, BOING_H * pop, 1);
+      boing.scale.set(BOING_W * pop * grow, BOING_H * pop * grow, 1);
       if (boingMat.current) boingMat.current.opacity = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
     }
   });

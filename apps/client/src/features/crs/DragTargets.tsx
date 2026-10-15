@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { CanvasTexture, LinearFilter, SRGBColorSpace, Vector3, type Group, type Sprite, type SpriteMaterial } from "three";
 import { PlayerStatus, STREET_LEVEL, levelVans } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
+import { viewMarkerScale } from "../../shared/iso/index.ts";
 
 /** The level's vans, in the order `Player.dragVan` indexes them (#70). */
 const VANS = levelVans(STREET_LEVEL);
@@ -58,6 +59,8 @@ export function DragTargets({ ids, localId }: { ids: readonly string[]; localId:
   const texture = useMemo(() => drawArrow(), []);
   useEffect(() => () => texture.dispose(), [texture]);
   const [ndc, world] = useMemo(() => [new Vector3(), new Vector3()], []);
+  // The edge arrow keeps its size on screen on a zoomed-out phone (#107).
+  const arrowSize = ARROW_SIZE * useThree((s) => viewMarkerScale(s.size.width, s.size.height));
 
   useFrame(({ camera }) => {
     const targeted = new Set<number>();
@@ -111,7 +114,7 @@ export function DragTargets({ ids, localId }: { ids: readonly string[]; localId:
           </mesh>
         </group>
       ))}
-      <sprite ref={arrow} scale={[ARROW_SIZE, ARROW_SIZE, 1]} renderOrder={20} visible={false}>
+      <sprite ref={arrow} scale={[arrowSize, arrowSize, 1]} renderOrder={20} visible={false}>
         <spriteMaterial ref={arrowMat} map={texture} transparent depthTest={false} depthWrite={false} />
       </sprite>
     </>

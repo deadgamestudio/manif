@@ -1,7 +1,9 @@
 import { useEffect, useMemo } from "react";
+import { useThree } from "@react-three/fiber";
 import { CanvasTexture, LinearFilter, SRGBColorSpace } from "three";
+import { viewMarkerScale } from "../../shared/iso/index.ts";
 
-/** Height of the tag in world units (40 px at the default zoom). */
+/** Height of the tag in world units at the desktop zoom (22 px); grown on a zoomed-out phone (#107). */
 const TAG_HEIGHT = 0.55;
 const FONT_PX = 44;
 const PAD_X = 18;
@@ -66,13 +68,20 @@ function drawTag(name: string, isLocal: boolean, bot: boolean): { texture: Canva
   return { texture, aspect: canvas.width / canvas.height };
 }
 
-/** A name placard that always faces the camera and draws over the scenery. `bot`: a bot protester's (#59), marked. */
+/**
+ * A name placard that always faces the camera and draws over the scenery. `bot`: a bot protester's (#59), marked.
+ * `y` is where its middle sits at the desktop zoom. On a zoomed-out phone it
+ * grows to stay readable (#107), from its top edge down towards the head, so
+ * it never runs into the bars stacked above it.
+ */
 export function NameTag({ name, isLocal, y, bot = false }: { name: string; isLocal: boolean; y: number; bot?: boolean }) {
   const tag = useMemo(() => drawTag(name, isLocal, bot), [name, isLocal, bot]);
   useEffect(() => () => tag.texture.dispose(), [tag]);
+  const grow = useThree((s) => viewMarkerScale(s.size.width, s.size.height));
+  const h = TAG_HEIGHT * grow;
 
   return (
-    <sprite position-y={y} scale={[TAG_HEIGHT * tag.aspect, TAG_HEIGHT, 1]} renderOrder={10}>
+    <sprite position-y={y + TAG_HEIGHT / 2} center={[0.5, 1]} scale={[h * tag.aspect, h, 1]} renderOrder={10}>
       <spriteMaterial map={tag.texture} depthTest={false} depthWrite={false} transparent />
     </sprite>
   );
