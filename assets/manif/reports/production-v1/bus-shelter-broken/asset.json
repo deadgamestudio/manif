@@ -1,0 +1,32 @@
+{
+  "asset": "bus-shelter-broken",
+  "label": "Abribus brisé",
+  "state": "broken",
+  "triangles": 316,
+  "budget": 1500,
+  "dimensions_m": [
+    4.0,
+    1.49257,
+    2.5
+  ],
+  "bounds_min": [
+    -2.0,
+    -0.75,
+    0.0
+  ],
+  "bounds_max": [
+    2.0,
+    0.74257,
+    2.5
+  ],
+  "requested_dimensions_m": [
+    4,
+    1.5,
+    2.5
+  ],
+  "mesh_count": 1,
+  "notes": "Vitrage stylisé opaque pour un atlas unique ; grands panneaux retirés dans l’état brisé.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

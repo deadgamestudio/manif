@@ -1,8 +1,13 @@
 /*
- * PLACEHOLDER LOOKS for the shops (#68, #83): Paris ground-floor storefronts
- * built from plain boxes, sized from each shop's generated `ShopLot`, until
- * Jordan's models (#28) replace them here. Nothing here is per frame: a shop's
- * meshes are built when its round's layout arrives.
+ * LOOKS for the shops (#68, #83): Paris ground-floor storefronts built from
+ * plain boxes, sized from each shop's generated `ShopLot`, with Jordan's
+ * shop window (#28) in the intact window once it has loaded. Nothing here is
+ * per frame: a shop's meshes are built when its round's layout arrives.
+ *
+ * Not used on purpose: `facade-shop-2m` has "BOULANGERIE" written on it and a
+ * glazed door that would stand in the doorway of a broken shop, and
+ * `shop-window-broken` keeps its middle mullion and its sill, right across
+ * that doorway. A broken shop keeps the boxes, so the way in reads as open.
  *
  * Local frame of a shop (ShopView sets it): the origin is on the facade at the
  * middle of the shop, +X points out into the street, Z runs along the facade,
@@ -16,9 +21,10 @@
  * Materials are shared per kind (and the common ones by every shop); every
  * mesh is one shared unit box, scaled.
  */
-import type { ReactNode } from "react";
-import { BoxGeometry, DoubleSide, MeshStandardMaterial, type Material } from "three";
+import { useMemo, type ReactNode } from "react";
+import { BoxGeometry, DoubleSide, MeshStandardMaterial, Vector3, type Material } from "three";
 import { SHOP_LAYOUT, SHOP_ROOM, type ShopKind, type ShopLot } from "@manif/shared";
+import { MODELS, cloneStatic, modelBounds, useGltf } from "../models/index.ts";
 
 /** What a shop kind looks like, and how its sign is painted. */
 export interface ShopStyle {
@@ -219,11 +225,13 @@ export function Storefront({ lot, broken }: { lot: ShopLot; broken: boolean }): 
       add(<B key={key()} at={[glassX + 0.03, winTop - down / 2, 0]} size={[0.05, down, winW]} m={COMMON.metal} />);
       for (let y = winTop - 0.2; y > winTop - down; y -= 0.22) add(<B key={key()} at={[glassX + 0.06, y, 0]} size={[0.02, 0.05, winW]} m={COMMON.slat} shadow={false} />);
     }
-    add(<B key={key()} at={[glassX, winY, 0]} size={[0.04, winH, winW]} m={COMMON.glass} shadow={false} />);
+    // The glass and its mullions: Jordan's window, or boxes until it has loaded.
+    const boxes: ReactNode[] = [<B key="glass" at={[glassX, winY, 0]} size={[0.04, winH, winW]} m={COMMON.glass} shadow={false} />];
     for (let i = 1; i < panes; i++) {
       const z = -winW / 2 + (winW * i) / panes;
-      add(<B key={key()} at={[glassX + 0.02, winY, z]} size={[0.06, winH, 0.08]} m={COMMON.mullion} />);
+      boxes.push(<B key={`mullion${i}`} at={[glassX + 0.02, winY, z]} size={[0.06, winH, 0.08]} m={COMMON.mullion} />);
     }
+    add(<ShopWindow key={key()} x={glassX} bottom={winBottom} width={winW} height={winH} fallback={boxes} />);
     add(<Display key={key()} lot={lot} x={depth} winW={winW} />);
   } else {
     // Smashed: the riser and the glass are gone and the doorway (the room's
@@ -257,6 +265,35 @@ export function Storefront({ lot, broken }: { lot: ShopLot; broken: boolean }): 
 
   if (m.awning) add(<Awning key={key()} lot={lot} front={F} top={winTop} materials={m.awning} broken={broken} />);
   return <group>{parts}</group>;
+}
+
+/** Depth of the window model in the frame's reveal, so it never stands out past the front. */
+const WINDOW_DEPTH = 0.12;
+
+/**
+ * Jordan's shop window (#28) filling the window opening (`width` along Z,
+ * from `bottom` up `height`, its glass at `x`): one 4 m model per 4 m or so,
+ * stretched to share the width. `fallback` until it has loaded, or if it failed.
+ */
+function ShopWindow({ x, bottom, width, height, fallback }: { x: number; bottom: number; width: number; height: number; fallback: ReactNode }) {
+  const gltf = useGltf(MODELS.props.shopWindowIntact);
+  const n = Math.max(1, Math.round(width / 4));
+  const copies = useMemo(() => (gltf ? Array.from({ length: n }, () => cloneStatic(gltf)) : null), [gltf, n]);
+  if (!gltf || !copies) return <>{fallback}</>;
+  const b = modelBounds(gltf);
+  const size = b.getSize(new Vector3());
+  const centre = b.getCenter(new Vector3());
+  const each = width / n;
+  return (
+    <>
+      {copies.map((copy, i) => (
+        // The model's front (+Z) turned to face the street (+X), its width along the facade.
+        <group key={i} position={[x, bottom, -width / 2 + each * (i + 0.5)]} rotation-y={Math.PI / 2} scale={[each / size.x, height / size.y, WINDOW_DEPTH / size.z]}>
+          <primitive object={copy} position={[-centre.x, -b.min.y, -centre.z]} dispose={null} />
+        </group>
+      ))}
+    </>
+  );
 }
 
 /** A striped awning over the window, sloping down into the street. Torn and sagging once the shop is smashed. */

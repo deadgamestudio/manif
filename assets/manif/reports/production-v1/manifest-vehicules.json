@@ -1,0 +1,227 @@
+[
+  {
+    "asset": "police-van",
+    "label": "Fourgon de police",
+    "state": "parked",
+    "triangles": 1800,
+    "budget": 6000,
+    "dimensions_m": [
+      2.4,
+      4.99751,
+      2.4
+    ],
+    "bounds_min": [
+      -1.2,
+      -2.5,
+      0.0
+    ],
+    "bounds_max": [
+      1.2,
+      2.49751,
+      2.4
+    ],
+    "requested_dimensions_m": [
+      2.4,
+      5,
+      2.4
+    ],
+    "mesh_count": 1,
+    "notes": "Portes arrière en état séparé ; ouverture stylisée contenue dans le gabarit. Pas de conduite ni arrestation animée.",
+    "sockets": {
+      "driver": [
+        -0.55,
+        -1.35,
+        1.05
+      ],
+      "rear-entry": [
+        0,
+        2.4,
+        0.45
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "police-van-open",
+    "label": "Fourgon de police ouvert",
+    "state": "doors-open",
+    "triangles": 1800,
+    "budget": 6000,
+    "dimensions_m": [
+      2.4,
+      4.99751,
+      2.4
+    ],
+    "bounds_min": [
+      -1.2,
+      -2.5,
+      0.0
+    ],
+    "bounds_max": [
+      1.2,
+      2.49751,
+      2.4
+    ],
+    "requested_dimensions_m": [
+      2.4,
+      5,
+      2.4
+    ],
+    "mesh_count": 1,
+    "notes": "Portes arrière en état séparé ; ouverture stylisée contenue dans le gabarit. Pas de conduite ni arrestation animée.",
+    "sockets": {
+      "driver": [
+        -0.55,
+        -1.35,
+        1.05
+      ],
+      "rear-entry": [
+        0,
+        2.4,
+        0.45
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "fire-truck",
+    "label": "Camion de pompiers",
+    "state": "parked",
+    "triangles": 3416,
+    "budget": 6000,
+    "dimensions_m": [
+      2.5,
+      7.9775,
+      3.2
+    ],
+    "bounds_min": [
+      -1.25,
+      -4.0,
+      0.0
+    ],
+    "bounds_max": [
+      1.25,
+      3.9775,
+      3.2
+    ],
+    "requested_dimensions_m": [
+      2.5,
+      8,
+      3.2
+    ],
+    "mesh_count": 1,
+    "notes": "Portes ouvertes en variante statique ; véhicule neutre. Aucun jet d’eau ni conduite animée.",
+    "sockets": {
+      "driver": [
+        -0.6,
+        -2.7,
+        1.5
+      ],
+      "hose-outlet": [
+        1.2,
+        2.6,
+        1.0
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "fire-truck-open",
+    "label": "Camion de pompiers ouvert",
+    "state": "doors-open",
+    "triangles": 3416,
+    "budget": 6000,
+    "dimensions_m": [
+      2.5,
+      7.9775,
+      3.2
+    ],
+    "bounds_min": [
+      -1.25,
+      -4.0,
+      0.0
+    ],
+    "bounds_max": [
+      1.25,
+      3.9775,
+      3.2
+    ],
+    "requested_dimensions_m": [
+      2.5,
+      8,
+      3.2
+    ],
+    "mesh_count": 1,
+    "notes": "Portes ouvertes en variante statique ; véhicule neutre. Aucun jet d’eau ni conduite animée.",
+    "sockets": {
+      "driver": [
+        -0.6,
+        -2.7,
+        1.5
+      ],
+      "hose-outlet": [
+        1.2,
+        2.6,
+        1.0
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "brav-m-motorbike",
+    "label": "Moto BRAV-M",
+    "state": "parked",
+    "triangles": 1648,
+    "budget": 6000,
+    "dimensions_m": [
+      0.79,
+      2.08,
+      1.2
+    ],
+    "bounds_min": [
+      -0.395,
+      -1.04,
+      -0.0
+    ],
+    "bounds_max": [
+      0.395,
+      1.04,
+      1.2
+    ],
+    "requested_dimensions_m": [
+      0.8,
+      2.1,
+      1.2
+    ],
+    "mesh_count": 1,
+    "notes": "Même mesh pour roulage, stationnement et chute par transformation. Roues non animées ; deux repères pour les passagers.",
+    "sockets": {
+      "rider": [
+        0,
+        0.1,
+        0.98
+      ],
+      "passenger": [
+        0,
+        0.52,
+        1.0
+      ],
+      "handle-left": [
+        -0.3,
+        -0.49,
+        1.12
+      ],
+      "handle-right": [
+        0.3,
+        -0.49,
+        1.12
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false
+  }
+]

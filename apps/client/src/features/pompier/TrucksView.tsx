@@ -1,4 +1,4 @@
-import { useRef, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, MeshStandardMaterial } from "three";
 import { damp } from "../../shared/iso/index.ts";
@@ -9,7 +9,7 @@ import { TRUCK_LOOK, TruckModel } from "./truckVisuals.tsx";
  * Fire trucks (#17): each drives in down its side street, parks behind the
  * barrier with its lights flashing while the crew work, and backs out. Their
  * pompiers are drawn with the bots (CrsAvatar). Re-renders only when a truck
- * arrives or has gone; the driving is useFrame work.
+ * arrives, parks, leaves or has gone; the driving is useFrame work.
  */
 export function TrucksView() {
   const ids = useSyncExternalStore(net.subscribeTrucks, net.getTruckIds);
@@ -26,6 +26,7 @@ function Truck({ id }: { id: string }) {
   const group = useRef<Group>(null);
   const lights = useRef<(MeshStandardMaterial | null)[]>([]);
   const placed = useRef(false);
+  const [parked, setParked] = useState(() => net.getTruck(id)?.parked ?? false);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -39,6 +40,7 @@ function Truck({ id }: { id: string }) {
     g.position.x += (t.x - g.position.x) * k;
     g.position.z += (t.z - g.position.z) * k;
     g.rotation.y = t.rotation;
+    if (t.parked !== parked) setParked(t.parked);
     const on = t.parked && Math.floor((performance.now() / 1000) * TRUCK_LOOK.flashRate * 2) % 2 === 0;
     lights.current.forEach((m, i) => {
       // The two lights alternate.
@@ -48,7 +50,7 @@ function Truck({ id }: { id: string }) {
 
   return (
     <group ref={group}>
-      <TruckModel lights={lights} />
+      <TruckModel lights={lights} parked={parked} />
     </group>
   );
 }

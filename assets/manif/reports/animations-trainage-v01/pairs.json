@@ -1,0 +1,74 @@
+[
+  {
+    "victim": "lyceen-hoodie",
+    "crs": "crs-drag-lyceen-hoodie",
+    "blender_crs_offset": [
+      0,
+      -1.2,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "max_wrist_target_error_m": 1.1851475814469214e-05,
+    "contact_is_approximate": true,
+    "gltf_crs_offset": [
+      0,
+      0,
+      1.2
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793
+  },
+  {
+    "victim": "lyceenne-coupe-vent",
+    "crs": "crs-drag-lyceenne-coupe-vent",
+    "blender_crs_offset": [
+      0,
+      -1.2,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "max_wrist_target_error_m": 4.481566033858049e-06,
+    "contact_is_approximate": true,
+    "gltf_crs_offset": [
+      0,
+      0,
+      1.2
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793
+  },
+  {
+    "victim": "lyceen-maillot",
+    "crs": "crs-drag-lyceen-maillot",
+    "blender_crs_offset": [
+      0,
+      -1.2,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "max_wrist_target_error_m": 5.656768324041232e-05,
+    "contact_is_approximate": true,
+    "gltf_crs_offset": [
+      0,
+      0,
+      1.2
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793
+  },
+  {
+    "victim": "lyceenne-sweat",
+    "crs": "crs-drag-lyceenne-sweat",
+    "blender_crs_offset": [
+      0,
+      -1.2,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "max_wrist_target_error_m": 5.09020263880496e-06,
+    "contact_is_approximate": true,
+    "gltf_crs_offset": [
+      0,
+      0,
+      1.2
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793
+  }
+]

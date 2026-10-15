@@ -1,0 +1,28 @@
+{
+  "asset": "roof-zinc-2m",
+  "label": "Toit zinc 2 m",
+  "state": "intact",
+  "triangles": 152,
+  "budget": 1000,
+  "dimensions_m": [
+    2.0,
+    6.00859,
+    1.17321
+  ],
+  "bounds_min": [
+    -1.0,
+    -3.0043,
+    0.0
+  ],
+  "bounds_max": [
+    1.0,
+    3.0043,
+    1.17321
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Module de toiture largeur 2 m, profondeur 6 m. Pivot au milieu du bas du module ; placer sur le haut du bâtiment. Répétition dans X. Partie later de l’inventaire.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

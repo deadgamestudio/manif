@@ -1,0 +1,230 @@
+[
+  {
+    "mode": "collar",
+    "profile": "lyceen-hoodie",
+    "victim": "lyceen-hoodie-collar",
+    "crs": "crs-lyceen-hoodie-collar",
+    "blender_crs_offset": [
+      0,
+      -0.61,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      0,
+      0,
+      0.61
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 2.2152168672261396e-07
+  },
+  {
+    "mode": "collar",
+    "profile": "lyceenne-coupe-vent",
+    "victim": "lyceenne-coupe-vent-collar",
+    "crs": "crs-lyceenne-coupe-vent-collar",
+    "blender_crs_offset": [
+      0,
+      -0.61,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      0,
+      0,
+      0.61
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 2.3133572839897538e-07
+  },
+  {
+    "mode": "collar",
+    "profile": "lyceen-maillot",
+    "victim": "lyceen-maillot-collar",
+    "crs": "crs-lyceen-maillot-collar",
+    "blender_crs_offset": [
+      0,
+      -0.61,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      0,
+      0,
+      0.61
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 3.8533014301705603e-07
+  },
+  {
+    "mode": "collar",
+    "profile": "lyceenne-sweat",
+    "victim": "lyceenne-sweat-collar",
+    "crs": "crs-lyceenne-sweat-collar",
+    "blender_crs_offset": [
+      0,
+      -0.61,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      0,
+      0,
+      0.61
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 2.2457236752400265e-07
+  },
+  {
+    "mode": "arm",
+    "profile": "lyceen-hoodie",
+    "victim": "lyceen-hoodie-arm",
+    "crs": "crs-lyceen-hoodie-arm",
+    "blender_crs_offset": [
+      0.82,
+      -0.12,
+      0
+    ],
+    "blender_crs_yaw_radians": -1.5707963267948966,
+    "gltf_crs_offset": [
+      0.82,
+      0,
+      0.12
+    ],
+    "gltf_crs_yaw_radians": -1.5707963267948966,
+    "max_authoring_wrist_target_error_m": 5.362653607698361e-05
+  },
+  {
+    "mode": "arm",
+    "profile": "lyceenne-coupe-vent",
+    "victim": "lyceenne-coupe-vent-arm",
+    "crs": "crs-lyceenne-coupe-vent-arm",
+    "blender_crs_offset": [
+      0.82,
+      -0.12,
+      0
+    ],
+    "blender_crs_yaw_radians": -1.5707963267948966,
+    "gltf_crs_offset": [
+      0.82,
+      0,
+      0.12
+    ],
+    "gltf_crs_yaw_radians": -1.5707963267948966,
+    "max_authoring_wrist_target_error_m": 2.7711465757567164e-05
+  },
+  {
+    "mode": "arm",
+    "profile": "lyceen-maillot",
+    "victim": "lyceen-maillot-arm",
+    "crs": "crs-lyceen-maillot-arm",
+    "blender_crs_offset": [
+      0.82,
+      -0.12,
+      0
+    ],
+    "blender_crs_yaw_radians": -1.5707963267948966,
+    "gltf_crs_offset": [
+      0.82,
+      0,
+      0.12
+    ],
+    "gltf_crs_yaw_radians": -1.5707963267948966,
+    "max_authoring_wrist_target_error_m": 6.833378783000529e-05
+  },
+  {
+    "mode": "arm",
+    "profile": "lyceenne-sweat",
+    "victim": "lyceenne-sweat-arm",
+    "crs": "crs-lyceenne-sweat-arm",
+    "blender_crs_offset": [
+      0.82,
+      -0.12,
+      0
+    ],
+    "blender_crs_yaw_radians": -1.5707963267948966,
+    "gltf_crs_offset": [
+      0.82,
+      0,
+      0.12
+    ],
+    "gltf_crs_yaw_radians": -1.5707963267948966,
+    "max_authoring_wrist_target_error_m": 6.535127092604143e-05
+  },
+  {
+    "mode": "leg",
+    "profile": "lyceen-hoodie",
+    "victim": "lyceen-hoodie-leg",
+    "crs": "crs-lyceen-hoodie-leg",
+    "blender_crs_offset": [
+      -0.1,
+      -1.1,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      -0.1,
+      0,
+      1.1
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 5.784127138805755e-06
+  },
+  {
+    "mode": "leg",
+    "profile": "lyceenne-coupe-vent",
+    "victim": "lyceenne-coupe-vent-leg",
+    "crs": "crs-lyceenne-coupe-vent-leg",
+    "blender_crs_offset": [
+      -0.1,
+      -1.1,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      -0.1,
+      0,
+      1.1
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 3.4313139139620825e-06
+  },
+  {
+    "mode": "leg",
+    "profile": "lyceen-maillot",
+    "victim": "lyceen-maillot-leg",
+    "crs": "crs-lyceen-maillot-leg",
+    "blender_crs_offset": [
+      -0.1,
+      -1.1,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      -0.1,
+      0,
+      1.1
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 2.358000469960521e-05
+  },
+  {
+    "mode": "leg",
+    "profile": "lyceenne-sweat",
+    "victim": "lyceenne-sweat-leg",
+    "crs": "crs-lyceenne-sweat-leg",
+    "blender_crs_offset": [
+      -0.1,
+      -1.1,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      -0.1,
+      0,
+      1.1
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 6.961011701596612e-07
+  }
+]

@@ -1,0 +1,2 @@
+assets/manif/sources/**/*.blend filter=lfs diff=lfs merge=lfs -text
+assets/manif/previews/*.png filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,92 @@
+[
+  {
+    "asset": "teargas-cloud",
+    "status": "PASS",
+    "triangles": 720,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.99058,
+    "animation_count": 1
+  },
+  {
+    "asset": "smoke-column",
+    "status": "PASS",
+    "triangles": 720,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 1.4194,
+    "animation_count": 1
+  },
+  {
+    "asset": "stink-cloud",
+    "status": "PASS",
+    "triangles": 720,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.99058,
+    "animation_count": 1
+  },
+  {
+    "asset": "impact-puff",
+    "status": "PASS",
+    "triangles": 560,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.96612,
+    "motion_m": 1.0423,
+    "animation_count": 1
+  },
+  {
+    "asset": "flame-loop",
+    "status": "PASS",
+    "triangles": 240,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.32285,
+    "animation_count": 1
+  },
+  {
+    "asset": "bum-flames",
+    "status": "PASS",
+    "triangles": 144,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.20985,
+    "animation_count": 1
+  },
+  {
+    "asset": "water-jet",
+    "status": "PASS",
+    "triangles": 240,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 1.44927,
+    "animation_count": 1
+  },
+  {
+    "asset": "bonk-stars",
+    "status": "PASS",
+    "triangles": 108,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 1.30354,
+    "animation_count": 1
+  },
+  {
+    "asset": "tomato-splat",
+    "status": "PASS",
+    "triangles": 192,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  },
+  {
+    "asset": "hit-flash",
+    "status": "PASS",
+    "triangles": 36,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.000162,
+    "motion_m": 0.64994,
+    "animation_count": 1
+  }
+]

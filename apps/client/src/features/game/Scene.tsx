@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Object3D, Vector3, type DirectionalLight } from "three";
 import { CrsStatus, STREET_LEVEL, isBotId } from "@manif/shared";
@@ -13,6 +13,8 @@ import { GasView } from "../gas/index.ts";
 import { FiresView } from "../fire/index.ts";
 import { TrucksView } from "../pompier/index.ts";
 import { MoluchanView } from "../moluchan/index.ts";
+import { GrabPairs } from "../grab/index.ts";
+import { bodyUrlFor, preloadModels, roundPreloadGroups } from "../models/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
 
 const LEVEL = STREET_LEVEL;
@@ -26,6 +28,18 @@ const START_CENTRE = new Vector3(
 const SUN_OFFSET = new Vector3(15, 25, 10);
 /** Half size of the shadow box around the followed point. The street is too long to shadow all at once. */
 const SHADOW_HALF = 30;
+/**
+ * Lighting (#28): Jordan's models are realistic and dark (near-black CRS,
+ * navy vans, dark outfits), so the street is lit brighter than for the old
+ * bright placeholders: a strong soft sky fill (no shadows, costs nothing on
+ * phones) plus the one shadow-casting sun, over a lighter asphalt (Level.tsx).
+ */
+const BACKGROUND = "#3b4048";
+const SKY = "#e8efff";
+/** Light bounced off the street, warm and fairly bright so dark clothes keep some shape from below. */
+const GROUND_BOUNCE = "#8a8272";
+const SKY_FILL = 1.9;
+const SUN_INTENSITY = 2.6;
 /** Height of the point on a character that a building must not hide (#80): about the chest. */
 const BODY_Y = 1;
 
@@ -40,12 +54,13 @@ export function Scene({
 }) {
   const ids = players.map((p) => p.id);
   const fadeTargets = useFadeTargets(ids, crs);
+  usePreloadModels(players);
   return (
     <>
       <FollowRig localId={localId} />
       <AimTracker />
-      <color attach="background" args={["#2a2d34"]} />
-      <hemisphereLight args={["#dfe8ff", "#3a3a3a", 0.8]} />
+      <color attach="background" args={[BACKGROUND]} />
+      <hemisphereLight args={[SKY, GROUND_BOUNCE, SKY_FILL]} />
 
       <LevelView level={LEVEL} fadeTargets={fadeTargets} />
       <PropsView level={LEVEL} />
@@ -54,6 +69,7 @@ export function Scene({
         <PlayerAvatar key={p.id} id={p.id} name={p.name} isLocal={p.id === localId} bot={isBotId(p.id)} />
       ))}
       <CrsView ids={crs} />
+      <GrabPairs />
       {/* #70: the van each grabbed protester is dragged to, and the local player's off-screen arrow. */}
       <DragTargets ids={ids} localId={localId} />
       <ThrowablesView />
@@ -63,6 +79,19 @@ export function Scene({
       <MoluchanView />
     </>
   );
+}
+
+/**
+ * Starts fetching Jordan's models (#28) as soon as the street is drawn, the
+ * bodies of who is here first. Placeholders stand in until each one arrives.
+ * Again when someone joins or changes archetype: what is cached costs nothing.
+ */
+function usePreloadModels(players: readonly LobbyPlayer[]) {
+  // A string, so the effect only runs again when the set of bodies changes, not with each new players array.
+  const bodies = [...new Set(players.map((p) => bodyUrlFor(p.archetype, p.id)))].sort().join(" ");
+  useEffect(() => {
+    preloadModels(roundPreloadGroups(bodies ? bodies.split(" ") : []));
+  }, [bodies]);
 }
 
 /**
@@ -132,7 +161,7 @@ function FollowRig({ localId }: { localId: string | null }) {
         ref={light}
         target={lightTarget}
         castShadow
-        intensity={2}
+        intensity={SUN_INTENSITY}
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-SHADOW_HALF}
         shadow-camera-right={SHADOW_HALF}

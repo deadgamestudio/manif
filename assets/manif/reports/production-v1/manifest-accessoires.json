@@ -1,0 +1,159 @@
+[
+  {
+    "asset": "police-baton",
+    "label": "Matraque cartoon",
+    "state": "intact",
+    "triangles": 88,
+    "budget": 300,
+    "dimensions_m": [
+      0.072,
+      0.072,
+      0.45
+    ],
+    "bounds_min": [
+      -0.036,
+      -0.036,
+      0.0
+    ],
+    "bounds_max": [
+      0.036,
+      0.036,
+      0.45
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Accessoire séparé ; attacher à hand_R ou hand_L.",
+    "sockets": {
+      "grip": [
+        0,
+        0,
+        0.07
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "bac-armband",
+    "label": "Brassard POLICE",
+    "state": "intact",
+    "triangles": 88,
+    "budget": 700,
+    "dimensions_m": [
+      0.148,
+      0.155,
+      0.1
+    ],
+    "bounds_min": [
+      -0.074,
+      -0.081,
+      0.0
+    ],
+    "bounds_max": [
+      0.074,
+      0.074,
+      0.1
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "BAC réutilise les modèles manifestants inchangés. Brassard à attacher à upper_arm ; adapter sa taille à la manche.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "fire-hose",
+    "label": "Tuyau de pompier — segment",
+    "state": "intact",
+    "triangles": 168,
+    "budget": 400,
+    "dimensions_m": [
+      3.02031,
+      0.57947,
+      0.084
+    ],
+    "bounds_min": [
+      -1.50824,
+      -0.19023,
+      0.003
+    ],
+    "bounds_max": [
+      1.51207,
+      0.38924,
+      0.087
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Segment statique de décor. Un tuyau animé doit être reconstruit ou déformé par le moteur ; ce mesh ne simule pas un câble.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "fire-nozzle",
+    "label": "Lance de pompier",
+    "state": "intact",
+    "triangles": 132,
+    "budget": 300,
+    "dimensions_m": [
+      0.084,
+      0.177,
+      0.52
+    ],
+    "bounds_min": [
+      -0.042,
+      -0.042,
+      0.0
+    ],
+    "bounds_max": [
+      0.042,
+      0.135,
+      0.52
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Accessoire à attacher à la main ; réorienter son axe Z Blender vers la cible.",
+    "sockets": {
+      "grip": [
+        0,
+        0,
+        0.21
+      ],
+      "water-outlet": [
+        0,
+        0,
+        0.52
+      ]
+    },
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "tomato-splat-ground",
+    "label": "Éclaboussure de tomate",
+    "state": "intact",
+    "triangles": 92,
+    "budget": 300,
+    "dimensions_m": [
+      0.34296,
+      0.27318,
+      0.004
+    ],
+    "bounds_min": [
+      -0.16226,
+      -0.13038,
+      0.0
+    ],
+    "bounds_max": [
+      0.1807,
+      0.1428,
+      0.004
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Petit mesh plat pour sol ; à décaler du sol et supprimer après un délai dans le moteur.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  }
+]

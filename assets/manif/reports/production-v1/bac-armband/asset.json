@@ -1,0 +1,28 @@
+{
+  "asset": "bac-armband",
+  "label": "Brassard POLICE",
+  "state": "intact",
+  "triangles": 88,
+  "budget": 700,
+  "dimensions_m": [
+    0.148,
+    0.155,
+    0.1
+  ],
+  "bounds_min": [
+    -0.074,
+    -0.081,
+    0.0
+  ],
+  "bounds_max": [
+    0.074,
+    0.074,
+    0.1
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "BAC réutilise les modèles manifestants inchangés. Brassard à attacher à upper_arm ; adapter sa taille à la manche.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

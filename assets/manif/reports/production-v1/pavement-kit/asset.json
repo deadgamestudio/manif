@@ -1,0 +1,32 @@
+{
+  "asset": "pavement-kit",
+  "label": "Trottoir et bordure",
+  "state": "intact",
+  "triangles": 56,
+  "budget": 300,
+  "dimensions_m": [
+    2.0,
+    3.0,
+    0.18
+  ],
+  "bounds_min": [
+    -1.0,
+    -1.5,
+    0.0
+  ],
+  "bounds_max": [
+    1.0,
+    1.5,
+    0.18
+  ],
+  "requested_dimensions_m": [
+    2,
+    3,
+    0.18
+  ],
+  "mesh_count": 1,
+  "notes": "Tuile à répéter autour des blocs du niveau ; ne constitue pas à elle seule le sol complet.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

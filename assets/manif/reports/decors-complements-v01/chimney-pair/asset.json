@@ -1,0 +1,28 @@
+{
+  "asset": "chimney-pair",
+  "label": "Cheminée à deux pots",
+  "state": "intact",
+  "triangles": 352,
+  "budget": 1000,
+  "dimensions_m": [
+    0.94,
+    0.53,
+    1.175
+  ],
+  "bounds_min": [
+    -0.47,
+    -0.265,
+    0.0
+  ],
+  "bounds_max": [
+    0.47,
+    0.265,
+    1.175
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Accessoire de toiture séparé, pivot en bas. Disque sombre simulant le creux ; aucun conduit intérieur.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

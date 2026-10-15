@@ -1,0 +1,28 @@
+{
+  "asset": "side-alley-ground-6m",
+  "label": "Départ de ruelle 6 × 6 m",
+  "state": "intact",
+  "triangles": 180,
+  "budget": 1000,
+  "dimensions_m": [
+    6.0,
+    6.0,
+    0.23
+  ],
+  "bounds_min": [
+    -3.0,
+    -3.0,
+    -0.07
+  ],
+  "bounds_max": [
+    3.0,
+    3.0,
+    0.16
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Sol décoratif derrière une barrière, profondeur 6 m. Surface chaussée z=0 ; trottoirs hauts de 12 cm. Adapter aux trous entre bâtiments ; aucune donnée de collision modifiée.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

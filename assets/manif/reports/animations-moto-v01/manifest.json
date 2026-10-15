@@ -1,0 +1,29 @@
+[
+  {
+    "asset": "bike-tip",
+    "triangles": 1648,
+    "duration_seconds": 2.0,
+    "loop": false,
+    "description": "Moto existante animée par transformation, contact sol recalé à chaque image. Déplacement horizontal et roues à gérer séparément ; aucune simulation physique.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "bike-slide",
+    "triangles": 1648,
+    "duration_seconds": 1.5,
+    "loop": true,
+    "description": "Moto existante animée par transformation, contact sol recalé à chaque image. Déplacement horizontal et roues à gérer séparément ; aucune simulation physique.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  },
+  {
+    "asset": "bike-tipped",
+    "triangles": 1648,
+    "duration_seconds": 0.0,
+    "loop": false,
+    "description": "Moto existante animée par transformation, contact sol recalé à chaque image. Déplacement horizontal et roues à gérer séparément ; aucune simulation physique.",
+    "pivot": "origin",
+    "format": "glTF Y up, meters"
+  }
+]

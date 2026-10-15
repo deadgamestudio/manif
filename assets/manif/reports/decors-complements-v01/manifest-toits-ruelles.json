@@ -1,0 +1,170 @@
+[
+  {
+    "asset": "roof-zinc-2m",
+    "label": "Toit zinc 2 m",
+    "state": "intact",
+    "triangles": 152,
+    "budget": 1000,
+    "dimensions_m": [
+      2.0,
+      6.00859,
+      1.17321
+    ],
+    "bounds_min": [
+      -1.0,
+      -3.0043,
+      0.0
+    ],
+    "bounds_max": [
+      1.0,
+      3.0043,
+      1.17321
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Module de toiture largeur 2 m, profondeur 6 m. Pivot au milieu du bas du module ; placer sur le haut du bâtiment. Répétition dans X. Partie later de l’inventaire.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "roof-mansard-2m",
+    "label": "Toit mansardé 2 m",
+    "state": "intact",
+    "triangles": 280,
+    "budget": 1000,
+    "dimensions_m": [
+      2.0,
+      6.02019,
+      1.82379
+    ],
+    "bounds_min": [
+      -1.0,
+      -3.01009,
+      0.0
+    ],
+    "bounds_max": [
+      1.0,
+      3.01009,
+      1.82379
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Module de toiture largeur 2 m, profondeur 6 m. Pivot au milieu du bas du module ; placer sur le haut du bâtiment. Répétition dans X. Partie later de l’inventaire.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "chimney-pair",
+    "label": "Cheminée à deux pots",
+    "state": "intact",
+    "triangles": 352,
+    "budget": 1000,
+    "dimensions_m": [
+      0.94,
+      0.53,
+      1.175
+    ],
+    "bounds_min": [
+      -0.47,
+      -0.265,
+      0.0
+    ],
+    "bounds_max": [
+      0.47,
+      0.265,
+      1.175
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Accessoire de toiture séparé, pivot en bas. Disque sombre simulant le creux ; aucun conduit intérieur.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "roof-dormer",
+    "label": "Lucarne indépendante",
+    "state": "intact",
+    "triangles": 124,
+    "budget": 1000,
+    "dimensions_m": [
+      1.15,
+      1.12,
+      1.28
+    ],
+    "bounds_min": [
+      -0.575,
+      -0.56,
+      -0.03
+    ],
+    "bounds_max": [
+      0.575,
+      0.56,
+      1.25
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Ajouter sur le pan visible d’un toit. Lucarne simple à vitre opaque stylisée ; placement vertical à ajuster au pan, aucune découpe automatique de toiture.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "side-alley-ground-6m",
+    "label": "Départ de ruelle 6 × 6 m",
+    "state": "intact",
+    "triangles": 180,
+    "budget": 1000,
+    "dimensions_m": [
+      6.0,
+      6.0,
+      0.23
+    ],
+    "bounds_min": [
+      -3.0,
+      -3.0,
+      -0.07
+    ],
+    "bounds_max": [
+      3.0,
+      3.0,
+      0.16
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Sol décoratif derrière une barrière, profondeur 6 m. Surface chaussée z=0 ; trottoirs hauts de 12 cm. Adapter aux trous entre bâtiments ; aucune donnée de collision modifiée.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "side-alley-backdrop",
+    "label": "Fond de ruelle",
+    "state": "intact",
+    "triangles": 324,
+    "budget": 1000,
+    "dimensions_m": [
+      6.0,
+      0.32,
+      4.0
+    ],
+    "bounds_min": [
+      -3.0,
+      -0.12,
+      0.0
+    ],
+    "bounds_max": [
+      3.0,
+      0.2,
+      4.0
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Décor de fond 6 m × 4 m, placé au-delà de la zone jouable. Ne doit pas masquer une sortie jouable. Séparé du sol et des bâtiments pour permettre leur occultation.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  }
+]

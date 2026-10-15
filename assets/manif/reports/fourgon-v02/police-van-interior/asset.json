@@ -1,0 +1,39 @@
+{
+  "asset": "police-van-interior",
+  "label": "Fourgon avec compartiment arrière",
+  "state": "intact",
+  "triangles": 1924,
+  "budget": 6000,
+  "dimensions_m": [
+    2.4,
+    4.996,
+    2.395
+  ],
+  "bounds_min": [
+    -1.2,
+    -2.4975,
+    0.0
+  ],
+  "bounds_max": [
+    1.2,
+    2.4985,
+    2.395
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 3,
+  "notes": "Version complémentaire : véritable volume intérieur, banquette, marche et portes avec pivots. Le gabarit fermé est proche de 2,4 × 5 × 2,4 m. Portes ouvertes hors gabarit : gestion des collisions à prévoir.",
+  "sockets": {
+    "rear-entry": [
+      0,
+      2.5,
+      0.45
+    ],
+    "rear-seat": [
+      0,
+      0.46,
+      0.8
+    ]
+  },
+  "integration": "not integrated",
+  "physics": false
+}

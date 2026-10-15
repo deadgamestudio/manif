@@ -1,0 +1,298 @@
+[
+  {
+    "asset": "lyceen-hoodie",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "light-fire",
+        "frames": [
+          1.0,
+          61.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.7733,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7981,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "gas-stagger",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1693,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7139,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "tomato-stumble",
+        "frames": [
+          1.0,
+          43.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.8399,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7981,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "overhead-toss",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": false,
+        "seam_m": 1.18808,
+        "maximum_motion_m": 1.1881,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.9211,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "ko-collapse",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 1.726412,
+        "maximum_motion_m": 1.7561,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7993,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "light-fire",
+        "frames": [
+          1.0,
+          61.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.7261,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7116,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "gas-stagger",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1608,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.6283,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "tomato-stumble",
+        "frames": [
+          1.0,
+          43.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.8131,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7116,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "overhead-toss",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": false,
+        "seam_m": 1.150163,
+        "maximum_motion_m": 1.1502,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.86,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "ko-collapse",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 1.629331,
+        "maximum_motion_m": 1.6562,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7127,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "light-fire",
+        "frames": [
+          1.0,
+          61.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.8147,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8909,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "gas-stagger",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1784,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8016,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "tomato-stumble",
+        "frames": [
+          1.0,
+          43.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.8846,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8909,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "overhead-toss",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": false,
+        "seam_m": 1.251277,
+        "maximum_motion_m": 1.2513,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 2.0228,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "ko-collapse",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 1.813367,
+        "maximum_motion_m": 1.8451,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8924,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "light-fire",
+        "frames": [
+          1.0,
+          61.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.7637,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7853,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "gas-stagger",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1654,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7099,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "tomato-stumble",
+        "frames": [
+          1.0,
+          43.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.8488,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7853,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "overhead-toss",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": false,
+        "seam_m": 1.200719,
+        "maximum_motion_m": 1.2007,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.9418,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "ko-collapse",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 1.848916,
+        "maximum_motion_m": 1.8669,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7871,
+        "finite_each_frame": true
+      }
+    ]
+  }
+]

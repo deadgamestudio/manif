@@ -1,13 +1,15 @@
 /*
- * PLACEHOLDER LOOKS for breakable props (#4). Plain boxes and cylinders in
- * flat colours, all in this one file, so a real model (Jordan's) can replace
- * a kind here without touching the logic in PropView. Sizes come from the
+ * LOOKS for breakable props (#4): Jordan's models for each state (#28), and
+ * the placeholders drawn until they have loaded (or if they fail). The
+ * placeholders are plain boxes and cylinders in flat colours, sized from the
  * collision shapes in PROP_TYPES, so what you see is what you bump into.
  */
 import type { ReactNode } from "react";
 import { DoubleSide } from "three";
 import { PROP_TYPES, type PropKind, type PropShapeDef, type ShopKind } from "@manif/shared";
+import { MODELS } from "../models/index.ts";
 import type { DebrisBurst } from "./debris.ts";
+import type { PropModelSet } from "./propModels.ts";
 
 /** Footprint (full width along X, full depth along Z) of a shape. */
 function footprint(def: PropShapeDef): [number, number] {
@@ -17,9 +19,11 @@ function footprint(def: PropShapeDef): [number, number] {
 const GLASS = { color: "#a5d8ff", transparent: true, opacity: 0.45 } as const;
 
 export interface PropLook {
-  /** Intact model, centred on the slot, local frame (before the slot's rotation). */
+  /** Jordan's models, by state (#28). */
+  models: PropModelSet;
+  /** Intact placeholder, centred on the slot, local frame (before the slot's rotation). */
   intact: () => ReactNode;
-  /** Broken model. */
+  /** Broken placeholder. */
   broken: () => ReactNode;
   /** Debris sprayed when it breaks (position filled in by PropView). */
   debris: Omit<DebrisBurst, "x" | "z">;
@@ -175,26 +179,32 @@ function MarketStall({ broken }: { broken: boolean }) {
 /** The props the level places itself; shops are generated each round and drawn by ShopView (#83). */
 export type LevelPropKind = Exclude<PropKind, ShopKind>;
 
+const P = MODELS.props;
+
 export const PROP_LOOKS: Readonly<Record<LevelPropKind, PropLook>> = {
   bin: {
+    models: { intact: P.binIntact, broken: P.binBroken, burning: P.binBurning, charred: P.binCharred },
     intact: () => <Bin broken={false} />,
     broken: () => <Bin broken />,
-    debris: { y: 1, count: 14, colors: ["#1b5e20", "#a1887f", "#fff59d", "#90a4ae"], size: 0.18, speed: 5 },
+    debris: { y: 1, count: 14, colors: ["#1b5e20", "#a1887f", "#fff59d", "#90a4ae"], shapes: ["lid", "plastic", "cube", "plastic", "cube", "plastic", "cube"], size: 0.18, speed: 5 },
   },
   bus_shelter: {
+    models: { intact: P.busShelterIntact, broken: P.busShelterBroken },
     intact: () => <BusShelter broken={false} />,
     broken: () => <BusShelter broken />,
-    debris: { y: 1.8, count: 28, colors: ["#a5d8ff", "#e3f2fd", "#81d4fa"], size: 0.16, speed: 6 },
+    debris: { y: 1.8, count: 28, colors: ["#a5d8ff", "#e3f2fd", "#81d4fa"], shapes: ["glass", "glass", "glass", "metal", "glass", "glass", "glass"], size: 0.16, speed: 6 },
   },
   car: {
+    models: { intact: P.carIntact, broken: P.carBroken, burning: P.carBurning, charred: P.carCharred },
     intact: () => <Car broken={false} />,
     broken: () => <Car broken />,
-    debris: { y: 1, count: 30, colors: ["#c62828", "#212121", "#a5d8ff", "#9e9e9e"], size: 0.22, speed: 7 },
+    debris: { y: 1, count: 30, colors: ["#c62828", "#212121", "#a5d8ff", "#9e9e9e"], shapes: ["door", "glass", "metal", "glass", "cube", "glass", "metal", "glass", "cube", "glass", "metal", "glass", "cube", "glass", "cube"], size: 0.22, speed: 7 },
     alarm: true,
   },
   market_stall: {
+    models: { intact: P.marketStallIntact, broken: P.marketStallBroken },
     intact: () => <MarketStall broken={false} />,
     broken: () => <MarketStall broken />,
-    debris: { y: 1.2, count: 24, colors: ["#d62a1e", "#e53935", "#8d6e63", "#f5f5f5"], size: 0.16, speed: 6 },
+    debris: { y: 1.2, count: 24, colors: ["#d62a1e", "#e53935", "#8d6e63", "#f5f5f5"], shapes: ["cube", "cube", "cube", "plastic"], size: 0.16, speed: 6 },
   },
 };

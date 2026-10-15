@@ -1,0 +1,502 @@
+[
+  {
+    "asset": "newspaper-kiosk",
+    "label": "Kiosque à journaux",
+    "state": "intact",
+    "triangles": 857,
+    "budget": 2000,
+    "dimensions_m": [
+      2.0,
+      2.0,
+      2.6
+    ],
+    "bounds_min": [
+      -1.0,
+      -1.0,
+      0.0
+    ],
+    "bounds_max": [
+      1.0,
+      1.0,
+      2.6
+    ],
+    "requested_dimensions_m": [
+      2,
+      2,
+      2.6
+    ],
+    "mesh_count": 1,
+    "notes": "Kiosque parisien vert, silhouettes de couvertures sans marque.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "side-street-barrier",
+    "label": "Barrage de rue latérale",
+    "state": "intact",
+    "triangles": 932,
+    "budget": 1500,
+    "dimensions_m": [
+      1.0,
+      5.935,
+      1.2
+    ],
+    "bounds_min": [
+      -0.5,
+      -2.935,
+      0.0
+    ],
+    "bounds_max": [
+      0.5,
+      3.0,
+      1.2
+    ],
+    "requested_dimensions_m": [
+      1,
+      6,
+      1.2
+    ],
+    "mesh_count": 1,
+    "notes": "Gabarit long de 6 m selon street.ts ; orientation longitudinale Y Blender, donc Z glTF.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "construction-wall-7",
+    "label": "Palissade 7 m",
+    "state": "intact",
+    "triangles": 664,
+    "budget": 1500,
+    "dimensions_m": [
+      7.0,
+      1.0,
+      1.6
+    ],
+    "bounds_min": [
+      -3.5,
+      -0.5,
+      0.0
+    ],
+    "bounds_max": [
+      3.5,
+      0.5,
+      1.6
+    ],
+    "requested_dimensions_m": [
+      7,
+      1,
+      1.6
+    ],
+    "mesh_count": 1,
+    "notes": "",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "construction-wall-6-5",
+    "label": "Palissade 6.5 m",
+    "state": "intact",
+    "triangles": 652,
+    "budget": 1500,
+    "dimensions_m": [
+      6.5,
+      1.0,
+      1.6
+    ],
+    "bounds_min": [
+      -3.25,
+      -0.5,
+      0.0
+    ],
+    "bounds_max": [
+      3.25,
+      0.5,
+      1.6
+    ],
+    "requested_dimensions_m": [
+      6.5,
+      1,
+      1.6
+    ],
+    "mesh_count": 1,
+    "notes": "",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "bollard-level",
+    "label": "Borne du niveau",
+    "state": "intact",
+    "triangles": 184,
+    "budget": 800,
+    "dimensions_m": [
+      1.0,
+      1.0,
+      0.9
+    ],
+    "bounds_min": [
+      -0.5,
+      -0.5,
+      0.0
+    ],
+    "bounds_max": [
+      0.5,
+      0.5,
+      0.9
+    ],
+    "requested_dimensions_m": [
+      1,
+      1,
+      0.9
+    ],
+    "mesh_count": 1,
+    "notes": "Borne massive correspondant au rayon de collision 0,5 m demandé, distincte du potelet de trottoir fin.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "lamp-post-level",
+    "label": "Lampadaire 5 m",
+    "state": "intact",
+    "triangles": 252,
+    "budget": 800,
+    "dimensions_m": [
+      1.0,
+      1.0,
+      5.0
+    ],
+    "bounds_min": [
+      -0.5,
+      -0.5,
+      0.0
+    ],
+    "bounds_max": [
+      0.5,
+      0.5,
+      5.0
+    ],
+    "requested_dimensions_m": [
+      1,
+      1,
+      5
+    ],
+    "mesh_count": 1,
+    "notes": "",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "tree-level",
+    "label": "Arbre du niveau",
+    "state": "intact",
+    "triangles": 396,
+    "budget": 800,
+    "dimensions_m": [
+      3.30424,
+      3.1703,
+      5.716
+    ],
+    "bounds_min": [
+      -1.64973,
+      -1.69616,
+      0.0
+    ],
+    "bounds_max": [
+      1.65451,
+      1.47414,
+      5.716
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 2,
+    "notes": "Tronc : rayon au sol 0,7 m, hauteur 4,5 m. Couronne séparée, environ 1,8 m de rayon, masquable par le client. Collision du feuillage non incluse.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "ground-asphalt",
+    "label": "Chaussée 24 × 200 m",
+    "state": "intact",
+    "triangles": 12,
+    "budget": 100,
+    "dimensions_m": [
+      24.0,
+      200.0,
+      0.05
+    ],
+    "bounds_min": [
+      -12.0,
+      -100.0,
+      -0.05
+    ],
+    "bounds_max": [
+      12.0,
+      100.0,
+      0.0
+    ],
+    "requested_dimensions_m": [
+      24,
+      200,
+      0.05
+    ],
+    "mesh_count": 1,
+    "notes": "Surface de marche z=0, épaisseur sous le sol ; origine au centre. Assombrir dans le moteur selon éclairage.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "pavement-kit",
+    "label": "Trottoir et bordure",
+    "state": "intact",
+    "triangles": 56,
+    "budget": 300,
+    "dimensions_m": [
+      2.0,
+      3.0,
+      0.18
+    ],
+    "bounds_min": [
+      -1.0,
+      -1.5,
+      0.0
+    ],
+    "bounds_max": [
+      1.0,
+      1.5,
+      0.18
+    ],
+    "requested_dimensions_m": [
+      2,
+      3,
+      0.18
+    ],
+    "mesh_count": 1,
+    "notes": "Tuile à répéter autour des blocs du niveau ; ne constitue pas à elle seule le sol complet.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "road-dash",
+    "label": "Marquage central",
+    "state": "intact",
+    "triangles": 12,
+    "budget": 50,
+    "dimensions_m": [
+      0.24,
+      2.0,
+      0.006
+    ],
+    "bounds_min": [
+      -0.12,
+      -1.0,
+      0.0
+    ],
+    "bounds_max": [
+      0.12,
+      1.0,
+      0.006
+    ],
+    "requested_dimensions_m": [
+      0.24,
+      2,
+      0.006
+    ],
+    "mesh_count": 1,
+    "notes": "À espacer tous les 4 m selon l’issue ; projection/décalage anti-z-fighting à gérer dans le moteur.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "crosswalk",
+    "label": "Passage piéton",
+    "state": "intact",
+    "triangles": 216,
+    "budget": 300,
+    "dimensions_m": [
+      17.5,
+      4.0,
+      0.006
+    ],
+    "bounds_min": [
+      -8.75,
+      -2.0,
+      0.0
+    ],
+    "bounds_max": [
+      8.75,
+      2.0,
+      0.006
+    ],
+    "requested_dimensions_m": [
+      18,
+      4,
+      0.006
+    ],
+    "mesh_count": 1,
+    "notes": "",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "start-wall",
+    "label": "Estrade et banderole de départ",
+    "state": "intact",
+    "triangles": 145,
+    "budget": 2500,
+    "dimensions_m": [
+      32.0,
+      2.0,
+      2.0
+    ],
+    "bounds_min": [
+      -16.0,
+      -1.0,
+      0.0
+    ],
+    "bounds_max": [
+      16.0,
+      1.0,
+      2.0
+    ],
+    "requested_dimensions_m": [
+      32,
+      2,
+      2
+    ],
+    "mesh_count": 1,
+    "notes": "Fermeture du niveau derrière le départ ; surface d’estrade non jouable sans collision fournie par le niveau.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "start-zone",
+    "label": "Marquage de départ 14 × 12 m",
+    "state": "intact",
+    "triangles": 114,
+    "budget": 1200,
+    "dimensions_m": [
+      14.0,
+      12.0,
+      0.02
+    ],
+    "bounds_min": [
+      -7.0,
+      -6.0,
+      0.0
+    ],
+    "bounds_max": [
+      7.0,
+      6.0,
+      0.02
+    ],
+    "requested_dimensions_m": [
+      14,
+      12,
+      0.6
+    ],
+    "mesh_count": 1,
+    "notes": "Marquage de sol et texte couché au sol ; léger décalage vertical anti-z-fighting.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "facade-corner-2m",
+    "label": "Angle de façade modulaire",
+    "state": "intact",
+    "triangles": 116,
+    "budget": 1000,
+    "dimensions_m": [
+      2.015,
+      2.0,
+      3.0
+    ],
+    "bounds_min": [
+      -1.0,
+      -0.08,
+      0.0
+    ],
+    "bounds_max": [
+      1.015,
+      1.92,
+      3.0
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Angle avec travée de 2 m ; à combiner avec les modules de façade existants. Étages séparables.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "prefecture",
+    "label": "Préfecture",
+    "state": "intact",
+    "triangles": 2752,
+    "budget": 10000,
+    "dimensions_m": [
+      36.0,
+      14.0,
+      14.0
+    ],
+    "bounds_min": [
+      -18.0,
+      -7.0,
+      0.0
+    ],
+    "bounds_max": [
+      18.0,
+      7.0,
+      14.0
+    ],
+    "requested_dimensions_m": [
+      36,
+      14,
+      14
+    ],
+    "mesh_count": 1,
+    "notes": "Bâtiment objectif et marches. Intérieur non modélisé ; occultation/collisions à gérer au niveau.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  },
+  {
+    "asset": "prefecture-forecourt",
+    "label": "Grilles et drapeaux du parvis",
+    "state": "intact",
+    "triangles": 1520,
+    "budget": 2500,
+    "dimensions_m": [
+      17.666,
+      8.0,
+      4.2
+    ],
+    "bounds_min": [
+      -8.833,
+      -4.0,
+      0.0
+    ],
+    "bounds_max": [
+      8.833,
+      4.0,
+      4.2
+    ],
+    "requested_dimensions_m": null,
+    "mesh_count": 1,
+    "notes": "Habillage de la zone 18 × 8 m. Grilles statiques ; ouverture et déclenchement de victoire non fournis.",
+    "sockets": {},
+    "integration": "not integrated",
+    "physics": false
+  }
+]

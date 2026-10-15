@@ -1,0 +1,32 @@
+{
+  "asset": "newspaper-kiosk",
+  "label": "Kiosque à journaux",
+  "state": "intact",
+  "triangles": 857,
+  "budget": 2000,
+  "dimensions_m": [
+    2.0,
+    2.0,
+    2.6
+  ],
+  "bounds_min": [
+    -1.0,
+    -1.0,
+    0.0
+  ],
+  "bounds_max": [
+    1.0,
+    1.0,
+    2.6
+  ],
+  "requested_dimensions_m": [
+    2,
+    2,
+    2.6
+  ],
+  "mesh_count": 1,
+  "notes": "Kiosque parisien vert, silhouettes de couvertures sans marque.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

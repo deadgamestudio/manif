@@ -1,0 +1,28 @@
+{
+  "asset": "roof-mansard-2m",
+  "label": "Toit mansardé 2 m",
+  "state": "intact",
+  "triangles": 280,
+  "budget": 1000,
+  "dimensions_m": [
+    2.0,
+    6.02019,
+    1.82379
+  ],
+  "bounds_min": [
+    -1.0,
+    -3.01009,
+    0.0
+  ],
+  "bounds_max": [
+    1.0,
+    3.01009,
+    1.82379
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Module de toiture largeur 2 m, profondeur 6 m. Pivot au milieu du bas du module ; placer sur le haut du bâtiment. Répétition dans X. Partie later de l’inventaire.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

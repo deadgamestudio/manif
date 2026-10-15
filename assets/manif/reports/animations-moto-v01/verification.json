@@ -1,0 +1,29 @@
+[
+  {
+    "asset": "bike-tip",
+    "status": "PASS",
+    "triangles": 1648,
+    "finite_all_frames": true,
+    "loop_seam_m": 1.638639,
+    "motion_m": 1.63864,
+    "animation_count": 1
+  },
+  {
+    "asset": "bike-slide",
+    "status": "PASS",
+    "triangles": 1648,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.01859,
+    "animation_count": 1
+  },
+  {
+    "asset": "bike-tipped",
+    "status": "PASS",
+    "triangles": 1648,
+    "finite_all_frames": true,
+    "loop_seam_m": 0.0,
+    "motion_m": 0.0,
+    "animation_count": 0
+  }
+]

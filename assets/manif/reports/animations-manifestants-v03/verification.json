@@ -1,0 +1,1026 @@
+[
+  {
+    "asset": "lyceen-hoodie",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "idle",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0293,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7957,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "walk",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.5047,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.757,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "panic-run",
+        "frames": [
+          1.0,
+          21.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.7991,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7995,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "pick-up",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.9954,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7902,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "throw",
+        "frames": [
+          1.0,
+          37.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.0607,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7902,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "celebrate",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3282,
+        "lowest_vertex_m": -0.0,
+        "highest_vertex_m": 2.1218,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-light",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3791,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7561,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-heavy",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3794,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7482,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-overhead",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3794,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9117,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carried-overhead",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1718,
+        "lowest_vertex_m": -0.3274,
+        "highest_vertex_m": 0.3595,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "air-flail",
+        "frames": [
+          1.0,
+          25.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.8546,
+        "lowest_vertex_m": -0.0324,
+        "highest_vertex_m": 1.8417,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "knockdown",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 1.756859,
+        "maximum_motion_m": 1.7569,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7992,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "get-up",
+        "frames": [
+          1.0,
+          61.0
+        ],
+        "loop": false,
+        "seam_m": 1.756859,
+        "maximum_motion_m": 1.8846,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8113,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "clumsy-dive",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.5873,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8193,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "melee-swing",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.0711,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8111,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "gas-cough",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1572,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7287,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "rescue-pull",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1753,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.6752,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "pat-out",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1009,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7885,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "on-fire-run",
+        "frames": [
+          1.0,
+          21.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.5506,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9245,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "idle",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.028,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.709,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "walk",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.4886,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.6713,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "panic-run",
+        "frames": [
+          1.0,
+          21.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.7736,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7121,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "pick-up",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.9416,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7037,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "throw",
+        "frames": [
+          1.0,
+          37.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.0269,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7323,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "celebrate",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3177,
+        "lowest_vertex_m": -0.0,
+        "highest_vertex_m": 2.054,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-light",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.367,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.6707,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-heavy",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3672,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.663,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-overhead",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3672,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8507,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carried-overhead",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1663,
+        "lowest_vertex_m": -0.3169,
+        "highest_vertex_m": 0.348,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "air-flail",
+        "frames": [
+          1.0,
+          25.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.8273,
+        "lowest_vertex_m": -0.0314,
+        "highest_vertex_m": 1.7829,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "knockdown",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 1.656949,
+        "maximum_motion_m": 1.6569,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7126,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "get-up",
+        "frames": [
+          1.0,
+          61.0
+        ],
+        "loop": false,
+        "seam_m": 1.656949,
+        "maximum_motion_m": 1.7719,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7235,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "clumsy-dive",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.5033,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.731,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "melee-swing",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.0369,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7536,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "gas-cough",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1451,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.6427,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "rescue-pull",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1697,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.5926,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "pat-out",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0977,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7006,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "on-fire-run",
+        "frames": [
+          1.0,
+          21.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.5331,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8631,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "idle",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0299,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8892,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "walk",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.5316,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8478,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "panic-run",
+        "frames": [
+          1.0,
+          21.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.8416,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8925,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "pick-up",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.0489,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.883,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "throw",
+        "frames": [
+          1.0,
+          37.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.1172,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8845,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "celebrate",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3457,
+        "lowest_vertex_m": -0.0,
+        "highest_vertex_m": 2.2346,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-light",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3993,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8473,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-heavy",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3995,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8409,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-overhead",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3995,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 2.0134,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carried-overhead",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.181,
+        "lowest_vertex_m": -0.3448,
+        "highest_vertex_m": 0.3786,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "air-flail",
+        "frames": [
+          1.0,
+          25.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.9,
+        "lowest_vertex_m": -0.0341,
+        "highest_vertex_m": 1.9397,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "knockdown",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 1.845854,
+        "maximum_motion_m": 1.8459,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8928,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "get-up",
+        "frames": [
+          1.0,
+          61.0
+        ],
+        "loop": false,
+        "seam_m": 1.845854,
+        "maximum_motion_m": 1.9794,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.9044,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "clumsy-dive",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.6739,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.9128,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "melee-swing",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.1281,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.9071,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "gas-cough",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1654,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8169,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "rescue-pull",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1846,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7614,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "pat-out",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1038,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8799,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "on-fire-run",
+        "frames": [
+          1.0,
+          21.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.5799,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 2.0269,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "idle",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0282,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7836,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "walk",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.5101,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7441,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "panic-run",
+        "frames": [
+          1.0,
+          21.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.8076,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7883,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "pick-up",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.985,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7774,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "throw",
+        "frames": [
+          1.0,
+          37.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.072,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8084,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "celebrate",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3317,
+        "lowest_vertex_m": -0.0,
+        "highest_vertex_m": 2.1443,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-light",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3832,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7432,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-heavy",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3834,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.7388,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carry-overhead",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.3834,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.9322,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "carried-overhead",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1735,
+        "lowest_vertex_m": -0.179,
+        "highest_vertex_m": 0.3633,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "air-flail",
+        "frames": [
+          1.0,
+          25.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.863,
+        "lowest_vertex_m": -0.032,
+        "highest_vertex_m": 1.8614,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "knockdown",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 1.864198,
+        "maximum_motion_m": 1.8642,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7877,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "get-up",
+        "frames": [
+          1.0,
+          61.0
+        ],
+        "loop": false,
+        "seam_m": 1.864198,
+        "maximum_motion_m": 1.9756,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8008,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "clumsy-dive",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.5775,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8098,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "melee-swing",
+        "frames": [
+          1.0,
+          31.0
+        ],
+        "loop": false,
+        "seam_m": 0.0,
+        "maximum_motion_m": 1.0825,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8303,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "gas-cough",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1521,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7243,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "rescue-pull",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1775,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.661,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "pat-out",
+        "frames": [
+          1.0,
+          33.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.102,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7847,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "on-fire-run",
+        "frames": [
+          1.0,
+          21.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.5565,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.945,
+        "finite_each_frame": true
+      }
+    ]
+  }
+]

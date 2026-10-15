@@ -1,0 +1,32 @@
+{
+  "asset": "start-zone",
+  "label": "Marquage de départ 14 × 12 m",
+  "state": "intact",
+  "triangles": 114,
+  "budget": 1200,
+  "dimensions_m": [
+    14.0,
+    12.0,
+    0.02
+  ],
+  "bounds_min": [
+    -7.0,
+    -6.0,
+    0.0
+  ],
+  "bounds_max": [
+    7.0,
+    6.0,
+    0.02
+  ],
+  "requested_dimensions_m": [
+    14,
+    12,
+    0.6
+  ],
+  "mesh_count": 1,
+  "notes": "Marquage de sol et texte couché au sol ; léger décalage vertical anti-z-fighting.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

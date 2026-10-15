@@ -1,0 +1,2510 @@
+[
+  {
+    "batch": "production-v1",
+    "asset": "bac-armband",
+    "url": "/models/manif/production-v1/bac-armband/bac-armband.glb",
+    "bytes": 5708,
+    "sha256": "2c8a620544a829812b7b187053f52e319c1a5aecfa52b1f49820bccfe5059344",
+    "animations": [],
+    "triangles": 88,
+    "source": "assets/manif/sources/production-v1/bac-armband/bac-armband.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "bin-broken",
+    "url": "/models/manif/production-v1/bin-broken/bin-broken.glb",
+    "bytes": 14980,
+    "sha256": "1eef42523269f7b77ba3304d06b7cfa7baad8ca0beb47042b15c6dfbb666b9b6",
+    "animations": [],
+    "triangles": 526,
+    "source": "assets/manif/sources/production-v1/bin-broken/bin-broken.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "bin-burning",
+    "url": "/models/manif/production-v1/bin-burning/bin-burning.glb",
+    "bytes": 22260,
+    "sha256": "eed6211dffe79a86e618c8fb6373381e4228b97992a95d4de5b9a219e6056336",
+    "animations": [],
+    "triangles": 852,
+    "source": "assets/manif/sources/production-v1/bin-burning/bin-burning.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "bin-charred",
+    "url": "/models/manif/production-v1/bin-charred/bin-charred.glb",
+    "bytes": 15044,
+    "sha256": "c4b95c69747082c7b947455f99b20e1483ae9b047bcd2f6dd4c38379d4550dda",
+    "animations": [],
+    "triangles": 526,
+    "source": "assets/manif/sources/production-v1/bin-charred/bin-charred.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "bin-intact",
+    "url": "/models/manif/production-v1/bin-intact/bin-intact.glb",
+    "bytes": 22192,
+    "sha256": "5ee2a6ca077dc68b1b35a09e6830b59dde8342588f939e50567528384c13e64d",
+    "animations": [],
+    "triangles": 852,
+    "source": "assets/manif/sources/production-v1/bin-intact/bin-intact.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "bollard-level",
+    "url": "/models/manif/production-v1/bollard-level/bollard-level.glb",
+    "bytes": 7888,
+    "sha256": "03218293e4b583f6e228603c3b7af0f533f098cb6d0a265396e141405d1970b2",
+    "animations": [],
+    "triangles": 184,
+    "source": "assets/manif/sources/production-v1/bollard-level/bollard-level.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "brav-m-motorbike",
+    "url": "/models/manif/production-v1/brav-m-motorbike/brav-m-motorbike.glb",
+    "bytes": 39712,
+    "sha256": "fe978b08c38ac545f3daeaabd41cce3ddac6f2f3cbb1fa0b14581d26791e8477",
+    "animations": [],
+    "triangles": 1648,
+    "source": "assets/manif/sources/production-v1/brav-m-motorbike/brav-m-motorbike.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "bus-shelter-broken",
+    "url": "/models/manif/production-v1/bus-shelter-broken/bus-shelter-broken.glb",
+    "bytes": 11636,
+    "sha256": "825330c5bbcc219d80df3c97ba4c1598755bf5e76d0eb82b316ca5ae6c05b6b2",
+    "animations": [],
+    "triangles": 316,
+    "source": "assets/manif/sources/production-v1/bus-shelter-broken/bus-shelter-broken.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "bus-shelter-intact",
+    "url": "/models/manif/production-v1/bus-shelter-intact/bus-shelter-intact.glb",
+    "bytes": 13292,
+    "sha256": "2ea742cc0da2ca39739295911bd5e8a0431025a2bcd30741749c25cfbe9f9aeb",
+    "animations": [],
+    "triangles": 400,
+    "source": "assets/manif/sources/production-v1/bus-shelter-intact/bus-shelter-intact.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "car-broken",
+    "url": "/models/manif/production-v1/car-broken/car-broken.glb",
+    "bytes": 23076,
+    "sha256": "539836db726936fed302d144bcdfea8329b88befa0cf3ec24b53ff8b0ddc39ce",
+    "animations": [],
+    "triangles": 836,
+    "source": "assets/manif/sources/production-v1/car-broken/car-broken.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "car-burning",
+    "url": "/models/manif/production-v1/car-burning/car-burning.glb",
+    "bytes": 23156,
+    "sha256": "3bded23740f15d4d97155b46ac9d4d280de93a5cd16a7c2b299a97469fb087ba",
+    "animations": [],
+    "triangles": 836,
+    "source": "assets/manif/sources/production-v1/car-burning/car-burning.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "car-charred",
+    "url": "/models/manif/production-v1/car-charred/car-charred.glb",
+    "bytes": 23156,
+    "sha256": "729fdd1876babb386ba46fc6daeb6822646d9652244ce88f039916de82602efd",
+    "animations": [],
+    "triangles": 836,
+    "source": "assets/manif/sources/production-v1/car-charred/car-charred.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "car-intact",
+    "url": "/models/manif/production-v1/car-intact/car-intact.glb",
+    "bytes": 23076,
+    "sha256": "c4818d5055e1adebd213e87b3e5fc1c05d1cb7733c8401dafc565d3d17effd1f",
+    "animations": [],
+    "triangles": 836,
+    "source": "assets/manif/sources/production-v1/car-intact/car-intact.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "construction-wall-6-5",
+    "url": "/models/manif/production-v1/construction-wall-6-5/construction-wall-6-5.glb",
+    "bytes": 30944,
+    "sha256": "4918908972435fbf24fbe14901aa3a75d3e5c9b14b9771493087ef9f48526479",
+    "animations": [],
+    "triangles": 652,
+    "source": "assets/manif/sources/production-v1/construction-wall-6-5/construction-wall-6-5.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "construction-wall-7",
+    "url": "/models/manif/production-v1/construction-wall-7/construction-wall-7.glb",
+    "bytes": 31780,
+    "sha256": "d66bf5ef0c06fafacdcbdaaf43d629e522c3a5bdf1146e1236dcd33534928b62",
+    "animations": [],
+    "triangles": 664,
+    "source": "assets/manif/sources/production-v1/construction-wall-7/construction-wall-7.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "crosswalk",
+    "url": "/models/manif/production-v1/crosswalk/crosswalk.glb",
+    "bytes": 16784,
+    "sha256": "63f5d289ea859f4eef2feca6f6dd97ef1fb1b1f7d736f2b7ba71cb4610194d09",
+    "animations": [],
+    "triangles": 216,
+    "source": "assets/manif/sources/production-v1/crosswalk/crosswalk.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "debris-barricade-burning",
+    "url": "/models/manif/production-v1/debris-barricade-burning/debris-barricade-burning.glb",
+    "bytes": 11104,
+    "sha256": "01867988feabc455f5eeac669d692d4b464aefb238a2231cfe78d9967381277a",
+    "animations": [],
+    "triangles": 396,
+    "source": "assets/manif/sources/production-v1/debris-barricade-burning/debris-barricade-burning.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "debris-barricade-charred",
+    "url": "/models/manif/production-v1/debris-barricade-charred/debris-barricade-charred.glb",
+    "bytes": 11104,
+    "sha256": "39a6e56ac04ec04bc5c21f427885f3e50ea6b796f81e236b90b08b851acf84aa",
+    "animations": [],
+    "triangles": 396,
+    "source": "assets/manif/sources/production-v1/debris-barricade-charred/debris-barricade-charred.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "debris-barricade-intact",
+    "url": "/models/manif/production-v1/debris-barricade-intact/debris-barricade-intact.glb",
+    "bytes": 11044,
+    "sha256": "0a9da3c95f4d9f39feac19a2a449e49593d8ee711321e1879e82f6f67a76cc7a",
+    "animations": [],
+    "triangles": 396,
+    "source": "assets/manif/sources/production-v1/debris-barricade-intact/debris-barricade-intact.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "debris-bin-lid",
+    "url": "/models/manif/production-v1/debris-bin-lid/debris-bin-lid.glb",
+    "bytes": 3788,
+    "sha256": "7330e87652576c071012c3ebcce97e9f66df0a26cb666f5e06d52642f0c2de3d",
+    "animations": [],
+    "triangles": 88,
+    "source": "assets/manif/sources/production-v1/debris-bin-lid/debris-bin-lid.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "debris-car-door",
+    "url": "/models/manif/production-v1/debris-car-door/debris-car-door.glb",
+    "bytes": 3764,
+    "sha256": "6a3124a9f0ad5265bc3764b4207cdc3143ef83d80eb13163f136f8194623fe5c",
+    "animations": [],
+    "triangles": 88,
+    "source": "assets/manif/sources/production-v1/debris-car-door/debris-car-door.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "debris-glass",
+    "url": "/models/manif/production-v1/debris-glass/debris-glass.glb",
+    "bytes": 5948,
+    "sha256": "808752e6044595cd18de5101ae008c63a93f6f32910156e46b0e9119d357fc68",
+    "animations": [],
+    "triangles": 60,
+    "source": "assets/manif/sources/production-v1/debris-glass/debris-glass.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "debris-metal-panel",
+    "url": "/models/manif/production-v1/debris-metal-panel/debris-metal-panel.glb",
+    "bytes": 3576,
+    "sha256": "ef847b2997c2098492c05d3784e75460e2bebdcaca69c39fdcda82fa54d88963",
+    "animations": [],
+    "triangles": 56,
+    "source": "assets/manif/sources/production-v1/debris-metal-panel/debris-metal-panel.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "debris-plastic",
+    "url": "/models/manif/production-v1/debris-plastic/debris-plastic.glb",
+    "bytes": 5952,
+    "sha256": "846d60824f67f9b920e2205fa2651e9d0c27ae8e40f1dc2fde142f1b885eccb1",
+    "animations": [],
+    "triangles": 60,
+    "source": "assets/manif/sources/production-v1/debris-plastic/debris-plastic.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "facade-corner-2m",
+    "url": "/models/manif/production-v1/facade-corner-2m/facade-corner-2m.glb",
+    "bytes": 7772,
+    "sha256": "bdeb9837825c666a5828ffc23e80cd51fe9c45544f8d87591be246ed5638a351",
+    "animations": [],
+    "triangles": 116,
+    "source": "assets/manif/sources/production-v1/facade-corner-2m/facade-corner-2m.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "fire-hose",
+    "url": "/models/manif/production-v1/fire-hose/fire-hose.glb",
+    "bytes": 5820,
+    "sha256": "68343a9105caf9af5f843c0b6a129a8a72a108509324fdb021151bd630eb3d6c",
+    "animations": [],
+    "triangles": 168,
+    "source": "assets/manif/sources/production-v1/fire-hose/fire-hose.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "fire-nozzle",
+    "url": "/models/manif/production-v1/fire-nozzle/fire-nozzle.glb",
+    "bytes": 4944,
+    "sha256": "cd3832a7e4197193d8884766aeeb8832dba2d4385977c352b60d45dcfa6eac95",
+    "animations": [],
+    "triangles": 132,
+    "source": "assets/manif/sources/production-v1/fire-nozzle/fire-nozzle.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "fire-truck",
+    "url": "/models/manif/production-v1/fire-truck/fire-truck.glb",
+    "bytes": 103724,
+    "sha256": "29a30e025eded385948ab9f25ea1a0e66fd05a05aad1379959dcac0d052bdacb",
+    "animations": [],
+    "triangles": 3416,
+    "source": "assets/manif/sources/production-v1/fire-truck/fire-truck.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "fire-truck-open",
+    "url": "/models/manif/production-v1/fire-truck-open/fire-truck-open.glb",
+    "bytes": 103636,
+    "sha256": "f620ba9516f12cf919e73a8ca4ae91eb3a193eb785212b1dc18f015115d24d16",
+    "animations": [],
+    "triangles": 3416,
+    "source": "assets/manif/sources/production-v1/fire-truck-open/fire-truck-open.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "ground-asphalt",
+    "url": "/models/manif/production-v1/ground-asphalt/ground-asphalt.glb",
+    "bytes": 2496,
+    "sha256": "2f611f0fb5f1f75e8b075bea34e58312b57503030ef0382d5edc2ab76f104506",
+    "animations": [],
+    "triangles": 12,
+    "source": "assets/manif/sources/production-v1/ground-asphalt/ground-asphalt.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "lamp-post-level",
+    "url": "/models/manif/production-v1/lamp-post-level/lamp-post-level.glb",
+    "bytes": 8032,
+    "sha256": "1207466f10b39948969c8f14e307c18d73b547525f50d14f310f5636c4a743c1",
+    "animations": [],
+    "triangles": 252,
+    "source": "assets/manif/sources/production-v1/lamp-post-level/lamp-post-level.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "market-stall-broken",
+    "url": "/models/manif/production-v1/market-stall-broken/market-stall-broken.glb",
+    "bytes": 20604,
+    "sha256": "8a77b4689e5ecfd8b60c1cad78fe3ff1f216e374b1c2149b63eb00de1b6f8bd8",
+    "animations": [],
+    "triangles": 588,
+    "source": "assets/manif/sources/production-v1/market-stall-broken/market-stall-broken.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "market-stall-intact",
+    "url": "/models/manif/production-v1/market-stall-intact/market-stall-intact.glb",
+    "bytes": 23684,
+    "sha256": "f94b6b15d161784343eb0e787a04afd71cf0dd2604c2affaa8b31dc36baac45e",
+    "animations": [],
+    "triangles": 720,
+    "source": "assets/manif/sources/production-v1/market-stall-intact/market-stall-intact.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "newspaper-kiosk",
+    "url": "/models/manif/production-v1/newspaper-kiosk/newspaper-kiosk.glb",
+    "bytes": 24128,
+    "sha256": "902fe4449549c91e45343b8daf59b4feda6da795dbcd33b94324bec08ecd189b",
+    "animations": [],
+    "triangles": 857,
+    "source": "assets/manif/sources/production-v1/newspaper-kiosk/newspaper-kiosk.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "pavement-kit",
+    "url": "/models/manif/production-v1/pavement-kit/pavement-kit.glb",
+    "bytes": 3524,
+    "sha256": "0d2c110cf5bf475ae2c60268e8fd832e106fb85290a3ef9004685baf802f7907",
+    "animations": [],
+    "triangles": 56,
+    "source": "assets/manif/sources/production-v1/pavement-kit/pavement-kit.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "firefighter",
+    "url": "/models/manif/production-v1/personnages/firefighter/firefighter.glb",
+    "bytes": 153264,
+    "sha256": "d911e0b6ad386eb42289073fadce7834b4fdb8356b9dbfc58205165fdfda0f4f",
+    "animations": [
+      "firefighter__desequilibre",
+      "firefighter__repos",
+      "firefighter__revendication"
+    ],
+    "triangles": 2426,
+    "source": "assets/manif/sources/production-v1/personnages/firefighter/firefighter.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "protester-black-bloc",
+    "url": "/models/manif/production-v1/personnages/protester-black-bloc/protester-black-bloc.glb",
+    "bytes": 149128,
+    "sha256": "45a11b936ade328997f87df1dfb98ae557cd1abb09d6655606cdcf85408b6aa8",
+    "animations": [
+      "protester-black-bloc__desequilibre",
+      "protester-black-bloc__repos",
+      "protester-black-bloc__revendication"
+    ],
+    "triangles": 2418,
+    "source": "assets/manif/sources/production-v1/personnages/protester-black-bloc/protester-black-bloc.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "protester-bobo",
+    "url": "/models/manif/production-v1/personnages/protester-bobo/protester-bobo.glb",
+    "bytes": 148016,
+    "sha256": "9cd8d52eebcdbed8302cc1d244a958eecb80bd531ecb0a1c294a61bfaaa6c37a",
+    "animations": [
+      "protester-bobo__desequilibre",
+      "protester-bobo__repos",
+      "protester-bobo__revendication"
+    ],
+    "triangles": 2386,
+    "source": "assets/manif/sources/production-v1/personnages/protester-bobo/protester-bobo.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "protester-cgt",
+    "url": "/models/manif/production-v1/personnages/protester-cgt/protester-cgt.glb",
+    "bytes": 146764,
+    "sha256": "dc9c6e299ef818af9e6f96503c707232cb5b378fbbd4bc62f5792b0af62984aa",
+    "animations": [
+      "protester-cgt__desequilibre",
+      "protester-cgt__repos",
+      "protester-cgt__revendication"
+    ],
+    "triangles": 2352,
+    "source": "assets/manif/sources/production-v1/personnages/protester-cgt/protester-cgt.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "protester-gilet-jaune",
+    "url": "/models/manif/production-v1/personnages/protester-gilet-jaune/protester-gilet-jaune.glb",
+    "bytes": 142256,
+    "sha256": "4abb5f5a307f3ac220ae941f30d3166a202ccc64ca833d87e337c1875781ed1b",
+    "animations": [
+      "protester-gilet-jaune__desequilibre",
+      "protester-gilet-jaune__repos",
+      "protester-gilet-jaune__revendication"
+    ],
+    "triangles": 2242,
+    "source": "assets/manif/sources/production-v1/personnages/protester-gilet-jaune/protester-gilet-jaune.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "protester-neutral",
+    "url": "/models/manif/production-v1/personnages/protester-neutral/protester-neutral.glb",
+    "bytes": 141968,
+    "sha256": "5f7fc09c2d6eca87eb3130b5707e6d981e599b522194d7837e5356b7e027d767",
+    "animations": [
+      "protester-neutral__desequilibre",
+      "protester-neutral__repos",
+      "protester-neutral__revendication"
+    ],
+    "triangles": 2242,
+    "source": "assets/manif/sources/production-v1/personnages/protester-neutral/protester-neutral.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "protester-retraite",
+    "url": "/models/manif/production-v1/personnages/protester-retraite/protester-retraite.glb",
+    "bytes": 153756,
+    "sha256": "6cc9112eb3e4a348f9aa4eaeed8058e0e8e081c3388d2af133c102955ffb37f0",
+    "animations": [
+      "protester-retraite__desequilibre",
+      "protester-retraite__repos",
+      "protester-retraite__revendication"
+    ],
+    "triangles": 2574,
+    "source": "assets/manif/sources/production-v1/personnages/protester-retraite/protester-retraite.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "protester-tracksuit",
+    "url": "/models/manif/production-v1/personnages/protester-tracksuit/protester-tracksuit.glb",
+    "bytes": 149808,
+    "sha256": "3b62f52a70cba39a4280f6664c85166b89a8cea4f57ddc2b656f8a13d7611e01",
+    "animations": [
+      "protester-tracksuit__desequilibre",
+      "protester-tracksuit__repos",
+      "protester-tracksuit__revendication"
+    ],
+    "triangles": 2462,
+    "source": "assets/manif/sources/production-v1/personnages/protester-tracksuit/protester-tracksuit.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "brav-m-passenger",
+    "url": "/models/manif/production-v1/police/brav-m-passenger/brav-m-passenger.glb",
+    "bytes": 165476,
+    "sha256": "140c19631daaa67b634db46657c7f84be432d16082407a8d6a791a67ccd3d1ec",
+    "animations": [
+      "brav-m-passenger__desequilibre",
+      "brav-m-passenger__repos",
+      "brav-m-passenger__revendication",
+      "brav-m-passenger__riding"
+    ],
+    "triangles": 2254,
+    "source": "assets/manif/sources/production-v1/police/brav-m-passenger/brav-m-passenger.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "brav-m-rider",
+    "url": "/models/manif/production-v1/police/brav-m-rider/brav-m-rider.glb",
+    "bytes": 165460,
+    "sha256": "c36102aa1280842461d8f3cd461e9165b3497a02cdb3c202a619c9dd5c97be19",
+    "animations": [
+      "brav-m-rider__desequilibre",
+      "brav-m-rider__repos",
+      "brav-m-rider__revendication",
+      "brav-m-rider__riding"
+    ],
+    "triangles": 2254,
+    "source": "assets/manif/sources/production-v1/police/brav-m-rider/brav-m-rider.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "crs",
+    "url": "/models/manif/production-v1/police/crs/crs.glb",
+    "bytes": 183768,
+    "sha256": "025132f854282aaf25ecb0bb69181f44365ec95b67da2bf66b846c4a4cf9766d",
+    "animations": [
+      "crs__desequilibre",
+      "crs__repos",
+      "crs__revendication",
+      "crs__shield-lowered",
+      "crs__shield-raised"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/production-v1/police/crs/crs.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "crs-grenadier",
+    "url": "/models/manif/production-v1/police/crs-grenadier/crs-grenadier.glb",
+    "bytes": 158220,
+    "sha256": "e89aba3d566f14d797aa3157c667002fad50b86dc1ee16c5174fd03bb878e4c2",
+    "animations": [
+      "crs-grenadier__desequilibre",
+      "crs-grenadier__repos",
+      "crs-grenadier__revendication"
+    ],
+    "triangles": 2354,
+    "source": "assets/manif/sources/production-v1/police/crs-grenadier/crs-grenadier.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "crs-splatted",
+    "url": "/models/manif/production-v1/police/crs-splatted/crs-splatted.glb",
+    "bytes": 172956,
+    "sha256": "2bb3c94138f78d2b500524d1ef6dff7bf92dc30cdece29a5af38e7df89602929",
+    "animations": [
+      "crs-splatted__desequilibre",
+      "crs-splatted__repos",
+      "crs-splatted__revendication"
+    ],
+    "triangles": 2866,
+    "source": "assets/manif/sources/production-v1/police/crs-splatted/crs-splatted.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "police-baton",
+    "url": "/models/manif/production-v1/police-baton/police-baton.glb",
+    "bytes": 3848,
+    "sha256": "c2ff99ebe7639b538f641b6ebe552512975f8801dc1440e5f22ef9c9b08b8d42",
+    "animations": [],
+    "triangles": 88,
+    "source": "assets/manif/sources/production-v1/police-baton/police-baton.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "police-van",
+    "url": "/models/manif/production-v1/police-van/police-van.glb",
+    "bytes": 45076,
+    "sha256": "3646094d29e18fa044214a82fdefa624cc55321f7fd6c0b39c5da4fe3720c5ac",
+    "animations": [],
+    "triangles": 1800,
+    "source": "assets/manif/sources/production-v1/police-van/police-van.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "police-van-open",
+    "url": "/models/manif/production-v1/police-van-open/police-van-open.glb",
+    "bytes": 45084,
+    "sha256": "023042441ef67e12715ad31b525530eebce7196dda23379e3f27f93383339b79",
+    "animations": [],
+    "triangles": 1800,
+    "source": "assets/manif/sources/production-v1/police-van-open/police-van-open.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "prefecture",
+    "url": "/models/manif/production-v1/prefecture/prefecture.glb",
+    "bytes": 98804,
+    "sha256": "3ce542f91717fbd6b3fb07e7bb48c3700d70e43271fee0d8d7af9061f29f0a4d",
+    "animations": [],
+    "triangles": 2752,
+    "source": "assets/manif/sources/production-v1/prefecture/prefecture.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "prefecture-forecourt",
+    "url": "/models/manif/production-v1/prefecture-forecourt/prefecture-forecourt.glb",
+    "bytes": 42872,
+    "sha256": "3212876fdf1f4bc99a07a7d056e1e9723e2f7eb6ef711219f80c63a5b9749c51",
+    "animations": [],
+    "triangles": 1520,
+    "source": "assets/manif/sources/production-v1/prefecture-forecourt/prefecture-forecourt.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "cagette-bois",
+    "url": "/models/manif/production-v1/reprises/cagette-bois/cagette-bois.glb",
+    "bytes": 34488,
+    "sha256": "86cf0cafee61c90b3c8729666df501579932ae925a216bcb8e3c0a95792ad0a1",
+    "animations": [],
+    "triangles": 1196,
+    "source": "assets/manif/sources/production-v1/reprises/cagette-bois/cagette-bois.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "carton-avenir",
+    "url": "/models/manif/production-v1/reprises/carton-avenir/carton-avenir.glb",
+    "bytes": 12452,
+    "sha256": "2832ea94cff2270c9174210f301d5bed64bb237bb29c63cc9bbd3f085f22f420",
+    "animations": [],
+    "triangles": 183,
+    "source": "assets/manif/sources/production-v1/reprises/carton-avenir/carton-avenir.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "carton-nos-voix",
+    "url": "/models/manif/production-v1/reprises/carton-nos-voix/carton-nos-voix.glb",
+    "bytes": 11700,
+    "sha256": "bebd0f3d14777c45958dcd7d6f255ee14fff20019c35f9fa2110cfc5ecb7a058",
+    "animations": [],
+    "triangles": 170,
+    "source": "assets/manif/sources/production-v1/reprises/carton-nos-voix/carton-nos-voix.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "chaise-terrasse",
+    "url": "/models/manif/production-v1/reprises/chaise-terrasse/chaise-terrasse.glb",
+    "bytes": 35524,
+    "sha256": "7fd72ec52d8c7ecd108889308ae985b7233cd8ad4be79ab4e0ebf64946efdd1e",
+    "animations": [],
+    "triangles": 1464,
+    "source": "assets/manif/sources/production-v1/reprises/chaise-terrasse/chaise-terrasse.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "cone-chantier",
+    "url": "/models/manif/production-v1/reprises/cone-chantier/cone-chantier.glb",
+    "bytes": 17316,
+    "sha256": "d266677efb133b1bbc38918109c81ecedef13654e45c46b8b71f74421da599b9",
+    "animations": [],
+    "triangles": 488,
+    "source": "assets/manif/sources/production-v1/reprises/cone-chantier/cone-chantier.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "crs-shield",
+    "url": "/models/manif/production-v1/reprises/crs-shield/crs-shield.glb",
+    "bytes": 19440,
+    "sha256": "b12fb67de05a5149568eb8b4ef421c9fb728e86dfca7d9ca658e40cb70cfa1b6",
+    "animations": [],
+    "triangles": 608,
+    "source": "assets/manif/sources/production-v1/reprises/crs-shield/crs-shield.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "dog-poo",
+    "url": "/models/manif/production-v1/reprises/dog-poo/dog-poo.glb",
+    "bytes": 8936,
+    "sha256": "f8f0658bf2422c9503ff61a7f8a18d4909f9d0d497650d11f2743b9721481788",
+    "animations": [],
+    "triangles": 284,
+    "source": "assets/manif/sources/production-v1/reprises/dog-poo/dog-poo.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "etage-balcon-2m",
+    "url": "/models/manif/production-v1/reprises/etage-balcon-2m/etage-balcon-2m.glb",
+    "bytes": 35604,
+    "sha256": "4c4ea649d35118d72fb8c441e5e6ba9ac7deb16acddef188f93c8c1475310ec2",
+    "animations": [],
+    "triangles": 660,
+    "source": "assets/manif/sources/production-v1/reprises/etage-balcon-2m/etage-balcon-2m.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "etage-brique-2m",
+    "url": "/models/manif/production-v1/reprises/etage-brique-2m/etage-brique-2m.glb",
+    "bytes": 26172,
+    "sha256": "17c4e0332e4a480ca9b050cb9a2b637540a748f3f7e420bebd0693c35830b8ff",
+    "animations": [],
+    "triangles": 496,
+    "source": "assets/manif/sources/production-v1/reprises/etage-brique-2m/etage-brique-2m.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "etage-pierre-2m",
+    "url": "/models/manif/production-v1/reprises/etage-pierre-2m/etage-pierre-2m.glb",
+    "bytes": 29532,
+    "sha256": "7191d82619d9202a369da643750f64a11720d5eced2efede16ec376eb240fef0",
+    "animations": [],
+    "triangles": 544,
+    "source": "assets/manif/sources/production-v1/reprises/etage-pierre-2m/etage-pierre-2m.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "facade-shop-2m",
+    "url": "/models/manif/production-v1/reprises/facade-shop-2m/facade-shop-2m.glb",
+    "bytes": 34580,
+    "sha256": "239b94e22925d9abeb6c346802c7592e3865d29f5efe5dbef8cb6afc95a01a68",
+    "animations": [],
+    "triangles": 973,
+    "source": "assets/manif/sources/production-v1/reprises/facade-shop-2m/facade-shop-2m.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "lyceen-hoodie",
+    "url": "/models/manif/production-v1/reprises/lyceen-hoodie/lyceen-hoodie.glb",
+    "bytes": 168380,
+    "sha256": "eb43fd949de77e8d35844b3453bbd5409e34f35ae76b3066f307ad5e851792a2",
+    "animations": [
+      "lyceen-hoodie__desequilibre",
+      "lyceen-hoodie__repos",
+      "lyceen-hoodie__revendication"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/production-v1/reprises/lyceen-hoodie/lyceen-hoodie.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "lyceen-maillot",
+    "url": "/models/manif/production-v1/reprises/lyceen-maillot/lyceen-maillot.glb",
+    "bytes": 170552,
+    "sha256": "99d7c202e8b64023758b73a37d52f7d08b0ef32a355c66ed0fb13ecc6b0f9135",
+    "animations": [
+      "lyceen-maillot__desequilibre",
+      "lyceen-maillot__repos",
+      "lyceen-maillot__revendication"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/production-v1/reprises/lyceen-maillot/lyceen-maillot.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "lyceenne-coupe-vent",
+    "url": "/models/manif/production-v1/reprises/lyceenne-coupe-vent/lyceenne-coupe-vent.glb",
+    "bytes": 172052,
+    "sha256": "f366ab4333816944a483d642c7ca3407c1c27f1c6ac36166ffafbe5f2c42fd86",
+    "animations": [
+      "lyceenne-coupe-vent__desequilibre",
+      "lyceenne-coupe-vent__repos",
+      "lyceenne-coupe-vent__revendication"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/production-v1/reprises/lyceenne-coupe-vent/lyceenne-coupe-vent.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "lyceenne-sweat",
+    "url": "/models/manif/production-v1/reprises/lyceenne-sweat/lyceenne-sweat.glb",
+    "bytes": 170880,
+    "sha256": "4e77778013734a09df24a5d3868ba2a9bbf8945d65ce562f0cd4234fce4e9e91",
+    "animations": [
+      "lyceenne-sweat__desequilibre",
+      "lyceenne-sweat__repos",
+      "lyceenne-sweat__revendication"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/production-v1/reprises/lyceenne-sweat/lyceenne-sweat.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "megaphone",
+    "url": "/models/manif/production-v1/reprises/megaphone/megaphone.glb",
+    "bytes": 38356,
+    "sha256": "6e0409072f3ebb70d4829e8d968be72cde092386b25f0ef525693f39ac691bc8",
+    "animations": [],
+    "triangles": 1640,
+    "source": "assets/manif/sources/production-v1/reprises/megaphone/megaphone.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "pave",
+    "url": "/models/manif/production-v1/reprises/pave/pave.glb",
+    "bytes": 74984,
+    "sha256": "5960dedb68a2a4e70a450da5be3a1dae6bb5ba135af5b54f74f8ba3253a7ffae",
+    "animations": [],
+    "triangles": 108,
+    "source": "assets/manif/sources/production-v1/reprises/pave/pave.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "porte-immeuble-2m",
+    "url": "/models/manif/production-v1/reprises/porte-immeuble-2m/porte-immeuble-2m.glb",
+    "bytes": 13860,
+    "sha256": "2390a3c54e3fa90a00b06bc0ae2b61d1efc7219da765342ee7a3890b0ab66a0c",
+    "animations": [],
+    "triangles": 444,
+    "source": "assets/manif/sources/production-v1/reprises/porte-immeuble-2m/porte-immeuble-2m.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "tear-gas-canister",
+    "url": "/models/manif/production-v1/reprises/tear-gas-canister/tear-gas-canister.glb",
+    "bytes": 9796,
+    "sha256": "f411c88d7b15d62d764c469a01fb0fd387a4032a982937e6a28c31bb174018ea",
+    "animations": [],
+    "triangles": 232,
+    "source": "assets/manif/sources/production-v1/reprises/tear-gas-canister/tear-gas-canister.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "toit-mansarde-2m",
+    "url": "/models/manif/production-v1/reprises/toit-mansarde-2m/toit-mansarde-2m.glb",
+    "bytes": 9428,
+    "sha256": "efdb728f0d5871ebf7950f7719799e28909bbc6b6eb20ac60ddf3a38537b51a8",
+    "animations": [],
+    "triangles": 168,
+    "source": "assets/manif/sources/production-v1/reprises/toit-mansarde-2m/toit-mansarde-2m.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "tomato",
+    "url": "/models/manif/production-v1/reprises/tomato/tomato.glb",
+    "bytes": 8304,
+    "sha256": "d1e3c157ff62e9e27b6c5e4b8cad9efbf1b8986db3a42e2b010981d294146abe",
+    "animations": [],
+    "triangles": 180,
+    "source": "assets/manif/sources/production-v1/reprises/tomato/tomato.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "trottinette",
+    "url": "/models/manif/production-v1/reprises/trottinette/trottinette.glb",
+    "bytes": 11896,
+    "sha256": "da294751c93e85fc051235bf1c93b88687129ea1418b29c78bf302913070c606",
+    "animations": [],
+    "triangles": 276,
+    "source": "assets/manif/sources/production-v1/reprises/trottinette/trottinette.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "road-dash",
+    "url": "/models/manif/production-v1/road-dash/road-dash.glb",
+    "bytes": 2516,
+    "sha256": "281d467b5dcbe1c29cfc70eb43b769112cf0cd3cf6e5d1c829b7c2435234977e",
+    "animations": [],
+    "triangles": 12,
+    "source": "assets/manif/sources/production-v1/road-dash/road-dash.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "shop-window-broken",
+    "url": "/models/manif/production-v1/shop-window-broken/shop-window-broken.glb",
+    "bytes": 8096,
+    "sha256": "d29346e13c6dbbeceee9872a83463e5cc617e4530efdd00857e52b1880835694",
+    "animations": [],
+    "triangles": 236,
+    "source": "assets/manif/sources/production-v1/shop-window-broken/shop-window-broken.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "shop-window-intact",
+    "url": "/models/manif/production-v1/shop-window-intact/shop-window-intact.glb",
+    "bytes": 9752,
+    "sha256": "34cfe7c065ed63bc701b811bc69661492745574941c6fc10db3c63d86fd26c88",
+    "animations": [],
+    "triangles": 320,
+    "source": "assets/manif/sources/production-v1/shop-window-intact/shop-window-intact.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "side-street-barrier",
+    "url": "/models/manif/production-v1/side-street-barrier/side-street-barrier.glb",
+    "bytes": 24588,
+    "sha256": "18f97634f7312dcd0e8a5481e70940561c3f28db7709d52c781b9e0077adc42c",
+    "animations": [],
+    "triangles": 932,
+    "source": "assets/manif/sources/production-v1/side-street-barrier/side-street-barrier.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "start-wall",
+    "url": "/models/manif/production-v1/start-wall/start-wall.glb",
+    "bytes": 8108,
+    "sha256": "5c03a2f16895ab1b6208928699c948367c27a700480a97193f520953f28e922a",
+    "animations": [],
+    "triangles": 145,
+    "source": "assets/manif/sources/production-v1/start-wall/start-wall.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "start-zone",
+    "url": "/models/manif/production-v1/start-zone/start-zone.glb",
+    "bytes": 7648,
+    "sha256": "8313ebdc7dd755146897e2118292cc6c6deec1e10b734143c5ce12e81d3a0c03",
+    "animations": [],
+    "triangles": 114,
+    "source": "assets/manif/sources/production-v1/start-zone/start-zone.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "tomato-splat-ground",
+    "url": "/models/manif/production-v1/tomato-splat-ground/tomato-splat-ground.glb",
+    "bytes": 5364,
+    "sha256": "acc21ff75cebe1322b3c07e11be69f5a01a9da357b53119c2b9a2cac6e773829",
+    "animations": [],
+    "triangles": 92,
+    "source": "assets/manif/sources/production-v1/tomato-splat-ground/tomato-splat-ground.blend"
+  },
+  {
+    "batch": "production-v1",
+    "asset": "tree-level",
+    "url": "/models/manif/production-v1/tree-level/tree-level.glb",
+    "bytes": 12156,
+    "sha256": "b44da8d4ae0a74d7a9a2d70884f38f13edf4c8bbda177938cd105cee1ef51bb3",
+    "animations": [],
+    "triangles": 396,
+    "source": "assets/manif/sources/production-v1/tree-level/tree-level.blend"
+  },
+  {
+    "batch": "animations-manifestants-v03",
+    "asset": "lyceen-hoodie",
+    "url": "/models/manif/animations-manifestants-v03/lyceen-hoodie/lyceen-hoodie.glb",
+    "bytes": 421140,
+    "sha256": "a7f4db88bb214d957d6b4d0e0650dd6b63c12799253a3fe33851e7daea1b9487",
+    "animations": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-manifestants-v03/lyceen-hoodie/lyceen-hoodie.blend"
+  },
+  {
+    "batch": "animations-manifestants-v03",
+    "asset": "lyceen-maillot",
+    "url": "/models/manif/animations-manifestants-v03/lyceen-maillot/lyceen-maillot.glb",
+    "bytes": 422624,
+    "sha256": "91310c58299196d9c9a5669719d1f27d4941ffcfe3b5ff9986e989312c1b3179",
+    "animations": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-manifestants-v03/lyceen-maillot/lyceen-maillot.blend"
+  },
+  {
+    "batch": "animations-manifestants-v03",
+    "asset": "lyceenne-coupe-vent",
+    "url": "/models/manif/animations-manifestants-v03/lyceenne-coupe-vent/lyceenne-coupe-vent.glb",
+    "bytes": 424656,
+    "sha256": "ded00d3819f0767076b8bfcb37b7428db554f6fff5f1d97d01331ce4556740ff",
+    "animations": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-manifestants-v03/lyceenne-coupe-vent/lyceenne-coupe-vent.blend"
+  },
+  {
+    "batch": "animations-manifestants-v03",
+    "asset": "lyceenne-sweat",
+    "url": "/models/manif/animations-manifestants-v03/lyceenne-sweat/lyceenne-sweat.glb",
+    "bytes": 422952,
+    "sha256": "4191a68293b8b9fbf7178a146277b4b2387e0cb0e770701940dbe8b144aeec99",
+    "animations": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-manifestants-v03/lyceenne-sweat/lyceenne-sweat.blend"
+  },
+  {
+    "batch": "animations-manifestants-v04",
+    "asset": "lyceen-hoodie",
+    "url": "/models/manif/animations-manifestants-v04/lyceen-hoodie/lyceen-hoodie.glb",
+    "bytes": 226624,
+    "sha256": "f22b77ffaa676500f55aa4c285be405dc6b0a02b34722e62db85aba9ea71b390",
+    "animations": [
+      "gas-stagger",
+      "ko-collapse",
+      "light-fire",
+      "overhead-toss",
+      "tomato-stumble"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-manifestants-v04/lyceen-hoodie/lyceen-hoodie.blend"
+  },
+  {
+    "batch": "animations-manifestants-v04",
+    "asset": "lyceen-maillot",
+    "url": "/models/manif/animations-manifestants-v04/lyceen-maillot/lyceen-maillot.glb",
+    "bytes": 228792,
+    "sha256": "28000cebef3618fa71c78c1c793fa03c20cce4ea4a0d0d7f1b86ca12e5c25ee3",
+    "animations": [
+      "gas-stagger",
+      "ko-collapse",
+      "light-fire",
+      "overhead-toss",
+      "tomato-stumble"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-manifestants-v04/lyceen-maillot/lyceen-maillot.blend"
+  },
+  {
+    "batch": "animations-manifestants-v04",
+    "asset": "lyceenne-coupe-vent",
+    "url": "/models/manif/animations-manifestants-v04/lyceenne-coupe-vent/lyceenne-coupe-vent.glb",
+    "bytes": 230276,
+    "sha256": "d60e415bc9168b5ae887fcbf132426fcc3bb59686e54a4f28657569198763e68",
+    "animations": [
+      "gas-stagger",
+      "ko-collapse",
+      "light-fire",
+      "overhead-toss",
+      "tomato-stumble"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-manifestants-v04/lyceenne-coupe-vent/lyceenne-coupe-vent.blend"
+  },
+  {
+    "batch": "animations-manifestants-v04",
+    "asset": "lyceenne-sweat",
+    "url": "/models/manif/animations-manifestants-v04/lyceenne-sweat/lyceenne-sweat.glb",
+    "bytes": 229120,
+    "sha256": "218186e2c8985666a00f1f727bd8f9b88d7be9e2cad288c4b3814853af0b3b5d",
+    "animations": [
+      "gas-stagger",
+      "ko-collapse",
+      "light-fire",
+      "overhead-toss",
+      "tomato-stumble"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-manifestants-v04/lyceenne-sweat/lyceenne-sweat.blend"
+  },
+  {
+    "batch": "animations-police-v01",
+    "asset": "crs",
+    "url": "/models/manif/animations-police-v01/crs/crs.glb",
+    "bytes": 187996,
+    "sha256": "6ed034bad8805bd1de8cddf7fedab17a5ab0b1b4c14f4dc207c2f4205b4d7698",
+    "animations": [
+      "baton-swing",
+      "formation-walk",
+      "guard-idle",
+      "shield-raise",
+      "shield-shove"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/animations-police-v01/crs/crs.blend"
+  },
+  {
+    "batch": "animations-police-v01",
+    "asset": "crs-grenadier",
+    "url": "/models/manif/animations-police-v01/crs-grenadier/crs-grenadier.glb",
+    "bytes": 167996,
+    "sha256": "51daf25c0a8ad8bd032eb7a783265240173efbd777b2c3fb6b811bef87bbfbd8",
+    "animations": [
+      "canister-throw",
+      "formation-walk",
+      "guard-idle"
+    ],
+    "triangles": 2354,
+    "source": "assets/manif/sources/animations-police-v01/crs-grenadier/crs-grenadier.blend"
+  },
+  {
+    "batch": "animations-police-v01",
+    "asset": "crs-splatted",
+    "url": "/models/manif/animations-police-v01/crs-splatted/crs-splatted.glb",
+    "bytes": 175892,
+    "sha256": "39c427a4e037417c8fb3d77523748b5eb6677edda3d66914c139131a342d1879",
+    "animations": [
+      "formation-walk",
+      "guard-idle",
+      "visor-wipe"
+    ],
+    "triangles": 2866,
+    "source": "assets/manif/sources/animations-police-v01/crs-splatted/crs-splatted.blend"
+  },
+  {
+    "batch": "animations-pompier-v01",
+    "asset": "firefighter",
+    "url": "/models/manif/animations-pompier-v01/firefighter/firefighter.glb",
+    "bytes": 162728,
+    "sha256": "c0aa6c506d5ff3972519f7fc8f006cad17b138b3d4e55009d09fe5e6b6e76a92",
+    "animations": [
+      "hose-ready",
+      "hose-spray",
+      "hose-sweep",
+      "hose-walk"
+    ],
+    "triangles": 2514,
+    "source": "assets/manif/sources/animations-pompier-v01/firefighter/firefighter.blend"
+  },
+  {
+    "batch": "animations-brav-v01",
+    "asset": "brav-m-motorbike",
+    "url": "/models/manif/animations-brav-v01/brav-m-motorbike/brav-m-motorbike.glb",
+    "bytes": 39712,
+    "sha256": "fe978b08c38ac545f3daeaabd41cce3ddac6f2f3cbb1fa0b14581d26791e8477",
+    "animations": [],
+    "triangles": 1648,
+    "source": "assets/manif/sources/animations-brav-v01/brav-m-motorbike/brav-m-motorbike.blend"
+  },
+  {
+    "batch": "animations-brav-v01",
+    "asset": "brav-m-passenger",
+    "url": "/models/manif/animations-brav-v01/brav-m-passenger/brav-m-passenger.glb",
+    "bytes": 170716,
+    "sha256": "e918e07c0f4da1325d7500baed9b8aa15c625cd98a8d338dd541055858ba761b",
+    "animations": [
+      "dismount",
+      "fall-off",
+      "riding"
+    ],
+    "triangles": 2254,
+    "source": "assets/manif/sources/animations-brav-v01/brav-m-passenger/brav-m-passenger.blend"
+  },
+  {
+    "batch": "animations-brav-v01",
+    "asset": "brav-m-rider",
+    "url": "/models/manif/animations-brav-v01/brav-m-rider/brav-m-rider.glb",
+    "bytes": 150308,
+    "sha256": "ca7044757ec61034fe5f4d715315f840805e2cc43e80adb39ec5767122f9c412",
+    "animations": [
+      "fall-off",
+      "riding"
+    ],
+    "triangles": 2254,
+    "source": "assets/manif/sources/animations-brav-v01/brav-m-rider/brav-m-rider.blend"
+  },
+  {
+    "batch": "animations-trainage-v01",
+    "asset": "crs-drag-lyceen-hoodie",
+    "url": "/models/manif/animations-trainage-v01/crs-drag-lyceen-hoodie/crs-drag-lyceen-hoodie.glb",
+    "bytes": 146560,
+    "sha256": "034faf4414c8bdfafd044c304296b3befcd5f462dedfe156da90a8f48b53ba88",
+    "animations": [
+      "drag-backward",
+      "grab-ankles"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v01/crs-drag-lyceen-hoodie/crs-drag-lyceen-hoodie.blend"
+  },
+  {
+    "batch": "animations-trainage-v01",
+    "asset": "crs-drag-lyceen-maillot",
+    "url": "/models/manif/animations-trainage-v01/crs-drag-lyceen-maillot/crs-drag-lyceen-maillot.glb",
+    "bytes": 146424,
+    "sha256": "dee3e40f50c037cd3720494455c15b59757b98622c90fca689c51bae8a6d2ae9",
+    "animations": [
+      "drag-backward",
+      "grab-ankles"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v01/crs-drag-lyceen-maillot/crs-drag-lyceen-maillot.blend"
+  },
+  {
+    "batch": "animations-trainage-v01",
+    "asset": "crs-drag-lyceenne-coupe-vent",
+    "url": "/models/manif/animations-trainage-v01/crs-drag-lyceenne-coupe-vent/crs-drag-lyceenne-coupe-vent.glb",
+    "bytes": 146008,
+    "sha256": "55a366c245a29c2ded08b90355b4c01ff2ee17083055486c644f121cc2b2e60b",
+    "animations": [
+      "drag-backward",
+      "grab-ankles"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v01/crs-drag-lyceenne-coupe-vent/crs-drag-lyceenne-coupe-vent.blend"
+  },
+  {
+    "batch": "animations-trainage-v01",
+    "asset": "crs-drag-lyceenne-sweat",
+    "url": "/models/manif/animations-trainage-v01/crs-drag-lyceenne-sweat/crs-drag-lyceenne-sweat.glb",
+    "bytes": 148812,
+    "sha256": "3e4f6d570d7a69ed89db27f0923d3112e78c0f9988512a943f57108b9b176ff8",
+    "animations": [
+      "drag-backward",
+      "grab-ankles"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v01/crs-drag-lyceenne-sweat/crs-drag-lyceenne-sweat.blend"
+  },
+  {
+    "batch": "animations-trainage-v01",
+    "asset": "lyceen-hoodie",
+    "url": "/models/manif/animations-trainage-v01/lyceen-hoodie/lyceen-hoodie.glb",
+    "bytes": 160096,
+    "sha256": "66ce4cc66537b684f91b271d3a61ba2deab42dbd13f3ec7192418aa354421432",
+    "animations": [
+      "dragged-loop",
+      "grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-trainage-v01/lyceen-hoodie/lyceen-hoodie.blend"
+  },
+  {
+    "batch": "animations-trainage-v01",
+    "asset": "lyceen-maillot",
+    "url": "/models/manif/animations-trainage-v01/lyceen-maillot/lyceen-maillot.glb",
+    "bytes": 162264,
+    "sha256": "c46299618bda3682b86b4d51180ad0a2ae687e61bde859fb9b4aff5e53de6c83",
+    "animations": [
+      "dragged-loop",
+      "grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-trainage-v01/lyceen-maillot/lyceen-maillot.blend"
+  },
+  {
+    "batch": "animations-trainage-v01",
+    "asset": "lyceenne-coupe-vent",
+    "url": "/models/manif/animations-trainage-v01/lyceenne-coupe-vent/lyceenne-coupe-vent.glb",
+    "bytes": 163752,
+    "sha256": "e69d67bc8c74702bb8845c444d2db02ccec97edd3cefc0558795d0237e9d2fbc",
+    "animations": [
+      "dragged-loop",
+      "grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-trainage-v01/lyceenne-coupe-vent/lyceenne-coupe-vent.blend"
+  },
+  {
+    "batch": "animations-trainage-v01",
+    "asset": "lyceenne-sweat",
+    "url": "/models/manif/animations-trainage-v01/lyceenne-sweat/lyceenne-sweat.glb",
+    "bytes": 164604,
+    "sha256": "d4462d79c41b498b54d11b5c45ef99c7b88c553f879411dc2ac869b2c89c5a0b",
+    "animations": [
+      "dragged-loop",
+      "grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-trainage-v01/lyceenne-sweat/lyceenne-sweat.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceen-hoodie-arm",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceen-hoodie-arm/crs-lyceen-hoodie-arm.glb",
+    "bytes": 144676,
+    "sha256": "f8abec8b4765208ebe4a73d8efd2efdec22278bd8f4ad08d9437d49332d2bec1",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceen-hoodie-arm/crs-lyceen-hoodie-arm.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceen-hoodie-collar",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceen-hoodie-collar/crs-lyceen-hoodie-collar.glb",
+    "bytes": 144400,
+    "sha256": "d2177f1e85c28ab9e8af660cb1b8fc0ef6f6c48107af7b7f274c60364cfd7790",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceen-hoodie-collar/crs-lyceen-hoodie-collar.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceen-hoodie-leg",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceen-hoodie-leg/crs-lyceen-hoodie-leg.glb",
+    "bytes": 143396,
+    "sha256": "08c65f86412d11138a38ab78c502a13f0e8cfb30b67ad38a1deb80b1d3bb1144",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceen-hoodie-leg/crs-lyceen-hoodie-leg.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceen-maillot-arm",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceen-maillot-arm/crs-lyceen-maillot-arm.glb",
+    "bytes": 144400,
+    "sha256": "f1c8ef24b8042654c832be35441b3dfb9078379b28ee1f4a071efda9fee9cb1e",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceen-maillot-arm/crs-lyceen-maillot-arm.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceen-maillot-collar",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceen-maillot-collar/crs-lyceen-maillot-collar.glb",
+    "bytes": 144260,
+    "sha256": "8bfeb1b4d63f84f5d3861f5bb2c4474708b690b49a92ec739b9e3f1ead30f649",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceen-maillot-collar/crs-lyceen-maillot-collar.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceen-maillot-leg",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceen-maillot-leg/crs-lyceen-maillot-leg.glb",
+    "bytes": 143120,
+    "sha256": "9aa22c538fd787ee3ba5048e15c702460a9dad89f338e9c4684201eeb8355db0",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceen-maillot-leg/crs-lyceen-maillot-leg.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceenne-coupe-vent-arm",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceenne-coupe-vent-arm/crs-lyceenne-coupe-vent-arm.glb",
+    "bytes": 144676,
+    "sha256": "63cc1a94c66dda4f091918af76a8c1e0da034a3252ed365396cd03e3dea6f255",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceenne-coupe-vent-arm/crs-lyceenne-coupe-vent-arm.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceenne-coupe-vent-collar",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceenne-coupe-vent-collar/crs-lyceenne-coupe-vent-collar.glb",
+    "bytes": 143984,
+    "sha256": "aaf522761ee7ad5e276ce333032cb1278385e610fc8ba5b983ff39beb5cf14c9",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceenne-coupe-vent-collar/crs-lyceenne-coupe-vent-collar.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceenne-coupe-vent-leg",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceenne-coupe-vent-leg/crs-lyceenne-coupe-vent-leg.glb",
+    "bytes": 142984,
+    "sha256": "f995bf51b36fe602eb65622e1087de410d4b9ae9e7e39a509eba4a04106d5dc4",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceenne-coupe-vent-leg/crs-lyceenne-coupe-vent-leg.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceenne-sweat-arm",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceenne-sweat-arm/crs-lyceenne-sweat-arm.glb",
+    "bytes": 144400,
+    "sha256": "e9b342a1706a9264ffe7ebd4bfe0ca643a9287af56a9ecf5ba4724036748dead",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceenne-sweat-arm/crs-lyceenne-sweat-arm.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceenne-sweat-collar",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceenne-sweat-collar/crs-lyceenne-sweat-collar.glb",
+    "bytes": 144260,
+    "sha256": "2613aae0b50738bb176c12bbd00a2089748eb8cfa50f19142feade1531425657",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceenne-sweat-collar/crs-lyceenne-sweat-collar.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "crs-lyceenne-sweat-leg",
+    "url": "/models/manif/animations-saisies-v02/crs-lyceenne-sweat-leg/crs-lyceenne-sweat-leg.glb",
+    "bytes": 144676,
+    "sha256": "740824263c3b3e523b4d844b552f507e0948ed7344beaa6bd9372a8879a8bb48",
+    "animations": [
+      "hold-loop",
+      "seize"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-saisies-v02/crs-lyceenne-sweat-leg/crs-lyceenne-sweat-leg.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceen-hoodie-arm",
+    "url": "/models/manif/animations-saisies-v02/lyceen-hoodie-arm/lyceen-hoodie-arm.glb",
+    "bytes": 156804,
+    "sha256": "5942c8cfba6da79fe0e3cb710e0a6d3577cd1d217fba3466d4d9ceaa4f4ff233",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceen-hoodie-arm/lyceen-hoodie-arm.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceen-hoodie-collar",
+    "url": "/models/manif/animations-saisies-v02/lyceen-hoodie-collar/lyceen-hoodie-collar.glb",
+    "bytes": 155988,
+    "sha256": "65e8b4e026e83e3ab1b9a2edf8cd411b8b8d7f0712bb31248941f8cad09fd129",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceen-hoodie-collar/lyceen-hoodie-collar.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceen-hoodie-leg",
+    "url": "/models/manif/animations-saisies-v02/lyceen-hoodie-leg/lyceen-hoodie-leg.glb",
+    "bytes": 152924,
+    "sha256": "c79686bff430375371f074fdb2977e35c94e2e59245ff58f37d4df1688e92c9b",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceen-hoodie-leg/lyceen-hoodie-leg.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceen-maillot-arm",
+    "url": "/models/manif/animations-saisies-v02/lyceen-maillot-arm/lyceen-maillot-arm.glb",
+    "bytes": 158972,
+    "sha256": "019349b4b253279be9e7e322d96e53d37598708187614773f26a8b42e0081b81",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceen-maillot-arm/lyceen-maillot-arm.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceen-maillot-collar",
+    "url": "/models/manif/animations-saisies-v02/lyceen-maillot-collar/lyceen-maillot-collar.glb",
+    "bytes": 158156,
+    "sha256": "247044a35e19226fbdc3a199b9938b3fd8a7d3c73e0262bc82c1990807a132ea",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceen-maillot-collar/lyceen-maillot-collar.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceen-maillot-leg",
+    "url": "/models/manif/animations-saisies-v02/lyceen-maillot-leg/lyceen-maillot-leg.glb",
+    "bytes": 155092,
+    "sha256": "02a537f51e59efa5d564f3ada212d71561baa54b4b3876bdd62773ee4d002bca",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceen-maillot-leg/lyceen-maillot-leg.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceenne-coupe-vent-arm",
+    "url": "/models/manif/animations-saisies-v02/lyceenne-coupe-vent-arm/lyceenne-coupe-vent-arm.glb",
+    "bytes": 160460,
+    "sha256": "65c4bb3f72c8c7cb2ce48c86b64d739636f2f2cd71dbdb4e79e21c4dd98cd209",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceenne-coupe-vent-arm/lyceenne-coupe-vent-arm.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceenne-coupe-vent-collar",
+    "url": "/models/manif/animations-saisies-v02/lyceenne-coupe-vent-collar/lyceenne-coupe-vent-collar.glb",
+    "bytes": 159644,
+    "sha256": "c730ae69cfb2139ee60a96e80135b4b4adb710a253d7951384c8beba89208b06",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceenne-coupe-vent-collar/lyceenne-coupe-vent-collar.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceenne-coupe-vent-leg",
+    "url": "/models/manif/animations-saisies-v02/lyceenne-coupe-vent-leg/lyceenne-coupe-vent-leg.glb",
+    "bytes": 156576,
+    "sha256": "9947dc7cf026a57a510473e2dc8dbfcd1394e76ea194528c8ed94666d469de4e",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceenne-coupe-vent-leg/lyceenne-coupe-vent-leg.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceenne-sweat-arm",
+    "url": "/models/manif/animations-saisies-v02/lyceenne-sweat-arm/lyceenne-sweat-arm.glb",
+    "bytes": 159300,
+    "sha256": "6d0fbcdaee51c9a15c737a985797ef35a8830507b791a7642dba7ef7491eb662",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceenne-sweat-arm/lyceenne-sweat-arm.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceenne-sweat-collar",
+    "url": "/models/manif/animations-saisies-v02/lyceenne-sweat-collar/lyceenne-sweat-collar.glb",
+    "bytes": 158484,
+    "sha256": "899435c0a62604167c0bd532b604c57764869fcf77ab6537e95199eadb2dd743",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceenne-sweat-collar/lyceenne-sweat-collar.blend"
+  },
+  {
+    "batch": "animations-saisies-v02",
+    "asset": "lyceenne-sweat-leg",
+    "url": "/models/manif/animations-saisies-v02/lyceenne-sweat-leg/lyceenne-sweat-leg.glb",
+    "bytes": 156028,
+    "sha256": "46d0ad6a4ced2f2c9502cb67dfd7de4a90664a98c554f5716f00794b4b0d210c",
+    "animations": [
+      "held-loop",
+      "seized"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-saisies-v02/lyceenne-sweat-leg/lyceenne-sweat-leg.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceen-hoodie-arm",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceen-hoodie-arm/crs-lyceen-hoodie-arm.glb",
+    "bytes": 146500,
+    "sha256": "e634ca98d95b68d11b3f3c30ff4e93281fff2569e5804ce357f6fefab802fd3b",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceen-hoodie-arm/crs-lyceen-hoodie-arm.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceen-hoodie-collar",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceen-hoodie-collar/crs-lyceen-hoodie-collar.glb",
+    "bytes": 146636,
+    "sha256": "ff090797ab7ef989f854fc266e6c226933cc387b8f3670516b15045324eb75dd",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceen-hoodie-collar/crs-lyceen-hoodie-collar.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceen-hoodie-leg",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceen-hoodie-leg/crs-lyceen-hoodie-leg.glb",
+    "bytes": 147052,
+    "sha256": "b4a5515409c529c8cfbdee42dd46f1ebd54782d66412e57acc47217883b26ce3",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceen-hoodie-leg/crs-lyceen-hoodie-leg.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceen-maillot-arm",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceen-maillot-arm/crs-lyceen-maillot-arm.glb",
+    "bytes": 146364,
+    "sha256": "cc1bf2af19761b8c84df1806cf769207b0e3c7dedc65ac4d72224e251cc627d7",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceen-maillot-arm/crs-lyceen-maillot-arm.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceen-maillot-collar",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceen-maillot-collar/crs-lyceen-maillot-collar.glb",
+    "bytes": 146636,
+    "sha256": "db4630cc73f79f1a497a543e61944f91945de466aef27238e3fb0b41aabc3ab8",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceen-maillot-collar/crs-lyceen-maillot-collar.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceen-maillot-leg",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceen-maillot-leg/crs-lyceen-maillot-leg.glb",
+    "bytes": 146636,
+    "sha256": "d2c39771245b9aa7e754566a102e46b2bb87219acbb7227ef83002e259744093",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceen-maillot-leg/crs-lyceen-maillot-leg.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceenne-coupe-vent-arm",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceenne-coupe-vent-arm/crs-lyceenne-coupe-vent-arm.glb",
+    "bytes": 146776,
+    "sha256": "1be5c8fb21aec06c3dd5b6fb06ca3134c76fa8bb7d53d52a3ca8604d9b812657",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceenne-coupe-vent-arm/crs-lyceenne-coupe-vent-arm.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceenne-coupe-vent-collar",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceenne-coupe-vent-collar/crs-lyceenne-coupe-vent-collar.glb",
+    "bytes": 146500,
+    "sha256": "e496f44895e37ac9253468aeeb3b38ee70370e00b9a8cb9ef59ac48b8f588046",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceenne-coupe-vent-collar/crs-lyceenne-coupe-vent-collar.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceenne-coupe-vent-leg",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceenne-coupe-vent-leg/crs-lyceenne-coupe-vent-leg.glb",
+    "bytes": 146636,
+    "sha256": "0fe4e009dc2ae9ca4880b11326aebc496cdb54ecd7e8aec96d46c4e573d50cc7",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceenne-coupe-vent-leg/crs-lyceenne-coupe-vent-leg.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceenne-sweat-arm",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceenne-sweat-arm/crs-lyceenne-sweat-arm.glb",
+    "bytes": 147900,
+    "sha256": "efb129ceaf36bf41757d7c0eaf68225c9f449d8b0c7e82a529163a8f9cceec6d",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceenne-sweat-arm/crs-lyceenne-sweat-arm.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceenne-sweat-collar",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceenne-sweat-collar/crs-lyceenne-sweat-collar.glb",
+    "bytes": 147900,
+    "sha256": "01700f4f7b632454556058fc921bea5e9b21f1e7d8d7b143813e9127eca1d629",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceenne-sweat-collar/crs-lyceenne-sweat-collar.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "crs-lyceenne-sweat-leg",
+    "url": "/models/manif/animations-trainage-v02/crs-lyceenne-sweat-leg/crs-lyceenne-sweat-leg.glb",
+    "bytes": 148176,
+    "sha256": "4c759997ca7a2b34a1b1cca1a65f94c9cbf2208d0c17a00a8dbe18823a83ebbe",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2114,
+    "source": "assets/manif/sources/animations-trainage-v02/crs-lyceenne-sweat-leg/crs-lyceenne-sweat-leg.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceen-hoodie-arm",
+    "url": "/models/manif/animations-trainage-v02/lyceen-hoodie-arm/lyceen-hoodie-arm.glb",
+    "bytes": 150652,
+    "sha256": "2b31169b83f7ad484e368dd7936641af7a8383c4a19b75b8e25210ff754a5f11",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceen-hoodie-arm/lyceen-hoodie-arm.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceen-hoodie-collar",
+    "url": "/models/manif/animations-trainage-v02/lyceen-hoodie-collar/lyceen-hoodie-collar.glb",
+    "bytes": 159276,
+    "sha256": "552e2278175c85886326ae8686d5862366b0a6785570dd4bed8714b31eb20bb3",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceen-hoodie-collar/lyceen-hoodie-collar.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceen-hoodie-leg",
+    "url": "/models/manif/animations-trainage-v02/lyceen-hoodie-leg/lyceen-hoodie-leg.glb",
+    "bytes": 154464,
+    "sha256": "fbfd997a0ae768d293f1a70a6819e560978cf37100841f0d01f965dbf059c1b0",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceen-hoodie-leg/lyceen-hoodie-leg.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceen-maillot-arm",
+    "url": "/models/manif/animations-trainage-v02/lyceen-maillot-arm/lyceen-maillot-arm.glb",
+    "bytes": 152820,
+    "sha256": "a4cd78b84c1badbfbf0455160849cca6ca0b9e2a8d1db2f330ea7ff15cc3d15b",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceen-maillot-arm/lyceen-maillot-arm.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceen-maillot-collar",
+    "url": "/models/manif/animations-trainage-v02/lyceen-maillot-collar/lyceen-maillot-collar.glb",
+    "bytes": 161444,
+    "sha256": "ff7a27a1edbd0463d0ed4d9a4e4c5c77df86ef5205963b9dda7ab252240a124f",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceen-maillot-collar/lyceen-maillot-collar.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceen-maillot-leg",
+    "url": "/models/manif/animations-trainage-v02/lyceen-maillot-leg/lyceen-maillot-leg.glb",
+    "bytes": 156632,
+    "sha256": "99099f9267467e1234b9fbbb336570c6ce9eeda2a0fd2a8ab5ab9bcda7d132bb",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceen-maillot-leg/lyceen-maillot-leg.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceenne-coupe-vent-arm",
+    "url": "/models/manif/animations-trainage-v02/lyceenne-coupe-vent-arm/lyceenne-coupe-vent-arm.glb",
+    "bytes": 154304,
+    "sha256": "f144e69a9f69e66d912460454fba3214ca2411a6f2776242db9160f3e921f95e",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceenne-coupe-vent-arm/lyceenne-coupe-vent-arm.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceenne-coupe-vent-collar",
+    "url": "/models/manif/animations-trainage-v02/lyceenne-coupe-vent-collar/lyceenne-coupe-vent-collar.glb",
+    "bytes": 162932,
+    "sha256": "d2b89a091398a5b53df8acf01409d9028515d7658ebbaad7f13ab5ed066dd9a1",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceenne-coupe-vent-collar/lyceenne-coupe-vent-collar.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceenne-coupe-vent-leg",
+    "url": "/models/manif/animations-trainage-v02/lyceenne-coupe-vent-leg/lyceenne-coupe-vent-leg.glb",
+    "bytes": 158120,
+    "sha256": "8bc552387e475d8efe831697ca5c5a2f77d9bff27f976fde17e786d60548b675",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceenne-coupe-vent-leg/lyceenne-coupe-vent-leg.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceenne-sweat-arm",
+    "url": "/models/manif/animations-trainage-v02/lyceenne-sweat-arm/lyceenne-sweat-arm.glb",
+    "bytes": 156264,
+    "sha256": "9ac03d5239a7be83fe9d18f2b10c5914603dd74778354400e5666b7b50fcd2d5",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceenne-sweat-arm/lyceenne-sweat-arm.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceenne-sweat-collar",
+    "url": "/models/manif/animations-trainage-v02/lyceenne-sweat-collar/lyceenne-sweat-collar.glb",
+    "bytes": 162380,
+    "sha256": "8e25496789ec0e73bc3b7d8eace561c70c61956abd1f89c05e16c3f5abe29fa7",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceenne-sweat-collar/lyceenne-sweat-collar.blend"
+  },
+  {
+    "batch": "animations-trainage-v02",
+    "asset": "lyceenne-sweat-leg",
+    "url": "/models/manif/animations-trainage-v02/lyceenne-sweat-leg/lyceenne-sweat-leg.glb",
+    "bytes": 159664,
+    "sha256": "340434b9ee9166c0ad3c1d59e87d860c42f2328b2341f6621e79034225372fac",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-trainage-v02/lyceenne-sweat-leg/lyceenne-sweat-leg.blend"
+  },
+  {
+    "batch": "animations-bac-v01",
+    "asset": "bac-armband",
+    "url": "/models/manif/animations-bac-v01/bac-armband/bac-armband.glb",
+    "bytes": 5708,
+    "sha256": "2c8a620544a829812b7b187053f52e319c1a5aecfa52b1f49820bccfe5059344",
+    "animations": [],
+    "triangles": 88,
+    "source": "assets/manif/sources/animations-bac-v01/bac-armband/bac-armband.blend"
+  },
+  {
+    "batch": "animations-bac-v01",
+    "asset": "lyceen-hoodie",
+    "url": "/models/manif/animations-bac-v01/lyceen-hoodie/lyceen-hoodie.glb",
+    "bytes": 145196,
+    "sha256": "1ad8e56a839288e19d0a85c53ddce590ab42786051f52afb04a7cfe434807664",
+    "animations": [
+      "armband-reveal"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-bac-v01/lyceen-hoodie/lyceen-hoodie.blend"
+  },
+  {
+    "batch": "animations-bac-v01",
+    "asset": "lyceen-maillot",
+    "url": "/models/manif/animations-bac-v01/lyceen-maillot/lyceen-maillot.glb",
+    "bytes": 147364,
+    "sha256": "06d8de67b5891ec0dd4bb8d4892650a2a04e53f98ac8f3e7744590bee9e9285d",
+    "animations": [
+      "armband-reveal"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-bac-v01/lyceen-maillot/lyceen-maillot.blend"
+  },
+  {
+    "batch": "animations-bac-v01",
+    "asset": "lyceenne-coupe-vent",
+    "url": "/models/manif/animations-bac-v01/lyceenne-coupe-vent/lyceenne-coupe-vent.glb",
+    "bytes": 148984,
+    "sha256": "fa15588ab73545b05b042d036ad95d145520da536f48a4e84b1abfe40bc4593c",
+    "animations": [
+      "armband-reveal"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-bac-v01/lyceenne-coupe-vent/lyceenne-coupe-vent.blend"
+  },
+  {
+    "batch": "animations-bac-v01",
+    "asset": "lyceenne-sweat",
+    "url": "/models/manif/animations-bac-v01/lyceenne-sweat/lyceenne-sweat.glb",
+    "bytes": 147692,
+    "sha256": "391b0c735570a3b1c325cce3c7989968496e9efd2770016f9b6859c9a79daa21",
+    "animations": [
+      "armband-reveal"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-bac-v01/lyceenne-sweat/lyceenne-sweat.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "bonk-stars",
+    "url": "/models/manif/effets-v01/bonk-stars/bonk-stars.glb",
+    "bytes": 12852,
+    "sha256": "e800ac0a2d64d40244704b61fbb1c96cbed6054556b1f26f57b3ed9c4848451c",
+    "animations": [
+      "bonk-stars"
+    ],
+    "triangles": 108,
+    "source": "assets/manif/sources/effets-v01/bonk-stars/bonk-stars.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "bum-flames",
+    "url": "/models/manif/effets-v01/bum-flames/bum-flames.glb",
+    "bytes": 22464,
+    "sha256": "ff163ad040282fb7fea2ad7e3ea2591968284de2a602fb00f0c70c7980807fb4",
+    "animations": [
+      "bum-flames"
+    ],
+    "triangles": 144,
+    "source": "assets/manif/sources/effets-v01/bum-flames/bum-flames.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "flame-loop",
+    "url": "/models/manif/effets-v01/flame-loop/flame-loop.glb",
+    "bytes": 36380,
+    "sha256": "e20355237c039650edecb0aab9b39ca4687859b72035b291a75316122a356466",
+    "animations": [
+      "flame-loop"
+    ],
+    "triangles": 240,
+    "source": "assets/manif/sources/effets-v01/flame-loop/flame-loop.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "hit-flash",
+    "url": "/models/manif/effets-v01/hit-flash/hit-flash.glb",
+    "bytes": 3944,
+    "sha256": "696e44390c6e28adc04a3dfd10481df403d2a0cde1328ffa84b56fe6bd5781cb",
+    "animations": [
+      "hit-flash"
+    ],
+    "triangles": 36,
+    "source": "assets/manif/sources/effets-v01/hit-flash/hit-flash.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "impact-puff",
+    "url": "/models/manif/effets-v01/impact-puff/impact-puff.glb",
+    "bytes": 65504,
+    "sha256": "1a01a46c7f2bae49a5852f5e61c08930f9aacfc9ee5fb4907c8ae6b406e389cc",
+    "animations": [
+      "impact-puff"
+    ],
+    "triangles": 560,
+    "source": "assets/manif/sources/effets-v01/impact-puff/impact-puff.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "smoke-column",
+    "url": "/models/manif/effets-v01/smoke-column/smoke-column.glb",
+    "bytes": 92140,
+    "sha256": "625824a54f50d842809a491d1a0f65fe8e499787aafb84a5133f1696f24e6f98",
+    "animations": [
+      "smoke-column"
+    ],
+    "triangles": 720,
+    "source": "assets/manif/sources/effets-v01/smoke-column/smoke-column.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "stink-cloud",
+    "url": "/models/manif/effets-v01/stink-cloud/stink-cloud.glb",
+    "bytes": 92124,
+    "sha256": "c11646366a7a33985ee1c8144bcbbd30442815c9e87826f9e0b3dae3c16ddb88",
+    "animations": [
+      "stink-cloud"
+    ],
+    "triangles": 720,
+    "source": "assets/manif/sources/effets-v01/stink-cloud/stink-cloud.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "teargas-cloud",
+    "url": "/models/manif/effets-v01/teargas-cloud/teargas-cloud.glb",
+    "bytes": 92128,
+    "sha256": "25aad7837c4f7218a6cadddaa02d6af4a52f5df3f5ae3908710d35e46e1da74e",
+    "animations": [
+      "teargas-cloud"
+    ],
+    "triangles": 720,
+    "source": "assets/manif/sources/effets-v01/teargas-cloud/teargas-cloud.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "tomato-splat",
+    "url": "/models/manif/effets-v01/tomato-splat/tomato-splat.glb",
+    "bytes": 18744,
+    "sha256": "1a0e4b9407509f230d93072b1aa8800ff25d92e6bea59100f064289e8c2b4817",
+    "animations": [],
+    "triangles": 192,
+    "source": "assets/manif/sources/effets-v01/tomato-splat/tomato-splat.blend"
+  },
+  {
+    "batch": "effets-v01",
+    "asset": "water-jet",
+    "url": "/models/manif/effets-v01/water-jet/water-jet.glb",
+    "bytes": 53156,
+    "sha256": "dccceca4aac2e39ac9d3bdbab47dd17a530223f04c3b1af92f5d64f38dfe52c3",
+    "animations": [
+      "water-jet"
+    ],
+    "triangles": 240,
+    "source": "assets/manif/sources/effets-v01/water-jet/water-jet.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "held-item-marker",
+    "url": "/models/manif/interface-3d-v01/held-item-marker/held-item-marker.glb",
+    "bytes": 3436,
+    "sha256": "c37dc8550726329016ed26456c83df622e5a981dfad0f8145c9506ecd80a20b6",
+    "animations": [],
+    "triangles": 52,
+    "source": "assets/manif/sources/interface-3d-v01/held-item-marker/held-item-marker.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "local-player-marker",
+    "url": "/models/manif/interface-3d-v01/local-player-marker/local-player-marker.glb",
+    "bytes": 1572,
+    "sha256": "a23ff9a42f51abd54b946b7d46a0fe9dc0a4669ea434dfd80372b22e1de0c5f4",
+    "animations": [],
+    "triangles": 8,
+    "source": "assets/manif/sources/interface-3d-v01/local-player-marker/local-player-marker.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "progress-100",
+    "url": "/models/manif/interface-3d-v01/progress-100/progress-100.glb",
+    "bytes": 27564,
+    "sha256": "9ec05f70c11fb3820178799d4cba898419b3d06837e51ced4e696f6e6a23aa74",
+    "animations": [],
+    "triangles": 1152,
+    "source": "assets/manif/sources/interface-3d-v01/progress-100/progress-100.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "progress-25",
+    "url": "/models/manif/interface-3d-v01/progress-25/progress-25.glb",
+    "bytes": 20496,
+    "sha256": "5ece0b08efcdae3b39de5ddc972e123fd437b39a273b0e9d6e5e4a991601ff10",
+    "animations": [],
+    "triangles": 720,
+    "source": "assets/manif/sources/interface-3d-v01/progress-25/progress-25.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "progress-50",
+    "url": "/models/manif/interface-3d-v01/progress-50/progress-50.glb",
+    "bytes": 24048,
+    "sha256": "d45bfb3df66c51bde78ce25c65349ef452706a45c7382d86ca6b589b39e15864",
+    "animations": [],
+    "triangles": 864,
+    "source": "assets/manif/sources/interface-3d-v01/progress-50/progress-50.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "progress-75",
+    "url": "/models/manif/interface-3d-v01/progress-75/progress-75.glb",
+    "bytes": 27600,
+    "sha256": "84cdb6fee3fe9ce51d222964381a90f38b0dce953ae9cd95caff4b60c52cb00a",
+    "animations": [],
+    "triangles": 1008,
+    "source": "assets/manif/sources/interface-3d-v01/progress-75/progress-75.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "status-fire",
+    "url": "/models/manif/interface-3d-v01/status-fire/status-fire.glb",
+    "bytes": 2416,
+    "sha256": "395c60b096200db0223a135499227b158ca89fa23b211113a35185ab927756a6",
+    "animations": [],
+    "triangles": 28,
+    "source": "assets/manif/sources/interface-3d-v01/status-fire/status-fire.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "status-gas",
+    "url": "/models/manif/interface-3d-v01/status-gas/status-gas.glb",
+    "bytes": 26360,
+    "sha256": "5ce87d5b9c23fa596615c0cc06a1d66ea413bbc7b3a0040d2478221baa893245",
+    "animations": [],
+    "triangles": 240,
+    "source": "assets/manif/sources/interface-3d-v01/status-gas/status-gas.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "status-health",
+    "url": "/models/manif/interface-3d-v01/status-health/status-health.glb",
+    "bytes": 2420,
+    "sha256": "a4470c1a2a61a361986b7d1a7169774104411dfa83dcde5ed1a0e0a338b1b953",
+    "animations": [],
+    "triangles": 28,
+    "source": "assets/manif/sources/interface-3d-v01/status-health/status-health.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "status-rescue",
+    "url": "/models/manif/interface-3d-v01/status-rescue/status-rescue.glb",
+    "bytes": 3088,
+    "sha256": "1a07afbd4efc8905d3e7e1f1ca9c382b7e634aa4793820d4cd95eaf13ed2d108",
+    "animations": [],
+    "triangles": 44,
+    "source": "assets/manif/sources/interface-3d-v01/status-rescue/status-rescue.blend"
+  },
+  {
+    "batch": "interface-3d-v01",
+    "asset": "status-stunned",
+    "url": "/models/manif/interface-3d-v01/status-stunned/status-stunned.glb",
+    "bytes": 2744,
+    "sha256": "ea7d39450a0e9b3c632e80dc7417f07e9110904496b1ed931d1d3d4fa3312516",
+    "animations": [],
+    "triangles": 36,
+    "source": "assets/manif/sources/interface-3d-v01/status-stunned/status-stunned.blend"
+  },
+  {
+    "batch": "interface-3d-v02",
+    "asset": "hp-0",
+    "url": "/models/manif/interface-3d-v02/hp-0/hp-0.glb",
+    "bytes": 3056,
+    "sha256": "076e6664f0fc13c6924b890afc67439539a29be2ebca46f9226a88750e4e81d1",
+    "animations": [],
+    "triangles": 24,
+    "source": "assets/manif/sources/interface-3d-v02/hp-0/hp-0.blend"
+  },
+  {
+    "batch": "interface-3d-v02",
+    "asset": "hp-100",
+    "url": "/models/manif/interface-3d-v02/hp-100/hp-100.glb",
+    "bytes": 4356,
+    "sha256": "bd19fa186030a528203bf1bb4907942570c74998db3b294566a35e9e0b974e16",
+    "animations": [],
+    "triangles": 36,
+    "source": "assets/manif/sources/interface-3d-v02/hp-100/hp-100.blend"
+  },
+  {
+    "batch": "interface-3d-v02",
+    "asset": "hp-25",
+    "url": "/models/manif/interface-3d-v02/hp-25/hp-25.glb",
+    "bytes": 4360,
+    "sha256": "39a5b2599cd776902d7147ae357076a4ece26356fe83b0c09c45d1724dc10cc8",
+    "animations": [],
+    "triangles": 36,
+    "source": "assets/manif/sources/interface-3d-v02/hp-25/hp-25.blend"
+  },
+  {
+    "batch": "interface-3d-v02",
+    "asset": "hp-50",
+    "url": "/models/manif/interface-3d-v02/hp-50/hp-50.glb",
+    "bytes": 4356,
+    "sha256": "c24ea85164aa1058e73341b12c45b1ca6522f60d6b3ea8a7ef5714ac79c91556",
+    "animations": [],
+    "triangles": 36,
+    "source": "assets/manif/sources/interface-3d-v02/hp-50/hp-50.blend"
+  },
+  {
+    "batch": "interface-3d-v02",
+    "asset": "hp-75",
+    "url": "/models/manif/interface-3d-v02/hp-75/hp-75.glb",
+    "bytes": 4356,
+    "sha256": "6707d41cb04b7fe72abdbd7ac2a0eece148986a14a1b4c1ed25a018406fe965a",
+    "animations": [],
+    "triangles": 36,
+    "source": "assets/manif/sources/interface-3d-v02/hp-75/hp-75.blend"
+  },
+  {
+    "batch": "interface-3d-v02",
+    "asset": "player-foot-ring",
+    "url": "/models/manif/interface-3d-v02/player-foot-ring/player-foot-ring.glb",
+    "bytes": 16080,
+    "sha256": "a1468b943c65936242ef70bf84ebb1b51b3da445f1df0efaf4ee66a0a54cd6e4",
+    "animations": [],
+    "triangles": 536,
+    "source": "assets/manif/sources/interface-3d-v02/player-foot-ring/player-foot-ring.blend"
+  },
+  {
+    "batch": "interface-3d-v02",
+    "asset": "status-arrested",
+    "url": "/models/manif/interface-3d-v02/status-arrested/status-arrested.glb",
+    "bytes": 16148,
+    "sha256": "c3175a800368d10e41f74e8ad8c53ad3ec54203779d098bb6102adbac23550e0",
+    "animations": [],
+    "triangles": 588,
+    "source": "assets/manif/sources/interface-3d-v02/status-arrested/status-arrested.blend"
+  },
+  {
+    "batch": "interface-3d-v02",
+    "asset": "status-grabbed",
+    "url": "/models/manif/interface-3d-v02/status-grabbed/status-grabbed.glb",
+    "bytes": 4436,
+    "sha256": "1a0b29d9215efb548114359ddc18610434b336750e62c90b9e349e2ce1536444",
+    "animations": [],
+    "triangles": 52,
+    "source": "assets/manif/sources/interface-3d-v02/status-grabbed/status-grabbed.blend"
+  },
+  {
+    "batch": "interface-3d-v02",
+    "asset": "status-ko",
+    "url": "/models/manif/interface-3d-v02/status-ko/status-ko.glb",
+    "bytes": 16936,
+    "sha256": "a827362937b55c783349a8717e943de7b63b4ca1b0668c040d05c5de3b955ef3",
+    "animations": [],
+    "triangles": 444,
+    "source": "assets/manif/sources/interface-3d-v02/status-ko/status-ko.blend"
+  },
+  {
+    "batch": "animations-moto-v01",
+    "asset": "bike-slide",
+    "url": "/models/manif/animations-moto-v01/bike-slide/bike-slide.glb",
+    "bytes": 41700,
+    "sha256": "b38c39a45f4519c2ba20f5d56d339f051f03e3bd46bc3de2842a4800cb68bdf1",
+    "animations": [
+      "Scene"
+    ],
+    "triangles": 1648,
+    "source": "assets/manif/sources/animations-moto-v01/bike-slide/bike-slide.blend"
+  },
+  {
+    "batch": "animations-moto-v01",
+    "asset": "bike-tip",
+    "url": "/models/manif/animations-moto-v01/bike-tip/bike-tip.glb",
+    "bytes": 41972,
+    "sha256": "82fc37579f9574161d23b171648898b204266c41c5688cf84168ddc31631c344",
+    "animations": [
+      "Scene"
+    ],
+    "triangles": 1648,
+    "source": "assets/manif/sources/animations-moto-v01/bike-tip/bike-tip.blend"
+  },
+  {
+    "batch": "animations-moto-v01",
+    "asset": "bike-tipped",
+    "url": "/models/manif/animations-moto-v01/bike-tipped/bike-tipped.glb",
+    "bytes": 39860,
+    "sha256": "6d80db06839b89352a101aee2011c9f908ec426f98e1a49ba42c1efa0e994ced",
+    "animations": [],
+    "triangles": 1648,
+    "source": "assets/manif/sources/animations-moto-v01/bike-tipped/bike-tipped.blend"
+  },
+  {
+    "batch": "decors-complements-v01",
+    "asset": "chimney-pair",
+    "url": "/models/manif/decors-complements-v01/chimney-pair/chimney-pair.glb",
+    "bytes": 9984,
+    "sha256": "690c9c343c56cdf269d48a89eab78cbef16bd2dab96b1754e05e55b0fcc82016",
+    "animations": [],
+    "triangles": 352,
+    "source": "assets/manif/sources/decors-complements-v01/chimney-pair/chimney-pair.blend"
+  },
+  {
+    "batch": "decors-complements-v01",
+    "asset": "roof-dormer",
+    "url": "/models/manif/decors-complements-v01/roof-dormer/roof-dormer.glb",
+    "bytes": 8424,
+    "sha256": "2abb5da2560322ce86cd920711b57d884774be3e5adf3d16fdfc0944dc99e9d7",
+    "animations": [],
+    "triangles": 124,
+    "source": "assets/manif/sources/decors-complements-v01/roof-dormer/roof-dormer.blend"
+  },
+  {
+    "batch": "decors-complements-v01",
+    "asset": "roof-mansard-2m",
+    "url": "/models/manif/decors-complements-v01/roof-mansard-2m/roof-mansard-2m.glb",
+    "bytes": 11000,
+    "sha256": "02af1e6d684453023ec1d3879f1c31dace9ea6fdec592f9a5eb93502e8cb2af8",
+    "animations": [],
+    "triangles": 280,
+    "source": "assets/manif/sources/decors-complements-v01/roof-mansard-2m/roof-mansard-2m.blend"
+  },
+  {
+    "batch": "decors-complements-v01",
+    "asset": "roof-zinc-2m",
+    "url": "/models/manif/decors-complements-v01/roof-zinc-2m/roof-zinc-2m.glb",
+    "bytes": 7280,
+    "sha256": "3c80ffd902823b71e4805a82299748d2c3727ad314b6175c5f3b277cb03c1d7b",
+    "animations": [],
+    "triangles": 152,
+    "source": "assets/manif/sources/decors-complements-v01/roof-zinc-2m/roof-zinc-2m.blend"
+  },
+  {
+    "batch": "decors-complements-v01",
+    "asset": "side-alley-backdrop",
+    "url": "/models/manif/decors-complements-v01/side-alley-backdrop/side-alley-backdrop.glb",
+    "bytes": 18228,
+    "sha256": "e649b28020dc43be7a1b2f28cede7fba9c64cc55004603252e8c521801a33757",
+    "animations": [],
+    "triangles": 324,
+    "source": "assets/manif/sources/decors-complements-v01/side-alley-backdrop/side-alley-backdrop.blend"
+  },
+  {
+    "batch": "decors-complements-v01",
+    "asset": "side-alley-ground-6m",
+    "url": "/models/manif/decors-complements-v01/side-alley-ground-6m/side-alley-ground-6m.glb",
+    "bytes": 14296,
+    "sha256": "a7585a8a3b6ae5a2604b704d6930b9c4da88c70bd3a22ae64843c1a7d973df14",
+    "animations": [],
+    "triangles": 180,
+    "source": "assets/manif/sources/decors-complements-v01/side-alley-ground-6m/side-alley-ground-6m.blend"
+  },
+  {
+    "batch": "fourgon-v02",
+    "asset": "police-van-doors",
+    "url": "/models/manif/fourgon-v02/police-van-doors/police-van-doors.glb",
+    "bytes": 52612,
+    "sha256": "2c076da464987e21c7dc9613f309411524310e7399af9e260430e9aa43871db0",
+    "animations": [
+      "doors-open"
+    ],
+    "triangles": 1924,
+    "source": "assets/manif/sources/fourgon-v02/police-van-doors/police-van-doors.blend"
+  },
+  {
+    "batch": "fourgon-v02",
+    "asset": "police-van-interior",
+    "url": "/models/manif/fourgon-v02/police-van-interior/police-van-interior.glb",
+    "bytes": 50180,
+    "sha256": "38dccef69423fa85d2b9ef781d623c6ebdfb53fea0e87d54ed5e91d1fc306b1f",
+    "animations": [],
+    "triangles": 1924,
+    "source": "assets/manif/sources/fourgon-v02/police-van-interior/police-van-interior.blend"
+  },
+  {
+    "batch": "fourgon-v02",
+    "asset": "police-van-open-interior",
+    "url": "/models/manif/fourgon-v02/police-van-open-interior/police-van-open-interior.glb",
+    "bytes": 50288,
+    "sha256": "884136020171521cc3db20487007a7d446232661518f4c83c4c805581878449e",
+    "animations": [],
+    "triangles": 1924,
+    "source": "assets/manif/sources/fourgon-v02/police-van-open-interior/police-van-open-interior.blend"
+  },
+  {
+    "batch": "animations-embarquement-v01",
+    "asset": "lyceen-hoodie",
+    "url": "/models/manif/animations-embarquement-v01/lyceen-hoodie/lyceen-hoodie.glb",
+    "bytes": 148852,
+    "sha256": "06403abf32f2e8636e1da75547354298c1d76f5c07f844f58b0c94e6adc63698",
+    "animations": [
+      "van-entry-seated"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-embarquement-v01/lyceen-hoodie/lyceen-hoodie.blend"
+  },
+  {
+    "batch": "animations-embarquement-v01",
+    "asset": "lyceen-maillot",
+    "url": "/models/manif/animations-embarquement-v01/lyceen-maillot/lyceen-maillot.glb",
+    "bytes": 151020,
+    "sha256": "6987aa950dec01dc5bf65803ce51ba701ca1bbd88ab2ed6d888b98d5cd7c2cd9",
+    "animations": [
+      "van-entry-seated"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/animations-embarquement-v01/lyceen-maillot/lyceen-maillot.blend"
+  },
+  {
+    "batch": "animations-embarquement-v01",
+    "asset": "lyceenne-coupe-vent",
+    "url": "/models/manif/animations-embarquement-v01/lyceenne-coupe-vent/lyceenne-coupe-vent.glb",
+    "bytes": 152508,
+    "sha256": "9fa5ee8584f641a4d98400160626111c996ae5621ca5203f4daa2d0f3c6f7e95",
+    "animations": [
+      "van-entry-seated"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-embarquement-v01/lyceenne-coupe-vent/lyceenne-coupe-vent.blend"
+  },
+  {
+    "batch": "animations-embarquement-v01",
+    "asset": "lyceenne-sweat",
+    "url": "/models/manif/animations-embarquement-v01/lyceenne-sweat/lyceenne-sweat.glb",
+    "bytes": 151348,
+    "sha256": "88f06b607b0f2f5d29fc46c87aff816ef198adb7a87a1b3e5d67d44ba41d109f",
+    "animations": [
+      "van-entry-seated"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/animations-embarquement-v01/lyceenne-sweat/lyceenne-sweat.blend"
+  },
+  {
+    "batch": "vehicule-canon-eau-v01",
+    "asset": "water-cannon-sweep",
+    "url": "/models/manif/vehicule-canon-eau-v01/water-cannon-sweep/water-cannon-sweep.glb",
+    "bytes": 82488,
+    "sha256": "8fb1b0b3f5daddc50725c35e1bfdd28dca39c7b9af1721e1280697dc1aff05ec",
+    "animations": [
+      "turret-sweep"
+    ],
+    "triangles": 2568,
+    "source": "assets/manif/sources/vehicule-canon-eau-v01/water-cannon-sweep/water-cannon-sweep.blend"
+  },
+  {
+    "batch": "vehicule-canon-eau-v01",
+    "asset": "water-cannon-truck",
+    "url": "/models/manif/vehicule-canon-eau-v01/water-cannon-truck/water-cannon-truck.glb",
+    "bytes": 78268,
+    "sha256": "b1afcaebef726ee1275dd8c4c98d40590faf80bc6da7a6ebe4319e0b1bd85300",
+    "animations": [],
+    "triangles": 2568,
+    "source": "assets/manif/sources/vehicule-canon-eau-v01/water-cannon-truck/water-cannon-truck.blend"
+  },
+  {
+    "batch": "personnages-complements-v01",
+    "asset": "commissaire",
+    "url": "/models/manif/personnages-complements-v01/commissaire/commissaire.glb",
+    "bytes": 150156,
+    "sha256": "3c523755a3eb87862c8024b12c905bb74b2f317cf8a2b6fd0faf648027f088df",
+    "animations": [
+      "idle",
+      "walk"
+    ],
+    "triangles": 2402,
+    "source": "assets/manif/sources/personnages-complements-v01/commissaire/commissaire.blend"
+  },
+  {
+    "batch": "personnages-complements-v01",
+    "asset": "gendarme-mobile",
+    "url": "/models/manif/personnages-complements-v01/gendarme-mobile/gendarme-mobile.glb",
+    "bytes": 149016,
+    "sha256": "02db97d9bf10158846ed860257b95896b902ac246a5272ecc0b20c5f82a6d3bd",
+    "animations": [
+      "idle",
+      "walk"
+    ],
+    "triangles": 2210,
+    "source": "assets/manif/sources/personnages-complements-v01/gendarme-mobile/gendarme-mobile.blend"
+  }
+]

@@ -1,0 +1,90 @@
+[
+  {
+    "asset": "lyceen-hoodie",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "van-entry-seated",
+        "frames": [
+          1.0,
+          73.0
+        ],
+        "loop": false,
+        "seam_m": 4.080462,
+        "maximum_motion_m": 4.0805,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 2.2637,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "van-entry-seated",
+        "frames": [
+          1.0,
+          73.0
+        ],
+        "loop": false,
+        "seam_m": 4.06128,
+        "maximum_motion_m": 4.0613,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 2.1751,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "van-entry-seated",
+        "frames": [
+          1.0,
+          73.0
+        ],
+        "loop": false,
+        "seam_m": 4.112477,
+        "maximum_motion_m": 4.1126,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 2.3566,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "van-entry-seated",
+        "frames": [
+          1.0,
+          73.0
+        ],
+        "loop": false,
+        "seam_m": 4.086892,
+        "maximum_motion_m": 4.087,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 2.2579,
+        "finite_each_frame": true
+      }
+    ]
+  }
+]

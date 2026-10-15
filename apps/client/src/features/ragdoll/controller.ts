@@ -56,6 +56,15 @@ export class RagdollController {
     this.budget = budget;
   }
 
+  /** True while blending back up (#26); `getUpAmount` says how far, eased, 0..1. */
+  get gettingUp(): boolean {
+    return this.mode === Mode.GetUp;
+  }
+
+  get getUpAmount(): number {
+    return this.mode === Mode.GetUp ? smoothstep(this.blend) : 0;
+  }
+
   /** True while the ragdoll is falling, lying or blending back up. */
   get active(): boolean {
     return this.mode === Mode.Ragdoll || this.mode === Mode.GetUp;

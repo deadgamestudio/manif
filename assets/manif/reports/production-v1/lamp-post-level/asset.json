@@ -1,0 +1,32 @@
+{
+  "asset": "lamp-post-level",
+  "label": "Lampadaire 5 m",
+  "state": "intact",
+  "triangles": 252,
+  "budget": 800,
+  "dimensions_m": [
+    1.0,
+    1.0,
+    5.0
+  ],
+  "bounds_min": [
+    -0.5,
+    -0.5,
+    0.0
+  ],
+  "bounds_max": [
+    0.5,
+    0.5,
+    5.0
+  ],
+  "requested_dimensions_m": [
+    1,
+    1,
+    5
+  ],
+  "mesh_count": 1,
+  "notes": "",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

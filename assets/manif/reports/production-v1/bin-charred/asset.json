@@ -1,0 +1,34 @@
+{
+  "asset": "bin-charred",
+  "label": "Poubelle — charred",
+  "state": "charred",
+  "triangles": 526,
+  "budget": 1500,
+  "dimensions_m": [
+    0.478,
+    0.543,
+    0.988
+  ],
+  "bounds_min": [
+    -0.239,
+    -0.25,
+    0.0
+  ],
+  "bounds_max": [
+    0.239,
+    0.293,
+    0.988
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Dimensions réalistes du modèle déjà validé conservées. burning réutilise intact avec repère de feu ; effet animé à intégrer.",
+  "sockets": {
+    "fx-fire": [
+      0,
+      0,
+      0.85
+    ]
+  },
+  "integration": "not integrated",
+  "physics": false
+}

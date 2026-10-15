@@ -1,0 +1,9 @@
+{
+  "players": 8,
+  "police": 30,
+  "firefighters": 2,
+  "asset_placements": 120,
+  "asset_triangles": 151985,
+  "material_groups_without_instancing": 283,
+  "note": "Static art-review assembly. Presentation floor/road geometry excluded. Material groups are not measured draw calls; shadows, transparency, outlines and engine passes add cost. No runtime benchmark, no skinned crowd performance test."
+}

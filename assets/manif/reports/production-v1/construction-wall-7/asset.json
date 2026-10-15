@@ -1,0 +1,32 @@
+{
+  "asset": "construction-wall-7",
+  "label": "Palissade 7 m",
+  "state": "intact",
+  "triangles": 664,
+  "budget": 1500,
+  "dimensions_m": [
+    7.0,
+    1.0,
+    1.6
+  ],
+  "bounds_min": [
+    -3.5,
+    -0.5,
+    0.0
+  ],
+  "bounds_max": [
+    3.5,
+    0.5,
+    1.6
+  ],
+  "requested_dimensions_m": [
+    7,
+    1,
+    1.6
+  ],
+  "mesh_count": 1,
+  "notes": "",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

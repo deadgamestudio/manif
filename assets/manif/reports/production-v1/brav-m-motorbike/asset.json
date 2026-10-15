@@ -1,0 +1,53 @@
+{
+  "asset": "brav-m-motorbike",
+  "label": "Moto BRAV-M",
+  "state": "parked",
+  "triangles": 1648,
+  "budget": 6000,
+  "dimensions_m": [
+    0.79,
+    2.08,
+    1.2
+  ],
+  "bounds_min": [
+    -0.395,
+    -1.04,
+    -0.0
+  ],
+  "bounds_max": [
+    0.395,
+    1.04,
+    1.2
+  ],
+  "requested_dimensions_m": [
+    0.8,
+    2.1,
+    1.2
+  ],
+  "mesh_count": 1,
+  "notes": "Même mesh pour roulage, stationnement et chute par transformation. Roues non animées ; deux repères pour les passagers.",
+  "sockets": {
+    "rider": [
+      0,
+      0.1,
+      0.98
+    ],
+    "passenger": [
+      0,
+      0.52,
+      1.0
+    ],
+    "handle-left": [
+      -0.3,
+      -0.49,
+      1.12
+    ],
+    "handle-right": [
+      0.3,
+      -0.49,
+      1.12
+    ]
+  },
+  "integration": "not integrated",
+  "physics": false
+}

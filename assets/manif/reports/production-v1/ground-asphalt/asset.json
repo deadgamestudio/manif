@@ -1,0 +1,32 @@
+{
+  "asset": "ground-asphalt",
+  "label": "Chaussée 24 × 200 m",
+  "state": "intact",
+  "triangles": 12,
+  "budget": 100,
+  "dimensions_m": [
+    24.0,
+    200.0,
+    0.05
+  ],
+  "bounds_min": [
+    -12.0,
+    -100.0,
+    -0.05
+  ],
+  "bounds_max": [
+    12.0,
+    100.0,
+    0.0
+  ],
+  "requested_dimensions_m": [
+    24,
+    200,
+    0.05
+  ],
+  "mesh_count": 1,
+  "notes": "Surface de marche z=0, épaisseur sous le sol ; origine au centre. Assombrir dans le moteur selon éclairage.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

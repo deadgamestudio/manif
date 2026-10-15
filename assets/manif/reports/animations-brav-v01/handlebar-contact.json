@@ -1,0 +1,16 @@
+{
+  "max_authoring_wrist_target_error_m": 0.022546766312752955,
+  "targets_blender": [
+    [
+      0.3,
+      -0.43,
+      1.16
+    ],
+    [
+      -0.3,
+      -0.43,
+      1.16
+    ]
+  ],
+  "palms_approximate": true
+}

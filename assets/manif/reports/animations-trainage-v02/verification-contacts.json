@@ -1,0 +1,146 @@
+[
+  {
+    "pair": "lyceen-hoodie-collar",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 6.347292010062988e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-collar",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 3.631001959210556e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-collar",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 4.6943503096196565e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-collar",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 2.8600611247952873e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-collar",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 8.542886111433173e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-collar",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 7.376607008455028e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-collar",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 5.417899561811182e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-collar",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 4.90026409529915e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-arm",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 3.8076779486143674e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-arm",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 3.8076779486143674e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-arm",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 2.0755450802501333e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-arm",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 2.0713364464044526e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-arm",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 6.238138660324182e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-arm",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 6.238138660324182e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-arm",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 1.1362973264382272e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-arm",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 2.428479686674984e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-leg",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 6.0016403785031935e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-hoodie-leg",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 1.126418387497674e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-leg",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 3.353555903044992e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-coupe-vent-leg",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 9.91151271673285e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-leg",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 2.3746262742872346e-05,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceen-maillot-leg",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 1.0751835770653049e-06,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-leg",
+    "clip": "ground-grab",
+    "max_wrist_target_error_m": 8.307313838461848e-07,
+    "status": "PASS"
+  },
+  {
+    "pair": "lyceenne-sweat-leg",
+    "clip": "ground-drag",
+    "max_wrist_target_error_m": 7.468440584028761e-07,
+    "status": "PASS"
+  }
+]

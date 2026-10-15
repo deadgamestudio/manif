@@ -1,0 +1,32 @@
+{
+  "asset": "market-stall-intact",
+  "label": "Étal intact",
+  "state": "intact",
+  "triangles": 720,
+  "budget": 1500,
+  "dimensions_m": [
+    3.0,
+    2.0,
+    2.4
+  ],
+  "bounds_min": [
+    -1.5,
+    -1.0,
+    0.0
+  ],
+  "bounds_max": [
+    1.5,
+    1.0,
+    2.4
+  ],
+  "requested_dimensions_m": [
+    3,
+    2,
+    2.4
+  ],
+  "mesh_count": 1,
+  "notes": "Caisses et tomates de décor ; drops à générer avec tomato.glb. Version brisée sans auvent.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

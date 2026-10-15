@@ -1,0 +1,46 @@
+[
+  {
+    "asset": "lyceen-hoodie",
+    "source_asset": "personnages-v02/lyceen-hoodie",
+    "clips": [
+      {
+        "name": "van-entry-seated",
+        "duration_seconds": 3.0,
+        "loop": false
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent",
+    "source_asset": "personnages-v02/lyceenne-coupe-vent",
+    "clips": [
+      {
+        "name": "van-entry-seated",
+        "duration_seconds": 3.0,
+        "loop": false
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot",
+    "source_asset": "personnages-v02/lyceen-maillot",
+    "clips": [
+      {
+        "name": "van-entry-seated",
+        "duration_seconds": 3.0,
+        "loop": false
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat",
+    "source_asset": "personnages-v02/lyceenne-sweat",
+    "clips": [
+      {
+        "name": "van-entry-seated",
+        "duration_seconds": 3.0,
+        "loop": false
+      }
+    ]
+  }
+]

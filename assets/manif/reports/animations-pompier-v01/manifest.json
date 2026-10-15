@@ -1,0 +1,27 @@
+[
+  {
+    "asset": "firefighter",
+    "clips": [
+      {
+        "name": "hose-ready",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "hose-walk",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "hose-spray",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "hose-sweep",
+        "duration_seconds": 3.0,
+        "loop": true
+      }
+    ]
+  }
+]

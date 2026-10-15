@@ -1,0 +1,43 @@
+{
+  "asset": "police-van",
+  "label": "Fourgon de police",
+  "state": "parked",
+  "triangles": 1800,
+  "budget": 6000,
+  "dimensions_m": [
+    2.4,
+    4.99751,
+    2.4
+  ],
+  "bounds_min": [
+    -1.2,
+    -2.5,
+    0.0
+  ],
+  "bounds_max": [
+    1.2,
+    2.49751,
+    2.4
+  ],
+  "requested_dimensions_m": [
+    2.4,
+    5,
+    2.4
+  ],
+  "mesh_count": 1,
+  "notes": "Portes arrière en état séparé ; ouverture stylisée contenue dans le gabarit. Pas de conduite ni arrestation animée.",
+  "sockets": {
+    "driver": [
+      -0.55,
+      -1.35,
+      1.05
+    ],
+    "rear-entry": [
+      0,
+      2.4,
+      0.45
+    ]
+  },
+  "integration": "not integrated",
+  "physics": false
+}

@@ -1,0 +1,20 @@
+{
+  "asset": "crs",
+  "label": "crs",
+  "triangles": 2722,
+  "budget": 3000,
+  "bone_count": 19,
+  "body_mesh_count": 1,
+  "accessory_mesh_count": 4,
+  "skin_palette_cell": 6,
+  "same_default_skin_for_every_archetype": true,
+  "notes": "Ã‰quipement sÃ©parÃ© fixÃ© aux os ; squelette partagÃ©. Les clips inclus restent les trois Ã©bauches communes. Formation, lancer et conduite Ã  animer dans le moteur. Poses statiques supplÃ©mentaires exportÃ©es comme clips : shield-lowered, shield-raised. Transitions, contact moto/sol et dÃ©placement non animÃ©s.",
+  "animations": "existing draft idle/cheer/stagger; not production gameplay clips",
+  "integration": "not integrated",
+  "triangles_source_before_reexport": 2726,
+  "clip_count": 5,
+  "pose_variants": [
+    "shield-lowered",
+    "shield-raised"
+  ]
+}

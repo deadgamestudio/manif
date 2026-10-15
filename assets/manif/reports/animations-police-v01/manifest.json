@@ -1,0 +1,72 @@
+[
+  {
+    "asset": "crs",
+    "clips": [
+      {
+        "name": "guard-idle",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "formation-walk",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "shield-raise",
+        "duration_seconds": 1.0,
+        "loop": false
+      },
+      {
+        "name": "shield-shove",
+        "duration_seconds": 1.25,
+        "loop": false
+      },
+      {
+        "name": "baton-swing",
+        "duration_seconds": 1.25,
+        "loop": false
+      }
+    ]
+  },
+  {
+    "asset": "crs-splatted",
+    "clips": [
+      {
+        "name": "guard-idle",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "formation-walk",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "visor-wipe",
+        "duration_seconds": 2.5,
+        "loop": false
+      }
+    ]
+  },
+  {
+    "asset": "crs-grenadier",
+    "clips": [
+      {
+        "name": "guard-idle",
+        "duration_seconds": 2.0,
+        "loop": true
+      },
+      {
+        "name": "formation-walk",
+        "duration_seconds": 1.6666666666666667,
+        "loop": true
+      },
+      {
+        "name": "canister-throw",
+        "duration_seconds": 1.5,
+        "loop": false
+      }
+    ]
+  }
+]

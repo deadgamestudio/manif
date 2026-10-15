@@ -1,0 +1,28 @@
+{
+  "asset": "prefecture-forecourt",
+  "label": "Grilles et drapeaux du parvis",
+  "state": "intact",
+  "triangles": 1520,
+  "budget": 2500,
+  "dimensions_m": [
+    17.666,
+    8.0,
+    4.2
+  ],
+  "bounds_min": [
+    -8.833,
+    -4.0,
+    0.0
+  ],
+  "bounds_max": [
+    8.833,
+    4.0,
+    4.2
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Habillage de la zone 18 × 8 m. Grilles statiques ; ouverture et déclenchement de victoire non fournis.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

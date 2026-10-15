@@ -1,0 +1,34 @@
+{
+  "asset": "police-baton",
+  "label": "Matraque cartoon",
+  "state": "intact",
+  "triangles": 88,
+  "budget": 300,
+  "dimensions_m": [
+    0.072,
+    0.072,
+    0.45
+  ],
+  "bounds_min": [
+    -0.036,
+    -0.036,
+    0.0
+  ],
+  "bounds_max": [
+    0.036,
+    0.036,
+    0.45
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Accessoire séparé ; attacher à hand_R ou hand_L.",
+  "sockets": {
+    "grip": [
+      0,
+      0,
+      0.07
+    ]
+  },
+  "integration": "not integrated",
+  "physics": false
+}

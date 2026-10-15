@@ -1,0 +1,43 @@
+{
+  "asset": "fire-truck",
+  "label": "Camion de pompiers",
+  "state": "parked",
+  "triangles": 3416,
+  "budget": 6000,
+  "dimensions_m": [
+    2.5,
+    7.9775,
+    3.2
+  ],
+  "bounds_min": [
+    -1.25,
+    -4.0,
+    0.0
+  ],
+  "bounds_max": [
+    1.25,
+    3.9775,
+    3.2
+  ],
+  "requested_dimensions_m": [
+    2.5,
+    8,
+    3.2
+  ],
+  "mesh_count": 1,
+  "notes": "Portes ouvertes en variante statique ; véhicule neutre. Aucun jet d’eau ni conduite animée.",
+  "sockets": {
+    "driver": [
+      -0.6,
+      -2.7,
+      1.5
+    ],
+    "hose-outlet": [
+      1.2,
+      2.6,
+      1.0
+    ]
+  },
+  "integration": "not integrated",
+  "physics": false
+}

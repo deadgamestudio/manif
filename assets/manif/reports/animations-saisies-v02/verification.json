@@ -1,0 +1,842 @@
+[
+  {
+    "asset": "lyceen-hoodie-collar",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.710151,
+        "maximum_motion_m": 0.7146,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7982,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0369,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.789,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-hoodie-collar",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.913958,
+        "maximum_motion_m": 0.9173,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0202,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8598,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent-collar",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.687486,
+        "maximum_motion_m": 0.6918,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7117,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0357,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7029,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-coupe-vent-collar",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.88126,
+        "maximum_motion_m": 0.8845,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0202,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8598,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot-collar",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.747925,
+        "maximum_motion_m": 0.7526,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8912,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0389,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8838,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-maillot-collar",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.968447,
+        "maximum_motion_m": 0.9718,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0202,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8598,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat-collar",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.717705,
+        "maximum_motion_m": 0.7222,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7859,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0373,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7807,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-sweat-collar",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.924841,
+        "maximum_motion_m": 0.9282,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0202,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8598,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-hoodie-arm",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.662618,
+        "maximum_motion_m": 0.6626,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7982,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0412,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.789,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-hoodie-arm",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.727068,
+        "maximum_motion_m": 0.7392,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0476,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8189,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent-arm",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.641471,
+        "maximum_motion_m": 0.6415,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7117,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0398,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7029,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-coupe-vent-arm",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.696752,
+        "maximum_motion_m": 0.7091,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0423,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8189,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot-arm",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.697866,
+        "maximum_motion_m": 0.6979,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8912,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0433,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.8838,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-maillot-arm",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.769768,
+        "maximum_motion_m": 0.7843,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0633,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8189,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat-arm",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.669666,
+        "maximum_motion_m": 0.6697,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7859,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0416,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.7807,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-sweat-arm",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.73651,
+        "maximum_motion_m": 0.7488,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0503,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.8189,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-hoodie-leg",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.567428,
+        "maximum_motion_m": 0.5674,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.0224,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1099,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.0224,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-hoodie-leg",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.610932,
+        "maximum_motion_m": 1.023,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0202,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.4167,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-coupe-vent-leg",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.549319,
+        "maximum_motion_m": 0.5493,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 0.99,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1064,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 0.99,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-coupe-vent-leg",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.620986,
+        "maximum_motion_m": 1.023,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0202,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.4167,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceen-maillot-leg",
+    "status": "PASS",
+    "triangles": 2942,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.597611,
+        "maximum_motion_m": 0.5976,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.0763,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1157,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 1.0763,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceen-maillot-leg",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.610932,
+        "maximum_motion_m": 1.023,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.0202,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.4167,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "lyceenne-sweat-leg",
+    "status": "PASS",
+    "triangles": 2950,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seized",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.573329,
+        "maximum_motion_m": 0.5733,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 0.8928,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "held-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.1111,
+        "lowest_vertex_m": 0.008,
+        "highest_vertex_m": 0.9903,
+        "finite_each_frame": true
+      }
+    ]
+  },
+  {
+    "asset": "crs-lyceenne-sweat-leg",
+    "status": "PASS",
+    "triangles": 2114,
+    "rest_skeleton_unchanged": true,
+    "weights_normalized": true,
+    "clips": [
+      {
+        "clip": "seize",
+        "frames": [
+          1.0,
+          49.0
+        ],
+        "loop": false,
+        "seam_m": 0.610932,
+        "maximum_motion_m": 1.023,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.899,
+        "finite_each_frame": true
+      },
+      {
+        "clip": "hold-loop",
+        "frames": [
+          1.0,
+          41.0
+        ],
+        "loop": true,
+        "seam_m": 0.0,
+        "maximum_motion_m": 0.145,
+        "lowest_vertex_m": 0.0,
+        "highest_vertex_m": 1.4167,
+        "finite_each_frame": true
+      }
+    ]
+  }
+]

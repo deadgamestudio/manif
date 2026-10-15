@@ -1,0 +1,28 @@
+{
+  "asset": "debris-bin-lid",
+  "label": "Débris — bin-lid",
+  "state": "debris",
+  "triangles": 88,
+  "budget": 150,
+  "dimensions_m": [
+    0.46,
+    0.46,
+    0.09
+  ],
+  "bounds_min": [
+    -0.23,
+    -0.23,
+    0.0
+  ],
+  "bounds_max": [
+    0.23,
+    0.23,
+    0.09
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Débris cosmétique à instancier localement ; physique non fournie.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

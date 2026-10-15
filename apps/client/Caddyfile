@@ -21,14 +21,17 @@
 #   and the HUD set style attributes);
 # - fonts: Google Fonts' files;
 # - images and sounds: our own files, plus data:/blob: (three.js textures);
-# - connections: this origin (matchmaking, sounds), the room WebSocket on
-#   this same host, and the Rustrak error ingest (VITE_SENTRY_DSN's host:
-#   change it here if the DSN moves).
+# - connections: this origin (matchmaking, sounds, models), the room
+#   WebSocket on this same host, the Rustrak error ingest (VITE_SENTRY_DSN's
+#   host: change it here if the DSN moves), and blob: (three.js reads the
+#   textures inside a .glb model through fetch() on a blob: URL, #28).
+#   Dev has no CSP, so a model that loads in dev but stays a placeholder in
+#   production points here.
 # Nothing may frame the page. Referrers leave as the origin only, so an
 # invite link's code never reaches another site.
 (security_headers) {
 	header {
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' ws://{hostport} wss://{hostport} https://rustrack.bazlab.si; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' ws://{hostport} wss://{hostport} https://rustrack.bazlab.si blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"

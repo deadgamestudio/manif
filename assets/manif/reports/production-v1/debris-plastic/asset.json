@@ -1,0 +1,28 @@
+{
+  "asset": "debris-plastic",
+  "label": "Débris — plastic",
+  "state": "debris",
+  "triangles": 60,
+  "budget": 150,
+  "dimensions_m": [
+    0.21235,
+    0.16239,
+    0.032
+  ],
+  "bounds_min": [
+    -0.11458,
+    -0.08056,
+    0.012
+  ],
+  "bounds_max": [
+    0.09777,
+    0.08183,
+    0.044
+  ],
+  "requested_dimensions_m": null,
+  "mesh_count": 1,
+  "notes": "Débris cosmétique à instancier localement ; physique non fournie.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}

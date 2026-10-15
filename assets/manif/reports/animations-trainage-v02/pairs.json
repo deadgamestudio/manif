@@ -1,0 +1,230 @@
+[
+  {
+    "mode": "collar",
+    "profile": "lyceen-hoodie",
+    "victim": "lyceen-hoodie-collar",
+    "crs": "crs-lyceen-hoodie-collar",
+    "blender_crs_offset": [
+      0.15,
+      0.95,
+      0
+    ],
+    "blender_crs_yaw_radians": 0,
+    "gltf_crs_offset": [
+      0.15,
+      0,
+      -0.95
+    ],
+    "gltf_crs_yaw_radians": 0,
+    "max_authoring_wrist_target_error_m": 4.6671807060735897e-07
+  },
+  {
+    "mode": "collar",
+    "profile": "lyceenne-coupe-vent",
+    "victim": "lyceenne-coupe-vent-collar",
+    "crs": "crs-lyceenne-coupe-vent-collar",
+    "blender_crs_offset": [
+      0.15,
+      0.95,
+      0
+    ],
+    "blender_crs_yaw_radians": 0,
+    "gltf_crs_offset": [
+      0.15,
+      0,
+      -0.95
+    ],
+    "gltf_crs_yaw_radians": 0,
+    "max_authoring_wrist_target_error_m": 3.650024149988857e-07
+  },
+  {
+    "mode": "collar",
+    "profile": "lyceen-maillot",
+    "victim": "lyceen-maillot-collar",
+    "crs": "crs-lyceen-maillot-collar",
+    "blender_crs_offset": [
+      0.15,
+      0.95,
+      0
+    ],
+    "blender_crs_yaw_radians": 0,
+    "gltf_crs_offset": [
+      0.15,
+      0,
+      -0.95
+    ],
+    "gltf_crs_yaw_radians": 0,
+    "max_authoring_wrist_target_error_m": 7.744304216019084e-07
+  },
+  {
+    "mode": "collar",
+    "profile": "lyceenne-sweat",
+    "victim": "lyceenne-sweat-collar",
+    "crs": "crs-lyceenne-sweat-collar",
+    "blender_crs_offset": [
+      0.15,
+      0.95,
+      0
+    ],
+    "blender_crs_yaw_radians": 0,
+    "gltf_crs_offset": [
+      0.15,
+      0,
+      -0.95
+    ],
+    "gltf_crs_yaw_radians": 0,
+    "max_authoring_wrist_target_error_m": 3.009887021291875e-07
+  },
+  {
+    "mode": "arm",
+    "profile": "lyceen-hoodie",
+    "victim": "lyceen-hoodie-arm",
+    "crs": "crs-lyceen-hoodie-arm",
+    "blender_crs_offset": [
+      0.45,
+      1.15,
+      0
+    ],
+    "blender_crs_yaw_radians": 0,
+    "gltf_crs_offset": [
+      0.45,
+      0,
+      -1.15
+    ],
+    "gltf_crs_yaw_radians": 0,
+    "max_authoring_wrist_target_error_m": 3.8584755005677615e-05
+  },
+  {
+    "mode": "arm",
+    "profile": "lyceenne-coupe-vent",
+    "victim": "lyceenne-coupe-vent-arm",
+    "crs": "crs-lyceenne-coupe-vent-arm",
+    "blender_crs_offset": [
+      0.45,
+      1.15,
+      0
+    ],
+    "blender_crs_yaw_radians": 0,
+    "gltf_crs_offset": [
+      0.45,
+      0,
+      -1.15
+    ],
+    "gltf_crs_yaw_radians": 0,
+    "max_authoring_wrist_target_error_m": 2.1124444474101933e-05
+  },
+  {
+    "mode": "arm",
+    "profile": "lyceen-maillot",
+    "victim": "lyceen-maillot-arm",
+    "crs": "crs-lyceen-maillot-arm",
+    "blender_crs_offset": [
+      0.45,
+      1.15,
+      0
+    ],
+    "blender_crs_yaw_radians": 0,
+    "gltf_crs_offset": [
+      0.45,
+      0,
+      -1.15
+    ],
+    "gltf_crs_yaw_radians": 0,
+    "max_authoring_wrist_target_error_m": 6.210008824749318e-05
+  },
+  {
+    "mode": "arm",
+    "profile": "lyceenne-sweat",
+    "victim": "lyceenne-sweat-arm",
+    "crs": "crs-lyceenne-sweat-arm",
+    "blender_crs_offset": [
+      0.45,
+      1.15,
+      0
+    ],
+    "blender_crs_yaw_radians": 0,
+    "gltf_crs_offset": [
+      0.45,
+      0,
+      -1.15
+    ],
+    "gltf_crs_yaw_radians": 0,
+    "max_authoring_wrist_target_error_m": 2.52908660625923e-05
+  },
+  {
+    "mode": "leg",
+    "profile": "lyceen-hoodie",
+    "victim": "lyceen-hoodie-leg",
+    "crs": "crs-lyceen-hoodie-leg",
+    "blender_crs_offset": [
+      -0.1,
+      -1.1,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      -0.1,
+      0,
+      1.1
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 5.784127138805755e-06
+  },
+  {
+    "mode": "leg",
+    "profile": "lyceenne-coupe-vent",
+    "victim": "lyceenne-coupe-vent-leg",
+    "crs": "crs-lyceenne-coupe-vent-leg",
+    "blender_crs_offset": [
+      -0.1,
+      -1.1,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      -0.1,
+      0,
+      1.1
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 3.4313139139620825e-06
+  },
+  {
+    "mode": "leg",
+    "profile": "lyceen-maillot",
+    "victim": "lyceen-maillot-leg",
+    "crs": "crs-lyceen-maillot-leg",
+    "blender_crs_offset": [
+      -0.1,
+      -1.1,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      -0.1,
+      0,
+      1.1
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 2.358000469960521e-05
+  },
+  {
+    "mode": "leg",
+    "profile": "lyceenne-sweat",
+    "victim": "lyceenne-sweat-leg",
+    "crs": "crs-lyceenne-sweat-leg",
+    "blender_crs_offset": [
+      -0.1,
+      -1.1,
+      0
+    ],
+    "blender_crs_yaw_radians": 3.141592653589793,
+    "gltf_crs_offset": [
+      -0.1,
+      0,
+      1.1
+    ],
+    "gltf_crs_yaw_radians": 3.141592653589793,
+    "max_authoring_wrist_target_error_m": 6.505939810191461e-07
+  }
+]

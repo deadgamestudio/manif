@@ -1,0 +1,32 @@
+{
+  "asset": "side-street-barrier",
+  "label": "Barrage de rue latérale",
+  "state": "intact",
+  "triangles": 932,
+  "budget": 1500,
+  "dimensions_m": [
+    1.0,
+    5.935,
+    1.2
+  ],
+  "bounds_min": [
+    -0.5,
+    -2.935,
+    0.0
+  ],
+  "bounds_max": [
+    0.5,
+    3.0,
+    1.2
+  ],
+  "requested_dimensions_m": [
+    1,
+    6,
+    1.2
+  ],
+  "mesh_count": 1,
+  "notes": "Gabarit long de 6 m selon street.ts ; orientation longitudinale Y Blender, donc Z glTF.",
+  "sockets": {},
+  "integration": "not integrated",
+  "physics": false
+}
