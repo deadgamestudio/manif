@@ -15,6 +15,7 @@ import { LbdLaser } from "./LbdLaser.tsx";
 import { LbdBalls } from "./LbdBalls.tsx";
 import { BonkStars, PoliceModel } from "./policeModels.tsx";
 import { getPoseOwner } from "../models/index.ts";
+import { getLbdMuzzle } from "./crsBody.ts";
 
 const FALLEN_ANGLE = Math.PI / 2;
 const FALL_RATE = 14;
@@ -162,6 +163,8 @@ function CrsBody({ id, kind, mount, fromMount }: { id: string; kind: CrsKind; mo
     modelOn.current = on;
   }, []);
   const placeholder = useRef<Group>(null);
+  /** The look's pieces kept over the model (the LBD's toy launcher), until the model holds its own (#100). */
+  const kept = useRef<Group>(null);
 
   useFrame((_, dt) => {
     const g = group.current;
@@ -177,6 +180,7 @@ function CrsBody({ id, kind, mount, fromMount }: { id: string; kind: CrsKind; mo
 
     const model = modelOn.current;
     if (placeholder.current) placeholder.current.visible = !model;
+    if (kept.current) kept.current.visible = !(model && getLbdMuzzle(id));
     // A grab pair (#28) places this body itself while it holds the pose.
     const owned = getPoseOwner(id) !== null;
     if (!placed.current) {
@@ -319,7 +323,11 @@ function CrsBody({ id, kind, mount, fromMount }: { id: string; kind: CrsKind; mo
         <group ref={tilt}>
           <group ref={yaw}>
             <group ref={placeholder}>{look.render({ body: bodyMat, batonArm, shieldArm, lineShield, splat } satisfies CrsRig)}</group>
-            {look.Keep && <look.Keep rig={{ body: bodyMat, batonArm, shieldArm, lineShield, splat }} />}
+            {look.Keep && (
+              <group ref={kept}>
+                <look.Keep rig={{ body: bodyMat, batonArm, shieldArm, lineShield, splat }} />
+              </group>
+            )}
             <PoliceModel id={id} kind={kind} mount={mount} fromMount={fromMount} link={setModelOn} />
             <BodyFire isOnFire={() => net.getCrs(id)?.onFire === true} />
             {kind === CrsKind.Pompier && HOSE && (

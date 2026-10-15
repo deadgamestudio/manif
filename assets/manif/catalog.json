@@ -2506,5 +2506,15 @@
     ],
     "triangles": 2210,
     "source": "assets/manif/sources/personnages-complements-v01/gendarme-mobile/gendarme-mobile.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "lbd-launcher",
+    "url": "/models/manif/accessoires-v01/lbd-launcher/lbd-launcher.glb",
+    "bytes": 11136,
+    "sha256": "92677accc7a70abc6843807ee83adbac1c588db2431f7065ae35f35d42cf2a3c",
+    "animations": [],
+    "triangles": 140,
+    "source": "assets/manif/sources/accessoires-v01/lbd-launcher/lbd-launcher.blend"
   }
 ]

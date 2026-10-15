@@ -5,6 +5,7 @@ import { CRS_STATS, CrsKind, CrsStatus } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { LBD_MUZZLE } from "./crsVisuals.tsx";
+import { getLbdMuzzle } from "./crsBody.ts";
 
 const AIM_TIME = (CRS_STATS[CrsKind.Lbd].lbd?.aimTime ?? 0.8) * 1000;
 const RED = "#ff1f1f";
@@ -77,7 +78,10 @@ export function LbdLaser({ id, body, yaw }: { id: string; body: RefObject<Group 
     const yawAngle = y.rotation.y;
     const sin = Math.sin(yawAngle);
     const cos = Math.cos(yawAngle);
-    from.set(g.position.x + LBD_MUZZLE.x * cos + LBD_MUZZLE.z * sin, LBD_MUZZLE.y, g.position.z - LBD_MUZZLE.x * sin + LBD_MUZZLE.z * cos);
+    // The launcher model's own muzzle once it is in (#100), it follows the hand; the toy launcher's otherwise.
+    const muzzle = getLbdMuzzle(id);
+    if (muzzle) muzzle.getWorldPosition(from);
+    else from.set(g.position.x + LBD_MUZZLE.x * cos + LBD_MUZZLE.z * sin, LBD_MUZZLE.y, g.position.z - LBD_MUZZLE.x * sin + LBD_MUZZLE.z * cos);
     to.set(a.x, FEET_Y, a.z);
     dir.subVectors(to, from);
     const length = dir.length();

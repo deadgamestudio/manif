@@ -50,7 +50,7 @@ import { chooseLoop, lyingClip, swingClip, type PoliceRole } from "./crsClips.ts
 import { Splat } from "./crsVisuals.tsx";
 import { disguiseArchetype } from "./disguise.ts";
 import { getLastThrow } from "./canisterThrows.ts";
-import { setCrsBody } from "./crsBody.ts";
+import { setCrsBody, setLbdMuzzle } from "./crsBody.ts";
 
 /** Skin colour of every face (palette cell 6), the protesters' too (archetypeVisuals). */
 const SKIN = "#8d6e63";
@@ -67,6 +67,9 @@ const THROW_SCALE = 1.6;
 const THROW_RELEASE = 0.85;
 /** armband-reveal: the armband goes on here (s, as authored). */
 const ARMBAND_AT = 1.375;
+/** An LBD firing (#73): the launcher model kicks up and settles back, ms and radians (as the toy launcher, CrsAvatar). */
+const RECOIL_MS = 260;
+const RECOIL = 0.45;
 /** The grab's wind-up (#70): the first part of `seize`, arms reaching out, then held. */
 const WINDUP_FRAMES = 14;
 const FPS = 24;
@@ -105,6 +108,8 @@ interface FootSpec {
   canister: boolean;
   /** The BAC's armband, put on during armband-reveal. */
   armband: boolean;
+  /** The LBD's launcher model (#100), in the left hand where the CRS holds its shield. */
+  launcher: boolean;
   /** Just knocked off its bike: falls with fall-off rather than knockdown. */
   fromBike: boolean;
 }
@@ -120,7 +125,7 @@ const POLICE_CLIPS = [
 const SHIELD = ["shield-frame", "shield-panel"] as const;
 
 function footSpec(id: string, kind: CrsKind, fromMount: CrsMount | null): FootSpec {
-  const none = { splatUrl: null, hide: [], baton: false, canister: false, armband: false, fromBike: false };
+  const none = { splatUrl: null, hide: [], baton: false, canister: false, armband: false, launcher: false, fromBike: false };
   switch (kind) {
     case CrsKind.Pompier:
       return { ...none, role: "pompier", url: MODELS.characters.firefighter, clips: [MODELS.characters.firefighter, MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra] };
@@ -144,7 +149,7 @@ function footSpec(id: string, kind: CrsKind, fromMount: CrsMount | null): FootSp
         fromBike: fromMount === CrsMount.Duo || fromMount === CrsMount.Solo,
       };
     case CrsKind.Lbd:
-      return { ...none, role: "noShield", url: MODELS.police.crs, clips: POLICE_CLIPS, hide: SHIELD, canister: true };
+      return { ...none, role: "noShield", url: MODELS.police.crs, clips: POLICE_CLIPS, hide: SHIELD, canister: true, launcher: true };
     default:
       return { ...none, role: "crs", url: MODELS.police.crs, splatUrl: MODELS.police.crsSplatted, clips: POLICE_CLIPS, canister: true };
   }
@@ -158,6 +163,9 @@ interface Body {
   baton: Object3D | null;
   canister: Object3D | null;
   armband: Object3D | null;
+  launcher: Object3D | null;
+  /** The launcher's `muzzle` node: the laser starts there. */
+  muzzle: Object3D | null;
 }
 
 interface Extras {
@@ -165,6 +173,7 @@ interface Extras {
   baton: GLTF | null;
   canister: GLTF | null;
   armband: GLTF | null;
+  launcher?: GLTF | null;
 }
 
 /**
@@ -187,8 +196,10 @@ function buildBody(gltf: GLTF, x: Extras): Body {
   const canister = x.canister ? borrow(root, x.canister, "canister", "hand_R") : null;
   if (canister) canister.visible = false;
   const armband = x.armband ? wearArmband(root, x.armband) : null;
+  const launcher = x.launcher ? holdLauncher(root, x.launcher) : null;
+  const muzzle = launcher?.getObjectByName("muzzle") ?? null;
   const materials = cloneMaterials(root);
-  return { root, materials, head: root.getObjectByName("head") ?? null, baton, canister, armband };
+  return { root, materials, head: root.getObjectByName("head") ?? null, baton, canister, armband, launcher, muzzle };
 }
 
 function show(o: Object3D | null, visible: boolean): void {
@@ -236,6 +247,27 @@ function wearArmband(root: Object3D, armband: GLTF): Object3D | null {
   return band;
 }
 
+/**
+ * The LBD's launcher (#100) in the left hand. The rig's `socket_hand_L` is
+ * a prop socket: in the guard pose it is level and faces forward, so the
+ * launcher (pivot at its grip, +Z forward) goes in it as is and follows the
+ * hand through every clip. Falls back on the hand bone itself.
+ */
+function holdLauncher(root: Object3D, launcher: GLTF): Object3D | null {
+  const socket = root.getObjectByName("socket_hand_L") ?? root.getObjectByName("hand_L");
+  if (!socket) return null;
+  const copy = cloneStatic(launcher);
+  socket.add(copy);
+  return copy;
+}
+
+/** A shot (#73) at `firedAt`: the launcher's muzzle kicks up about the grip and settles back. */
+function recoil(launcher: Object3D | null, firedAt: number | undefined): void {
+  if (!launcher) return;
+  const r = firedAt === undefined ? 1 : (performance.now() - firedAt) / RECOIL_MS;
+  launcher.rotation.x = r >= 1 ? 0 : -RECOIL * Math.sin(Math.min(1, r) * Math.PI) * (1 - r);
+}
+
 /** Driver state between frames. */
 interface Track {
   animator: Animator | null;
@@ -265,11 +297,12 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
   const batonSrc = useGltf(spec.baton ? MODELS.police.crs : null);
   const canisterSrc = useGltf(spec.canister ? MODELS.police.crsGrenadier : null);
   const armbandSrc = useGltf(spec.armband ? MODELS.police.bacArmband : null);
+  const launcherSrc = useGltf(spec.launcher ? MODELS.police.lbdLauncher : null);
   const gltf = alt ?? main;
   const hide = spec.hide;
   const body = useMemo(
-    () => (gltf ? buildBody(gltf, { hide, baton: batonSrc, canister: canisterSrc, armband: armbandSrc }) : null),
-    [gltf, hide, batonSrc, canisterSrc, armbandSrc],
+    () => (gltf ? buildBody(gltf, { hide, baton: batonSrc, canister: canisterSrc, armband: armbandSrc, launcher: launcherSrc }) : null),
+    [gltf, hide, batonSrc, canisterSrc, armbandSrc, launcherSrc],
   );
   useEffect(() => () => disposeBody(body), [body]);
   const clips = usePoliceClips(spec.clips);
@@ -280,6 +313,12 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
     if (!body || !animator) return;
     setCrsBody(id, body.root);
     return () => setCrsBody(id, null);
+  }, [id, body, animator]);
+  // The LBD's laser (#73) starts at the launcher model's muzzle once it is drawn (the toy launcher hides then).
+  useLayoutEffect(() => {
+    if (!body?.muzzle || !animator) return;
+    setLbdMuzzle(id, body.muzzle);
+    return () => setLbdMuzzle(id, null);
   }, [id, body, animator]);
   const splat = useRef<Group>(null);
   const t = useRef<Track>(freshTrack());
@@ -303,6 +342,7 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
     measure(s, at.current, c.rotation, dt);
     if (splat.current) splat.current.visible = c.splatted;
     s.flash = hitFlash(id, body.materials, s.flash);
+    recoil(body.launcher, net.getLastLbdShot(id));
     if (body.baton && body.canister) {
       // The baton goes away while the canister is in hand.
       const throwing = animator.current === "canister-throw";

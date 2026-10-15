@@ -49,7 +49,7 @@ export interface CrsLook {
   /** Body colour, flashed white on a hit (CrsAvatar resets it every frame). */
   color: string;
   render: (rig: CrsRig) => ReactNode;
-  /** Pieces still drawn over Jordan's model (#28): the LBD's toy launcher, which has no model yet. */
+  /** Pieces drawn over Jordan's model (#28) until it holds its own: the LBD's toy launcher, hidden once the launcher model (#100) is in. */
   Keep?: (props: { rig: CrsRig }) => ReactNode;
   /**
    * Its floppy look while knocked down (#26); the primitives are in
@@ -402,8 +402,8 @@ export const LBD_MUZZLE = { x: -0.12, y: 1.09, z: 0.95 } as const;
  * left arm held forward on a chunky toy launcher (a fat orange tube with a
  * yellow muzzle ring and a yellow grip), the baton on the right as usual.
  * The launcher is posed forward inside `shieldArm`, which CrsAvatar kicks
- * up a little on a shot. It is in `keep`: with Jordan's model it is still
- * drawn (no launcher model was delivered), and the laser still starts at
+ * up a little on a shot. It is in `Keep`: drawn over Jordan's model until
+ * the launcher model (#100) is in its hand, and until then the laser starts at
  * LBD_MUZZLE.
  */
 function lbdLook(radius: number): CrsLook {
