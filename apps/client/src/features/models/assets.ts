@@ -197,6 +197,8 @@ export const MODELS = {
     toteBag: `${M}/accessoires-v01/tote-bag/tote-bag.glb`,
     flag: `${M}/accessoires-v01/flag/flag.glb`,
     placard: `${M}/accessoires-v01/placard/placard.glb`,
+    /** The CGT's merguez barbecue (#116, player/cgtKit.ts): a grill tray on a neck strap, on `spine`. Its own palette strip (cell 15 the merguez). Node `smoke` above the grill. */
+    barbecue: `${M}/accessoires-v01/barbecue/barbecue.glb`,
   },
 
   /** 3D markers above and under characters. Fixed shapes, not live bars. */

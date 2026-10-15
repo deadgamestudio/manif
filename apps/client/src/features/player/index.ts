@@ -7,3 +7,5 @@ export { onScreen } from "./onScreen.ts";
 export { protesterPaint } from "./protesterLook.ts";
 export { accessoriesFor, type Accessory, type AccessoryName } from "./accessories.ts";
 export { WornAccessories } from "./WornAccessories.tsx";
+export { SWING_BUSY_MS, cgtKitFor, freshKitState, kitShow, type CgtKit, type KitShow, type KitState } from "./cgtKit.ts";
+export { CgtKitView } from "./CgtKit.tsx";

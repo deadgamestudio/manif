@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal, useFrame } from "@react-three/fiber";
 import { Color, MeshBasicMaterial, RingGeometry, Vector3, type Group, type MeshStandardMaterial } from "three";
-import { PLAYER_RADIUS, Phase, PlayerStatus, type PlayerShape } from "@manif/shared";
+import { PLAYER_RADIUS, Phase, PlayerStatus, ThrowableKind, type PlayerShape } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
 import { HealthBar } from "../health/index.ts";
@@ -23,6 +23,8 @@ import { setAvatarBody, useProtesterBody } from "./protesterBody.ts";
 import { protesterPaint } from "./protesterLook.ts";
 import { accessoriesFor } from "./accessories.ts";
 import { WornAccessories } from "./WornAccessories.tsx";
+import { SWING_BUSY_MS, cgtKitFor, freshKitState, kitShow } from "./cgtKit.ts";
+import { CgtKitView } from "./CgtKit.tsx";
 
 const CAPSULE_LENGTH = 1;
 const HEIGHT = CAPSULE_LENGTH + PLAYER_RADIUS * 2;
@@ -172,6 +174,9 @@ export function PlayerAvatar({
   const model = useProtesterBody(bodyUrlFor(archetype, id), paint);
   /** What it wears on top (#113), on the model's bones. */
   const wear = useMemo(() => accessoriesFor(archetype, bodyUrlFor(archetype, id), id), [archetype, id]);
+  /** The CGT's barbecue or megaphone (#116), and what its hands are up to, filled each frame. */
+  const kit = useMemo(() => cgtKitFor(archetype, id), [archetype, id]);
+  const kitRef = useRef(freshKitState());
   const motion = useMemo(() => (model ? new BodyMotion(model.animator) : null), [model]);
   const footRing = useStaticModel(isLocal ? MODELS.ui.playerFootRing : null);
   const ringYaw = useRef<Group>(null);
@@ -221,8 +226,10 @@ export function PlayerAvatar({
       carryLift.current = 0;
       return;
     }
+    const kitState = kitRef.current;
+    kitState.posed = getPoseOwner(id) !== null;
     // A pair animation owns the body (#28): it places and animates it; only the bars stay ours.
-    if (getPoseOwner(id) !== null) {
+    if (kitState.posed) {
       ragdoll.reset();
       wasRagdolling.current = false;
       lastAt.set(Number.NaN, 0, 0);
@@ -364,6 +371,15 @@ export function PlayerAvatar({
     }
 
     const hurt = grabbed || ko;
+    kitState.grabbed = grabbed;
+    kitState.carried = carried;
+    kitState.carryingPlayer = net.getCarried(id) !== null;
+    kitState.lying = lying || ko;
+    kitState.holdingItem = p.carrying !== ThrowableKind.None;
+    const lastSwing = net.getLastSwing(id);
+    kitState.swinging = lastSwing !== undefined && performance.now() - lastSwing < SWING_BUSY_MS;
+    kitState.dodging = dodging;
+    kitState.fireBusy = p.onFire || p.fireHold > 0;
     const color = hurt ? hurtClothes : clothes;
     body.current?.color.copy(color);
     ragdoll.setColor(color);
@@ -420,6 +436,7 @@ export function PlayerAvatar({
                   hand,
                 )}
               {wear.length > 0 && <WornAccessories root={model.root} wear={wear} stowTall={() => stowsTall(id, source)} />}
+              {kit && <CgtKitView root={model.root} kit={kit} show={() => kitShow(kit, kitRef.current)} />}
             </>
           ) : (
             <>
