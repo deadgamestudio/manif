@@ -49,7 +49,20 @@ import {
 } from "../models/index.ts";
 import { chooseLoop, lyingClip, swingClip, type PoliceRole } from "./crsClips.ts";
 import { Splat } from "./crsVisuals.tsx";
-import { WornAccessories, accessoriesFor, protesterPaint, type Accessory } from "../player/index.ts";
+import {
+  CgtKitView,
+  SWING_BUSY_MS,
+  WornAccessories,
+  accessoriesFor,
+  cgtKitFor,
+  freshKitState,
+  kitShow,
+  protesterPaint,
+  type Accessory,
+  type CgtKit,
+  type KitShow,
+  type KitState,
+} from "../player/index.ts";
 import { disguiseArchetype } from "./disguise.ts";
 import { getLastThrow } from "./canisterThrows.ts";
 import { setCrsBody, setLbdMuzzle } from "./crsBody.ts";
@@ -119,6 +132,8 @@ interface FootSpec {
   paint?: CellPaint;
   /** What it wears on top (#113): the BAC keeps its disguise's hat and bag, as PlayerAvatar puts them on. */
   wear?: readonly Accessory[];
+  /** The CGT's barbecue or megaphone (#116): the BAC keeps its disguise's, as PlayerAvatar draws it. */
+  kit?: CgtKit | null;
 }
 
 const POLICE_CLIPS = [
@@ -144,6 +159,7 @@ function footSpec(id: string, kind: CrsKind, fromMount: CrsMount | null): FootSp
         url: bodyUrlFor(disguiseArchetype(id), id),
         paint: protesterPaint(disguiseArchetype(id), id),
         wear: accessoriesFor(disguiseArchetype(id), bodyUrlFor(disguiseArchetype(id), id), id),
+        kit: cgtKitFor(disguiseArchetype(id), id),
         clips: [MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra, MODELS.clipLibraries.bacReveal, MODELS.clipLibraries.grabCollarCrs],
         armband: true,
         // Must blend in with the protesters until revealed.
@@ -338,6 +354,7 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
     return () => setLbdMuzzle(id, null);
   }, [id, body, animator]);
   const splat = useRef<Group>(null);
+  const kitRef = useRef(freshKitState());
   const t = useRef<Track>(freshTrack());
   const at = useRef(new Vector3());
 
@@ -430,12 +447,14 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
     s.skipped = 0;
   });
 
+  const kit = spec.kit;
   if (!body || !animator) return null;
   return (
     <>
       <primitive object={body.root} dispose={null} />
       {body.head && createPortal(<Splat group={splat} radius={SPLAT_RADIUS} at={SPLAT_AT} />, body.head)}
       {spec.wear && spec.wear.length > 0 && <WornAccessories root={body.root} wear={spec.wear} stowTall={() => stowsTall(id)} />}
+      {kit && <CgtKitView root={body.root} kit={kit} show={() => bacKitShow(id, kit, kitRef.current)} />}
     </>
   );
 }
@@ -443,6 +462,17 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
 /** A BAC holding someone (#13), or in a pair animation: its flag or placard would go through them. */
 function stowsTall(id: string): boolean {
   return net.getCrs(id)?.status === CrsStatus.Grabbing || getPoseOwner(id) !== null;
+}
+
+/** The revealed BAC's barbecue or megaphone (#116): the megaphone goes to the hip while it hits or holds someone, the grill away in a grab pair. */
+function bacKitShow(id: string, kit: CgtKit, s: KitState): KitShow {
+  const c = net.getCrs(id);
+  const swungAt = net.getLastSwing(id);
+  s.carryingPlayer = c?.status === CrsStatus.Grabbing;
+  s.posed = getPoseOwner(id) !== null;
+  s.lying = !!c && (c.down || c.status === CrsStatus.Out);
+  s.swinging = swungAt !== undefined && performance.now() - swungAt < SWING_BUSY_MS;
+  return kitShow(kit, s);
 }
 
 /** The BAC's reveal (#13): the gesture once, the armband appearing when the hand reaches the arm. */

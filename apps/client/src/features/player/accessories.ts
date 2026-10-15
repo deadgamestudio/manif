@@ -39,6 +39,7 @@ export const ACCESSORY_BONE: Readonly<Record<AccessoryName, "head" | "spine">> =
   toteBag: "spine",
   flag: "spine",
   placard: "spine",
+  barbecue: "spine",
 };
 
 /** Held up on a pole behind the head: put away while grabbed, carried, or carrying someone. */
@@ -129,6 +130,9 @@ function allowed(name: AccessoryName, wears: Wears): boolean {
     case "flag":
     case "placard":
       return !wears.sign;
+    // The CGT's kit (cgtKit.ts), never picked here.
+    case "barbecue":
+      return false;
   }
 }
 

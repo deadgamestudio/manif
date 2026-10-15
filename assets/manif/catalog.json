@@ -2616,5 +2616,15 @@
     "animations": [],
     "triangles": 132,
     "source": "assets/manif/sources/accessoires-v01/placard/placard.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "barbecue",
+    "url": "/models/manif/accessoires-v01/barbecue/barbecue.glb",
+    "bytes": 36224,
+    "sha256": "0dda75c42ee9839dd0639d7eac861e14da2e5fe19565679945e11cd65b1415f4",
+    "animations": [],
+    "triangles": 506,
+    "source": "assets/manif/sources/accessoires-v01/barbecue/barbecue.blend"
   }
 ]
