@@ -1,19 +1,23 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { BoxGeometry, EdgesGeometry, LineBasicMaterial, MeshStandardMaterial, Vector3, type BufferGeometry, type LineSegments, type Mesh } from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { BoxGeometry, EdgesGeometry, LineBasicMaterial, MeshBasicMaterial, MeshStandardMaterial, Vector3, type BufferGeometry, type LineSegments, type Mesh } from "three";
 import type { BoxObstacle, ShopRoom } from "@manif/shared";
-import { findOccluders, type OcclusionCamera, type Point3 } from "./occlusion.ts";
+import { facadeGeometry } from "./facadeGeometry.ts";
+import { haussmann } from "./haussmann.ts";
+import { findOccluders, type OccluderBox, type OcclusionCamera, type Point3 } from "./occlusion.ts";
 
 /*
- * The building blocks along the street (#80, #84). Each block is drawn as the
- * pieces left around its shop rooms (the very boxes the server collides
- * with), plus a ceiling slab over each room up to the block's roof, so from
- * outside the facade still reads as one building. A block is one mesh with
- * its own material: the blocks standing between the camera and someone who
- * matters fade to see-through, and only those. A target inside a room sits
- * inside its block's whole box, so the same test fades the block for it.
- * The test runs a few times a second; the opacity moves every frame.
+ * The building blocks along the street (#80, #84, #101). Each block is drawn
+ * as the pieces left around its shop rooms (the very boxes the server
+ * collides with), plus a ceiling slab over each room up to the block's roof,
+ * dressed as a Haussmann building: stone, windows, iron balconies and a zinc
+ * mansard roof (`haussmann.ts`, `facadeGeometry.ts`). A block is one mesh
+ * with vertex colours and its own material: the blocks standing between the
+ * camera and someone who matters fade to see-through, every part with them,
+ * and only those. The test runs on the block up to the top of its roof; a
+ * target inside a room sits inside its block's whole box, so the same test
+ * fades the block for it. The test runs a few times a second; the opacity
+ * moves every frame.
  */
 
 /** Opacity of a building in the way. */
@@ -34,16 +38,31 @@ export interface BuildingSpec {
   pieces: readonly BoxObstacle[];
   /** The shop rooms carved out of it. Each gets a ceiling slab from its height up to the block's roof. */
   rooms: readonly ShopRoom[];
+  /** The flat colour of the old plain blocks; unused since the Haussmann look (#101), which tints each block itself. */
   color: string;
 }
 
 interface Building {
   spec: BuildingSpec;
+  /** What hides a target: the block up to the top of its roof. */
+  occluder: OccluderBox;
   geometry: BufferGeometry;
   edges: EdgesGeometry;
   material: MeshStandardMaterial;
   edgeMaterial: LineBasicMaterial;
 }
+
+/**
+ * Depth only, drawn just before a faded building (#101): the building then
+ * shows only its nearest surface, see-through over what stands behind it,
+ * instead of every window, balcony and wall inside it stacked up. Shared by
+ * every building; nothing about it changes.
+ */
+const DEPTH_ONLY = new MeshBasicMaterial({ colorWrite: false, transparent: true });
+/** Draw order among see-through things: the depth pass, then the building, then its outline. */
+const ORDER_DEPTH = 1;
+const ORDER_BUILDING = 2;
+const ORDER_EDGES = 3;
 
 const reducedMotion = typeof window !== "undefined" ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
 
@@ -52,18 +71,6 @@ function boxAt(minX: number, maxX: number, minZ: number, maxZ: number, minY: num
   const g = new BoxGeometry(maxX - minX, maxY - minY, maxZ - minZ);
   g.translate((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
   return g;
-}
-
-/** A block's pieces and room ceilings, merged into one geometry in world coordinates. */
-function blockGeometry(spec: BuildingSpec): BufferGeometry {
-  const parts: BoxGeometry[] = spec.pieces.map((p) => boxAt(p.x - p.halfX, p.x + p.halfX, p.z - p.halfZ, p.z + p.halfZ, 0, p.height));
-  for (const r of spec.rooms) {
-    if (spec.box.height > r.height) parts.push(boxAt(r.rect.minX, r.rect.maxX, r.rect.minZ, r.rect.maxZ, r.height, spec.box.height));
-  }
-  if (parts.length === 1) return parts[0]!;
-  const merged = mergeGeometries(parts) ?? boxAt(0, 0, 0, 0, 0, 0);
-  for (const p of parts) p.dispose();
-  return merged;
 }
 
 export function BuildingsView({
@@ -79,15 +86,17 @@ export function BuildingsView({
     () =>
       buildings.map((spec): Building => {
         const { box } = spec;
+        const look = haussmann(spec);
         // The outline is the whole block's, so a faded block shows no seams between its pieces.
         const outline = boxAt(box.x - box.halfX, box.x + box.halfX, box.z - box.halfZ, box.z + box.halfZ, 0, box.height);
         const edges = new EdgesGeometry(outline);
         outline.dispose();
         return {
           spec,
-          geometry: blockGeometry(spec),
+          occluder: { x: box.x, z: box.z, halfX: box.halfX, halfZ: box.halfZ, height: look.top },
+          geometry: facadeGeometry(look),
           edges,
-          material: new MeshStandardMaterial({ color: spec.color }),
+          material: new MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }),
           edgeMaterial: new LineBasicMaterial({ color: "#f4efe6", transparent: true, opacity: 0, depthWrite: false }),
         };
       }),
@@ -96,12 +105,14 @@ export function BuildingsView({
   // Each building's current opacity, by index; missing means solid.
   const opacities = useRef<number[]>([]);
   const meshRefs = useRef<(Mesh | null)[]>([]);
+  const depthRefs = useRef<(Mesh | null)[]>([]);
   const edgeRefs = useRef<(LineSegments | null)[]>([]);
   useEffect(() => {
     // A new layout keeps the meshes (same keys) with fresh, solid materials: put the flags back to match.
     opacities.current = [];
     for (const m of meshRefs.current) if (m) m.castShadow = true;
     for (const e of edgeRefs.current) if (e) e.visible = false;
+    for (const d of depthRefs.current) if (d) d.visible = false;
     return () => {
       for (const b of items) {
         b.geometry.dispose();
@@ -114,7 +125,7 @@ export function BuildingsView({
 
   const occluded = useRef(new Set<number>());
   const sinceTest = useRef(TEST_EVERY);
-  const boxes = useMemo(() => items.map((b) => b.spec.box), [items]);
+  const boxes = useMemo(() => items.map((b) => b.occluder), [items]);
   const cam = useRef({ position: new Vector3(), direction: new Vector3(), orthographic: true as boolean } satisfies OcclusionCamera);
 
   useFrame(({ camera }, dt) => {
@@ -139,7 +150,7 @@ export function BuildingsView({
       const step = ((1 - FADED) / (goal < was ? FADE_OUT : FADE_IN)) * dt;
       const next = instant ? goal : goal < was ? Math.max(goal, was - step) : Math.min(goal, was + step);
       opacities.current[i] = next;
-      setOpacity(items[i]!, next, meshRefs.current[i] ?? null, edgeRefs.current[i] ?? null);
+      setOpacity(items[i]!, next, meshRefs.current[i] ?? null, depthRefs.current[i] ?? null, edgeRefs.current[i] ?? null);
     }
   });
 
@@ -149,10 +160,20 @@ export function BuildingsView({
         <group key={b.spec.box.id}>
           <mesh
             ref={(el) => {
+              depthRefs.current[i] = el;
+            }}
+            geometry={b.geometry}
+            material={DEPTH_ONLY}
+            renderOrder={ORDER_DEPTH}
+            visible={false}
+          />
+          <mesh
+            ref={(el) => {
               meshRefs.current[i] = el;
             }}
             geometry={b.geometry}
             material={b.material}
+            renderOrder={ORDER_BUILDING}
             castShadow
             receiveShadow
           />
@@ -162,6 +183,7 @@ export function BuildingsView({
             }}
             geometry={b.edges}
             material={b.edgeMaterial}
+            renderOrder={ORDER_EDGES}
             visible={false}
           />
         </group>
@@ -174,17 +196,22 @@ export function BuildingsView({
  * Applies a building's opacity. Solid buildings stay opaque, write depth and
  * cast shadows; see-through ones stop writing depth (so they never hide what
  * is behind them or sort wrongly against the ground) and stop casting shadows
- * (a faded block left striped shadows on the street, #80). The material and
+ * (a faded block left striped shadows on the street, #80); a depth-only copy
+ * drawn just before keeps only their nearest surface showing, so the inside
+ * of the block (windows, balconies, the far walls) does not show through
+ * itself. Its own depth hides nothing drawn before it, which is every solid
+ * thing and everything see-through but other faded buildings. The material and
  * the shadow flag only change when it switches between the two, never while
  * the opacity moves.
  */
-function setOpacity(b: Building, opacity: number, mesh: Mesh | null, edge: LineSegments | null) {
+function setOpacity(b: Building, opacity: number, mesh: Mesh | null, depth: Mesh | null, edge: LineSegments | null) {
   const solid = opacity >= 1;
   if (b.material.transparent === solid) {
     b.material.transparent = !solid;
     b.material.depthWrite = solid;
     b.material.needsUpdate = true;
     if (mesh) mesh.castShadow = solid;
+    if (depth) depth.visible = !solid;
   }
   b.material.opacity = opacity;
   const amount = (1 - opacity) / (1 - FADED);

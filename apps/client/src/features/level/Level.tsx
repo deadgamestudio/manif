@@ -6,8 +6,9 @@ import { MODELS, fitToBox, modelBounds, useGltf, useStaticModel, type GLTF } fro
 import { carveBlocks } from "./blocks.ts";
 import { BuildingsView, type BuildingSpec } from "./Buildings.tsx";
 import { InstancedModel } from "./InstancedModel.tsx";
-import { crosswalkPlacements, dashPlacements, pavementPlacements, type Placement } from "./scenery.ts";
+import { crosswalkPlacements, dashPlacements, type Placement } from "./scenery.ts";
 import type { Point3 } from "./occlusion.ts";
+import { PAVEMENT_COLOR, Pavements } from "./Pavements.tsx";
 import { RoomsView } from "./Rooms.tsx";
 
 /*
@@ -17,8 +18,10 @@ import { RoomsView } from "./Rooms.tsx";
  *
  * Jordan's models (#28) dress it: each one stretched over its collision box
  * (they are drawn to those sizes, so the stretch is about 1), and the repeated
- * ones (trees, lamps, bollards, road dashes, crosswalks, pavement) as one
- * instanced mesh per part. Until a model has loaded, or if it failed, the
+ * ones (trees, lamps, bollards, road dashes, crosswalks) as one instanced
+ * mesh per part. The pavement and its kerb are drawn in code (#102,
+ * Pavements.tsx): Jordan's pavement tile sat under the asphalt but for its
+ * thin kerb lip, and the edge of the road did not read. Until a model has loaded, or if it failed, the
  * flat boxes and circles stand in. The buildings stay plain blocks for now:
  * the fade needs one material per building, which the facade modules don't
  * have yet.
@@ -35,7 +38,6 @@ const BOX_COLORS: Record<BoxKind, readonly string[]> = {
 
 /** Lighter than real asphalt (#28): the dark CRS and outfits must stand out against it. */
 const ASPHALT = "#767b84";
-const PAVEMENT = "#8d9198";
 const MARKING = "#d8d8d0";
 
 export function LevelView({
@@ -60,7 +62,7 @@ export function LevelView({
   return (
     <group>
       {/* Pavement beyond the street, under the buildings. */}
-      <RectMesh rect={grow(b, 30)} y={-0.02} color={PAVEMENT} />
+      <RectMesh rect={grow(b, 30)} y={-0.02} color={PAVEMENT_COLOR} />
       {/* The walkable street: exactly the server bounds. */}
       <RectMesh rect={b} y={0} color={ASPHALT} />
       <Pavements level={level} />
@@ -123,12 +125,6 @@ function CentreLine({ level }: { level: Level }) {
   const dashes = useMemo(() => dashPlacements(level), [level]);
   const fallback = dashes.map((d) => <RectMesh key={d.z} rect={{ minX: -0.12, maxX: 0.12, minZ: d.z - 1, maxZ: d.z + 1 }} y={0.01} color={MARKING} />);
   return <InstancedModel url={MODELS.scenery.roadDash} placements={dashes} y={0.005} fallback={fallback} receiveOnly />;
-}
-
-/** The pavement along each facade, kerb on the street side, its top just over the asphalt (most of its thickness is under the ground). */
-function Pavements({ level }: { level: Level }) {
-  const tiles = useMemo(() => pavementPlacements(level), [level]);
-  return <InstancedModel url={MODELS.scenery.pavementKit} placements={tiles} y={-0.15} receiveOnly />;
 }
 
 function Crosswalks({ level }: { level: Level }) {
