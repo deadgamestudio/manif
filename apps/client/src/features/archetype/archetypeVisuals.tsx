@@ -6,9 +6,10 @@
  * `modelAccessories` adds what a body lacks.
  *
  * Humour boundary (PRODUCT.md, #14): an archetype is clothes, props and
- * attitude, never who wears them. Nothing here touches skin: the arms stay
- * the one neutral colour every protester shares (SKIN, below), and only
- * clothing and accessories differ.
+ * attitude, never who wears them. Nothing here touches skin: the
+ * placeholder's arms stay one neutral colour (SKIN, below), and Jordan's
+ * bodies get a skin tone from the player's id alone, never from the
+ * archetype (player/protesterLook.ts, #112).
  *
  * Accessories are drawn in the avatar's turning frame (PlayerAvatar.tsx):
  * feet at y = 0, the 1.8 m capsule up +Y, 0.4 m radius, front +Z, the
@@ -17,7 +18,7 @@
 import type { ReactNode } from "react";
 import { Archetype, archetypeOf } from "@manif/shared";
 
-/** The one skin colour of every protester, whatever their archetype. */
+/** The placeholders' one skin colour, whatever the archetype (Jordan's bodies: player/protesterLook.ts). */
 export const SKIN = "#8d6e63";
 
 export interface ArchetypeLook {

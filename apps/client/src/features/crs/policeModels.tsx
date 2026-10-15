@@ -44,10 +44,12 @@ import {
   useStaticModel,
   type Animator,
   type ClipSet,
+  type CellPaint,
   type GLTF,
 } from "../models/index.ts";
 import { chooseLoop, lyingClip, swingClip, type PoliceRole } from "./crsClips.ts";
 import { Splat } from "./crsVisuals.tsx";
+import { protesterPaint } from "../player/index.ts";
 import { disguiseArchetype } from "./disguise.ts";
 import { getLastThrow } from "./canisterThrows.ts";
 import { setCrsBody, setLbdMuzzle } from "./crsBody.ts";
@@ -113,6 +115,8 @@ interface FootSpec {
   fromBike: boolean;
   /** Dressed as police (#109): navy uniform, "POLICE" band. Not the disguised BAC (nor the pompier). */
   police: boolean;
+  /** The palette to paint instead (#112): the BAC keeps its disguise's colours, as PlayerAvatar paints them. */
+  paint?: CellPaint;
 }
 
 const POLICE_CLIPS = [
@@ -136,6 +140,7 @@ function footSpec(id: string, kind: CrsKind, fromMount: CrsMount | null): FootSp
         role: "bac",
         // The same body as its disguise (PlayerAvatar picks it the same way).
         url: bodyUrlFor(disguiseArchetype(id), id),
+        paint: protesterPaint(disguiseArchetype(id), id),
         clips: [MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra, MODELS.clipLibraries.bacReveal, MODELS.clipLibraries.grabCollarCrs],
         armband: true,
         // Must blend in with the protesters until revealed.
@@ -173,6 +178,7 @@ interface Body {
 
 interface Extras {
   police: boolean;
+  paint?: CellPaint;
   hide: readonly string[];
   baton: GLTF | null;
   canister: GLTF | null;
@@ -187,7 +193,7 @@ interface Extras {
  */
 function buildBody(gltf: GLTF, x: Extras): Body {
   const root = cloneSkinned(gltf);
-  repaintCells(root, x.police ? POLICE_PAINT : PLAIN_PAINT);
+  repaintCells(root, x.paint ?? (x.police ? POLICE_PAINT : PLAIN_PAINT));
   for (const name of x.hide) {
     const n = root.getObjectByName(name);
     if (n) n.visible = false;
@@ -307,9 +313,10 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
   const gltf = alt ?? main;
   const hide = spec.hide;
   const police = spec.police;
+  const paint = spec.paint;
   const body = useMemo(
-    () => (gltf ? buildBody(gltf, { police, hide, baton: batonSrc, canister: canisterSrc, armband: armbandSrc, launcher: launcherSrc }) : null),
-    [gltf, police, hide, batonSrc, canisterSrc, armbandSrc, launcherSrc],
+    () => (gltf ? buildBody(gltf, { police, paint, hide, baton: batonSrc, canister: canisterSrc, armband: armbandSrc, launcher: launcherSrc }) : null),
+    [gltf, police, paint, hide, batonSrc, canisterSrc, armbandSrc, launcherSrc],
   );
   useEffect(() => () => disposeBody(body), [body]);
   const clips = usePoliceClips(spec.clips);
