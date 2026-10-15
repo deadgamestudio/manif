@@ -20,6 +20,7 @@ import { onScreen } from "./onScreen.ts";
 import { ringColorFor } from "./ringColor.ts";
 import { BodyMotion } from "./bodyMotion.ts";
 import { setAvatarBody, useProtesterBody } from "./protesterBody.ts";
+import { protesterPaint } from "./protesterLook.ts";
 
 const CAPSULE_LENGTH = 1;
 const HEIGHT = CAPSULE_LENGTH + PLAYER_RADIUS * 2;
@@ -168,7 +169,8 @@ export function PlayerAvatar({
   /** The archetype drawn (#14). It only changes in the lobby, so a re-render then is fine. */
   const [archetype, setArchetype] = useState(() => source(id)?.archetype ?? 0);
   const look = archetypeLook(archetype);
-  const model = useProtesterBody(bodyUrlFor(archetype, id));
+  const paint = useMemo(() => protesterPaint(archetype, id), [archetype, id]);
+  const model = useProtesterBody(bodyUrlFor(archetype, id), paint);
   const motion = useMemo(() => (model ? new BodyMotion(model.animator) : null), [model]);
   const footRing = useStaticModel(isLocal ? MODELS.ui.playerFootRing : null);
   const ringYaw = useRef<Group>(null);
