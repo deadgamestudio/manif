@@ -18,7 +18,8 @@ import { NameTag } from "./NameTag.tsx";
 import { actionClip, chooseStateClip } from "./clipChoice.ts";
 import { onScreen } from "./onScreen.ts";
 import { ringColorFor } from "./ringColor.ts";
-import { BodyMotion, setAvatarBody, useProtesterBody } from "./protesterBody.ts";
+import { BodyMotion } from "./bodyMotion.ts";
+import { setAvatarBody, useProtesterBody } from "./protesterBody.ts";
 
 const CAPSULE_LENGTH = 1;
 const HEIGHT = CAPSULE_LENGTH + PLAYER_RADIUS * 2;
