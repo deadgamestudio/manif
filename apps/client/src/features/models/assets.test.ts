@@ -33,7 +33,7 @@ describe("the model URLs", () => {
 
   test("the preload puts the players' bodies and the clips first, and fetches each file once", () => {
     const groups = roundPreloadGroups([bodyUrlFor(5, "x"), bodyUrlFor(5, "y")]);
-    expect(groups[0]).toEqual([MODELS.characters.cgt, MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra]);
+    expect(groups[0]).toEqual([MODELS.characters.cgt, MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra, ...modelUrls("accessories")]);
     expect(groups[1]).toContain(MODELS.police.policeVan);
     const flat = groups.flat();
     expect(new Set(flat).size).toBe(flat.length);

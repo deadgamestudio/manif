@@ -2516,5 +2516,105 @@
     "animations": [],
     "triangles": 140,
     "source": "assets/manif/sources/accessoires-v01/lbd-launcher/lbd-launcher.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "beanie",
+    "url": "/models/manif/accessoires-v01/beanie/beanie.glb",
+    "bytes": 8988,
+    "sha256": "8dd981868904e0a3e0f1bcd75eeb53393d1dd62646e3210da4b93bff552eb43e",
+    "animations": [],
+    "triangles": 90,
+    "source": "assets/manif/sources/accessoires-v01/beanie/beanie.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "cap",
+    "url": "/models/manif/accessoires-v01/cap/cap.glb",
+    "bytes": 10468,
+    "sha256": "7f43c623330a20098946305082eb88610e91fcd395dc5d2cbb94dccd513cf8fc",
+    "animations": [],
+    "triangles": 114,
+    "source": "assets/manif/sources/accessoires-v01/cap/cap.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "cgt-cap",
+    "url": "/models/manif/accessoires-v01/cgt-cap/cgt-cap.glb",
+    "bytes": 11320,
+    "sha256": "664990e88d12358f56bd42fc1be148837192a703ee98148dcb9bf0e323b18c9e",
+    "animations": [],
+    "triangles": 126,
+    "source": "assets/manif/sources/accessoires-v01/cgt-cap/cgt-cap.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "beret",
+    "url": "/models/manif/accessoires-v01/beret/beret.glb",
+    "bytes": 10728,
+    "sha256": "433ac5235eb2f4bce662906b237226d35a0aeed1324152f15251b701513bcaa0",
+    "animations": [],
+    "triangles": 124,
+    "source": "assets/manif/sources/accessoires-v01/beret/beret.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "bandana",
+    "url": "/models/manif/accessoires-v01/bandana/bandana.glb",
+    "bytes": 7048,
+    "sha256": "b6df28add71ded4744a898c4db431722ebc7e1fe21db93877adc963e7fcfca92",
+    "animations": [],
+    "triangles": 64,
+    "source": "assets/manif/sources/accessoires-v01/bandana/bandana.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "scarf",
+    "url": "/models/manif/accessoires-v01/scarf/scarf.glb",
+    "bytes": 8008,
+    "sha256": "6099701a2d7561b56799b3749e0e1d915508c484f6a520ea478117c841262659",
+    "animations": [],
+    "triangles": 108,
+    "source": "assets/manif/sources/accessoires-v01/scarf/scarf.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "backpack",
+    "url": "/models/manif/accessoires-v01/backpack/backpack.glb",
+    "bytes": 12556,
+    "sha256": "ee06c15bb6d81260510df819b8e78b1a6d88def45734c09a5029c9cf31ad5892",
+    "animations": [],
+    "triangles": 160,
+    "source": "assets/manif/sources/accessoires-v01/backpack/backpack.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "tote-bag",
+    "url": "/models/manif/accessoires-v01/tote-bag/tote-bag.glb",
+    "bytes": 10140,
+    "sha256": "d917038beaeaf3ec018ecc3f5f4050fce306a55566d3e8c7443c043e3215ff53",
+    "animations": [],
+    "triangles": 120,
+    "source": "assets/manif/sources/accessoires-v01/tote-bag/tote-bag.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "flag",
+    "url": "/models/manif/accessoires-v01/flag/flag.glb",
+    "bytes": 7480,
+    "sha256": "00b4d1a148b49ec12fb97762953230fb6d51aada8c9122ceebdf7a3c811466b9",
+    "animations": [],
+    "triangles": 74,
+    "source": "assets/manif/sources/accessoires-v01/flag/flag.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "placard",
+    "url": "/models/manif/accessoires-v01/placard/placard.glb",
+    "bytes": 11048,
+    "sha256": "36f36c46f2e9818febbaa1135cdeabb1aea7192507ae7ceb893619263a854dc6",
+    "animations": [],
+    "triangles": 132,
+    "source": "assets/manif/sources/accessoires-v01/placard/placard.blend"
   }
 ]

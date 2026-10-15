@@ -179,6 +179,26 @@ export const MODELS = {
     bonkStars: `${M}/effets-v01/bonk-stars/bonk-stars.glb`,
   },
 
+  /**
+   * What protesters wear on top of their body (#113), picked per player in
+   * player/accessories.ts. Not Jordan's: made by Claude in Blender, in his
+   * style (same palette strip). Each one's pivot is the origin of the bone it
+   * goes on (`head` or `spine`, both unrotated in the shared rig), so it is
+   * added to that bone as is. The placard has a `grip` node mid-stick.
+   */
+  accessories: {
+    beanie: `${M}/accessoires-v01/beanie/beanie.glb`,
+    cap: `${M}/accessoires-v01/cap/cap.glb`,
+    cgtCap: `${M}/accessoires-v01/cgt-cap/cgt-cap.glb`,
+    beret: `${M}/accessoires-v01/beret/beret.glb`,
+    bandana: `${M}/accessoires-v01/bandana/bandana.glb`,
+    scarf: `${M}/accessoires-v01/scarf/scarf.glb`,
+    backpack: `${M}/accessoires-v01/backpack/backpack.glb`,
+    toteBag: `${M}/accessoires-v01/tote-bag/tote-bag.glb`,
+    flag: `${M}/accessoires-v01/flag/flag.glb`,
+    placard: `${M}/accessoires-v01/placard/placard.glb`,
+  },
+
   /** 3D markers above and under characters. Fixed shapes, not live bars. */
   ui: {
     playerFootRing: `${M}/interface-3d-v02/player-foot-ring/player-foot-ring.glb`,

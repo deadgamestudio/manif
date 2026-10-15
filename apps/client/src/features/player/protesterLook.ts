@@ -122,7 +122,7 @@ export const PEOPLE: readonly Person[] = [
 ];
 
 /** FNV-1a of `salt` and `id`, reduced to [0, n). Salted, so each part picks independently. */
-function pick(id: string, salt: string, n: number): number {
+export function pick(id: string, salt: string, n: number): number {
   if (n <= 1) return 0;
   const s = `${salt}|${id}`;
   let h = 0x811c9dc5;
