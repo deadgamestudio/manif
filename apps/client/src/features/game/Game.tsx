@@ -2,8 +2,9 @@ import { useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { MAX_PLAYERS, Phase } from "@manif/shared";
 import { net, type NetSnapshot } from "../../shared/net/index.ts";
-import { CAMERA_OFFSET } from "../../shared/iso/index.ts";
+import { CAMERA_OFFSET, cameraZoom } from "../../shared/iso/index.ts";
 import { Scene } from "./Scene.tsx";
+import { ViewportZoom } from "./ViewportZoom.tsx";
 import { useMoveInput } from "../movement/index.ts";
 import { useAttackInput } from "../melee/index.ts";
 import { DebugKnockbackKeys } from "../debug/index.ts";
@@ -50,8 +51,10 @@ export function Game({ snap }: { snap: NetSnapshot }) {
         shadows="percentage"
         orthographic
         dpr={[1, touch ? 1.5 : 2]}
-        camera={{ position: [CAMERA_OFFSET.x, CAMERA_OFFSET.y, CAMERA_OFFSET.z], zoom: 40, near: 0.1, far: 200 }}
+        camera={{ position: [CAMERA_OFFSET.x, CAMERA_OFFSET.y, CAMERA_OFFSET.z], zoom: cameraZoom(window.innerWidth, window.innerHeight), near: 0.1, far: 200 }}
       >
+        {/* #107: the zoom follows the view's size (phones zoom out); the first frame already guesses it from the window. */}
+        <ViewportZoom />
         <Scene players={snap.players} crs={snap.crs} localId={snap.sessionId} />
       </Canvas>
       <GasOverlay localId={snap.sessionId} />

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, type RefObject } from "react";
+import { useThree } from "@react-three/fiber";
 import { CanvasTexture, LinearFilter, SRGBColorSpace, type Group } from "three";
+import { viewMarkerScale } from "../../shared/iso/index.ts";
 
-/** Size of the mark in world units (about 36 px wide at the default zoom). */
+/** Size of the mark in world units (about 36 px wide at the desktop zoom; grown on a zoomed-out phone, #107). */
 const MARK_W = 0.9;
 const MARK_H = 1.1;
 
@@ -50,9 +52,10 @@ function drawMark(): CanvasTexture {
 export function WindupMark({ group, y }: { group: RefObject<Group | null>; y: number }) {
   const texture = useMemo(() => drawMark(), []);
   useEffect(() => () => texture.dispose(), [texture]);
+  const grow = useThree((s) => viewMarkerScale(s.size.width, s.size.height));
   return (
     <group ref={group} position-y={y} visible={false}>
-      <sprite scale={[MARK_W, MARK_H, 1]} renderOrder={14}>
+      <sprite scale={[MARK_W * grow, MARK_H * grow, 1]} renderOrder={14}>
         <spriteMaterial map={texture} transparent depthTest={false} depthWrite={false} />
       </sprite>
     </group>
