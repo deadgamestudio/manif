@@ -1,15 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { BoxGeometry, MeshStandardMaterial, PlaneGeometry } from "three";
-import type { ShopRoom } from "@manif/shared";
+import { MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry } from "three";
+import type { ShopKind, ShopRoom } from "@manif/shared";
 import { net } from "../../shared/net/index.ts";
+import { BoxBatch, mergeBoxes } from "../../shared/boxes/index.ts";
 import { roomClutter, roomSize, type ClutterMaterial } from "./roomInterior.ts";
 
 /*
  * Inside the shop rooms (#84): a dark floor, dim walls and a looted mess, so
  * a player who walks in through a broken front is seen in a dark shop once
  * the building fades. Placeholder boxes and planes only, until Jordan's
- * models (#28). No lights: a few emissive bits keep it legible but darker
+ * models (#28). No lights: a few glowing bits keep it legible but darker
  * than the street (a light per room would cost every material in the scene).
  *
  * The wall linings are one-sided planes facing into the room: seen from
@@ -17,60 +18,88 @@ import { roomClutter, roomSize, type ClutterMaterial } from "./roomInterior.ts";
  * walls show, never one between the camera and the player.
  *
  * The mess only shows once the shop is broken: an intact shop's room, seen
- * through its faded block, is bare.
+ * through its faded block, is bare. Each kind dresses its room a little
+ * (#117: a lit menu, a green cross, a wall of shoes...).
  *
- * Everything is shared: one unit box, one unit plane, one material per kind
- * of thing. Rebuilt per round layout, never per frame.
+ * Draw calls (#117): a street has up to 20 rooms, so a room is not a mesh per
+ * plank. Its floor and walls are baked into one mesh, its mess into one more,
+ * its glowing bits into a third (`shared/boxes`), colours per vertex.
+ * Rebuilt per round layout or when the shop breaks, never per frame.
  */
 
-const UNIT_BOX = new BoxGeometry(1, 1, 1);
 const UNIT_PLANE = new PlaneGeometry(1, 1);
 
-const FLOOR = new MeshStandardMaterial({ color: "#1d1a18", roughness: 1, emissive: "#0c0a09" });
-const WALL = new MeshStandardMaterial({ color: "#36302b", roughness: 1, emissive: "#171310" });
-const CLUTTER: Readonly<Record<ClutterMaterial, MeshStandardMaterial>> = {
-  shelf: new MeshStandardMaterial({ color: "#4e3b2c", roughness: 0.9, emissive: "#140e09" }),
-  crate: new MeshStandardMaterial({ color: "#6b5236", roughness: 0.9, emissive: "#1a130b" }),
-  counter: new MeshStandardMaterial({ color: "#2c3134", roughness: 0.8, emissive: "#0d0f10" }),
-  counterTop: new MeshStandardMaterial({ color: "#5d6266", roughness: 0.6 }),
-  litter: new MeshStandardMaterial({ color: "#8a8070", roughness: 1 }),
-  tube: new MeshStandardMaterial({ color: "#dfe9ff", emissive: "#bcd4ff", emissiveIntensity: 0.9 }),
+const FLOOR = "#1d1a18";
+const WALL = "#36302b";
+/** The room's own dim glow, so it reads in the dark without a light. */
+const SHELL = new MeshStandardMaterial({ vertexColors: true, roughness: 1, emissive: "#120e0c" });
+const CLUTTER = new MeshStandardMaterial({ vertexColors: true, roughness: 0.9, emissive: "#140f0b" });
+const GLOW = new MeshBasicMaterial({ vertexColors: true });
+
+/** Colours of the mess; `accent` and `glow` pieces bring their own. */
+const COLORS: Readonly<Record<Exclude<ClutterMaterial, "accent" | "glow">, string>> = {
+  shelf: "#4e3b2c",
+  crate: "#6b5236",
+  counter: "#2c3134",
+  counterTop: "#5d6266",
+  litter: "#8a8070",
+  tube: "#dfe9ff",
 };
 
 /** A little in front of the walls, so the lining never fights with them. */
 const LINE = 0.01;
 
-export function RoomsView({ rooms }: { rooms: readonly ShopRoom[] }) {
+export function RoomsView({ rooms, kinds }: { rooms: readonly ShopRoom[]; kinds?: ReadonlyMap<string, ShopKind> }) {
   return (
     <>
       {rooms.map((room) => (
-        <RoomView key={room.id} room={room} />
+        <RoomView key={room.id} room={room} kind={kinds?.get(room.id)} />
       ))}
     </>
   );
 }
 
-function RoomView({ room }: { room: ShopRoom }) {
-  const clutter = useMemo(() => roomClutter(room), [room]);
+function RoomView({ room, kind }: { room: ShopRoom; kind?: ShopKind }) {
   const [broken, setBroken] = useState(() => net.getProp(room.id)?.broken ?? false);
   useFrame(() => {
     const isBroken = net.getProp(room.id)?.broken ?? false;
     if (isBroken !== broken) setBroken(isBroken);
   });
-  const { depth: D, halfWidth: W } = roomSize(room);
-  const h = room.height;
+  const shell = useMemo(() => {
+    const { depth: D, halfWidth: W } = roomSize(room);
+    const h = room.height;
+    const b = new BoxBatch();
+    // Floor, then the back wall and the two side walls, each facing into the room.
+    b.add([D / 2, 0.01, 0], [D, 2 * W, 1], FLOOR, [-Math.PI / 2, 0, 0]);
+    b.add([D - LINE, h / 2, 0], [2 * W, h, 1], WALL, [0, -Math.PI / 2, 0]);
+    b.add([D / 2, h / 2, -W + LINE], [D, h, 1], WALL);
+    b.add([D / 2, h / 2, W - LINE], [D, h, 1], WALL, [0, Math.PI, 0]);
+    return mergeBoxes(b.pieces, UNIT_PLANE);
+  }, [room]);
+  const mess = useMemo(() => {
+    if (!broken) return null;
+    const solid = new BoxBatch();
+    const glow = new BoxBatch();
+    for (const p of roomClutter(room, kind)) {
+      if (p.m === "tube" || p.m === "glow") glow.add(p.at, p.size, p.color ?? COLORS.tube, p.rot);
+      else solid.add(p.at, p.size, p.m === "accent" ? (p.color ?? COLORS.crate) : COLORS[p.m], p.rot);
+    }
+    return { solid: mergeBoxes(solid.pieces), glow: mergeBoxes(glow.pieces) };
+  }, [room, kind, broken]);
+  useEffect(() => () => shell?.dispose(), [shell]);
+  useEffect(
+    () => () => {
+      mess?.solid?.dispose();
+      mess?.glow?.dispose();
+    },
+    [mess],
+  );
   return (
     // Origin on the doorway, +X into the room: the left-hand rooms turned half round.
     <group position={[room.door.x, 0, room.door.z]} rotation-y={room.side < 0 ? Math.PI : 0}>
-      <mesh geometry={UNIT_PLANE} material={FLOOR} position={[D / 2, 0.01, 0]} rotation-x={-Math.PI / 2} scale={[D, 2 * W, 1]} receiveShadow />
-      {/* Back wall, then the two side walls, each facing into the room. */}
-      <mesh geometry={UNIT_PLANE} material={WALL} position={[D - LINE, h / 2, 0]} rotation-y={-Math.PI / 2} scale={[2 * W, h, 1]} />
-      <mesh geometry={UNIT_PLANE} material={WALL} position={[D / 2, h / 2, -W + LINE]} scale={[D, h, 1]} />
-      <mesh geometry={UNIT_PLANE} material={WALL} position={[D / 2, h / 2, W - LINE]} rotation-y={Math.PI} scale={[D, h, 1]} />
-      {broken &&
-        clutter.map((p, i) => (
-          <mesh key={i} geometry={UNIT_BOX} material={CLUTTER[p.m]} position={p.at} rotation={p.rot} scale={p.size} receiveShadow={p.m !== "tube"} />
-        ))}
+      {shell && <mesh geometry={shell} material={SHELL} receiveShadow />}
+      {mess?.solid && <mesh geometry={mess.solid} material={CLUTTER} receiveShadow />}
+      {mess?.glow && <mesh geometry={mess.glow} material={GLOW} />}
     </group>
   );
 }

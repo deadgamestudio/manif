@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { shopRoom, type ShopLot, type ShopRoom } from "@manif/shared";
+import { SHOP_KINDS, shopRoom, type ShopLot, type ShopRoom } from "@manif/shared";
 import { CLEAR_DOORWAY, roomClutter, roomSize } from "./roomInterior.ts";
 
 const lot = (over: Partial<ShopLot>): ShopLot => ({
@@ -39,6 +39,25 @@ describe("roomClutter", () => {
         expect(p.at[0]).toBeLessThan(depth);
         expect(Math.abs(p.at[2])).toBeLessThan(halfWidth);
         expect(p.at[1]).toBeLessThan(r.height);
+      }
+    }
+  });
+
+  test("each new kind (#117) dresses its room, inside the walls, clear of the doorway", () => {
+    for (const kind of SHOP_KINDS.slice(6)) {
+      for (const r of ROOMS) {
+        const { depth, halfWidth } = roomSize(r);
+        const pieces = roomClutter(r, kind);
+        const extra = pieces.filter((p) => p.m === "accent" || p.m === "glow");
+        expect(extra.length, kind).toBeGreaterThan(0);
+        expect(roomClutter(r, kind)).toEqual(pieces);
+        for (const p of extra) {
+          expect(p.color).toBeDefined();
+          expect(p.at[0] + p.size[0] / 2).toBeLessThanOrEqual(depth);
+          expect(p.at[0] - p.size[0] / 2).toBeGreaterThanOrEqual(CLEAR_DOORWAY);
+          expect(Math.abs(p.at[2])).toBeLessThan(halfWidth);
+          expect(p.at[1] + p.size[1] / 2).toBeLessThanOrEqual(r.height);
+        }
       }
     }
   });

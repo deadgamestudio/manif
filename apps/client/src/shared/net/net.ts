@@ -23,6 +23,7 @@ import {
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type DebugRoundPayload,
+  type DebugShopPayload,
   type GroundItemShape,
   type ProjectileShape,
   type ThrowPayload,
@@ -1066,6 +1067,11 @@ export const net = {
   /** DEBUG (#12), dev builds only: jump down the street or cut the round timer. The server refuses it in production. */
   debugRound(payload: DebugRoundPayload) {
     if (import.meta.env.DEV) room?.send(ClientMessage.DebugRound, payload);
+  },
+
+  /** DEBUG (#84), dev builds only: break a shop and step into its room. The server refuses it in production. */
+  debugShop(payload: DebugShopPayload) {
+    if (import.meta.env.DEV) room?.send(ClientMessage.DebugShop, payload);
   },
 
   /** Leave the room (or cancel a join in flight) and go back to the homepage. */

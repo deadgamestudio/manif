@@ -77,6 +77,9 @@ describe("the help page can't drift from the game (#71)", () => {
     SHOP_KINDS.forEach((kind, i) => expect(rows[i]?.hits).toBe(PROP_TYPES[kind].maxHp));
     expect(rows.find((r) => r.name === "Banque")?.drops).toBe(`${PROP_TYPES.banque.drops} pavés`);
     expect(rows.find((r) => r.name === "Toilettage pour chiens")?.drops).toBe(`${PROP_TYPES.toilettage.drops} crottes`);
+    // #117: the new kinds are listed, with their parody signs.
+    expect(rows.find((r) => r.name === "Pharmacie")?.signs).toContain("Pharmacie du Cortège");
+    expect(rows.find((r) => r.name === "Fast-food burger")?.signs).toContain("McDodo");
   });
 
   test("every police unit has a card; the pompiers are not police", () => {

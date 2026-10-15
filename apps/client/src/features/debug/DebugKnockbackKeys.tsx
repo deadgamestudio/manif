@@ -42,7 +42,10 @@ const ROUND_KEYS: Record<string, DebugRoundPayload> = {
   KeyU: { action: "hot" },
 };
 
-const DEBUG_CODES = [...Object.keys(KEYS), ...Object.keys(HEALTH_KEYS), ...Object.keys(ROUND_KEYS)];
+/** Break the nearest shop and step into its room (#84, #117), to see the loot and the room's dressing. */
+const SHOP_KEY = "KeyB";
+
+const DEBUG_CODES = [...Object.keys(KEYS), ...Object.keys(HEALTH_KEYS), ...Object.keys(ROUND_KEYS), SHOP_KEY];
 
 /** A debug key the player bound to an action (#72) is theirs: say so in the console, once per keymap. */
 let warnedFor: unknown = null;
@@ -68,8 +71,10 @@ export function DebugKnockbackKeys() {
       const knock = KEYS[e.code];
       const health = HEALTH_KEYS[e.code];
       const round = ROUND_KEYS[e.code];
-      if (!knock && !health && !round) return;
+      const shop = e.code === SHOP_KEY;
+      if (!knock && !health && !round && !shop) return;
       e.preventDefault();
+      if (shop) net.debugShop({});
       if (knock) net.debugKnockback(knock);
       if (health) net.debugHealth(health);
       if (round) net.debugRound(round);
@@ -81,7 +86,7 @@ export function DebugKnockbackKeys() {
   return (
     <div className="hud-debug">
       debug : K te renverse · J te pousse · L renverse le plus proche · H te blesse (−{DEBUG_DAMAGE}) · G te fait
-      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan
+      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan · B casse la boutique la plus proche et y entre
     </div>
   );
 }

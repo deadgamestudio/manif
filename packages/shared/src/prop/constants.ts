@@ -70,6 +70,20 @@ export const PROP_TYPES: Readonly<Record<PropKind, PropType>> = {
   kebab: shop(3, 3, ThrowableKind.Tomate),
   // A dog groomer: best not to ask what spills out.
   toilettage: shop(2, 2, ThrowableKind.Crotte),
+  // #117. Ketchup-soaked tomatoes from the burger bar...
+  burger: shop(3, 2, ThrowableKind.Tomate),
+  // ...and from the tacos' salad tray.
+  poulet: shop(2, 1, ThrowableKind.Tomate),
+  // The display bikes are trottinettes here too.
+  sport: shop(3, 1, ThrowableKind.Trottinette),
+  // A tiny counter: one cobble from the doorstep.
+  telephone: shop(2, 1, ThrowableKind.Pave),
+  // Solid glass and a grille: a couple of pavés from the step.
+  pharmacie: shop(3, 1, ThrowableKind.Pave),
+  // The fruit and veg out front.
+  superette: shop(2, 2, ThrowableKind.Tomate),
+  // The newspaper rack's weights: pavés.
+  tabac: shop(3, 1, ThrowableKind.Pave),
   // A burnt-out car is still a car.
   car: {
     maxHp: 6,
@@ -105,6 +119,13 @@ export const ROOM_LOOT: Readonly<Record<ShopKind, number>> = {
   banque: 6,
   kebab: 3,
   toilettage: 2,
+  burger: 2,
+  poulet: 2,
+  sport: 1,
+  telephone: 1,
+  pharmacie: 1,
+  superette: 2,
+  tabac: 1,
 };
 
 /** Seconds after a room's loot has all been taken before it comes back, once a round (#84). */

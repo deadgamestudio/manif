@@ -30,6 +30,7 @@ import {
   RESPAWN_DELAY,
   ROUND_DURATION,
   SHOP_KINDS,
+  SHOP_TYPES,
   STRUGGLE_TIME,
   THROWABLE_TYPES,
   ThrowableKind,
@@ -191,16 +192,23 @@ export const SHOP_NAMES: Readonly<Record<ShopKind, string>> = {
   banque: "Banque",
   kebab: "Kebab",
   toilettage: "Toilettage pour chiens",
+  burger: "Fast-food burger",
+  poulet: "Poulet frit et tacos",
+  sport: "Magasin de sport",
+  telephone: "Réparation de téléphones",
+  pharmacie: "Pharmacie",
+  superette: "Supérette",
+  tabac: "Tabac-presse",
 };
 
 /** A count of an item, "2 tomates", "1 crotte". */
 const items = (n: number, kind: ItemKind) => plural(n, ITEM_NAMES[kind]);
 
-/** The shops dealt each round (#68), from PROP_TYPES: how many hits, and what falls out. */
-export function shopRows(): { name: string; hits: number; drops: string }[] {
+/** The shops dealt each round (#68), from PROP_TYPES: how many hits, what falls out, and the names on their signs (#117). */
+export function shopRows(): { name: string; signs: string; hits: number; drops: string }[] {
   return SHOP_KINDS.map((kind) => {
     const t = PROP_TYPES[kind];
-    return { name: SHOP_NAMES[kind], hits: t.maxHp, drops: items(t.drops, t.dropKind) };
+    return { name: SHOP_NAMES[kind], signs: SHOP_TYPES[kind].signs.join(", "), hits: t.maxHp, drops: items(t.drops, t.dropKind) };
   });
 }
 

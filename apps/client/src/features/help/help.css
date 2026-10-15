@@ -331,6 +331,15 @@
   font-weight: 700;
 }
 
+/* The parody names on a shop kind's signs (#117), under its name. */
+.help-signs {
+  display: block;
+  font-weight: 400;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+}
+
 .help-table td:nth-child(2) {
   white-space: nowrap;
 }
