@@ -32,7 +32,7 @@ export function roomSize(room: ShopRoom): { depth: number; halfWidth: number } {
 export const CLEAR_DOORWAY = 1.2;
 
 /** A small deterministic generator from a string. */
-function seeded(id: string): () => number {
+export function seeded(id: string): () => number {
   let a = 2166136261;
   for (let i = 0; i < id.length; i++) a = Math.imul(a ^ id.charCodeAt(i), 16777619);
   a = a >>> 0 || 1;
