@@ -1,9 +1,10 @@
 /*
  * Where the level's repeated ground pieces go (#28): the road dashes down the
- * middle, the crosswalks and the pavement along the facades. Pure layout from
- * the shared level, no three.js; Level.tsx draws them as instanced models.
+ * middle, the crosswalks, and the pavement along the facades with its kerb
+ * (#102). Pure layout from the shared level, no three.js; Level.tsx draws them
+ * instanced.
  */
-import type { Level } from "@manif/shared";
+import type { Level, Rect } from "@manif/shared";
 
 /** One copy of a model on the ground: where its origin goes, and its turn about Y. */
 export interface Placement {
@@ -19,9 +20,6 @@ const CROSSWALK_DEPTH = 4;
 /** A road dash is this long, one every DASH_EVERY. */
 const DASH_LENGTH = 2;
 const DASH_EVERY = 4;
-/** The pavement tile: its kerb along one 2 m edge (+Z in the model), 3 m deep from the kerb. */
-const TILE_ALONG = 2;
-const TILE_DEEP = 3;
 
 function inside(z: number, minZ: number, maxZ: number, margin = 0): boolean {
   return z >= minZ - margin && z <= maxZ + margin;
@@ -50,17 +48,74 @@ export function dashPlacements(level: Level): Placement[] {
   return out;
 }
 
+/** The pavement (#102): this deep from the facade to the kerb. */
+export const PAVEMENT_DEEP = 3;
+/** The granite kerb is this wide, on the pavement side of the kerb line. */
+export const KERB_WIDTH = 0.3;
+/** The dark gutter line is this wide, on the road side of the kerb line. */
+export const GUTTER_WIDTH = 0.3;
+
+/** Where the pavement and its edge are drawn: flat rectangles on the ground, one instance each. */
+export interface KerbLayout {
+  /** The pavement's top, from the kerb line to the facade. */
+  pavements: Rect[];
+  /** The granite kerb stones: along the street, and across each end of a block where a side street opens. */
+  kerbs: Rect[];
+  /** The dark line on the road against the kerb. */
+  gutters: Rect[];
+}
+
+/** What is left of [from, to] once the `cuts` intervals are taken out, in order. */
+export function cutRange(from: number, to: number, cuts: readonly (readonly [number, number])[]): [number, number][] {
+  let parts: [number, number][] = [[from, to]];
+  for (const [a, b] of cuts) {
+    parts = parts.flatMap(([p, q]): [number, number][] => {
+      if (b <= p || a >= q) return [[p, q]];
+      const out: [number, number][] = [];
+      if (a > p) out.push([p, a]);
+      if (b < q) out.push([b, q]);
+      return out;
+    });
+  }
+  return parts;
+}
+
+/** The rectangle between two x values (either order) and two z values. */
+function span(x1: number, x2: number, minZ: number, maxZ: number): Rect {
+  return { minX: Math.min(x1, x2), maxX: Math.max(x1, x2), minZ, maxZ };
+}
+
 /**
- * Pavement tiles along every facade: a strip TILE_DEEP wide against the
- * facade, kerb on the street side, one tile every TILE_ALONG down the block.
+ * The pavement along every facade, PAVEMENT_DEEP wide, with a light granite
+ * kerb on its street edge and a dark gutter line on the road beside it (#102).
+ * Cosmetic: nothing collides with it. The kerb breaks where a crosswalk meets
+ * the pavement (a lowered kerb: the stripes run up to the pavement) and turns
+ * the corner at each end of a block, where a side street opens. Nothing is
+ * laid over the destination, where the Préfecture's forecourt is drawn.
  */
-export function pavementPlacements(level: Level): Placement[] {
-  const out: Placement[] = [];
+export function kerbLayout(level: Level): KerbLayout {
+  const out: KerbLayout = { pavements: [], kerbs: [], gutters: [] };
+  const half = CROSSWALK_DEPTH / 2;
+  const crossings = crosswalkPlacements(level).map((c): [number, number] => [c.z - half, c.z + half]);
+  const d = level.destination;
   for (const f of level.facades) {
-    // The model's kerb (+Z) turned towards the street: +X on the left side, -X on the right.
-    const yaw = f.side < 0 ? Math.PI / 2 : -Math.PI / 2;
-    const x = f.side * (f.face - TILE_DEEP / 2);
-    for (let z = f.minZ; z + TILE_ALONG <= f.maxZ + 1e-6; z += TILE_ALONG) out.push({ x, z: z + TILE_ALONG / 2, yaw });
+    const s = f.side;
+    const kerb = f.face - PAVEMENT_DEEP;
+    // Stops short of the destination if its strip would run over it.
+    const strip = span(s * kerb, s * f.face, f.minZ, f.maxZ);
+    const overDestination = strip.minX < d.maxX && strip.maxX > d.minX;
+    const minZ = overDestination ? Math.max(f.minZ, d.maxZ) : f.minZ;
+    const maxZ = f.maxZ;
+    if (maxZ - minZ <= KERB_WIDTH * 2) continue;
+    out.pavements.push({ ...strip, minZ, maxZ });
+    for (const [a, b] of cutRange(minZ, maxZ, crossings)) {
+      out.kerbs.push(span(s * kerb, s * (kerb + KERB_WIDTH), a, b));
+      out.gutters.push(span(s * (kerb - GUTTER_WIDTH), s * kerb, a, b));
+    }
+    // The kerb turns the corner at the block's ends (not overlapping the one along it), except against the wall behind the start.
+    const across = (z1: number, z2: number) => out.kerbs.push(span(s * (kerb + KERB_WIDTH), s * f.face, z1, z2));
+    across(minZ, minZ + KERB_WIDTH);
+    if (maxZ < level.bounds.maxZ) across(maxZ - KERB_WIDTH, maxZ);
   }
   return out;
 }
