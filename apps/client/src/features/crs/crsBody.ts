@@ -16,3 +16,16 @@ export function setCrsBody(id: string, body: Object3D | null): void {
 export function getCrsBody(id: string): Object3D | null {
   return bodies.get(id) ?? null;
 }
+
+const muzzles = new Map<string, Object3D>();
+
+/** Registered by policeModels.tsx while an LBD's model holds its launcher model: the `muzzle` node, for the laser. */
+export function setLbdMuzzle(id: string, muzzle: Object3D | null): void {
+  if (muzzle) muzzles.set(id, muzzle);
+  else muzzles.delete(id);
+}
+
+/** The muzzle of LBD `id`'s launcher model, if it is drawn (else the toy launcher is, see LBD_MUZZLE). */
+export function getLbdMuzzle(id: string): Object3D | null {
+  return muzzles.get(id) ?? null;
+}

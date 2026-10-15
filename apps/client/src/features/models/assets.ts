@@ -74,6 +74,12 @@ export const MODELS = {
     crsSplatted: `${M}/animations-police-v01/crs-splatted/crs-splatted.glb`,
     /** The BAC armband, attached to upper_arm_L (see the plan's trap about its offset). */
     bacArmband: `${M}/animations-bac-v01/bac-armband/bac-armband.glb`,
+    /**
+     * The LBD's launcher (#100). Not Jordan's: made by Claude in Blender, in his
+     * style (same palette strip). Pivot at the pistol grip, +Z forward: it sits in
+     * the body's `socket_hand_L` as is. Node `muzzle` at the front of the barrel.
+     */
+    lbdLauncher: `${M}/accessoires-v01/lbd-launcher/lbd-launcher.glb`,
     bravMotorbike: `${M}/production-v1/brav-m-motorbike/brav-m-motorbike.glb`,
     /** riding, fall-off. Shares its origin with the bike. */
     bravRider: `${M}/animations-brav-v01/brav-m-rider/brav-m-rider.glb`,
