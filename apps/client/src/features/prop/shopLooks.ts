@@ -29,16 +29,17 @@
  * and blade signs (#117) hang over the pavement, above head height: they
  * never collide, like the awnings.
  *
- * Brands: every name and emblem is a parody (#117). No real logo, lettering
- * or trade dress: an arch "M", a green cross, a red carrot are generic street
- * signs, drawn from boxes.
+ * Brands: every name is a parody (#117), and no front copies a real logo,
+ * lettering or trade dress (no golden arches, no referee stripes): a giant
+ * burger, a football, a green cross, a red carrot are generic street signs,
+ * drawn from boxes.
  */
 import { BoxGeometry, DoubleSide, Matrix4, MeshBasicMaterial, MeshStandardMaterial } from "three";
 import { SHOP_LAYOUT, SHOP_ROOM, shopSign, type ShopKind, type ShopLot } from "@manif/shared";
 import { BoxBatch, groupMatrix, type V3 } from "../../shared/boxes/index.ts";
 
 /** A big readable sign over the pavement, for the kinds people spot from afar (#117). */
-export type Emblem = "arches" | "drumstick" | "cross" | "carotte" | "phone";
+export type Emblem = "burger" | "drumstick" | "ball" | "cross" | "carotte" | "phone";
 
 /** What a shop kind looks like, and how its sign is painted. */
 export interface ShopStyle {
@@ -48,8 +49,6 @@ export interface ShopStyle {
   fascia: string;
   /** Awning stripes (two colours); none for a shop without one. */
   awning?: readonly [string, string];
-  /** Narrow awning stripes, like a referee's shirt. */
-  thinStripes?: boolean;
   /** What shows through the glass while the lights are on. */
   inside: string;
   /** The sign: background, then lettering. */
@@ -109,13 +108,13 @@ export const SHOP_STYLES: Readonly<Record<ShopKind, ShopStyle>> = {
     sign: ["#fce4ec", "#ad1457"],
     debris: [...GLASS_DEBRIS, "#f8bbd0", "#fafafa"],
   },
-  // #117. Red and yellow, a big golden double arch on the roof of the front.
+  // #117. Red and yellow, a giant cartoon burger on the roof of the front.
   burger: {
     front: "#c8102e",
     fascia: "#a50d26",
     inside: "#ffe9a8",
     sign: ["#c8102e", "#ffcc00"],
-    emblem: "arches",
+    emblem: "burger",
     debris: [...GLASS_DEBRIS, "#ffcc00", "#c8102e"],
   },
   // Fried chicken and tacos: orange and black, a drumstick on a blade sign.
@@ -128,15 +127,15 @@ export const SHOP_STYLES: Readonly<Record<ShopKind, ShopStyle>> = {
     emblem: "drumstick",
     debris: [...GLASS_DEBRIS, "#ff6f00", "#ffcc80"],
   },
-  // A sports store: a referee's black and white striped awning.
+  // A sports store: royal blue and lime, wide stripes, a giant football on a blade sign.
   sport: {
-    front: "#2b2b2b",
-    fascia: "#111111",
-    awning: ["#111111", "#f5f5f5"],
-    thinStripes: true,
+    front: "#1565c0",
+    fascia: "#0d3c7a",
+    awning: ["#c6ff00", "#1565c0"],
     inside: "#e3f2fd",
-    sign: ["#f5f5f5", "#111111"],
-    debris: [...GLASS_DEBRIS, "#111111", "#f5f5f5"],
+    sign: ["#0d3c7a", "#c6ff00"],
+    emblem: "ball",
+    debris: [...GLASS_DEBRIS, "#c6ff00", "#1565c0"],
   },
   // Phone repair: a narrow blue front, a giant phone hanging out with its screen lit.
   telephone: {
@@ -339,17 +338,17 @@ export function buildFront(lot: ShopLot, broken: boolean): FrontKit {
     }
   }
 
-  if (s.awning) awning(kit, lot, F, winTop, s.awning, !!s.thinStripes, broken);
+  if (s.awning) awning(kit, lot, F, winTop, s.awning, broken);
   if (s.emblem) emblem(kit, s.emblem, F, W, H, broken);
   return kit;
 }
 
 /** A striped awning over the window, sloping down into the street. Torn and sagging once the shop is smashed. */
-function awning(kit: FrontKit, lot: ShopLot, front: number, top: number, colors: readonly [string, string], thin: boolean, broken: boolean) {
+function awning(kit: FrontKit, lot: ShopLot, front: number, top: number, colors: readonly [string, string], broken: boolean) {
   const W = lot.width - 2 * FRAME.pilaster;
   const reach = 1.1;
   const tilt = broken ? 0.9 : 0.35;
-  const stripes = Math.max(3, Math.round(W / (thin ? 0.3 : 0.55)));
+  const stripes = Math.max(3, Math.round(W / 0.55));
   const sw = W / stripes;
   const parent = groupMatrix([front, top - 0.05, 0], [0, 0, -tilt]);
   for (let i = 0; i < stripes; i++) {
@@ -388,28 +387,52 @@ export function emblem(kit: FrontKit, kind: Emblem, F: number, W: number, H: num
   const bladeY = Math.min(H + 0.5, EMBLEM_TOP - 0.65);
   const bladeTilt: V3 = broken ? [0, 0, -0.5] : [0, 0, 0];
   const blade = groupMatrix([bladeX, bladeY, bladeZ], bladeTilt, [S, S, S]);
-  if (kind !== "arches") kit.solid.add([(F + 0.75 + 0.3) / 2, bladeY + 0.55, bladeZ], [F + 0.75 + 0.3, 0.06, 0.06], C.bracket);
+  if (kind !== "burger") kit.solid.add([(F + 0.75 + 0.3) / 2, bladeY + 0.55, bladeZ], [F + 0.75 + 0.3, 0.06, 0.06], C.bracket);
   switch (kind) {
-    case "arches": {
-      // A golden double arch, an "M" of three legs and two humps, standing on
-      // a plate over the cornice and facing the street: out past the balcony's
-      // depth, so a tall front's arches pass in front of the balcony, never through it.
-      const x = Math.max(BALCONY_DEPTH + 0.15, F * 0.5);
-      kit.solid.add([(x + 0.15) / 2, H + 0.06, 0], [x + 0.15, 0.06, 1.9], C.bracket);
-      const parent = groupMatrix([x, H + 0.08, 0], broken ? [0.25, 0, -0.15] : [0, 0, 0]);
-      const t = 0.16;
-      const leg = 0.8;
-      const mid = 0.7;
-      const half = 0.85;
-      for (const z of [-half, half]) lit([0, leg / 2, z], [t, leg, t], "#ffcc00", undefined, parent);
-      lit([0, mid / 2, 0], [t, mid, t], "#ffcc00", undefined, parent);
-      // Each hump: rises from an outer leg to a peak, falls to the middle leg.
-      for (const s of [-1, 1]) {
-        const peakZ = (s * half) / 2;
-        const peakY = leg + 0.3;
-        seg(kit, parent, s * half, leg, peakZ + s * 0.08, peakY, t, "#ffcc00");
-        seg(kit, parent, peakZ - s * 0.08, peakY, 0, mid, t, "#ffcc00");
-        lit([0, peakY, peakZ], [t, t, 0.2], "#ffcc00", undefined, parent);
+    case "burger": {
+      // A giant cartoon burger standing on a plate over the cornice: bun,
+      // lettuce, cheese (turned so its corners drip), patty, bun, sesame seeds.
+      // Its back stays past the balcony's depth, so a tall front's burger
+      // passes in front of the balcony, never through it.
+      const x = Math.max(BALCONY_DEPTH + 0.5, F * 0.5);
+      kit.solid.add([(x + 0.2) / 2, H + 0.06, 0], [x + 0.2, 0.06, 1.5], C.bracket);
+      const parent = groupMatrix([x, H + 0.09, 0], broken ? [0.3, 0, -0.12] : [0, 0, 0]);
+      const layers: [number, number, string][] = [
+        [0.2, 1.2, "#e09a3e"],
+        [0.08, 1.32, "#43a047"],
+        [0.06, 1.3, "#ffd000"],
+        [0.2, 1.26, "#5d3317"],
+      ];
+      let y = 0;
+      for (const [h, w, color] of layers) {
+        lit([0, y + h / 2, 0], [0.8, h, w], color, undefined, parent);
+        y += h;
+      }
+      // The cheese's corners hanging out over the patty.
+      lit([0, 0.31, 0], [0.62, 0.05, 0.62], "#ffd000", [0, Math.PI / 4, 0], parent);
+      // The top bun, domed: a wide slice, then a narrower one on top.
+      lit([0, y + 0.13, 0], [0.84, 0.26, 1.26], "#e8a444", undefined, parent);
+      lit([0, y + 0.32, 0], [0.66, 0.14, 1.0], "#e8a444", undefined, parent);
+      for (const [dz, dx] of [[-0.3, 0.12], [0, -0.15], [0.28, 0.1], [-0.12, 0.25], [0.15, -0.28]] as const)
+        lit([0.42 + dx * 0.1, y + 0.25 + (dx > 0 ? 0.02 : 0.05), dz], [0.04, 0.03, 0.08], "#fff8e1", undefined, parent);
+      break;
+    }
+    case "ball": {
+      // A giant football: three white cubes turned against each other make a
+      // rough ball, each with black patches on its faces.
+      const turns: V3[] = [
+        [0, 0, 0],
+        [Math.PI / 4, Math.PI / 4, 0],
+        [0, Math.PI / 4, Math.PI / 4],
+      ];
+      for (const rot of turns) {
+        const ball = groupMatrix([0, 0, 0], rot, undefined, blade);
+        lit([0, 0, 0], [0.6, 0.6, 0.6], "#fafafa", undefined, ball);
+        for (const d of [-1, 1]) {
+          lit([d * 0.31, 0, 0], [0.02, 0.3, 0.3], "#111111", undefined, ball);
+          lit([0, d * 0.31, 0], [0.3, 0.02, 0.3], "#111111", undefined, ball);
+          lit([0, 0, d * 0.31], [0.3, 0.3, 0.02], "#111111", undefined, ball);
+        }
       }
       break;
     }
@@ -444,14 +467,6 @@ export function emblem(kit: FrontKit, kind: Emblem, F: number, W: number, H: num
       break;
     }
   }
-}
-
-/** A bar between two points of the YZ plane (x = 0 in `parent`), `t` thick: for the arches. */
-function seg(kit: FrontKit, parent: Matrix4, z1: number, y1: number, z2: number, y2: number, t: number, color: string) {
-  const dz = z2 - z1;
-  const dy = y2 - y1;
-  const len = Math.hypot(dz, dy) + t * 0.6;
-  kit.lit.add([0, (y1 + y2) / 2, (z1 + z2) / 2], [t, t, len], color, [Math.atan2(-dy, dz), 0, 0], parent);
 }
 
 /** What each kind shows in its window, between the facade and the glass, scaled to the window. */
@@ -516,12 +531,8 @@ function display(kit: FrontKit, lot: ShopLot, x: number, winW: number, rand: () 
       return;
     }
     case "sport": {
-      // Shirts on a rail: the referee's stripes, and a football.
-      for (let i = 0; i < 3; i++) {
-        const z = -winW * 0.3 + i * 0.55;
-        solid([at, 1.2, z], [0.08, 0.7, 0.45], i % 2 ? "#1565c0" : "#f5f5f5");
-        if (i % 2 === 0) for (let k = 0; k < 3; k++) solid([at + 0.05, 1.2, z - 0.15 + k * 0.15], [0.02, 0.7, 0.06], "#111111");
-      }
+      // Team shirts on a rail, and a football.
+      for (let i = 0; i < 3; i++) solid([at, 1.2, -winW * 0.3 + i * 0.55], [0.08, 0.7, 0.45], ["#c6ff00", "#e53935", "#fafafa"][i]!);
       solid([at, 0.75, winW * 0.25], [0.32, 0.32, 0.32], "#fafafa", [0.4, 0.6, 0]);
       solid([at, 0.75, winW * 0.25], [0.33, 0.12, 0.12], "#111111", [0.4, 0.6, 0]);
       return;
