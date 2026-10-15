@@ -21,7 +21,7 @@ export function preloadModels(groups: readonly (readonly string[])[]): void {
 
 /**
  * The preload order of a round:
- * 1. `bodies` (the players' own, from `bodyUrlFor`), and the protester clip libraries;
+ * 1. `bodies` (the players' own, from `bodyUrlFor`), the protester clip libraries and what protesters wear (tiny);
  * 2. the police, their vans and the BAC reveal;
  * 3. the props, scenery and throwables;
  * 4. everything else: the other bodies (a disguised BAC can wear any of
@@ -30,7 +30,7 @@ export function preloadModels(groups: readonly (readonly string[])[]): void {
  */
 export function roundPreloadGroups(bodies: readonly string[]): string[][] {
   const groups = [
-    [...bodies, MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra],
+    [...bodies, MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra, ...modelUrls("accessories")],
     [...modelUrls("police"), MODELS.clipLibraries.bacReveal],
     [...modelUrls("props"), ...modelUrls("scenery"), ...modelUrls("throwables")],
     [...modelUrls("characters"), ...modelUrls("clipLibraries"), ...modelUrls("effects"), ...modelUrls("ui")],

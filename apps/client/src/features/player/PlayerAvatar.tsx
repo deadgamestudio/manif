@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal, useFrame } from "@react-three/fiber";
 import { Color, MeshBasicMaterial, RingGeometry, Vector3, type Group, type MeshStandardMaterial } from "three";
 import { PLAYER_RADIUS, Phase, PlayerStatus, type PlayerShape } from "@manif/shared";
@@ -21,6 +21,8 @@ import { ringColorFor } from "./ringColor.ts";
 import { BodyMotion } from "./bodyMotion.ts";
 import { setAvatarBody, useProtesterBody } from "./protesterBody.ts";
 import { protesterPaint } from "./protesterLook.ts";
+import { accessoriesFor } from "./accessories.ts";
+import { WornAccessories } from "./WornAccessories.tsx";
 
 const CAPSULE_LENGTH = 1;
 const HEIGHT = CAPSULE_LENGTH + PLAYER_RADIUS * 2;
@@ -79,11 +81,8 @@ const MODEL_PLAIN = new Color("#ffffff");
 const SWING_FRESH_MS = 400;
 /** Measured speed smoothing rate, per second. */
 const SPEED_RATE = 10;
-/** Bones the carried item and the extra props ride on (the rig's names). */
+/** The bone the carried item rides on (the rig's name). */
 const HAND_SOCKET = "socket_hand_R";
-const ACCESSORY_BONE = "spine";
-/** The spine's rest height in the rig's frame (hips 0.92 + 0.15), to draw props authored feet-at-zero. */
-const SPINE_REST_Y = 1.07;
 /** CarriedItem hangs its item this far below the placeholder arm's shoulder; in the hand socket it goes back up. */
 const ITEM_IN_HAND_Y = 0.75;
 
@@ -171,6 +170,8 @@ export function PlayerAvatar({
   const look = archetypeLook(archetype);
   const paint = useMemo(() => protesterPaint(archetype, id), [archetype, id]);
   const model = useProtesterBody(bodyUrlFor(archetype, id), paint);
+  /** What it wears on top (#113), on the model's bones. */
+  const wear = useMemo(() => accessoriesFor(archetype, bodyUrlFor(archetype, id), id), [archetype, id]);
   const motion = useMemo(() => (model ? new BodyMotion(model.animator) : null), [model]);
   const footRing = useStaticModel(isLocal ? MODELS.ui.playerFootRing : null);
   const ringYaw = useRef<Group>(null);
@@ -183,7 +184,6 @@ export function PlayerAvatar({
   const wasRagdolling = useRef(false);
   const hurtShown = useRef(false);
   const hand = useMemo(() => model?.root.getObjectByName(HAND_SOCKET) ?? null, [model]);
-  const spine = useMemo(() => model?.root.getObjectByName(ACCESSORY_BONE) ?? null, [model]);
   // The ragdoll drives this body's bones (#26). Before any frame, so the rest pose is still on the bones.
   useLayoutEffect(() => {
     ragdoll.bindBody(model?.root ?? null);
@@ -419,7 +419,7 @@ export function PlayerAvatar({
                   </group>,
                   hand,
                 )}
-              {spine && look.modelAccessories && createPortal(<ModelAccessories draw={look.modelAccessories} />, spine)}
+              {wear.length > 0 && <WornAccessories root={model.root} wear={wear} stowTall={() => stowsTall(id, source)} />}
             </>
           ) : (
             <>
@@ -501,11 +501,11 @@ function GroundRing({ material }: { material: MeshBasicMaterial }) {
   return <mesh position-y={RING_Y} rotation-x={-Math.PI / 2} geometry={RING_GEOMETRY} material={material} dispose={null} />;
 }
 
-/** Props authored in the avatar's frame (feet at 0), drawn on the spine bone so they follow the body as it falls. */
-function ModelAccessories({ draw: Draw }: { draw: () => ReactNode }) {
-  return (
-    <group position-y={-SPINE_REST_Y}>
-      <Draw />
-    </group>
-  );
+/**
+ * A flag or a placard on the back would go through another body: put away
+ * while grabbed or carried, carrying someone overhead, or in a pair animation.
+ */
+function stowsTall(id: string, source: PlayerSource): boolean {
+  const p = source(id);
+  return p?.status === PlayerStatus.Grabbed || !!p?.carriedBy || net.getCarried(id) !== null || getPoseOwner(id) !== null;
 }

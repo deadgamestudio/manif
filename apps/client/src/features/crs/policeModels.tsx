@@ -49,7 +49,7 @@ import {
 } from "../models/index.ts";
 import { chooseLoop, lyingClip, swingClip, type PoliceRole } from "./crsClips.ts";
 import { Splat } from "./crsVisuals.tsx";
-import { protesterPaint } from "../player/index.ts";
+import { WornAccessories, accessoriesFor, protesterPaint, type Accessory } from "../player/index.ts";
 import { disguiseArchetype } from "./disguise.ts";
 import { getLastThrow } from "./canisterThrows.ts";
 import { setCrsBody, setLbdMuzzle } from "./crsBody.ts";
@@ -117,6 +117,8 @@ interface FootSpec {
   police: boolean;
   /** The palette to paint instead (#112): the BAC keeps its disguise's colours, as PlayerAvatar paints them. */
   paint?: CellPaint;
+  /** What it wears on top (#113): the BAC keeps its disguise's hat and bag, as PlayerAvatar puts them on. */
+  wear?: readonly Accessory[];
 }
 
 const POLICE_CLIPS = [
@@ -141,6 +143,7 @@ function footSpec(id: string, kind: CrsKind, fromMount: CrsMount | null): FootSp
         // The same body as its disguise (PlayerAvatar picks it the same way).
         url: bodyUrlFor(disguiseArchetype(id), id),
         paint: protesterPaint(disguiseArchetype(id), id),
+        wear: accessoriesFor(disguiseArchetype(id), bodyUrlFor(disguiseArchetype(id), id), id),
         clips: [MODELS.clipLibraries.protesterCore, MODELS.clipLibraries.protesterExtra, MODELS.clipLibraries.bacReveal, MODELS.clipLibraries.grabCollarCrs],
         armband: true,
         // Must blend in with the protesters until revealed.
@@ -432,8 +435,14 @@ function FootModel({ id, spec, link }: { id: string; spec: FootSpec; link: Model
     <>
       <primitive object={body.root} dispose={null} />
       {body.head && createPortal(<Splat group={splat} radius={SPLAT_RADIUS} at={SPLAT_AT} />, body.head)}
+      {spec.wear && spec.wear.length > 0 && <WornAccessories root={body.root} wear={spec.wear} stowTall={() => stowsTall(id)} />}
     </>
   );
+}
+
+/** A BAC holding someone (#13), or in a pair animation: its flag or placard would go through them. */
+function stowsTall(id: string): boolean {
+  return net.getCrs(id)?.status === CrsStatus.Grabbing || getPoseOwner(id) !== null;
 }
 
 /** The BAC's reveal (#13): the gesture once, the armband appearing when the hand reaches the arm. */

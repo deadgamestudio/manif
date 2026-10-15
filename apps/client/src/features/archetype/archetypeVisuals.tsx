@@ -2,8 +2,8 @@
  * LOOKS of the archetypes (#14): clothing colours and one or two primitive
  * accessories each, all in this one file. Jordan's bodies (#28,
  * models/assets.ts ARCHETYPE_BODIES) replace the capsule and most props once
- * loaded; the primitives stay as the placeholder until then, and
- * `modelAccessories` adds what a body lacks.
+ * loaded; the primitives stay as the placeholder until then. On his bodies,
+ * what a protester wears on top is player/accessories.ts (#113).
  *
  * Humour boundary (PRODUCT.md, #14): an archetype is clothes, props and
  * attitude, never who wears them. Nothing here touches skin: the
@@ -28,14 +28,6 @@ export interface ArchetypeLook {
   icon: string;
   /** Primitive props on the avatar, in its turning frame. Null: none. */
   accessories: (() => ReactNode) | null;
-  /**
-   * The props still worth adding on Jordan's body (#28), same frame as
-   * `accessories`, when his model lacks them. Most bodies already carry
-   * theirs (the bobo's scarf and phone, the CGT flag, the retraité's beret
-   * and cane...), so only a few looks set this. Drawn riding the spine, so
-   * they follow the body when it falls.
-   */
-  modelAccessories?: () => ReactNode;
 }
 
 function Mat({ color }: { color: string }) {
@@ -182,23 +174,6 @@ export const ARCHETYPE_LOOKS: Readonly<Record<Archetype, ArchetypeLook>> = {
         </mesh>
         <mesh position={[0.12, 2.35, -0.5]} castShadow>
           <boxGeometry args={[0.8, 0.5, 0.03]} />
-          <Mat color="#fafafa" />
-        </mesh>
-      </>
-    ),
-    // The lycéen bodies have no backpack or placard: the same, closer to the slim body.
-    modelAccessories: () => (
-      <>
-        <mesh position={[0, 1.08, -0.2]} castShadow>
-          <boxGeometry args={[0.34, 0.42, 0.16]} />
-          <Mat color="#ff7043" />
-        </mesh>
-        <mesh position={[0.1, 1.7, -0.25]} castShadow>
-          <cylinderGeometry args={[0.02, 0.02, 1.0, 6]} />
-          <Mat color="#a1887f" />
-        </mesh>
-        <mesh position={[0.1, 2.22, -0.25]} castShadow>
-          <boxGeometry args={[0.7, 0.44, 0.03]} />
           <Mat color="#fafafa" />
         </mesh>
       </>

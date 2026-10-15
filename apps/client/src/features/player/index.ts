@@ -5,3 +5,5 @@ export { getAvatarBody, useProtesterBody, type AvatarBody, type ProtesterBody } 
 export { MOVE_FROM, RUN_FROM, WALK_AUTHORED_SPEED, RUN_AUTHORED_SPEED, chooseStateClip, actionClip, type BodyState, type ClipChoice } from "./clipChoice.ts";
 export { onScreen } from "./onScreen.ts";
 export { protesterPaint } from "./protesterLook.ts";
+export { accessoriesFor, type Accessory, type AccessoryName } from "./accessories.ts";
+export { WornAccessories } from "./WornAccessories.tsx";
