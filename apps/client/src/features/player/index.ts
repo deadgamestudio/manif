@@ -9,4 +9,13 @@ export { accessoriesFor, type Accessory, type AccessoryName } from "./accessorie
 export { WornAccessories } from "./WornAccessories.tsx";
 export { SWING_BUSY_MS, cgtKitFor, freshKitState, kitShow, type CgtKit, type KitShow, type KitState } from "./cgtKit.ts";
 export { CgtKitView } from "./CgtKit.tsx";
-export { PORTRAIT_CGT_KIT, PORTRAIT_PERSON, portraitBodyUrl, portraitPaint } from "./portrait.ts";
+export {
+  PORTRAIT_CAMERA,
+  PORTRAIT_CGT_KIT,
+  PORTRAIT_IDLE_AT,
+  PORTRAIT_PERSON,
+  portraitBodyUrl,
+  portraitCameraPosition,
+  portraitPaint,
+} from "./portrait.ts";
+export { PortraitFigure, portraitPropsSettled, posePortrait, usePortraitBody } from "./PortraitFigure.tsx";
