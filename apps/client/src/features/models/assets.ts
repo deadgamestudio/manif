@@ -135,6 +135,24 @@ export const MODELS = {
      * 3 the visor, 8 the hinges and the ridge.
      */
     riotHelmet: `${M}/accessoires-v01/riot-helmet/riot-helmet.glb`,
+    /*
+     * Le Z (#133), worn on the neutral protester body. Not Jordan's: made by
+     * Claude in Blender, in his style (same palette strip, never the skin cell:
+     * paint cell 2 with his skin where it shows). The head bone is scaled up
+     * on him (bobble head), so the head pieces grow with it.
+     */
+    /** Bare high scalp (cell 2), slicked hair on the sides and back (5), big rectangular glasses (8), bags under the eyes (15). On `head` as is. */
+    leZHead: `${M}/accessoires-v01/le-z/le-z-head.glb`,
+    /** Too-wide shoulder pads (9), lapels (1), white shirt V and collar (7), tie (0). On `spine` as is. */
+    leZSuit: `${M}/accessoires-v01/le-z/le-z-suit.glb`,
+    /** The book under his right arm, "C'ÉTAIT MIEUX AVANT" (cover 0, pages and title 7). Pivot at the body's origin, bind pose: goes on `upper_arm_R` through its bone inverse. */
+    leZBook: `${M}/accessoires-v01/le-z/le-z-book.glb`,
+    /** A TV-studio handheld mic with a plain flag (handle 8, head 11, flag 12, stripe 7). Pivot at the grip: in `socket_hand_R` as is. */
+    leZMic: `${M}/accessoires-v01/le-z/le-z-mic.glb`,
+    /** The raised index finger (cell 2, paint it his skin). In `socket_hand_L` as is. */
+    leZFinger: `${M}/accessoires-v01/le-z/le-z-finger.glb`,
+    /** Black town shoes over the stock sneakers (upper 8, sole 1): nodes `le-z-shoe-L-root` and `le-z-shoe-R-root`, pivots at the body's origin, bind pose: each on `foot_L` / `foot_R` through its bone inverse. */
+    leZShoes: `${M}/accessoires-v01/le-z/le-z-shoes.glb`,
   },
 
   /** Fixed level pieces. */

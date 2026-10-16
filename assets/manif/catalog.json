@@ -2666,5 +2666,65 @@
     "animations": [],
     "triangles": 486,
     "source": "assets/manif/sources/accessoires-v01/riot-helmet/riot-helmet.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "le-z-head",
+    "url": "/models/manif/accessoires-v01/le-z/le-z-head.glb",
+    "bytes": 47320,
+    "sha256": "226f6a0f53c363fd863cd35ee99a204f05cdbee3a138b22a4271add410ad60c4",
+    "animations": [],
+    "triangles": 640,
+    "source": "assets/manif/sources/accessoires-v01/le-z/le-z.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "le-z-suit",
+    "url": "/models/manif/accessoires-v01/le-z/le-z-suit.glb",
+    "bytes": 8672,
+    "sha256": "0118694f517f95c59c6b8c79dfc1f9a9d88281535d23f95fb59faff5fbb71483",
+    "animations": [],
+    "triangles": 110,
+    "source": "assets/manif/sources/accessoires-v01/le-z/le-z.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "le-z-book",
+    "url": "/models/manif/accessoires-v01/le-z/le-z-book.glb",
+    "bytes": 44664,
+    "sha256": "66e74842e4916aec0e25e5268fc1877c0ada17a7a349d5a24498dcd5eb5a1221",
+    "animations": [],
+    "triangles": 624,
+    "source": "assets/manif/sources/accessoires-v01/le-z/le-z.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "le-z-mic",
+    "url": "/models/manif/accessoires-v01/le-z/le-z-mic.glb",
+    "bytes": 10572,
+    "sha256": "d540f269ef6b6b22dc27f5b6b2dd39e17ed614e98f5f34a1774302625fdc132c",
+    "animations": [],
+    "triangles": 128,
+    "source": "assets/manif/sources/accessoires-v01/le-z/le-z.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "le-z-finger",
+    "url": "/models/manif/accessoires-v01/le-z/le-z-finger.glb",
+    "bytes": 5064,
+    "sha256": "9ed178255088e2f46ed5ea0671bb760350704493c83659e30ef1b4aaf60365f6",
+    "animations": [],
+    "triangles": 40,
+    "source": "assets/manif/sources/accessoires-v01/le-z/le-z.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "le-z-shoes",
+    "url": "/models/manif/accessoires-v01/le-z/le-z-shoes.glb",
+    "bytes": 6764,
+    "sha256": "ee22b25d42c6f69b1dfedacf7f872fab579580f57d536c351fe2973defe96014",
+    "animations": [],
+    "triangles": 64,
+    "source": "assets/manif/sources/accessoires-v01/le-z/le-z.blend"
   }
 ]
