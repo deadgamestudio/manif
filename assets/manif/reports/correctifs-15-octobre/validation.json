@@ -1,0 +1,752 @@
+[
+  {
+    "asset": "transition\\crs-takedown\\crs-takedown.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "take-down"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "transition\\victim-takedown\\victim-takedown.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.790220856666565
+    ],
+    "clips": [
+      "taken-down"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "models\\bin-broken\\bin-broken.glb",
+    "mesh_count": 1,
+    "bones": [],
+    "dimensions": [
+      0.7170000076293945,
+      0.8145000338554382,
+      0.9880000352859497
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\bin-burning\\bin-burning.glb",
+    "mesh_count": 3,
+    "bones": [],
+    "dimensions": [
+      0.7574999928474426,
+      0.8557500839233398,
+      0.9989999532699585
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\bin-charred\\bin-charred.glb",
+    "mesh_count": 1,
+    "bones": [],
+    "dimensions": [
+      0.7170000076293945,
+      0.8145000338554382,
+      0.9880000352859497
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\bin-intact\\bin-intact.glb",
+    "mesh_count": 1,
+    "bones": [],
+    "dimensions": [
+      0.7574999928474426,
+      0.8557500839233398,
+      0.9989999532699585
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\car-burning\\car-burning.glb",
+    "mesh_count": 3,
+    "bones": [],
+    "dimensions": [
+      1.7999999523162842,
+      4.199999570846558,
+      1.4910000562667847
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\fire-truck\\fire-truck.glb",
+    "mesh_count": 1,
+    "bones": [],
+    "dimensions": [
+      1.625,
+      5.185374736785889,
+      2.0799999237060547
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\fire-truck-open\\fire-truck-open.glb",
+    "mesh_count": 1,
+    "bones": [],
+    "dimensions": [
+      1.625,
+      5.185374736785889,
+      2.0799999237060547
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\pavement-kit\\pavement-kit.glb",
+    "mesh_count": 1,
+    "bones": [],
+    "dimensions": [
+      2.0,
+      3.0,
+      0.18000000715255737
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\police-van\\police-van.glb",
+    "mesh_count": 1,
+    "bones": [],
+    "dimensions": [
+      2.4000000953674316,
+      4.997509956359863,
+      2.3999998569488525
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\prefecture-forecourt\\prefecture-forecourt.glb",
+    "mesh_count": 60,
+    "bones": [],
+    "dimensions": [
+      18.0,
+      8.055000305175781,
+      3.549999952316284
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\shop-front-neutral\\shop-front-neutral.glb",
+    "mesh_count": 3,
+    "bones": [],
+    "dimensions": [
+      2.0,
+      0.20000000298023224,
+      3.0
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\shop-window-clear-broken\\shop-window-clear-broken.glb",
+    "mesh_count": 5,
+    "bones": [],
+    "dimensions": [
+      2.0,
+      0.20000000298023224,
+      3.0
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "models\\van-target-marker\\van-target-marker.glb",
+    "mesh_count": 2,
+    "bones": [],
+    "dimensions": [
+      0.7200000286102295,
+      0.17999999597668648,
+      0.6050000190734863
+    ],
+    "clips": [],
+    "finite": true
+  },
+  {
+    "asset": "locomotion\\lyceen-hoodie\\lyceen-hoodie.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.790220856666565
+    ],
+    "clips": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "locomotion\\lyceen-maillot\\lyceen-maillot.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.882980227470398
+    ],
+    "clips": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "locomotion\\lyceenne-coupe-vent\\lyceenne-coupe-vent.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.7037092447280884
+    ],
+    "clips": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "locomotion\\lyceenne-sweat\\lyceenne-sweat.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.7774027585983276
+    ],
+    "clips": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceen-hoodie-arm\\crs-lyceen-hoodie-arm.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceen-hoodie-collar\\crs-lyceen-hoodie-collar.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceen-hoodie-leg\\crs-lyceen-hoodie-leg.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceen-maillot-arm\\crs-lyceen-maillot-arm.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceen-maillot-collar\\crs-lyceen-maillot-collar.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceen-maillot-leg\\crs-lyceen-maillot-leg.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceenne-coupe-vent-arm\\crs-lyceenne-coupe-vent-arm.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceenne-coupe-vent-collar\\crs-lyceenne-coupe-vent-collar.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceenne-coupe-vent-leg\\crs-lyceenne-coupe-vent-leg.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceenne-sweat-arm\\crs-lyceenne-sweat-arm.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceenne-sweat-collar\\crs-lyceenne-sweat-collar.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\crs-lyceenne-sweat-leg\\crs-lyceenne-sweat-leg.glb",
+    "mesh_count": 6,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8990402221679688
+    ],
+    "clips": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceen-hoodie-arm\\lyceen-hoodie-arm.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.790220856666565
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceen-hoodie-collar\\lyceen-hoodie-collar.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.790220856666565
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceen-hoodie-leg\\lyceen-hoodie-leg.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.790220856666565
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceen-maillot-arm\\lyceen-maillot-arm.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.882980227470398
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceen-maillot-collar\\lyceen-maillot-collar.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.882980227470398
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceen-maillot-leg\\lyceen-maillot-leg.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.882980227470398
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceenne-coupe-vent-arm\\lyceenne-coupe-vent-arm.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.7037092447280884
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceenne-coupe-vent-collar\\lyceenne-coupe-vent-collar.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.7037092447280884
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceenne-coupe-vent-leg\\lyceenne-coupe-vent-leg.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.7037092447280884
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceenne-sweat-arm\\lyceenne-sweat-arm.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.7774027585983276
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceenne-sweat-collar\\lyceenne-sweat-collar.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.7774027585983276
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "drag\\lyceenne-sweat-leg\\lyceenne-sweat-leg.glb",
+    "mesh_count": 2,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.7774027585983276
+    ],
+    "clips": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "finite": true
+  },
+  {
+    "asset": "characters\\moluchan\\moluchan.glb",
+    "mesh_count": 5,
+    "bones": [
+      19
+    ],
+    "dimensions": [
+      1.9021157026290894,
+      1.9999998807907104,
+      2.8654295206069946
+    ],
+    "clips": [
+      "air-flail",
+      "idle",
+      "walk"
+    ],
+    "finite": true
+  }
+]

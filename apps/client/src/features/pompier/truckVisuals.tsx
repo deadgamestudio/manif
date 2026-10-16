@@ -40,8 +40,8 @@ type Lights = RefObject<(MeshStandardMaterial | null)[]>;
 
 /** The two blue lights flashed by TrucksView, just over the model's own on its cab roof (model frame, nose +Z). */
 const MODEL_LIGHTS: readonly [number, number, number][] = [
-  [-0.79, 3.06, 2.5],
-  [0.79, 3.06, 2.5],
+  [-0.5135, 1.989, 1.625],
+  [0.5135, 1.989, 1.625],
 ];
 
 /** The truck itself, closed or open (`parked`). `lights` are the two roof lights' materials, flashed by TrucksView. */

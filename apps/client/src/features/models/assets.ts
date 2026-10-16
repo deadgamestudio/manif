@@ -28,6 +28,7 @@ export const MODELS = {
    * The four lyceen files are full v03 bodies with all 19 core clips inside.
    */
   characters: {
+    moluchan: `${M}/correctifs-15-octobre/characters/moluchan/moluchan.glb`,
     neutral: `${M}/production-v1/personnages/protester-neutral/protester-neutral.glb`,
     bobo: `${M}/production-v1/personnages/protester-bobo/protester-bobo.glb`,
     tracksuit: `${M}/production-v1/personnages/protester-tracksuit/protester-tracksuit.glb`,
@@ -35,10 +36,10 @@ export const MODELS = {
     blackBloc: `${M}/production-v1/personnages/protester-black-bloc/protester-black-bloc.glb`,
     cgt: `${M}/production-v1/personnages/protester-cgt/protester-cgt.glb`,
     retraite: `${M}/production-v1/personnages/protester-retraite/protester-retraite.glb`,
-    lyceenHoodie: `${M}/animations-manifestants-v03/lyceen-hoodie/lyceen-hoodie.glb`,
-    lyceenMaillot: `${M}/animations-manifestants-v03/lyceen-maillot/lyceen-maillot.glb`,
-    lyceenneSweat: `${M}/animations-manifestants-v03/lyceenne-sweat/lyceenne-sweat.glb`,
-    lyceenneCoupeVent: `${M}/animations-manifestants-v03/lyceenne-coupe-vent/lyceenne-coupe-vent.glb`,
+    lyceenHoodie: `${M}/correctifs-15-octobre/locomotion/lyceen-hoodie/lyceen-hoodie.glb`,
+    lyceenMaillot: `${M}/correctifs-15-octobre/locomotion/lyceen-maillot/lyceen-maillot.glb`,
+    lyceenneSweat: `${M}/correctifs-15-octobre/locomotion/lyceenne-sweat/lyceenne-sweat.glb`,
+    lyceenneCoupeVent: `${M}/correctifs-15-octobre/locomotion/lyceenne-coupe-vent/lyceenne-coupe-vent.glb`,
     /** Pompier, with hose-ready, hose-walk, hose-spray, hose-sweep. Water comes out of the `water-outlet` node. */
     firefighter: `${M}/animations-pompier-v01/firefighter/firefighter.glb`,
   },
@@ -48,8 +49,10 @@ export const MODELS = {
    * names, e.g. `idle`, `walk`, `ko-collapse`, `seize`. All at 24 fps.
    */
   clipLibraries: {
+    takedownCrs: `${M}/correctifs-15-octobre/transition/crs-takedown/crs-takedown.glb`,
+    takedownVictim: `${M}/correctifs-15-octobre/transition/victim-takedown/victim-takedown.glb`,
     /** The 19 core protester motions: idle, walk, panic-run, throw, pick-up, carry-light/heavy/overhead, carried-overhead, air-flail, melee-swing, clumsy-dive, gas-cough, on-fire-run, pat-out, rescue-pull, knockdown, get-up, celebrate. */
-    protesterCore: `${M}/animations-manifestants-v03/lyceen-hoodie/lyceen-hoodie.glb`,
+    protesterCore: `${M}/correctifs-15-octobre/locomotion/lyceen-hoodie/lyceen-hoodie.glb`,
     /** Five more (v04 does not repeat v03): gas-stagger, ko-collapse, light-fire, overhead-toss, tomato-stumble. */
     protesterExtra: `${M}/animations-manifestants-v04/lyceen-hoodie/lyceen-hoodie.glb`,
     /** armband-reveal (the armband shows at 1.375 s). */
@@ -59,9 +62,9 @@ export const MODELS = {
     /** Standing grab by the collar, victim side: seized, then held-loop. */
     grabCollarVictim: `${M}/animations-saisies-v02/lyceen-hoodie-collar/lyceen-hoodie-collar.glb`,
     /** Dragging on the ground by the collar, CRS side: ground-grab, then ground-drag (walks backward). */
-    dragCollarCrs: `${M}/animations-trainage-v02/crs-lyceen-hoodie-collar/crs-lyceen-hoodie-collar.glb`,
+    dragCollarCrs: `${M}/correctifs-15-octobre/drag/crs-lyceen-hoodie-collar/crs-lyceen-hoodie-collar.glb`,
     /** Dragging on the ground by the collar, victim side: ground-grabbed, then ground-dragged. */
-    dragCollarVictim: `${M}/animations-trainage-v02/lyceen-hoodie-collar/lyceen-hoodie-collar.glb`,
+    dragCollarVictim: `${M}/correctifs-15-octobre/drag/lyceen-hoodie-collar/lyceen-hoodie-collar.glb`,
   },
 
   /** Police units and their vehicles. Each body file holds its own clips. */
@@ -92,18 +95,18 @@ export const MODELS = {
     /** The bike lying on its side, still. */
     bikeTipped: `${M}/animations-moto-v01/bike-tipped/bike-tipped.glb`,
     /** The "panier à salade": 2.4 × 2.4 × 5 m, front +Z, closed. Nodes `driver` and `rear-entry`. */
-    policeVan: `${M}/production-v1/police-van/police-van.glb`,
+    policeVan: `${M}/correctifs-15-octobre/models/police-van/police-van.glb`,
   },
 
   /** Breakable and movable street objects. */
   props: {
-    binIntact: `${M}/production-v1/bin-intact/bin-intact.glb`,
-    binBroken: `${M}/production-v1/bin-broken/bin-broken.glb`,
-    binBurning: `${M}/production-v1/bin-burning/bin-burning.glb`,
-    binCharred: `${M}/production-v1/bin-charred/bin-charred.glb`,
+    binIntact: `${M}/correctifs-15-octobre/models/bin-intact/bin-intact.glb`,
+    binBroken: `${M}/correctifs-15-octobre/models/bin-broken/bin-broken.glb`,
+    binBurning: `${M}/correctifs-15-octobre/models/bin-burning/bin-burning.glb`,
+    binCharred: `${M}/correctifs-15-octobre/models/bin-charred/bin-charred.glb`,
     carIntact: `${M}/production-v1/car-intact/car-intact.glb`,
     carBroken: `${M}/production-v1/car-broken/car-broken.glb`,
-    carBurning: `${M}/production-v1/car-burning/car-burning.glb`,
+    carBurning: `${M}/correctifs-15-octobre/models/car-burning/car-burning.glb`,
     carCharred: `${M}/production-v1/car-charred/car-charred.glb`,
     busShelterIntact: `${M}/production-v1/bus-shelter-intact/bus-shelter-intact.glb`,
     busShelterBroken: `${M}/production-v1/bus-shelter-broken/bus-shelter-broken.glb`,
@@ -115,11 +118,11 @@ export const MODELS = {
     debrisBinLid: `${M}/production-v1/debris-bin-lid/debris-bin-lid.glb`,
     debrisCarDoor: `${M}/production-v1/debris-car-door/debris-car-door.glb`,
     /** A 2 m shopfront module, tiled across a shop's width. */
-    facadeShop: `${M}/production-v1/reprises/facade-shop-2m/facade-shop-2m.glb`,
+    facadeShop: `${M}/correctifs-15-octobre/models/shop-front-neutral/shop-front-neutral.glb`,
     shopWindowIntact: `${M}/production-v1/shop-window-intact/shop-window-intact.glb`,
-    shopWindowBroken: `${M}/production-v1/shop-window-broken/shop-window-broken.glb`,
-    fireTruck: `${M}/production-v1/fire-truck/fire-truck.glb`,
-    fireTruckOpen: `${M}/production-v1/fire-truck-open/fire-truck-open.glb`,
+    shopWindowBroken: `${M}/correctifs-15-octobre/models/shop-window-clear-broken/shop-window-clear-broken.glb`,
+    fireTruck: `${M}/correctifs-15-octobre/models/fire-truck/fire-truck.glb`,
+    fireTruckOpen: `${M}/correctifs-15-octobre/models/fire-truck-open/fire-truck-open.glb`,
     /** Moluchan's megaphone (stand-in until his own model). */
     megaphone: `${M}/production-v1/reprises/megaphone/megaphone.glb`,
     /**
@@ -142,7 +145,7 @@ export const MODELS = {
     newspaperKiosk: `${M}/production-v1/newspaper-kiosk/newspaper-kiosk.glb`,
     sideStreetBarrier: `${M}/production-v1/side-street-barrier/side-street-barrier.glb`,
     prefecture: `${M}/production-v1/prefecture/prefecture.glb`,
-    prefectureForecourt: `${M}/production-v1/prefecture-forecourt/prefecture-forecourt.glb`,
+    prefectureForecourt: `${M}/correctifs-15-octobre/models/prefecture-forecourt/prefecture-forecourt.glb`,
     /** For works-1 (7 m long). */
     constructionWall7: `${M}/production-v1/construction-wall-7/construction-wall-7.glb`,
     /** For works-2 (6.5 m long). */
@@ -154,7 +157,7 @@ export const MODELS = {
     bollard: `${M}/production-v1/bollard-level/bollard-level.glb`,
     crosswalk: `${M}/production-v1/crosswalk/crosswalk.glb`,
     roadDash: `${M}/production-v1/road-dash/road-dash.glb`,
-    pavementKit: `${M}/production-v1/pavement-kit/pavement-kit.glb`,
+    pavementKit: `${M}/correctifs-15-octobre/models/pavement-kit/pavement-kit.glb`,
     facadeCorner: `${M}/production-v1/facade-corner-2m/facade-corner-2m.glb`,
     floorBalcony: `${M}/production-v1/reprises/etage-balcon-2m/etage-balcon-2m.glb`,
     floorBrick: `${M}/production-v1/reprises/etage-brique-2m/etage-brique-2m.glb`,
@@ -220,6 +223,7 @@ export const MODELS = {
 
   /** 3D markers above and under characters. Fixed shapes, not live bars. */
   ui: {
+    vanTarget: `${M}/correctifs-15-octobre/models/van-target-marker/van-target-marker.glb`,
     playerFootRing: `${M}/interface-3d-v02/player-foot-ring/player-foot-ring.glb`,
     statusKo: `${M}/interface-3d-v02/status-ko/status-ko.glb`,
     statusGrabbed: `${M}/interface-3d-v02/status-grabbed/status-grabbed.glb`,

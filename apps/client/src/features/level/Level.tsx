@@ -1,6 +1,7 @@
-import { useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { STREET_LEVEL, allVelibDocks, type BoxKind, type BoxObstacle, type CircleKind, type CircleObstacle, type Level, type Rect } from "@manif/shared";
-import { Vector3, type Object3D } from "three";
+import { useMemo, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useFrame } from "@react-three/fiber";
+import { STREET_LEVEL, allVelibDocks, levelVans, PlayerStatus, type BoxKind, type BoxObstacle, type CircleKind, type CircleObstacle, type Level, type Rect } from "@manif/shared";
+import { Vector3, type Object3D, type Group } from "three";
 import { net } from "../../shared/net/index.ts";
 import { MODELS, fitToBox, modelBounds, useGltf, useStaticModel, type GLTF } from "../models/index.ts";
 import { carveBlocks } from "./blocks.ts";
@@ -71,6 +72,7 @@ export function LevelView({
       <StartZone rect={level.start} />
       <ZoneMarks rect={level.destination} color="#e53935" />
       <Forecourt rect={level.destination} />
+      <VanTarget level={level} />
       <CentreLine level={level} />
       <Crosswalks level={level} />
       <VelibDocks level={level} />
@@ -81,6 +83,22 @@ export function LevelView({
       <CirclesView circles={level.circles} />
     </group>
   );
+}
+
+/** Only the captured local player sees which van the server selected. */
+function VanTarget({ level }: { level: Level }) {
+  const marker = useStaticModel(MODELS.ui.vanTarget);
+  const group = useRef<Group>(null);
+  const vans = useMemo(() => levelVans(level), [level]);
+  useFrame(({ clock }) => {
+    if (!group.current) return;
+    const id = net.getSnapshot().sessionId;
+    const p = id ? net.getPlayer(id) : undefined;
+    const van = p && p.status === PlayerStatus.Grabbed ? vans[p.dragVan] : undefined;
+    group.current.visible = !!van;
+    if (van) group.current.position.set(van.x, van.height + 0.6 + Math.sin(clock.elapsedTime * 4) * 0.12, van.z);
+  });
+  return <group ref={group} visible={false}>{marker && <primitive object={marker} dispose={null} />}</group>;
 }
 
 function pick(palette: readonly string[], index: number): string {
@@ -238,6 +256,8 @@ function boxModelUrl(box: BoxObstacle): string | null {
 }
 
 function BoxMesh({ box, index }: { box: BoxObstacle; index: number }) {
+  // Drawn together by Forecourt, but each base still collides on the server.
+  if (box.id.startsWith("forecourt-")) return null;
   if (box.kind === "van") return <VanMesh box={box} />;
   const color = pick(BOX_COLORS[box.kind], index);
   const block = (

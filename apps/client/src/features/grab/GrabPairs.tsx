@@ -29,8 +29,8 @@ import { GrabDirector, type Pair } from "./director.ts";
 import { CLIP_FPS, PHASE_CLIPS, SEIZE_FROM_FRAME, phaseTimeScale, stepPhase } from "./phase.ts";
 import { clampDrift, offsetFor, placeBodies, targetPose, turn, victimInCrs, type PairPose, type Placed } from "./placement.ts";
 
-const CRS_CLIPS = [MODELS.clipLibraries.grabCollarCrs, MODELS.clipLibraries.dragCollarCrs];
-const VICTIM_CLIPS = [MODELS.clipLibraries.grabCollarVictim, MODELS.clipLibraries.dragCollarVictim];
+const CRS_CLIPS = [MODELS.clipLibraries.grabCollarCrs, MODELS.clipLibraries.dragCollarCrs, MODELS.clipLibraries.takedownCrs];
+const VICTIM_CLIPS = [MODELS.clipLibraries.grabCollarVictim, MODELS.clipLibraries.dragCollarVictim, MODELS.clipLibraries.takedownVictim];
 /** brain.ts `stepCrs`: the protester trails `radius + PLAYER_RADIUS + 0.05` behind the bot. */
 const TRAIL_EXTRA = PLAYER_RADIUS + 0.05;
 const STANDING = victimInCrs(offsetFor("standing"));
@@ -45,28 +45,6 @@ const PHASE_FADE = 0.25;
 const MAX_STEP = 0.1;
 /** Down this recently (ms) when grabbed: the pair starts on the ground (the avatar may still be getting up). */
 const LYING_GRACE_MS = 1000;
-/** The riot shield's nodes on a police body (policeModels.tsx): Jordan's paired CRS has none. */
-const SHIELD_NODES = ["shield-frame", "shield-panel"] as const;
-/** The shield nodes hidden for a pair, and whether each was shown before. */
-const undressed = new WeakMap<Object3D, [Object3D, boolean][]>();
-
-function dress(body: Object3D, held: boolean): void {
-  if (held) {
-    const nodes: [Object3D, boolean][] = [];
-    for (const name of SHIELD_NODES) {
-      const node = body.getObjectByName(name);
-      if (node) {
-        nodes.push([node, node.visible]);
-        node.visible = false;
-      }
-    }
-    undressed.set(body, nodes);
-  } else {
-    for (const [node, shown] of undressed.get(body) ?? []) node.visible = shown;
-    undressed.delete(body);
-  }
-}
-
 /**
  * Seize goes on from where the wind-up left it (policeModels.tsx holds the
  * first SEIZE_FROM_FRAME frames): `<name>-rest` is the rest of the clip. Made
@@ -125,7 +103,8 @@ class PairsRunner {
       return clips && frameOf(body) ? new Animator(body, clips) : null;
     },
     wasLying: (id) => performance.now() - (this.downAt.get(id) ?? -Infinity) < LYING_GRACE_MS,
-    dress,
+    // The revised right-hand grab leaves the left-arm shield visible.
+    dress: () => {},
   });
   /** When (performance.now) each player was last seen down. */
   private readonly downAt = new Map<string, number>();
@@ -200,7 +179,9 @@ class PairsRunner {
     }
 
     // Placement: one rigid pair around the server spots, eased there.
-    const rel = clips.stance === "standing" ? STANDING : GROUND;
+    const u = Math.min(1, next.t / 0.75);
+    const blend = u * u * (3 - 2 * u);
+    const rel = next.phase === "takeDown" ? { x: STANDING.x + (GROUND.x - STANDING.x) * blend, z: STANDING.z + (GROUND.z - STANDING.z) * blend, yaw: STANDING.yaw + turn(STANDING.yaw, GROUND.yaw) * blend } : clips.stance === "standing" ? STANDING : GROUND;
     // Bodies on one spot: the CRS faces the trail behind it.
     const target = targetPose(crsX, crsZ, victimX, victimZ, rel, crsYaw + Math.PI, this.target);
     const pose = pair.pose;

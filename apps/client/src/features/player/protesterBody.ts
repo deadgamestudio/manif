@@ -45,7 +45,8 @@ export function useProtesterBody(url: string | null, paint: CellPaint = SKIN_ONL
     return copy;
   }, [copy, paint]);
   const materials = useOwnMaterials(skinned);
-  const clips = useClips(PROTESTER_CLIPS);
+  const libraries = useMemo(() => url === MODELS.characters.moluchan ? [url, ...PROTESTER_CLIPS] : PROTESTER_CLIPS, [url]);
+  const clips = useClips(libraries);
   const animator = useAnimator(skinned, clips);
   return useMemo(() => (skinned && animator ? { root: skinned, animator, materials } : null), [skinned, animator, materials]);
 }

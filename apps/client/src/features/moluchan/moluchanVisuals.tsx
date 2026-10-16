@@ -69,7 +69,7 @@ const MEGAPHONE_HAND = "socket_hand_L";
  * plays its clips instead).
  */
 export function MoluchanModel({ megaphoneArm, freeArm }: { megaphoneArm: RefObject<Group | null>; freeArm: RefObject<Group | null> }) {
-  const model = useProtesterBody(MODELS.characters.neutral);
+  const model = useProtesterBody(MODELS.characters.moluchan);
   const megaphone = useStaticModel(MODELS.props.megaphone);
   const hand = useMemo(() => model?.root.getObjectByName(MEGAPHONE_HAND) ?? null, [model]);
   const motion = useMemo(() => (model ? new BodyMotion(model.animator) : null), [model]);

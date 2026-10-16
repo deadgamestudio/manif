@@ -16,7 +16,7 @@ import { ThrowableKind } from "@manif/shared";
 
 /** How fast (m/s) the walk and the panic-run were authored: the feet's stride over one cycle, measured on the clips. */
 export const WALK_AUTHORED_SPEED = 0.8;
-export const RUN_AUTHORED_SPEED = 1.9;
+export const RUN_AUTHORED_SPEED = 4.4;
 /** Below this (m/s) the body stands still; above RUN_FROM it runs. Players move at 6 m/s, slowed in gas. */
 export const MOVE_FROM = 0.35;
 export const RUN_FROM = 3;

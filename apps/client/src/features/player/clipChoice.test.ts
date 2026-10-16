@@ -33,6 +33,11 @@ describe("protester clip choice", () => {
     expect(pick({ speed: 0.36 }).timeScale).toBeGreaterThanOrEqual(0.6);
   });
 
+  test("the revised sprint covers game speed without hitting the speed-up cap", () => {
+    expect(pick({ speed: 6 }).timeScale).toBeLessThan(1.5);
+    expect(pick({ speed: 6 }).timeScale).toBeGreaterThan(1);
+  });
+
   test("KO collapses and holds, and beats everything else", () => {
     const c = pick({ ko: true, onFire: true, gassed: true, speed: 6 });
     expect(c).toEqual({ name: "ko-collapse", hold: true, timeScale: 1 });
