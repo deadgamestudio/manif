@@ -1,6 +1,6 @@
 import { useRef, useSyncExternalStore } from "react";
 import { useFrame } from "@react-three/fiber";
-import { THROWABLE_TYPES, isItemKind } from "@manif/shared";
+import { STREET_LEVEL, THROWABLE_TYPES, ThrowableKind, allVelibDocks, dockAt, isItemKind } from "@manif/shared";
 import type { Group } from "three";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
@@ -25,13 +25,17 @@ export function ThrowablesView() {
   );
 }
 
+/** The street's Vélib docks (#121): a bike parked in one is drawn lined up with it. */
+const VELIB_DOCKS = allVelibDocks(STREET_LEVEL);
+
 /** One item lying on the ground. Items never move, so this is placed once. */
 function GroundItemView({ id }: { id: string }) {
   const item = net.getItem(id);
   const look = item ? lookOf(item.kind) : null;
   if (!item || !look) return null;
   // A little random-looking turn from the id, so a pile doesn't look gridded.
-  const turn = (id.length * 1.7 + id.charCodeAt(id.length - 1)) % Math.PI;
+  const docked = item.kind === ThrowableKind.Velib ? dockAt(VELIB_DOCKS, item.x, item.z) : null;
+  const turn = docked ? docked.yaw : (id.length * 1.7 + id.charCodeAt(id.length - 1)) % Math.PI;
   return (
     <group position={[item.x, 0, item.z]} rotation-y={turn}>
       {look.model()}

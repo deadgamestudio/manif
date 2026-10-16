@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { STREET_LEVEL, type BoxKind, type BoxObstacle, type CircleKind, type CircleObstacle, type Level, type Rect } from "@manif/shared";
+import { STREET_LEVEL, allVelibDocks, type BoxKind, type BoxObstacle, type CircleKind, type CircleObstacle, type Level, type Rect } from "@manif/shared";
 import { Vector3, type Object3D } from "three";
 import { net } from "../../shared/net/index.ts";
 import { MODELS, fitToBox, modelBounds, useGltf, useStaticModel, type GLTF } from "../models/index.ts";
@@ -73,6 +73,7 @@ export function LevelView({
       <Forecourt rect={level.destination} />
       <CentreLine level={level} />
       <Crosswalks level={level} />
+      <VelibDocks level={level} />
 
       <BuildingsView buildings={buildings} targets={fadeTargets} />
       <RoomsView rooms={rooms} kinds={kinds} />
@@ -132,6 +133,12 @@ function CentreLine({ level }: { level: Level }) {
 function Crosswalks({ level }: { level: Level }) {
   const crossings = useMemo(() => crosswalkPlacements(level), [level]);
   return <InstancedModel url={MODELS.scenery.crosswalk} placements={crossings} y={0.004} receiveOnly />;
+}
+
+/** The Vélib stations' docks (#121), on the kerb. Scenery: nothing collides with them. The bikes are ground items. */
+function VelibDocks({ level }: { level: Level }) {
+  const docks = useMemo(() => allVelibDocks(level).map((d): Placement => ({ x: d.dock.x, z: d.dock.z, yaw: d.yaw })), [level]);
+  return <InstancedModel url={MODELS.throwables.velibDock} placements={docks} y={0.02} />;
 }
 
 /** The start zone: Jordan's "DÉPART" outline over the zone, or the green marks. */

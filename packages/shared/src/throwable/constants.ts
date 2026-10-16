@@ -20,6 +20,8 @@ export const ThrowableKind = {
   Crotte: 3,
   /** #15: parked along the street. Heavy, bowls through a row of CRS. */
   Trottinette: 4,
+  /** #121: docked in Vélib stations. Heavier than a trottinette: a bigger hit, slower and shorter. */
+  Velib: 5,
 } as const;
 export type ThrowableKind = (typeof ThrowableKind)[keyof typeof ThrowableKind];
 /** A kind that is an actual item (not `None`). */
@@ -141,6 +143,28 @@ export const THROWABLE_TYPES: Readonly<Record<ItemKind, ThrowableType>> = {
     afterMiss: "ground",
     carrySpeed: 0.65,
     groundCap: 6,
+    slippery: false,
+  },
+  // Le Vélib (#121): the trottinette's big brother. You crawl along with it
+  // (half speed, no hop) and it doesn't fly far, but it floors whatever it
+  // hits, hurts more and bowls through a few CRS (fewer than a trottinette:
+  // it is too heavy to keep rolling). A big hit at a big cost.
+  [ThrowableKind.Velib]: {
+    radius: 0.45,
+    speed: 10,
+    range: 6.5,
+    propDamage: 3,
+    crsDamage: 2,
+    knockback: HEAVY_IMPULSE + 6,
+    stun: 2,
+    pierce: 3,
+    effect: null,
+    effectTime: 0,
+    afterCrs: "ground",
+    afterMiss: "ground",
+    carrySpeed: 0.5,
+    // The stations deal at most VELIB_DEAL.maxBikes; nothing else makes more.
+    groundCap: 10,
     slippery: false,
   },
 };

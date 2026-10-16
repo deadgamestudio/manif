@@ -111,10 +111,10 @@ const HIT_SOUND: Record<PropKind, SoundName> = {
   tabac: "metal",
 };
 
-/** A thrown item landing (#8, #15): the pavé thuds, the tomato and the poo splat, the trottinette clangs. */
+/** A thrown item landing (#8, #15): the pavé thuds, the tomato and the poo splat, the trottinette and the Vélib (#121) clang. */
 function impactSound(kind: number): SoundName {
   if (kind === ThrowableKind.Tomate || kind === ThrowableKind.Crotte) return "splat";
-  if (kind === ThrowableKind.Trottinette) return "metal";
+  if (kind === ThrowableKind.Trottinette || kind === ThrowableKind.Velib) return "metal";
   return "pave";
 }
 
