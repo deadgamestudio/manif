@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { MapSchema } from "@colyseus/schema";
-import { BENANAS, BENANAS_ID, BenanasPhase, CRS_STATS, CrsKind, NavGrid, STREET_LEVEL as LEVEL, TICK_DT, levelWorld } from "@manif/shared";
+import { BENANAS, BENANAS_ID, BenanasPhase, CAMEO, CRS_STATS, CrsKind, NavGrid, ROUND_DURATION, STREET_LEVEL as LEVEL, TICK_DT, levelWorld } from "@manif/shared";
 import { BenanasEvent, type BenanasBody, type BenanasHost, type BenanasTick } from "./benanas.js";
 import { BenanasView } from "./schema.js";
 
@@ -30,7 +30,8 @@ function recorder(people: BenanasBody[]) {
 function setup(random: () => number = () => 0) {
   const views = new MapSchema<BenanasView>();
   const event = new BenanasEvent(LEVEL, views, random);
-  const tick = (now: number, front = 0.42): BenanasTick => ({ now, dt: TICK_DT, front, rear: at(0.3), nav: NAV, world: WORLD });
+  // The march clock starts at the first roll, so a lucky roll brings him at now = 0.
+  const tick = (now: number, front = 0.42, elapsed = now + CAMEO.firstRoll): BenanasTick => ({ now, dt: TICK_DT, elapsed, timeLeft: ROUND_DURATION - elapsed, front, rear: at(0.3), nav: NAV, world: WORLD });
   return { views, event, tick };
 }
 
@@ -48,17 +49,17 @@ function run(s: ReturnType<typeof setup>, host: BenanasHost, from: number, secon
 }
 
 describe("Bénanas's visit (#123)", () => {
-  test("no roll, no visit; a roll arrives when the front reaches its point", () => {
+  test("a roll each minute of march (#132): unlucky rolls bring nobody, a lucky one brings him", () => {
     const quiet = setup(() => 0.99);
-    expect(quiet.event.startRound()).toBeNull();
-    quiet.event.step(quiet.tick(1, 0.7), recorder([]).host);
+    quiet.event.startRound();
+    for (let now = 0; now < 400; now += 0.5) quiet.event.step(quiet.tick(now), recorder([]).host);
     expect(quiet.views.size).toBe(0);
 
     const s = setup(() => 0);
-    expect(s.event.startRound()).toBeCloseTo(BENANAS.earliest, 5);
-    s.event.step(s.tick(1, BENANAS.earliest - 0.01), recorder([]).host);
+    s.event.startRound();
+    s.event.step(s.tick(1, 0.42, CAMEO.firstRoll - 0.5), recorder([]).host);
     expect(s.views.size).toBe(0);
-    s.event.step(s.tick(2, BENANAS.earliest + 0.01), recorder([]).host);
+    s.event.step(s.tick(2, 0.42, CAMEO.firstRoll), recorder([]).host);
     expect(s.views.get(BENANAS_ID)?.phase).toBe(BenanasPhase.Prowling);
     expect(s.views.get(BENANAS_ID)?.line).toBeGreaterThanOrEqual(0);
   });

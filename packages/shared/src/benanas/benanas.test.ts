@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { cameoRoundChance } from "../cameo/index.js";
+import { ROUND_DURATION } from "../round/index.js";
 import { STREET_LEVEL as L, progressAt } from "../level/index.js";
 import { KNOCKDOWN_THRESHOLD } from "../physics/index.js";
 import { truckBays } from "../pompier/index.js";
@@ -7,7 +9,6 @@ import {
   BENANAS,
   BENANAS_LINES,
   backOffGoal,
-  benanasDue,
   benanasEntry,
   benanasLineText,
   countNear,
@@ -17,44 +18,15 @@ import {
   inPunchReach,
   pickBenanasLine,
   pickBenanasTarget,
-  rollBenanas,
   type BenanasSeen,
 } from "./index.js";
 
 const seen = (id: string, x: number, z: number, target = true): BenanasSeen => ({ id, x, z, target });
 
-describe("when he comes (#123)", () => {
-  test("about 15% of rounds, rolled once: below the chance he comes, above it he doesn't", () => {
-    expect(BENANAS.chance).toBeCloseTo(0.15, 5);
-    expect(rollBenanas(() => BENANAS.chance - 0.001)).not.toBeNull();
-    expect(rollBenanas(() => BENANAS.chance)).toBeNull();
-    expect(rollBenanas(() => 0.9)).toBeNull();
-  });
-
-  test("the arrival point is in his window, and he only arrives inside it", () => {
-    const lo = rollBenanas(() => 0);
-    const hi = rollBenanas((() => {
-      let first = true;
-      return () => (first ? ((first = false), 0) : 0.999999);
-    })());
-    expect(lo).toBeCloseTo(BENANAS.earliest, 5);
-    expect(hi ?? 0).toBeLessThanOrEqual(BENANAS.latest);
-    expect(benanasDue(null, 0.5)).toBe(false);
-    expect(benanasDue(0.4, 0.39)).toBe(false);
-    expect(benanasDue(0.4, 0.4)).toBe(true);
-    expect(benanasDue(0.4, BENANAS.latest + 0.01)).toBe(false);
-  });
-
-  test("over many rounds the share is about the chance", () => {
-    let seed = 7;
-    const random = () => {
-      seed = (seed * 16807) % 2147483647;
-      return (seed - 1) / 2147483646;
-    };
-    let n = 0;
-    for (let i = 0; i < 4000; i++) if (rollBenanas(random) !== null) n++;
-    expect(n / 4000).toBeGreaterThan(0.12);
-    expect(n / 4000).toBeLessThan(0.18);
+describe("when he comes (#132)", () => {
+  test("10% a minute of march, once a round: about 52% of full rounds", () => {
+    expect(BENANAS.chance).toBeCloseTo(0.1, 5);
+    expect(cameoRoundChance(BENANAS.chance, ROUND_DURATION, BENANAS.duration)).toBeCloseTo(0.52, 2);
   });
 });
 

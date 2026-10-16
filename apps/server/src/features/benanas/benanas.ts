@@ -4,7 +4,8 @@ import {
   BENANAS_ID,
   BenanasPhase,
   backOffGoal,
-  benanasDue,
+  cameoArrives,
+  freshCameoSchedule,
   benanasEntry,
   crowdedOut,
   douaneExit,
@@ -14,10 +15,10 @@ import {
   pickBenanasLine,
   pickBenanasTarget,
   resolveCircle,
-  rollBenanas,
   steerTo,
   truckBays,
   type BenanasLineKind,
+  type CameoSchedule,
   type BenanasSeen,
   type CollisionWorld,
   type Helmet,
@@ -27,6 +28,7 @@ import {
   type NavContext,
   type Vec2,
 } from "@manif/shared";
+import { CameoStage } from "../cameo/index.js";
 import { BenanasView } from "./schema.js";
 
 /** A protester as the room shows him (#123). */
@@ -49,6 +51,9 @@ export interface BenanasHost {
 export interface BenanasTick {
   now: number;
   dt: number;
+  /** Seconds of march so far and left (`Round.elapsed`, `Round.timeLeft`): the clock of the arrival roll (#132). */
+  elapsed: number;
+  timeLeft: number;
   /** The cortège's front, 0..1. */
   front: number;
   /** The back of the cortège, where he comes in when no side street fits. */
@@ -75,7 +80,7 @@ interface Visit {
   fleeAt: number | null;
   /** A shove from a hit he took, m/s, fading. */
   kick: Vec2;
-  lineAt: number;
+  /** The last line he said (index into BENANAS_LINES); shown only while the stage gives him the bubble. */
   line: number;
   swings: number;
   hurts: number;
@@ -87,7 +92,7 @@ interface Visit {
 const KICK_DAMP = 6;
 
 /**
- * Alexandre Bénanas (#123), server-side: the roll at the start of a round,
+ * Alexandre Bénanas (#123), server-side: the roll each minute of march (#132),
  * his arrival from a side street ahead of the front (behind the CRS line),
  * his prowl after lone protesters, his punch (through the room's knockdown
  * path), backing off when a group closes in, and his helmet coming off
@@ -98,9 +103,12 @@ const KICK_DAMP = 6;
  * and arrests nobody.
  */
 export class BenanasEvent {
-  private plan: number | null = null;
+  /** This round's arrival roll (#132), null between rounds. */
+  private schedule: CameoSchedule | null = null;
   private visit: Visit | null = null;
   private duration: number = BENANAS.duration;
+  /** Room time of the last call that moved the event on, for the synced line. */
+  private now = 0;
   private readonly doors: Vec2[];
   /** Down the street (the CRS side), a unit vector: where he backs off when nothing else tells him. */
   private readonly ahead: Vec2;
@@ -110,25 +118,27 @@ export class BenanasEvent {
     private readonly views: MapSchema<BenanasView>,
     private readonly random: () => number = Math.random,
     private readonly log: (message: string) => void = () => {},
+    /** The speaking turn shared with the other cameos (#132). */
+    private readonly stage: CameoStage = new CameoStage(random),
   ) {
     this.doors = truckBays(level, BENANAS.radius).map((b) => b.door);
+    this.stage.watch(() => this.sync());
     const { from, to } = level.progress;
     const len = Math.hypot(to.x - from.x, to.z - from.z) || 1;
     this.ahead = { x: (to.x - from.x) / len, z: (to.z - from.z) / len };
   }
 
-  /** A new round: nobody on the street, and the roll for this one. Returns the arrival point, or null. */
-  startRound(): number | null {
+  /** A new round: nobody on the street, and his rolls start (one a minute of march, #132). */
+  startRound(): void {
     this.clear();
-    this.plan = rollBenanas(this.random);
-    if (this.plan !== null) this.log(`benanas: rolled, arrives at ${Math.round(this.plan * 100)}%`);
-    return this.plan;
+    this.schedule = freshCameoSchedule();
   }
 
   /** Nobody on the street and no visit planned. */
   clear(): void {
-    this.plan = null;
+    this.schedule = null;
     this.visit = null;
+    this.stage.hush(BENANAS_ID, this.now);
     this.duration = BENANAS.duration;
     this.views.clear();
   }
@@ -158,7 +168,9 @@ export class BenanasEvent {
   /** DEBUG (#123): arrive now at `at` (or his usual way in), prowling for `seconds`. Ignored while he is already here. */
   force(tick: Pick<BenanasTick, "now" | "front" | "rear">, at?: Vec2, seconds?: number): boolean {
     if (this.visit) return false;
-    this.plan = null;
+    this.now = tick.now;
+    // A forced visit is this round's visit.
+    if (this.schedule) this.schedule.came = true;
     this.duration = seconds ?? BENANAS.duration;
     this.arrive(tick.now, at ?? benanasEntry(this.level, this.doors, tick.front, tick.rear));
     return true;
@@ -168,6 +180,7 @@ export class BenanasEvent {
   forceUnmask(now: number): boolean {
     const v = this.visit;
     if (!v || v.phase === BenanasPhase.Unmasked) return false;
+    this.now = now;
     v.helmet.hp = 0;
     this.unmask(v, now);
     this.sync();
@@ -183,6 +196,7 @@ export class BenanasEvent {
   hurt(by: string, fromX: number, fromZ: number, now: number, host: BenanasHost): boolean {
     const v = this.visit;
     if (!v || v.phase === BenanasPhase.Unmasked) return false;
+    this.now = now;
     const b = v.agent.body;
     const off = hitHelmet(v.helmet, by);
     v.hurts = (v.hurts + 1) % 256;
@@ -203,9 +217,9 @@ export class BenanasEvent {
 
   /** One tick: the arrival when due, then his prowl, punch, back-off, and the end of each phase. */
   step(tick: BenanasTick, host: BenanasHost): void {
+    this.now = tick.now;
     if (!this.visit) {
-      if (!benanasDue(this.plan, tick.front)) return;
-      this.plan = null;
+      if (!this.schedule || !cameoArrives(this.schedule, tick.elapsed, tick.timeLeft, BENANAS.duration, BENANAS.chance, this.random)) return;
       this.duration = BENANAS.duration;
       this.arrive(tick.now, benanasEntry(this.level, this.doors, tick.front, tick.rear));
     }
@@ -230,6 +244,7 @@ export class BenanasEvent {
     } else if (v.phase !== BenanasPhase.Prowling && now >= v.until) {
       this.visit = null;
       this.views.clear();
+      this.stage.hush(BENANAS_ID, now);
       return;
     }
 
@@ -246,7 +261,7 @@ export class BenanasEvent {
         v.targetId = null;
         v.goal = backOffGoal(b, people, BENANAS.speed * BENANAS.backOff, this.ahead);
         v.agent.path = null;
-        this.say(v, "backOff", now);
+        this.say(v, "backOff", now, false);
       } else {
         if (now >= v.goalAt) {
           const picked = pickBenanasTarget(b, people, (id) => v.spared.has(id));
@@ -305,7 +320,8 @@ export class BenanasEvent {
     v.targetId = null;
     v.goalAt = now + 0.4;
     if (host.punch(target.id, dirX, dirZ)) {
-      this.say(v, "hit", now);
+      // Flooring someone is a key moment: it always speaks (#132).
+      this.say(v, "hit", now, true);
       this.log(`benanas: floored ${target.id}`);
     }
   }
@@ -348,7 +364,6 @@ export class BenanasEvent {
       helmet: freshHelmet(),
       fleeAt: null,
       kick: { x: 0, z: 0 },
-      lineAt: now,
       line: -1,
       swings: 0,
       hurts: 0,
@@ -359,11 +374,10 @@ export class BenanasEvent {
     this.sync();
   }
 
-  /** A new line of `kind`, unless one went up less than BENANAS.lineInterval ago (`always`: the big moments). */
-  private say(v: Visit, kind: BenanasLineKind, now: number, always = false): void {
-    if (!always && now < v.lineAt) return;
+  /** A line of `kind`, if the stage gives him the bubble (`key`: a moment that always speaks, #132). */
+  private say(v: Visit, kind: BenanasLineKind, now: number, key: boolean): void {
+    if (!this.stage.say(BENANAS_ID, now, key)) return;
     v.line = pickBenanasLine(kind, v.line, this.random);
-    v.lineAt = now + BENANAS.lineInterval;
   }
 
   /** Mirror him into `state.benanas` (only what changed is sent). */
@@ -380,7 +394,9 @@ export class BenanasEvent {
     view.z = b.z;
     if (Math.abs(v.rotation - view.rotation) > 0.01) view.rotation = v.rotation;
     if (view.phase !== v.phase) view.phase = v.phase;
-    if (view.line !== v.line) view.line = v.line;
+    // #132: -1 (no bubble) between his bursts, or while another cameo has the bubble.
+    const line = this.stage.showing(BENANAS_ID, this.now) ? v.line : -1;
+    if (view.line !== line) view.line = line;
     if (view.swings !== v.swings) view.swings = v.swings;
     if (view.hurts !== v.hurts) view.hurts = v.hurts;
   }

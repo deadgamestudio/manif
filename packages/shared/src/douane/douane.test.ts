@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { cameoRoundChance } from "../cameo/index.js";
+import { ROUND_DURATION } from "../round/index.js";
 import { STREET_LEVEL as L, progressAt } from "../level/index.js";
 import { KNOCKDOWN_THRESHOLD } from "../physics/index.js";
 import { truckBays } from "../pompier/index.js";
@@ -8,7 +10,6 @@ import {
   DOUANE,
   DOUANE_JET,
   DOUANE_LINES,
-  douaneDue,
   douaneEntry,
   douaneExit,
   douaneGoal,
@@ -16,7 +17,6 @@ import {
   freshSprayClock,
   pickDouaneLine,
   pickDouaneTarget,
-  rollDouane,
   stepSprayClock,
 } from "./index.js";
 
@@ -25,40 +25,10 @@ function at(t: number, side = 0) {
   return { x: from.x + (to.x - from.x) * t + side, z: from.z + (to.z - from.z) * t };
 }
 
-describe("when he comes", () => {
-  test("about 20% of rounds, rolled once: below the chance he comes, above it he doesn't", () => {
-    expect(rollDouane(() => DOUANE.chance - 0.001)).not.toBeNull();
-    expect(rollDouane(() => DOUANE.chance)).toBeNull();
-    expect(rollDouane(() => 0.95)).toBeNull();
-    expect(DOUANE.chance).toBeCloseTo(0.2, 5);
-  });
-
-  test("over many rounds the share is about the chance", () => {
-    let seed = 11;
-    const random = () => {
-      seed = (seed * 16807) % 2147483647;
-      return (seed - 1) / 2147483646;
-    };
-    let came = 0;
-    for (let i = 0; i < 20000; i++) if (rollDouane(random) !== null) came++;
-    expect(came / 20000).toBeGreaterThan(0.18);
-    expect(came / 20000).toBeLessThan(0.22);
-  });
-
-  test("arrives within his window", () => {
-    for (const r of [0, 0.3, 0.6, 0.999]) {
-      const rolls = [0, r];
-      const point = rollDouane(() => rolls.shift() ?? 0) as number;
-      expect(point).toBeGreaterThanOrEqual(DOUANE.earliest);
-      expect(point).toBeLessThanOrEqual(DOUANE.latest);
-    }
-  });
-
-  test("due once the front reaches his point, never past the latest", () => {
-    expect(douaneDue(null, 0.5)).toBe(false);
-    expect(douaneDue(0.4, 0.39)).toBe(false);
-    expect(douaneDue(0.4, 0.4)).toBe(true);
-    expect(douaneDue(0.4, DOUANE.latest + 0.01)).toBe(false);
+describe("when he comes (#132)", () => {
+  test("10% a minute of march, once a round: about 57% of full rounds", () => {
+    expect(DOUANE.chance).toBeCloseTo(0.1, 5);
+    expect(cameoRoundChance(DOUANE.chance, ROUND_DURATION, DOUANE.duration)).toBeCloseTo(0.57, 2);
   });
 });
 
