@@ -100,11 +100,14 @@ two disagree. For what each mechanic feels like in play, see
   back instead and the line waits. Lone CRS still walk through protesters. Every
   2 s, any free protester touching a shield is shoved 7 m/s away from the line
   without damage (sent as `shove` and `impulse` events); the third shove in a
-  row floors them. The line breaks for good when 8 HP of hits (melee, pavés)
+  row floors them. The line breaks when 8 HP of hits (melee, pavés)
   land on its members within 3 s, when 2 members are stunned or floored at
   once, or when 2 free protesters (1 if only one is free) stand behind it for
   2 s; its members then chase like the others and are not replaced when taken
-  out. Only `formation` is synced on `Crs` (shield raised); slots and timers
+  out. After 18 s (or 3 baton swings or a grab by a member) they walk back to a
+  spot `regroupSpot` picks 12+ m ahead of the cortège's front, between two
+  facades and clear of protesters, and the line forms again once 3 stand on
+  their slots (#131). Only `formation` is synced on `Crs` (shield raised); slots and timers
   stay on the server. Pavés are not blocked by shields: they hit, stun and
   count towards the break.
 - Round loop (#12): `state.phase` is `waiting` (the lobby screen; #14 adds

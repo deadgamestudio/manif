@@ -26,7 +26,11 @@ CRS riot police bots chase the nearest protester, hit them with batons, grab
 them and drag them to the police vans; protesters can hit them back, or dodge
 (Shift) with a short burst of speed that has a 3 s cooldown. A teammate being
 dragged away can be rescued: hold E next to them for a second (or floor the CRS
-holding them) and they are free, with a moment of grab immunity. Pavés lie in
+holding them) and they are free, with a moment of grab immunity. Grabbed, mash
+attack to struggle free (#70): the CRS that held you is floored and dazed a
+moment (#131). Just freed, just back on your feet after a fall, or just back in
+the street, you get 2 s of grace (a blinking pale ring): no CRS batons or grabs
+you, and they look for someone else. Gas, water and the LBD still get you. Pavés lie in
 the street and fall out of broken bus shelters, shops and cars: press E
 next to one to pick it up, then click to throw it towards the mouse.
 A pavé floors and stuns the CRS it hits, which drops whoever it was dragging,
@@ -56,7 +60,11 @@ grabbed drops them at once. E again puts them down.
 Further down, CRS shield lines stand across the street: a wall of shields that
 advances slowly towards the cortège once it comes close, blocks protesters and
 shoves whoever leans on it. Hit it hard enough in a short time, or get behind
-it, and it breaks up into ordinary chasing CRS.
+it, and it breaks up into ordinary chasing CRS, for a while (#131): after 18 s,
+or once a member landed 3 baton swings (or a grab), they stop attacking, walk
+back and form a new line a dozen metres ahead of the cortège, between two
+facades (never across a side street). That line can break again, and regroups
+again.
 
 ## Tear gas
 

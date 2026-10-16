@@ -60,10 +60,10 @@ function ringMaterial(color: string, opacity: number): MeshBasicMaterial {
  * breathing while no CRS may baton or grab the player (just freed, back up or
  * back in the street). One geometry and one material for everyone.
  */
-const GRACE_GEOMETRY = new RingGeometry(PLAYER_RADIUS + 0.34, PLAYER_RADIUS + 0.54, 32);
-const GRACE_MATERIAL = new MeshBasicMaterial({ color: "#e3f6ff", transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false });
+const GRACE_GEOMETRY = new RingGeometry(PLAYER_RADIUS + 0.38, PLAYER_RADIUS + 0.68, 40);
+const GRACE_MATERIAL = new MeshBasicMaterial({ color: "#a8ecff", transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false });
 /** Blink period half (ms) and breathing (scale amplitude, per second). */
-const GRACE_BLINK_MS = 130;
+const GRACE_BLINK_MS = 110;
 const GRACE_PULSE = 0.12;
 const GRACE_PULSE_SPEED = 9;
 /** Grabbed, KO: the clothes go a bit pale, towards this. */
@@ -533,7 +533,7 @@ function GraceRing({ id, source }: { id: string; source: PlayerSource }) {
     const m = ref.current;
     if (!m) return;
     const on = source(id)?.grace === true;
-    m.visible = on && Math.floor(performance.now() / GRACE_BLINK_MS) % 3 !== 0;
+    m.visible = on && Math.floor(performance.now() / GRACE_BLINK_MS) % 4 !== 0;
     if (on) m.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * GRACE_PULSE_SPEED) * GRACE_PULSE);
   });
   return <mesh ref={ref} visible={false} position-y={RING_Y + 0.004} rotation-x={-Math.PI / 2} geometry={GRACE_GEOMETRY} material={GRACE_MATERIAL} dispose={null} />;
