@@ -406,6 +406,28 @@ body,
   overflow-wrap: anywhere;
 }
 
+/* #126: the archetype's body, pre-rendered (public/portraits/, 112 × 140, twice this size). */
+.archetype-portrait {
+  flex: none;
+  display: block;
+  width: 56px;
+  height: 70px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 85%, #e2d6bd 0 38%, #f1e9d8 70%);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+}
+
+.archetype-portrait img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.archetype-tile[data-selected] .archetype-portrait {
+  background: #fffaf0;
+}
+
 .archetype-swatch {
   display: inline-grid;
   place-items: center;
@@ -465,8 +487,14 @@ body,
   .archetype-tile {
     flex-direction: row;
     justify-content: flex-start;
-    padding: 6px 8px;
+    padding: 4px 8px 4px 4px;
+    gap: 8px;
     text-align: left;
+  }
+
+  .archetype-portrait {
+    width: 40px;
+    height: 50px;
   }
 
   .archetype-swatch {

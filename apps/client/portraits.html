@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- The studio that draws the lobby's archetype portraits (#126), for
+     `bun run portraits` (scripts/portraits/render.ts). Dev server only: the
+     build's one input is index.html, so this page never ships. -->
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex" />
+    <title>manif · portraits</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/app/portraits/main.tsx"></script>
+  </body>
+</html>

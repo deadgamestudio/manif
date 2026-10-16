@@ -9,3 +9,4 @@ export { accessoriesFor, type Accessory, type AccessoryName } from "./accessorie
 export { WornAccessories } from "./WornAccessories.tsx";
 export { SWING_BUSY_MS, cgtKitFor, freshKitState, kitShow, type CgtKit, type KitShow, type KitState } from "./cgtKit.ts";
 export { CgtKitView } from "./CgtKit.tsx";
+export { PORTRAIT_CGT_KIT, PORTRAIT_PERSON, portraitBodyUrl, portraitPaint } from "./portrait.ts";
