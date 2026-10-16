@@ -4,6 +4,7 @@ import {
   ClientMessage,
   DEFAULT_SERVER_PORT,
   MOLUCHAN_ID,
+  DOUANE_ID,
   MELEE_COOLDOWN,
   Phase,
   PlayerStatus,
@@ -20,6 +21,8 @@ import {
   type TruckShape,
   type MoluchanShape,
   type MoluchanPhase,
+  type DouaneShape,
+  type DouanePhase,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type DebugRoundPayload,
@@ -246,6 +249,18 @@ function setMoluchanPhase(phase: MoluchanPhase | null) {
 }
 
 /**
+ * La Douane (#120): his phase while he is on the street, null when he isn't,
+ * kept out of NetSnapshot like Moluchan's. A handful of changes a round.
+ */
+let douanePhase: DouanePhase | null = null;
+const douaneListeners = new Set<() => void>();
+function setDouanePhase(phase: DouanePhase | null) {
+  if (phase === douanePhase) return;
+  douanePhase = phase;
+  for (const listener of douaneListeners) listener();
+}
+
+/**
  * The round (#12): timer, progress and result, kept out of NetSnapshot so the
  * once-a-second countdown re-renders only the HUD, not the game. `end` is the
  * last ServerMessage.RoundEnd seen in this room (null after joining). `board`
@@ -339,6 +354,7 @@ function clearEffects() {
   setShops([]);
   setTruckIds([]);
   setMoluchanPhase(null);
+  setDouanePhase(null);
   setRound(NO_ROUND);
   setLeaderboard(null);
 }
@@ -505,6 +521,17 @@ function attach(joined: ClientRoom, gen: number) {
   });
   callbacks.onRemove("moluchan", () => {
     if (gen === generation) setMoluchanPhase(null);
+  });
+  // La Douane (#120): the same. A server from before #120 has no such map: the callbacks just never fire.
+  callbacks.onAdd("douane", (d) => {
+    const read = () => {
+      if (gen === generation) setDouanePhase((d as DouaneShape).phase as DouanePhase);
+    };
+    callbacks.listen(d as DouaneShape & IRef, "phase", read);
+    read();
+  });
+  callbacks.onRemove("douane", () => {
+    if (gen === generation) setDouanePhase(null);
   });
   callbacks.listen("phase", () => {
     // A new phase starts from no held input on the server (#12): forget the
@@ -842,6 +869,22 @@ export const net = {
   /** Moluchan's live state (#85). Read from useFrame. */
   getMoluchan(): MoluchanShape | undefined {
     return room?.state.moluchan?.get(MOLUCHAN_ID);
+  },
+
+  /** Call `listener` when La Douane (#120) arrives, changes phase or is gone. */
+  subscribeDouane(listener: () => void): () => void {
+    douaneListeners.add(listener);
+    return () => douaneListeners.delete(listener);
+  },
+
+  /** La Douane's phase (#120, a `DouanePhase`) while he is on the street, null when he isn't. */
+  getDouanePhase(): DouanePhase | null {
+    return douanePhase;
+  },
+
+  /** La Douane's live state (#120). Read from useFrame. */
+  getDouane(): DouaneShape | undefined {
+    return room?.state.douane?.get(DOUANE_ID);
   },
 
   /** Call `listener` when the lasting leaderboard (#41) arrives or changes. */

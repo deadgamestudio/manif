@@ -38,6 +38,8 @@ const ROUND_KEYS: Record<string, DebugRoundPayload> = {
   KeyY: { action: "water", radius: 4 },
   /** Jeun-Lac Moluchan (#85) turns up 3 m in front of you, whatever the roll. */
   KeyO: { action: "moluchan", distance: 3 },
+  /** La Douane (#120) turns up 4 m in front of you, whatever the roll. */
+  KeyI: { action: "douane", distance: 4 },
   /** The street turns hot now (#98): the CRS stop escorting and chase anyone. */
   KeyU: { action: "hot" },
 };
@@ -86,7 +88,7 @@ export function DebugKnockbackKeys() {
   return (
     <div className="hud-debug">
       debug : K te renverse · J te pousse · L renverse le plus proche · H te blesse (−{DEBUG_DAMAGE}) · G te fait
-      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan · B casse la boutique la plus proche et y entre
+      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan · I fait venir La Douane · B casse la boutique la plus proche et y entre
     </div>
   );
 }

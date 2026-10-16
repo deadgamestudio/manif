@@ -122,6 +122,12 @@ export const MODELS = {
     fireTruckOpen: `${M}/production-v1/fire-truck-open/fire-truck-open.glb`,
     /** Moluchan's megaphone (stand-in until his own model). */
     megaphone: `${M}/production-v1/reprises/megaphone/megaphone.glb`,
+    /**
+     * La Douane's oversized water gun (#120). Not Jordan's: made by Claude in
+     * Blender, in his style (its own palette strip, cell 15 the bright blue).
+     * Pivot at the pistol grip, +Z forward. Node `muzzle` at the nozzle (0.595 m ahead, 0.06 up).
+     */
+    waterGun: `${M}/accessoires-v01/water-gun/water-gun.glb`,
   },
 
   /** Fixed level pieces. */

@@ -111,6 +111,8 @@ import {
   type CrsHitResult,
   type CrsHost,
   MOLUCHAN_ID,
+  DOUANE,
+  isPolice,
   type ProtesterView,
   type ShoveEvent,
   type SwingEvent,
@@ -179,6 +181,7 @@ import { DEBUG_ROUND_ENABLED, IDLE_BOARD, RoundStats, boardKey, parseDebugRound,
 import { bankEntries, hashToken, newDeviceToken, scoreStore } from "../features/score/index.js";
 import { HealAuras } from "../features/archetype/index.js";
 import { MoluchanEvent } from "../features/moluchan/index.js";
+import { DouaneEvent, type DouaneHost, type SoakBody } from "../features/douane/index.js";
 import { Bots, DIAG_ENABLED, TickStats, leftovers } from "../features/bot/index.js";
 import { CreateLimit, DEFAULT_CREATE_LIMIT, UNKNOWN_VISITOR, maxRoomsFromEnv, visitorKey } from "../features/lobby/index.js";
 import { MessageBudget, gateMessages } from "../features/net/index.js";
@@ -328,6 +331,43 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private hoseTargets: HoseTarget[] = [];
   /** Jeun-Lac Moluchan (#85): the roll, his visit and his ring. Shown to the CRS only, never a player. */
   private moluchan = new MoluchanEvent(LEVEL, this.state.moluchan, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`));
+  /** La Douane (#120): the roll, his visit and his water gun. Nobody's target, never a player. */
+  private douane = new DouaneEvent(LEVEL, this.state.douane, this.props.staticWorld, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`));
+  /** Scratch for La Douane's water (#120), reused every tick. */
+  private soakBodies: SoakBody[] = [];
+  /** The room as La Douane's water gun sees it (#120): pushes (never floors), puts out, no damage, no score. */
+  private douaneHost: DouaneHost = {
+    bodies: () => {
+      const out = this.soakBodies;
+      out.length = 0;
+      this.state.players.forEach((p, id) => {
+        if (p.status === PlayerStatus.Arrested) return;
+        out.push({ id, x: p.x, z: p.z, r: PLAYER_RADIUS, bot: false, onFire: p.onFire, target: p.status === PlayerStatus.Free && !p.down });
+      });
+      for (const b of this.crs.all) {
+        if (!isPolice(b.kind) || b.status === CrsStatus.Out) continue;
+        out.push({ id: b.id, x: b.body.x, z: b.body.z, r: crsRadius(b.kind, b.mount), bot: true, onFire: false, target: !isDown(b.body) });
+      }
+      return out;
+    },
+    fires: () => this.fires.burning(),
+    push: (body, dirX, dirZ, strength) => {
+      if (!body.bot) {
+        this.applyImpulse(body.id, dirX, dirZ, strength, "never");
+        return;
+      }
+      const res = this.crs.push(body.id, dirX, dirZ, strength, "never");
+      if (res && res.strength > 0) {
+        const event: ImpulseEvent = { id: body.id, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
+        this.broadcast(ServerMessage.Impulse, event);
+      }
+    },
+    extinguish: (id) => this.extinguishProp(id),
+    putOutBody: (body) => {
+      this.putOutBody(body.id);
+      if (body.bot) this.crs.wash(body.id);
+    },
+  };
   /** The room as the brigade sees it (#17). */
   private brigadeHost: BrigadeHost = {
     fires: () => this.fires.burning(),
@@ -709,6 +749,13 @@ export class StreetRoom extends Room<{ state: StreetState }> {
           const at = self && d !== undefined ? resolveCircle(this.props.world, self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d, PLAYER_RADIUS) : undefined;
           this.moluchan.force(this.moluchanTick(0), at, cmd.seconds);
         }
+        // #120: La Douane now, in front of you or by his usual way in.
+        else if (cmd?.action === "douane") {
+          const self = this.state.players.get(client.sessionId);
+          const d = cmd.distance;
+          const at = self && d !== undefined ? resolveCircle(this.props.world, self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d, DOUANE.radius) : undefined;
+          this.douane.force(this.moluchanTick(0), at, cmd.seconds);
+        }
       },
     }),
   }, (client: Client, type: string) => this.allowMessage(client, type));
@@ -1027,6 +1074,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.brigade.resetTuning();
     // #85: the roll for Moluchan's visit this round.
     this.moluchan.startRound();
+    // #120: and La Douane's, on its own roll.
+    this.douane.startRound();
     this.roundHeld = false;
     this.roundTainted = false;
     this.roundStats.clear();
@@ -1065,6 +1114,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.brigade.clear();
     // #85: Moluchan gone, no visit planned (startMarch rolls the next one).
     this.moluchan.clear();
+    // #120: the kid gone too.
+    this.douane.clear();
     this.crs.reinforceTo = 0;
     // No fire left for the bots to avoid; rebuilds their grid for the props put back.
     this.crs.setHazards(null);
@@ -2066,6 +2117,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.brigade.step(this.now, dt, this.brigadeHost);
     // Moluchan (#85): arrives when the front reaches his point, walks with the cortège, leaves or is grabbed.
     this.moluchan.step(this.moluchanTick(dt));
+    // La Douane (#120): arrives when the front reaches his point, soaks whoever is closest in bursts, walks home.
+    this.douane.step(this.moluchanTick(dt), this.douaneHost);
     this.burnCrs();
     this.stepFires(dt);
     // Members walked into protesters: push them out of the shields (walls win; a

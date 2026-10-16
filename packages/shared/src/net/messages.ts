@@ -174,7 +174,12 @@ export type DebugRoundPayload =
    * #85: Jeun-Lac Moluchan turns up now, whatever the roll (unless he is already on the street), `distance` m in front of
    * yourself (absent: by his usual way in), rallying for `seconds` (absent: MOLUCHAN.duration).
    */
-  | { action: "moluchan"; distance?: number; seconds?: number };
+  | { action: "moluchan"; distance?: number; seconds?: number }
+  /**
+   * #120: La Douane turns up now, whatever the roll (unless he is already on the street), `distance` m in front of
+   * yourself (absent: by his usual way in), soaking for `seconds` (absent: DOUANE.duration).
+   */
+  | { action: "douane"; distance?: number; seconds?: number };
 
 /** Payload of `ClientMessage.PickArchetype`: an `Archetype` id. */
 export interface PickArchetypePayload {

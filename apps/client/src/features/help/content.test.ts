@@ -9,6 +9,7 @@ import {
   CrsKind,
   GRAB_HP_THRESHOLD,
   MOLUCHAN,
+  DOUANE,
   PROP_TYPES,
   ROUND_DURATION,
   SHOP_KINDS,
@@ -23,6 +24,7 @@ import {
   SCORE_LABELS,
   archetypeCards,
   archetypeChips,
+  douaneCard,
   duration,
   moluchanCard,
   policeCards,
@@ -98,6 +100,14 @@ describe("the help page can't drift from the game (#71)", () => {
     ]);
     expect(card.what).toContain(`${Math.round(MOLUCHAN.chance * 100)} %`);
     expect(card.tip).toContain("CRS");
+  });
+
+  test("La Douane's card (#120): only his meme name, his chance, no damage", () => {
+    const card = douaneCard();
+    expect(card.name).toBe("La Douane");
+    expect(card.what).toContain(`${Math.round(DOUANE.chance * 100)} %`);
+    expect(card.chips.map((c) => c.text)).toContain("0 PV de dégâts");
+    expect(card.tip).toContain("Personne ne peut le toucher");
   });
 
   test("the rules quote the constants (#70's grab rules included)", () => {

@@ -166,6 +166,25 @@ export interface MoluchanShape {
   left: number;
 }
 
+/**
+ * La Douane (#120), keyed by DOUANE_ID, while he is on the street (at most
+ * one, at most once a round). Clients draw the kid and his jet from this.
+ */
+export interface DouaneShape {
+  x: number;
+  z: number;
+  /** Facing angle around the Y axis, in radians (towards whoever he soaks). */
+  rotation: number;
+  /** A `DouanePhase`: soaking, leaving. */
+  phase: number;
+  /** His speech bubble: an index into DOUANE_LINES, -1 for none. */
+  line: number;
+  /** The water gun is firing (a burst). */
+  spraying: boolean;
+  /** His skin tone, an index in [0, DOUANE_SKINS). */
+  skin: number;
+}
+
 /** An item lying on the ground (#8), keyed by a server-made id. */
 export interface GroundItemShape {
   kind: ThrowableKind;
@@ -238,6 +257,8 @@ export interface StreetStateShape {
   trucks: SyncedMap<TruckShape>;
   /** Jeun-Lac Moluchan (#85), by MOLUCHAN_ID: empty, or him while he is on the street. */
   moluchan: SyncedMap<MoluchanShape>;
+  /** La Douane (#120), by DOUANE_ID. A server from before #120 has no such map: read it with `?.`. */
+  douane: SyncedMap<DouaneShape>;
   /** Round phase (#12): waiting (lobby screen), marching, ended. */
   phase: Phase;
   /** Whole seconds left: of the march while marching, of the end screen while ended. */

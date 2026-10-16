@@ -24,6 +24,8 @@ import {
   MAX_HP,
   MAX_PLAYERS,
   MOLUCHAN,
+  DOUANE,
+  DOUANE_JET,
   ON_FIRE_DURATION,
   PROP_TYPES,
   RESCUE_TIME,
@@ -304,6 +306,23 @@ export function moluchanCard(): MoluchanCard {
       { text: `Soigne ${num(MOLUCHAN.healRate)} PV/s`, good: true },
     ],
     tip: "Protège-le : les CRS le visent en priorité, et s'ils l'attrapent, sa visite est finie. Il ne compte ni pour gagner ni dans les points.",
+  };
+}
+
+// ---------- La Douane (#120) ----------
+
+/** The rare kid with the water gun (#120), from DOUANE. Only ever called "La Douane". */
+export function douaneCard(): MoluchanCard {
+  return {
+    icon: "💦",
+    name: "La Douane",
+    what: `Rare (environ ${Math.round(DOUANE.chance * 100)} % des manches) : un gamin débarque d'une rue de côté avec un énorme pistolet à eau et arrose le plus proche, manifestant·e ou CRS, sans choisir son camp. Il reste ${duration(DOUANE.duration)}, puis rentre chez lui.`,
+    chips: [
+      { text: "Pousse, sans faire tomber", good: false },
+      { text: "Éteint les feux", good: true },
+      { text: "0 PV de dégâts", good: true },
+    ],
+    tip: `Personne ne peut le toucher ni l'attraper, et il ne compte pas dans les points. Il tire par rafales à ${num(DOUANE_JET.range)} m : écarte-toi du jet, ou amène-lui un CRS.`,
   };
 }
 
