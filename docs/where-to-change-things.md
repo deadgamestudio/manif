@@ -50,6 +50,8 @@ through `apps/server/src/rooms/StreetRoom.ts`.
 | Change bot pathfinding (grid, A*, straight-line check) | `packages/shared/src/crs/nav.ts` |
 | Tune shield lines (size, spacing, shield reach, speed, engage range, how far they advance, clearance from the start zone, shove, what breaks them) | The `LINE_*` constants in `packages/shared/src/crs/constants.ts` |
 | Change shield line rules (slots against the level, advancing, stragglers, shove, break checks, collision with protesters) | `packages/shared/src/crs/line.ts` (`lineSlots`, `stepLine`, `checkBreak`, `resolveShieldContacts`) |
+| Tune or change how a broken line regroups (#131: how long it chases, hits before going back, how far ahead it re-forms, how many in place) | `LINE_CHASE_*`, `LINE_REFORM_MIN` and `LINE_REGROUP_*` in `packages/shared/src/crs/constants.ts`; the rules are `regroupSpot` and `stepRegroup` in `crs/line.ts` |
+| Tune the grace after a struggle, a fall or a respawn (#131), or the escape knockdown | `CRS_GRACE`, `ESCAPE_STUN`, `ESCAPE_IMPULSE` in `packages/shared/src/crs/constants.ts`; who gets it when is `CrsGrace` (`crs/grace.ts`), granted by `StreetRoom`; the ring is `GraceRing` in `apps/client/src/features/player/PlayerAvatar.tsx` |
 | Spawn a shield line from a new system | `CrsSquad.spawnLine(x, z, size?, facing?, kind?)` in `apps/server/src/features/crs/squad.ts`; where lines can form is `lineSpawns` in `packages/shared/src/level/street.ts` |
 | Move or add CRS spawn points | `crsSpawns` in `packages/shared/src/level/street.ts` |
 | Spawn CRS from a new system, stun one, hit one with a thrown item (#8) | `CrsSquad.spawn(x, z, kind)`, `reinforceTo`, `stun(id, now)`, `strike(...)` in `apps/server/src/features/crs/squad.ts`, owned by `StreetRoom` |

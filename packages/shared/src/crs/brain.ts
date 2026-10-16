@@ -46,6 +46,8 @@ import {
   CRS_STATS,
   CRS_STUCK_PROGRESS,
   CRS_STUCK_TIME,
+  ESCAPE_IMPULSE,
+  ESCAPE_STUN,
   GRAB_HP_THRESHOLD,
   GRAB_WINDUP_SLACK,
   CrsMount,
@@ -339,6 +341,10 @@ export interface CrsContext {
    * cortège (`walkIdle`). Absent or null: hot, anyone is fair game.
    */
   calm?: CalmStreet | null;
+  /** The level (#131): where a broken shield line looks for a spot to re-form. Absent: broken lines never re-form. */
+  level?: Level;
+  /** How far the cortège's front got (#131), progress 0..1: a line re-forms ahead of it. */
+  front?: number;
 }
 
 /** What a calm street (#98) tells the bots: the level and how far the cortège's front got, for the escort. */
@@ -424,7 +430,8 @@ export function updateTarget(bot: CrsBot, ctx: CrsContext, host: CrsHost): void 
   const now = ctx.now;
   if (bot.ignoreId !== null && now >= bot.ignoreUntil) bot.ignoreId = null;
   const current = bot.targetId === null ? undefined : host.protester(bot.targetId);
-  const valid = current !== undefined && current.status === PlayerStatus.Free && current.id !== bot.ignoreId && fairGame(ctx, current);
+  const valid =
+    current !== undefined && current.status === PlayerStatus.Free && current.graced !== true && current.id !== bot.ignoreId && fairGame(ctx, current);
   if (valid && now < bot.retargetAt) return;
   const next = pickTarget(bot.body, targetsOf(ctx, host), bot.stats.sight, valid ? bot.targetId : null, bot.stats.switchMargin, bot.ignoreId);
   if (next !== bot.targetId) {
@@ -450,7 +457,8 @@ export function isWeakened(target: ProtesterView): boolean {
  * BAC), and whom the room would let it grab.
  */
 export function canStartGrab(bot: CrsBot, target: ProtesterView, host: CrsHost): boolean {
-  if (target.status !== PlayerStatus.Free) return false;
+  // #131: in their grace, no grab.
+  if (target.status !== PlayerStatus.Free || target.graced === true) return false;
   const weakened = bot.stats.grabAnyHp === true || isWeakened(target);
   return weakened && (host.canGrab?.(target.id) ?? true);
 }
@@ -563,7 +571,8 @@ export function act(bot: CrsBot, target: ProtesterView, ctx: CrsContext, host: C
     startWindup(bot, target, now);
     return true;
   }
-  if (gap <= s.batonRange && !grabbable && now >= bot.batonReadyAt && host.canBeHurt(target.id)) {
+  // #131: no baton on a protester in their grace either.
+  if (gap <= s.batonRange && !grabbable && now >= bot.batonReadyAt && target.graced !== true && host.canBeHurt(target.id)) {
     bot.batonReadyAt = now + s.batonCooldown;
     if (dx !== 0 || dz !== 0) bot.rotation = Math.atan2(dx, dz);
     host.batonHit(bot.id, target.id, dx, dz, s.batonDamage, s.batonImpulse);
@@ -798,6 +807,23 @@ export function stunCrs(bot: CrsBot, now: number, duration = bot.stats.stunDurat
   bot.status = CrsStatus.Stunned;
   bot.statusUntil = Math.max(bot.statusUntil, now + duration);
   return true;
+}
+
+/**
+ * The protester this bot was dragging struggled free (#131): it is knocked
+ * down along (dirX, dirZ), away from them, through the usual knockdown (the
+ * ragdoll plays on the clients), and stays dazed for `stun` once back up
+ * (it lets go on its next tick, holding nobody by then). Null for a bot
+ * already out.
+ */
+export function escapeKnockdown(bot: CrsBot, dirX: number, dirZ: number, now: number, stun = ESCAPE_STUN): ImpulseResult | null {
+  if (bot.status === CrsStatus.Out) return null;
+  cancelWindup(bot, now);
+  cancelAim(bot, now);
+  const res = applyImpulse(bot.body, dirX, dirZ, ESCAPE_IMPULSE, "always");
+  // Dazed from now until `stun` after it gets up.
+  stunCrs(bot, now, Math.max(0, bot.body.downTime) + stun);
+  return res;
 }
 
 export interface CrsHitResult {

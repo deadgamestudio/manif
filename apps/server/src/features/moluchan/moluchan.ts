@@ -6,8 +6,9 @@ import {
   PlayerStatus,
   GRAB_HP_THRESHOLD,
   combinedHealRate,
+  cameoArrives,
+  freshCameoSchedule,
   inMoluchanAura,
-  moluchanDue,
   moluchanEntry,
   moluchanExit,
   moluchanGoal,
@@ -15,10 +16,10 @@ import {
   moluchanStruggleFactor,
   pickMoluchanLine,
   resolveCircle,
-  rollMoluchan,
   steerTo,
   stepHeal,
   truckBays,
+  type CameoSchedule,
   type CollisionWorld,
   type Level,
   type MoluchanLineKind,
@@ -28,12 +29,16 @@ import {
   type ProtesterView,
   type Vec2,
 } from "@manif/shared";
+import { CameoStage } from "../cameo/index.js";
 import { MoluchanView } from "./schema.js";
 
 /** What the event needs of the room each tick. */
 export interface MoluchanTick {
   now: number;
   dt: number;
+  /** Seconds of march so far and left (`Round.elapsed`, `Round.timeLeft`): the clock of the arrival roll (#132). */
+  elapsed: number;
+  timeLeft: number;
   /** The cortège's front, 0..1. */
   front: number;
   /** Every protester (free or not), for where he heads. */
@@ -53,22 +58,22 @@ interface Visit {
   agent: NavAgent & { input: Vec2; body: Vec2 };
   goal: Vec2;
   goalAt: number;
-  lineAt: number;
+  /** The last line he said (index into MOLUCHAN_LINES); shown only while the stage gives him the bubble. */
   line: number;
 }
 
 /**
- * Jeun-Lac Moluchan (#85), server-side: the roll at the start of a round, his
- * arrival when the front reaches the rolled point, his walk with the cortège,
- * his lines, the end (time's up, or a CRS grab), and the buffs of his ring.
+ * Jeun-Lac Moluchan (#85), server-side: the roll each minute of march (#132),
+ * his arrival, his walk with the cortège, his lines (in turn with the other
+ * cameos, `CameoStage`), the end (time's up, or a CRS grab), and the buffs of his ring.
  * Mirrors what clients draw into `state.moluchan`.
  *
  * He is not a player: the room shows him to the CRS only (`view`), so the
  * win, the wipe, the bot fill and the scores never see him.
  */
 export class MoluchanEvent {
-  /** The front progress he arrives at this round, or null (not coming, or already came). */
-  private plan: number | null = null;
+  /** This round's arrival roll (#132), null between rounds. */
+  private schedule: CameoSchedule | null = null;
   private visit: Visit | null = null;
   /** Rallying time of a forced visit (debug), else MOLUCHAN.duration. */
   private duration: number = MOLUCHAN.duration;
@@ -93,22 +98,24 @@ export class MoluchanEvent {
     private readonly views: MapSchema<MoluchanView>,
     private readonly random: () => number = Math.random,
     private readonly log: (message: string) => void = () => {},
+    /** The speaking turn shared with the other cameos (#132). */
+    private readonly stage: CameoStage = new CameoStage(random),
   ) {
     this.doors = truckBays(level, MOLUCHAN.radius).map((b) => b.door);
+    this.stage.watch(() => this.sync());
   }
 
-  /** A new round: no one on the street, and the roll for this one. Returns the arrival point, or null. */
-  startRound(): number | null {
+  /** A new round: no one on the street, and his rolls start (one a minute of march, #132). */
+  startRound(): void {
     this.clear();
-    this.plan = rollMoluchan(this.random);
-    if (this.plan !== null) this.log(`moluchan: rolled, arrives at ${Math.round(this.plan * 100)}%`);
-    return this.plan;
+    this.schedule = freshCameoSchedule();
   }
 
   /** Nobody on the street and no visit planned (end of a round, reset). */
   clear(): void {
-    this.plan = null;
+    this.schedule = null;
     this.visit = null;
+    this.stage.hush(MOLUCHAN_ID, this.now);
     this.duration = MOLUCHAN.duration;
     this.carry.clear();
     this.views.clear();
@@ -118,7 +125,8 @@ export class MoluchanEvent {
   force(tick: Pick<MoluchanTick, "now" | "front" | "rear">, at?: Vec2, seconds?: number): boolean {
     if (this.visit) return false;
     this.now = tick.now;
-    this.plan = null;
+    // A forced visit is this round's visit.
+    if (this.schedule) this.schedule.came = true;
     this.duration = seconds ?? MOLUCHAN.duration;
     this.arrive(tick.now, at ?? moluchanEntry(this.level, this.doors, tick.front, tick.rear));
     return true;
@@ -182,7 +190,7 @@ export class MoluchanEvent {
     this.now = now;
     v.phase = MoluchanPhase.Grabbed;
     v.until = now + MOLUCHAN.grabbedLinger;
-    this.say(v, "grabbed", now);
+    this.say(v, "grabbed", now, true);
     this.carry.clear();
     this.log("moluchan: grabbed by the CRS, event over");
     this.sync();
@@ -193,8 +201,7 @@ export class MoluchanEvent {
   step(tick: MoluchanTick): void {
     this.now = tick.now;
     if (!this.visit) {
-      if (!moluchanDue(this.plan, tick.front)) return;
-      this.plan = null;
+      if (!this.schedule || !cameoArrives(this.schedule, tick.elapsed, tick.timeLeft, MOLUCHAN.duration, MOLUCHAN.chance, this.random)) return;
       this.duration = MOLUCHAN.duration;
       this.arrive(tick.now, moluchanEntry(this.level, this.doors, tick.front, tick.rear));
     }
@@ -205,12 +212,13 @@ export class MoluchanEvent {
       v.phase = MoluchanPhase.Leaving;
       v.until = now + MOLUCHAN.leaveTimeout;
       v.goal = moluchanExit(this.doors, v.agent.body, tick.rear);
-      this.say(v, "leave", now);
+      this.say(v, "leave", now, true);
       this.carry.clear();
       this.log("moluchan: leaving, untouched");
     } else if (v.phase !== MoluchanPhase.Rallying && now >= v.until) {
       this.visit = null;
       this.views.clear();
+      this.stage.hush(MOLUCHAN_ID, now);
       return;
     }
     if (v.phase === MoluchanPhase.Rallying) {
@@ -218,7 +226,8 @@ export class MoluchanEvent {
         v.goal = moluchanGoal(this.level, v.agent.body, tick.protesters, tick.front);
         v.goalAt = now + MOLUCHAN.regoalInterval;
       }
-      if (now >= v.lineAt) this.say(v, "rally", now);
+      // An ordinary line: only when the stage gives him a turn.
+      this.say(v, "rally", now, false);
     }
     if (v.phase === MoluchanPhase.Grabbed) {
       v.agent.input.x = 0;
@@ -258,17 +267,17 @@ export class MoluchanEvent {
       },
       goal: { x: body.x, z: body.z },
       goalAt: now,
-      lineAt: now,
       line: -1,
     };
-    this.say(this.visit, "arrive", now);
+    this.say(this.visit, "arrive", now, true);
     this.log(`moluchan: arrives at x=${at.x.toFixed(1)} z=${at.z.toFixed(1)} for ${this.duration} s`);
     this.sync();
   }
 
-  private say(v: Visit, kind: MoluchanLineKind, now: number): void {
+  /** A line of `kind`, if the stage gives him the bubble (`key`: a moment that always speaks, #132). */
+  private say(v: Visit, kind: MoluchanLineKind, now: number, key: boolean): void {
+    if (!this.stage.say(MOLUCHAN_ID, now, key)) return;
     v.line = pickMoluchanLine(kind, v.line, this.random);
-    v.lineAt = now + MOLUCHAN.lineInterval;
   }
 
   /** Mirror him into `state.moluchan` (only what changed is sent). */
@@ -290,7 +299,9 @@ export class MoluchanEvent {
       if (Math.abs(r - view.rotation) > 0.01) view.rotation = r;
     }
     if (view.phase !== v.phase) view.phase = v.phase;
-    if (view.line !== v.line) view.line = v.line;
+    // #132: -1 (no bubble) between his bursts, or while another cameo has the bubble.
+    const line = this.stage.showing(MOLUCHAN_ID, this.now) ? v.line : -1;
+    if (view.line !== line) view.line = line;
     const left = v.phase === MoluchanPhase.Rallying ? Math.max(0, Math.ceil(v.until - this.now)) : 0;
     if (view.left !== left) view.left = left;
   }

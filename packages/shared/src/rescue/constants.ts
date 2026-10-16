@@ -39,5 +39,4 @@ export const STRUGGLE_GRACE = 0.4;
 /** How fast an idle meter drains, in meters a second (1 is a full meter). */
 export const STRUGGLE_DRAIN = 0.5;
 
-/** Push on the CRS a protester struggles free from (#70), away from them: it stumbles back a step, never falls. */
-export const STRUGGLE_FREE_CRS_IMPULSE = LIGHT_IMPULSE;
+// Breaking free floors the CRS that held you (#131): ESCAPE_IMPULSE and ESCAPE_STUN, with the CRS tunables.

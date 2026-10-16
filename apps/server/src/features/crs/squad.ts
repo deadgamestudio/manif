@@ -28,7 +28,9 @@ import {
   MAX_CRS,
   NavGrid,
   createCrsBot,
+  breakLine,
   createShieldLine,
+  escapeKnockdown,
   hitCrs,
   isShieldUp,
   lineBehaviour,
@@ -84,7 +86,8 @@ const ROTATION_EPSILON = 0.01;
  *
  * Shield lines (#6): `spawnLine` puts a whole line across the street. Its
  * members are ordinary bots with the line's behaviour (hold your slot) until
- * it breaks; then they chase like the others. Line members are not counted by
+ * it breaks; then they chase like the others, for a while, and walk back to
+ * re-form it ahead of the cortège (#131). Line members are not counted by
  * `reinforceTo` and are not replaced when taken out.
  *
  * Unit types (#13): `spawnBac` slips a plain-clothes BAC into the cortège
@@ -147,7 +150,8 @@ export class CrsSquad {
     const bikeClearance = Math.max(clearance, ...Object.values(CRS_STATS).map((s) => s.bike?.radius ?? 0));
     this.bikeNav = new NavGrid(this.avoid, bikeClearance);
     this.vans = vanDoors(level);
-    this.ctx = { world, avoid: this.avoid, nav: this.nav, vans: this.vans, rooms, bots: this.bots, now: 0, dt: 0 };
+    // #131: the level, for broken lines to find where to re-form; `front` comes from the room every tick.
+    this.ctx = { world, avoid: this.avoid, nav: this.nav, vans: this.vans, rooms, bots: this.bots, now: 0, dt: 0, level, front: 0 };
     this.bikeCtx = { ...this.ctx, nav: this.bikeNav };
   }
 
@@ -177,6 +181,23 @@ export class CrsSquad {
   setCalm(calm: CalmStreet | null): void {
     this.ctx.calm = calm;
     this.bikeCtx.calm = calm;
+  }
+
+  /** How far the cortège's front got, progress 0..1 (#131): broken shield lines re-form ahead of it. */
+  setFront(front: number): void {
+    this.ctx.front = front;
+    this.bikeCtx.front = front;
+  }
+
+  /** DEBUG (#131): break every formed shield line now, as if hit hard enough. Returns how many broke. */
+  breakLines(now: number): number {
+    let n = 0;
+    for (const line of this.lines) {
+      if (!line.formed) continue;
+      breakLine(line, "damage", now);
+      n++;
+    }
+    return n;
   }
 
   /**
@@ -669,6 +690,23 @@ export class CrsSquad {
   }
 
   /**
+   * The protester bot `id` was dragging struggled free (#131): it is floored
+   * along (dirX, dirZ), away from them, and dazed a moment once back up (see
+   * `escapeKnockdown`). Null for an unknown or out bot. The room broadcasts the result.
+   */
+  throwOff(id: string, dirX: number, dirZ: number, now: number): ImpulseResult | null {
+    const bot = this.byId.get(id);
+    if (!bot) return null;
+    const res = escapeKnockdown(bot, dirX, dirZ, now);
+    if (!res) return null;
+    this.unmask(bot, now);
+    this.crashIfHit(bot, now);
+    const view = this.views.get(id);
+    if (view) this.mirror(bot, view);
+    return res;
+  }
+
+  /**
    * Push bot `id` (#10: knocked back when a rescue pulls its protester away).
    * A heavy push floors it, so it lets go and lies down for a moment. Null for
    * an unknown or out bot. The room broadcasts the result.
@@ -703,8 +741,8 @@ export class CrsSquad {
     }
     // Lines first (#6): breaks, slots, advance and shoves, so members walk to a fresh slot.
     for (const line of this.lines) {
-      const res = stepLine(line, this.ctx, host);
-      if (onLine && (res.broke !== null || res.shovedBy.length > 0)) onLine(line, res);
+      const res = stepLine(line, this.ctx, host, this.lines);
+      if (onLine && (res.broke !== null || res.shovedBy.length > 0 || res.reformed || res.regroupTo !== null)) onLine(line, res);
     }
     for (let i = this.lines.length - 1; i >= 0; i--) {
       if (this.lines[i]!.members.length === 0) this.lines.splice(i, 1);

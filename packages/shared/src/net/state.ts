@@ -51,6 +51,12 @@ export interface PlayerShape {
   ready: boolean;
   /** This round's points so far (#41), never below 0. Reset when a march starts. The lasting total is not synced. */
   score: number;
+  /**
+   * In their grace (#131): just freed, back up or back in the street, no CRS
+   * batons or grabs them for a moment. Drawn as a blinking ring. Absent from an
+   * older server: no grace shown.
+   */
+  grace?: boolean;
 }
 
 /** Minimal read-only view of a Colyseus MapSchema. */

@@ -20,6 +20,12 @@ export interface ProtesterView extends Vec2 {
    * over by anything else (a BRAV-M ram, a shield line, a slip...) does.
    */
   batonDown?: boolean;
+  /**
+   * In their grace (#131, see `CrsGrace`): just freed, just back up, just
+   * back in the street. No CRS batons or grabs them, and none picks them as a
+   * target meanwhile. Absent: no grace.
+   */
+  graced?: boolean;
   /** In a dodge burst (#9) or a hop (#45): either cancels a grab's wind-up (#70). */
   dodging?: boolean;
   airborne?: boolean;
@@ -34,7 +40,9 @@ export interface ProtesterView extends Vec2 {
 
 /**
  * The protester a bot at `from` should chase: the nearest `free` one within
- * `sight`. Grabbed, KO and arrested protesters are never chosen. Ties go to
+ * `sight`. Grabbed, KO and arrested protesters are never chosen, nor one in
+ * their grace (#131: the bot goes after someone else rather than wait over
+ * them). Ties go to
  * the smaller id, so the choice is deterministic.
  *
  * Priority (#14): a protester with `priority` p counts as d / p away, so a
@@ -58,7 +66,7 @@ export function pickTarget(
   let currentD = Infinity;
   const sightSq = sight * sight;
   for (const p of protesters) {
-    if (p.status !== PlayerStatus.Free || p.id === ignoreId) continue;
+    if (p.status !== PlayerStatus.Free || p.graced === true || p.id === ignoreId) continue;
     const dSq = (p.x - from.x) ** 2 + (p.z - from.z) ** 2;
     if (!(dSq <= sightSq)) continue;
     const w = p.priority;

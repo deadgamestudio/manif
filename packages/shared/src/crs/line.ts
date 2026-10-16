@@ -3,7 +3,11 @@
  * street, facing the cortège. The line advances slowly, its shields are solid
  * to protesters, it shoves whoever leans on it, and it breaks apart when hit
  * hard enough in a short time or when protesters get behind it. Broken, its
- * members chase like any other bot (#5).
+ * members chase like any other bot (#5), for a while (#131): after
+ * LINE_CHASE_TIME, or once a member landed LINE_CHASE_HITS swings, they walk
+ * back to a spot ahead of the cortège (`regroupSpot`) and the line forms
+ * again there once LINE_REFORM_MIN of them stand in place. A re-formed line
+ * is an ordinary line: it advances, shoves, breaks and regroups again.
  *
  * Plain functions over a plain `ShieldLine` record, like the brain: the room
  * steps lines before the bots (so members have a fresh slot to walk to) and
@@ -23,9 +27,10 @@ import {
   type CollisionWorld,
   type Vec2,
 } from "../physics/index.js";
-import type { Level } from "../level/index.js";
+import { inRect, progressAt, type Level } from "../level/index.js";
+import type { ShopRoom } from "../prop/index.js";
 import { PLAYER_RADIUS } from "../player/index.js";
-import { DEFAULT_BEHAVIOUR, steerTo, tryThrowGas, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
+import { DEFAULT_BEHAVIOUR, cancelWindup, steerTo, tryThrowGas, type CrsBehaviour, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
 import {
   CRS_STATS,
   CrsKind,
@@ -33,6 +38,8 @@ import {
   LINE_BREAK_DAMAGE,
   LINE_BREAK_DOWNED,
   LINE_BREAK_WINDOW,
+  LINE_CHASE_HITS,
+  LINE_CHASE_TIME,
   LINE_ENGAGE_RANGE,
   LINE_FLANK_COUNT,
   LINE_FLANK_DEPTH,
@@ -40,6 +47,14 @@ import {
   LINE_FLANK_TIME,
   LINE_MAX_ADVANCE,
   LINE_REAR_OFFSET,
+  LINE_REFORM_MIN,
+  LINE_REGROUP_AHEAD,
+  LINE_REGROUP_CLEAR,
+  LINE_REGROUP_RETRY,
+  LINE_REGROUP_SEARCH,
+  LINE_REGROUP_SPREAD,
+  LINE_REGROUP_STEP,
+  LINE_REGROUP_TIMEOUT,
   LINE_SHIELD_RADIUS,
   LINE_SHOVE_IMPULSE,
   LINE_SHOVE_INTERVAL,
@@ -70,9 +85,21 @@ export interface ShieldLine {
   readonly origin: Vec2;
   /** How far from `origin` it may advance (#12 can change it). */
   maxAdvance: number;
-  /** True while in formation; false once broken, for good (a broken line does not re-form). */
+  /** True while in formation; false once broken, until it re-forms (#131). */
   formed: boolean;
   brokenBy: LineBreak | null;
+  /** Room time it last broke (#131): its members chase for LINE_CHASE_TIME from then. */
+  brokenAt: number;
+  /** Baton swings each member landed since the break (#131), by bot id. */
+  readonly landed: Map<string, number>;
+  /** Members done chasing and walking back to their slot at `centre` (#131), by bot id. */
+  readonly returning: Set<string>;
+  /** Walking back (#131): `centre` and `facing` are where it re-forms, picked at this room time. Null otherwise. */
+  regroupAt: number | null;
+  /** No spot found (#131): look again from this room time. */
+  regroupRetryAt: number;
+  /** How many times it re-formed (#131), for the room's log. */
+  reforms: number;
   /** Where each member stands, by bot id (front or rear rank). */
   readonly slots: Map<string, Vec2>;
   /** Room time of the next slot refresh against the level. */
@@ -190,6 +217,12 @@ export function createShieldLine(id: string, members: CrsBot[], centre: Vec2, fa
     maxAdvance,
     formed: true,
     brokenBy: null,
+    brokenAt: 0,
+    landed: new Map(),
+    returning: new Set(),
+    regroupAt: null,
+    regroupRetryAt: 0,
+    reforms: 0,
     slots: new Map(),
     refreshAt: 0,
     blocked: false,
@@ -310,17 +343,253 @@ export function checkBreak(line: ShieldLine, protesters: Iterable<ProtesterView>
   return null;
 }
 
-/** Break the line: members drop their slots and chase from the next tick (`lineBehaviour` stops giving orders). */
-export function breakLine(line: ShieldLine, why: LineBreak): void {
+/**
+ * Break the line: members drop their slots and chase from the next tick
+ * (`lineBehaviour` stops giving orders), until they regroup (#131).
+ */
+export function breakLine(line: ShieldLine, why: LineBreak, now = 0): void {
   if (!line.formed) return;
   line.formed = false;
   line.brokenBy = why;
+  line.brokenAt = now;
+  line.landed.clear();
+  line.returning.clear();
+  line.regroupAt = null;
+  line.regroupRetryAt = 0;
   line.slots.clear();
+  line.lateSince.clear();
   for (const m of line.members) {
     m.path = null;
     m.targetId = null;
     m.retargetAt = 0;
   }
+}
+
+/** Whether a member of a broken line is done chasing (#131): LINE_CHASE_TIME after the break, or once it landed LINE_CHASE_HITS swings or a grab. */
+export function doneChasing(line: ShieldLine, bot: CrsBot, now: number): boolean {
+  if (line.formed) return false;
+  return now - line.brokenAt >= LINE_CHASE_TIME || (line.landed.get(bot.id) ?? 0) >= LINE_CHASE_HITS || bot.grabbedAt > line.brokenAt;
+}
+
+/** What `regroupSpot` checks a spot against, besides the level. */
+export interface RegroupQuery {
+  /** How many members the line has left (not out). */
+  members: number;
+  /** The members' body radius. */
+  radius?: number;
+  /** This round's shop rooms (#84): no slot inside one. */
+  rooms?: readonly ShopRoom[];
+  /** No free protester across the street within LINE_REGROUP_CLEAR of the spot. */
+  protesters?: Iterable<ProtesterView>;
+  /** Centres of the other lines (formed or regrouping): none within LINE_REGROUP_SPREAD. */
+  others?: readonly Vec2[];
+}
+
+/** Unit vector along the march (from the start towards the Préfecture, the CRS side), or null for a level without one. */
+function marchAxis(level: Level): Vec2 | null {
+  const { from, to } = level.progress;
+  const len = Math.hypot(to.x - from.x, to.z - from.z);
+  return len > 0 ? { x: (to.x - from.x) / len, z: (to.z - from.z) / len } : null;
+}
+
+/** How far a line reaches along the street either side of its centre: the rear rank behind, the slot lookahead in front, plus a margin. */
+const LINE_DEPTH = LINE_REAR_OFFSET + 1;
+
+/**
+ * Whether both sides of the street have a building facade all along a line
+ * at `centre` (#131): a line across a side street's mouth would leave it open.
+ * A level without facades has no side streets to worry about.
+ */
+function betweenFacades(level: Level, centre: Vec2): boolean {
+  if (level.facades.length === 0) return true;
+  const lo = centre.z - LINE_DEPTH;
+  const hi = centre.z + LINE_DEPTH;
+  for (const side of [-1, 1] as const) {
+    if (!level.facades.some((f) => f.side === side && f.minZ <= lo && f.maxZ >= hi)) return false;
+  }
+  return true;
+}
+
+/** No free protester anywhere across the street within LINE_REGROUP_CLEAR of `centre`, measured along the march `axis`. */
+function clearOfProtesters(centre: Vec2, axis: Vec2, protesters: Iterable<ProtesterView> | undefined): boolean {
+  if (!protesters) return true;
+  for (const p of protesters) {
+    if (p.status !== PlayerStatus.Free) continue;
+    if (Math.abs((p.x - centre.x) * axis.x + (p.z - centre.z) * axis.z) < LINE_REGROUP_CLEAR) return false;
+  }
+  return true;
+}
+
+/**
+ * Where a broken line re-forms (#131): on the street's centre line, at least
+ * LINE_REGROUP_AHEAD ahead of the cortège's `front` (progress 0..1) towards
+ * the CRS side, at the nearest spot from there (looking LINE_REGROUP_SEARCH
+ * farther, never into the Préfecture's forecourt) that is valid:
+ *
+ * - LINE_START_CLEARANCE from the start zone, like any line;
+ * - between two facades, not across a side street (`betweenFacades`);
+ * - its slots (`lineSlots` against `world`) fit at least LINE_REFORM_MIN
+ *   members (all of them when fewer are left), none inside a shop room;
+ * - clear of free protesters and of the other lines.
+ *
+ * The first spot where every member fits wins; with none, the one that fits
+ * the most. Null when nothing qualifies (the cortège is near the end).
+ */
+export function regroupSpot(level: Level, world: CollisionWorld, front: number, q: RegroupQuery): Vec2 | null {
+  const axis = marchAxis(level);
+  if (!axis || q.members <= 0) return null;
+  const { from, to } = level.progress;
+  const len = Math.hypot(to.x - from.x, to.z - from.z);
+  const facing = { x: -axis.x, z: -axis.z };
+  const needed = Math.min(LINE_REFORM_MIN, q.members);
+  const start = Math.max(0, front) * len + LINE_REGROUP_AHEAD;
+  let best: Vec2 | null = null;
+  let bestN = 0;
+  for (let d = start; d <= start + LINE_REGROUP_SEARCH && d <= len; d += LINE_REGROUP_STEP) {
+    const c = { x: from.x + axis.x * d, z: from.z + axis.z * d };
+    if (inRect(level.destination, c.x, c.z)) break;
+    if (maxAdvanceFor(level, c, facing, Infinity) <= 0 || !betweenFacades(level, c)) continue;
+    if (q.others?.some((o) => Math.hypot(o.x - c.x, o.z - c.z) < LINE_REGROUP_SPREAD)) continue;
+    if (!clearOfProtesters(c, axis, q.protesters)) continue;
+    const slots = lineSlots(world, c, facing, q.members, q.radius);
+    if (slots.length < needed) continue;
+    if (q.rooms?.some((r) => slots.some((s) => inRect(r.rect, s.x, s.z)))) continue;
+    if (slots.length >= q.members) return c;
+    if (slots.length > bestN) {
+      bestN = slots.length;
+      best = c;
+    }
+  }
+  return best;
+}
+
+/** Members of a line that are not out. */
+function aliveMembers(line: ShieldLine): number {
+  let n = 0;
+  for (const m of line.members) if (m.status !== CrsStatus.Out) n++;
+  return n;
+}
+
+/** Give up on the current regroup spot: everyone chases again until a new one is found, from `now + retry`. */
+function dropRegroup(line: ShieldLine, now: number, retry: number): void {
+  line.regroupAt = null;
+  line.returning.clear();
+  line.slots.clear();
+  line.regroupRetryAt = now + retry;
+}
+
+/**
+ * One tick of a broken line (#131). Members done chasing (`doneChasing`)
+ * walk back to their slot on a spot picked by `regroupSpot` (picked again
+ * when they took LINE_REGROUP_TIMEOUT or the cortège got past it); the
+ * others chase on. Once LINE_REFORM_MIN of the walkers (every member left,
+ * when fewer) stand on their slots with no protester in the way, the line
+ * forms there and every member, walker or chaser, holds a slot again.
+ * Without `ctx.level` and `ctx.front`, a broken line just chases.
+ */
+function stepRegroup(line: ShieldLine, ctx: CrsContext, host: CrsHost, others: readonly ShieldLine[], result: LineStepResult): void {
+  const level = ctx.level;
+  const front = ctx.front;
+  const axis = level ? marchAxis(level) : null;
+  if (!level || front === undefined || !axis || line.members.length === 0) return;
+  const now = ctx.now;
+  const world = ctx.avoid ?? ctx.world;
+  if (line.regroupAt !== null) {
+    const late = now - line.regroupAt > LINE_REGROUP_TIMEOUT;
+    const passed = progressAt(level, line.centre.x, line.centre.z) <= front;
+    if (late || passed) dropRegroup(line, now, 0);
+  }
+  if (line.regroupAt === null) {
+    let due = false;
+    for (const m of line.members) if (m.status !== CrsStatus.Out && doneChasing(line, m, now)) due = true;
+    if (!due || now < line.regroupRetryAt) return;
+    const radius = Math.max(0, ...line.members.map((m) => m.stats.radius));
+    const centres: Vec2[] = [];
+    for (const o of others) if (o !== line && (o.formed || o.regroupAt !== null)) centres.push(o.centre);
+    const spot = regroupSpot(level, world, front, {
+      members: aliveMembers(line),
+      radius: radius || undefined,
+      rooms: ctx.rooms,
+      protesters: host.protesters(),
+      others: centres,
+    });
+    if (!spot) {
+      dropRegroup(line, now, LINE_REGROUP_RETRY);
+      return;
+    }
+    line.centre.x = spot.x;
+    line.centre.z = spot.z;
+    line.facing.x = -axis.x;
+    line.facing.z = -axis.z;
+    line.regroupAt = now;
+    line.refreshAt = 0;
+    result.regroupTo = { x: spot.x, z: spot.z };
+  }
+  for (const m of line.members) {
+    if (m.status === CrsStatus.Out || line.returning.has(m.id) || !doneChasing(line, m, now)) continue;
+    // Off duty: no grab winding up on the way back, no target.
+    line.returning.add(m.id);
+    cancelWindup(m, now, false);
+    m.targetId = null;
+    m.path = null;
+  }
+  if (now >= line.refreshAt) {
+    line.refreshAt = now + LINE_SLOT_REFRESH;
+    // Something landed on the spot since (a fire, a prop): look for another next tick.
+    if (!assignSlots(line, world)) {
+      dropRegroup(line, now, 0);
+      return;
+    }
+  }
+  const needed = Math.min(LINE_REFORM_MIN, aliveMembers(line));
+  let inPlace = 0;
+  for (const m of line.members) {
+    if (!line.returning.has(m.id) || m.status !== CrsStatus.Active || isDown(m.body)) continue;
+    const slot = line.slots.get(m.id);
+    if (slot && Math.hypot(slot.x - m.body.x, slot.z - m.body.z) <= LINE_SLOT_TOLERANCE) inPlace++;
+  }
+  if (needed > 0 && inPlace >= needed && clearOfProtesters(line.centre, axis, host.protesters())) {
+    reformLine(line, level, now);
+    result.reformed = true;
+  }
+}
+
+/** The line forms again where it stands (#131): a fresh line in every way, which can advance, shove, break and regroup again. */
+export function reformLine(line: ShieldLine, level: Level, now: number): void {
+  line.formed = true;
+  line.brokenBy = null;
+  line.origin.x = line.centre.x;
+  line.origin.z = line.centre.z;
+  line.maxAdvance = maxAdvanceFor(level, line.centre, line.facing);
+  line.hits.length = 0;
+  line.flankSince = null;
+  line.shoveReadyAt = now;
+  line.shoveStreak.clear();
+  line.lateSince.clear();
+  line.landed.clear();
+  line.returning.clear();
+  line.regroupAt = null;
+  line.refreshAt = 0;
+  line.blocked = false;
+  line.reforms++;
+  for (const m of line.members) {
+    m.targetId = null;
+    m.path = null;
+  }
+}
+
+/**
+ * A member walking back to re-form (#131): along a path, facing where it
+ * walks, while far from its slot; then like a member holding it.
+ */
+function walkBack(line: ShieldLine, bot: CrsBot, ctx: CrsContext): void {
+  const slot = line.slots.get(bot.id);
+  if (slot && Math.hypot(slot.x - bot.body.x, slot.z - bot.body.z) > SLOT_DIRECT) {
+    steerTo(bot, slot.x, slot.z, ctx);
+    if (bot.input.x !== 0 || bot.input.z !== 0) bot.rotation = Math.atan2(bot.input.x, bot.input.z);
+    return;
+  }
+  holdSlot(line, bot, ctx);
 }
 
 /** A member that stands its ground with a raised shield: in a formed line, not out, not on the floor. */
@@ -340,6 +609,10 @@ export interface LineStepResult {
   broke: LineBreak | null;
   /** Members that shoved someone this tick. */
   shovedBy: string[];
+  /** The broken line formed again this tick (#131). */
+  reformed: boolean;
+  /** Its members started walking back to this spot this tick (#131). */
+  regroupTo: Vec2 | null;
 }
 
 /**
@@ -354,8 +627,8 @@ export interface LineStepResult {
  * A member pinned against a protester who is against a wall lags behind its
  * slot, so the line stops there for a while instead of crushing through.
  */
-export function stepLine(line: ShieldLine, ctx: CrsContext, host: CrsHost): LineStepResult {
-  const result: LineStepResult = { broke: null, shovedBy: [] };
+export function stepLine(line: ShieldLine, ctx: CrsContext, host: CrsHost, others: readonly ShieldLine[] = []): LineStepResult {
+  const result: LineStepResult = { broke: null, shovedBy: [], reformed: false, regroupTo: null };
   const now = ctx.now;
   for (let i = line.members.length - 1; i >= 0; i--) {
     const m = line.members[i]!;
@@ -363,13 +636,18 @@ export function stepLine(line: ShieldLine, ctx: CrsContext, host: CrsHost): Line
       line.members.splice(i, 1);
       line.slots.delete(m.id);
       line.lateSince.delete(m.id);
+      line.returning.delete(m.id);
+      line.landed.delete(m.id);
     }
   }
-  if (!line.formed) return result;
+  if (!line.formed) {
+    stepRegroup(line, ctx, host, others, result);
+    return result;
+  }
 
   const why = checkBreak(line, host.protesters(), now);
   if (why) {
-    breakLine(line, why);
+    breakLine(line, why, now);
     result.broke = why;
     return result;
   }
@@ -502,15 +780,26 @@ export function lineThrower(line: ShieldLine): CrsBot | undefined {
 /**
  * Behaviour of a line member: while the line is formed it holds its slot and
  * never swings or grabs (its thrower lobs tear gas, #7); once broken it is a
- * plain chasing bot (#5).
+ * plain chasing bot (#5), whose swings are counted (#131), until it is done
+ * chasing and walks back to re-form, attacking nobody on the way.
  */
 export function lineBehaviour(line: ShieldLine, base: CrsBehaviour = DEFAULT_BEHAVIOUR): CrsBehaviour {
   return {
     updateTarget: base.updateTarget,
-    act: base.act,
+    act: (bot, target, ctx, host) => {
+      const ready = bot.batonReadyAt;
+      const stand = base.act(bot, target, ctx, host);
+      // A swing restarts the baton cooldown (#131: a few of them and it goes back to re-form).
+      if (!line.formed && bot.batonReadyAt !== ready) line.landed.set(bot.id, (line.landed.get(bot.id) ?? 0) + 1);
+      return stand;
+    },
     drag: base.drag,
     orders: (bot, ctx, host) => {
-      if (!line.formed) return false;
+      if (!line.formed) {
+        if (!line.returning.has(bot.id)) return false;
+        walkBack(line, bot, ctx);
+        return true;
+      }
       holdSlot(line, bot, ctx);
       // Tear gas (#7): one member lobs canisters over the shields, without leaving its slot.
       if (lineThrower(line) === bot && isShieldUp(line, bot)) tryThrowGas(bot, ctx, host);

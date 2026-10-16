@@ -1,11 +1,11 @@
 /**
- * Jeun-Lac Moluchan (#85), the pure rules: whether and when he shows up, who
+ * Jeun-Lac Moluchan (#85), the pure rules (when he shows up is `cameo/`, #132): who
  * stands in his ring, what the ring gives, where he walks and what he says.
  * The server runs the event (`apps/server/src/features/moluchan/`); clients
  * draw the ring from his synced position, so no per-player flag is synced.
  *
- *   round starts ──rolled (chance)──> arrival point picked in [earliest, latest]
- *   front passes it ──> Rallying (aura on, duration) ──> Leaving (to a side street) ──> gone
+ *   each minute of march ──rolled (chance, see `cameoArrives`, #132)──> he comes, once a round
+ *   ──> Rallying (aura on, duration) ──> Leaving (to a side street) ──> gone
  *                            └──── a CRS grabs him ────> Grabbed (a last line) ──> gone
  *
  * He is not a protester: he counts for neither the win, the wipe, the bot
@@ -15,24 +15,6 @@ import { PlayerStatus } from "../health/index.js";
 import { progressAt, type Level } from "../level/index.js";
 import type { Vec2 } from "../physics/index.js";
 import { MOLUCHAN, MOLUCHAN_LINES, type MoluchanLineKind } from "./constants.js";
-
-/**
- * The start-of-round roll: the front progress at which he arrives this round,
- * or null when he doesn't come. One roll per round, so at most one visit.
- */
-export function rollMoluchan(random: () => number = Math.random, chance: number = MOLUCHAN.chance): number | null {
-  if (!(random() < chance)) return null;
-  return MOLUCHAN.earliest + (MOLUCHAN.latest - MOLUCHAN.earliest) * random();
-}
-
-/**
- * Whether he arrives now: the cortège's `front` has reached the rolled point
- * `at`, and is not past MOLUCHAN.latest (a front that jumped past it, a
- * debug teleport say, means no visit this round).
- */
-export function moluchanDue(at: number | null, front: number): boolean {
-  return at !== null && front >= at && front <= MOLUCHAN.latest;
-}
 
 /** Whether `p` stands in the ring around `centre` (none: nobody does). Centre to centre, edge included. */
 export function inMoluchanAura(centre: Vec2 | null, p: Vec2, radius: number = MOLUCHAN.auraRadius): boolean {
