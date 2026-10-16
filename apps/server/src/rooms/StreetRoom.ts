@@ -21,6 +21,7 @@ import {
   SLIP_IMPULSE,
   SlipGuards,
   carrySpeedOf,
+  dealVelibs,
   isAirborne,
   isDown,
   isImmune,
@@ -995,6 +996,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       world.self.z = player.z;
       world.self.canAct = this.hasControl(id);
       world.self.carrying = player.carrying !== ThrowableKind.None;
+      // #121: walk close enough for what it carries (a Vélib flies short), with the archetype's arm and some margin.
+      world.self.reach = isItemKind(player.carrying) ? THROWABLE_TYPES[player.carrying].range * this.statsOf(id).throwRange * 0.85 : undefined;
       world.self.gassed = player.gassed;
       const intent = thinkBot(mind, world);
       this.moveInputs.set(id, intent.move);
@@ -1034,7 +1037,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const items = this.botItems;
     items.length = 0;
     this.state.items.forEach((it) => {
-      if (it.kind === ThrowableKind.Pave || it.kind === ThrowableKind.Tomate) items.push({ x: it.x, z: it.z });
+      // #121: and Vélibs, the slow, short, big hit.
+      if (it.kind === ThrowableKind.Pave || it.kind === ThrowableKind.Tomate || it.kind === ThrowableKind.Velib) items.push({ x: it.x, z: it.z });
     });
     const gas = this.botGas;
     gas.length = 0;
@@ -1120,7 +1124,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // No fire left for the bots to avoid; rebuilds their grid for the props put back.
     this.crs.setHazards(null);
     this.fires.takeChanged();
-    this.throwables.reset(LEVEL.items);
+    // #121: the level's items, and Vélibs in a few stations dealt afresh.
+    this.throwables.reset([...LEVEL.items, ...dealVelibs(LEVEL, Math.random)]);
     this.roomLoot.reset();
     // Dog poo (#15): nobody remembers slipping.
     this.slips.clear();

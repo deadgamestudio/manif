@@ -478,3 +478,31 @@ describe("slipping on dog poo (#15)", () => {
     expect(g.check("a", body(0, 0), again)).toBe("poo-9");
   });
 });
+
+describe("the Vélib (#121): heavier than a trottinette", () => {
+  const velib = THROWABLE_TYPES[ThrowableKind.Velib];
+  const trot = THROWABLE_TYPES[TROT];
+
+  test("a bigger hit: more CRS and prop damage, a knockback that floors, a longer stun", () => {
+    expect(velib.crsDamage).toBeGreaterThan(trot.crsDamage);
+    expect(velib.propDamage).toBeGreaterThan(trot.propDamage);
+    expect(velib.knockback).toBeGreaterThan(trot.knockback);
+    expect(velib.knockback).toBeGreaterThanOrEqual(KNOCKDOWN_THRESHOLD);
+    expect(velib.stun).toBeGreaterThanOrEqual(trot.stun);
+    expect(velib.pierce).toBeGreaterThan(1);
+    expect(landsAfterStop(ThrowableKind.Velib, true)).toBe(true);
+    expect(landsAfterStop(ThrowableKind.Velib, false)).toBe(true);
+  });
+
+  test("at a big cost: slower to carry (so no hop), slower and shorter in the air", () => {
+    expect(carrySpeedOf(ThrowableKind.Velib)).toBeLessThan(carrySpeedOf(TROT));
+    expect(carrySpeedOf(ThrowableKind.Velib)).toBeCloseTo(0.5);
+    expect(velib.speed).toBeLessThan(trot.speed);
+    expect(velib.range).toBeLessThan(trot.range);
+  });
+
+  test("not a round winner: through fewer CRS than a trottinette, and a fresh CRS (6 HP) takes three hits", () => {
+    expect(velib.pierce).toBeLessThan(trot.pierce);
+    expect(velib.crsDamage * 2).toBeLessThan(6);
+  });
+});

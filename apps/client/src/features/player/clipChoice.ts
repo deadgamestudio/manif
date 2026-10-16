@@ -82,7 +82,7 @@ export function chooseStateClip(s: BodyState): ClipChoice {
   if (s.fireHold) return loop("light-fire");
   if (s.gassed) return moving ? loop("gas-stagger", clamp(s.speed / WALK_AUTHORED_SPEED, WALK_SCALE)) : loop("gas-cough");
   if (s.carrying !== ThrowableKind.None && moving) {
-    const carry = s.carrying === ThrowableKind.Trottinette ? "carry-heavy" : "carry-light";
+    const carry = s.carrying === ThrowableKind.Trottinette || s.carrying === ThrowableKind.Velib ? "carry-heavy" : "carry-light";
     return locomotion(s.speed, carry, carry);
   }
   if (moving) return locomotion(s.speed);

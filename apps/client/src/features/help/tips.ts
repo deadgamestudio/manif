@@ -43,6 +43,7 @@ const ITEM: Record<number, string> = {
   [ThrowableKind.Tomate]: "ta tomate",
   [ThrowableKind.Crotte]: "ta crotte",
   [ThrowableKind.Trottinette]: "ta trottinette",
+  [ThrowableKind.Velib]: "ton Vélib",
 };
 
 const OBJECTIVE = "Objectif : la moitié du cortège à la Préfecture avant la fin du chrono.";
@@ -100,7 +101,7 @@ export function controls(touch: boolean, keys: TipKeys, where: "panel" | "page" 
         ["Débats-toi", "attrapé·e par un CRS : martèle-le pour t'échapper avant le panier à salade"],
         ["Sauter", "par-dessus une poubelle ou un CRS à terre"],
         ["Esquive", "plonger : sous la matraque, hors des lacrymos"],
-        ["Action", "ramasser un pavé, une tomate, une crotte, une trottinette, ou soulever un·e camarade"],
+        ["Action", "ramasser un pavé, une tomate, une crotte, une trottinette, un Vélib, ou soulever un·e camarade"],
         ["Action maintenue", "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
         // The round feature's board chip (#63).
         ["📋", "afficher ou cacher le tableau du cortège (qui est libre, qui est embarqué·e)"],
@@ -113,7 +114,7 @@ export function controls(touch: boolean, keys: TipKeys, where: "panel" | "page" 
         [`${keys.attack} martelé`, "attrapé·e par un CRS : te débattre pour t'échapper avant le panier à salade"],
         [keys.jump, "sauter par-dessus une poubelle ou un CRS à terre"],
         [keys.dodge, "plonger : sous la matraque, hors des lacrymos"],
-        [keys.interact, "ramasser un pavé, une tomate, une crotte, une trottinette, ou soulever un·e camarade"],
+        [keys.interact, "ramasser un pavé, une tomate, une crotte, une trottinette, un Vélib, ou soulever un·e camarade"],
         [`${keys.interact} maintenu`, "libérer un·e camarade, l'éteindre, ou mettre le feu à une poubelle ou une voiture"],
         [keys.mute, "couper ou remettre le son"],
         [`${keys.board} maintenu`, "voir le tableau du cortège (qui est libre, qui est embarqué·e)"],

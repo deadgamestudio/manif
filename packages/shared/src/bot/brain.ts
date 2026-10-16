@@ -138,6 +138,11 @@ export interface BotWorld {
     canAct: boolean;
     /** Something in hand (#8). */
     carrying: boolean;
+    /**
+     * How far what it carries flies (#121: a Vélib doesn't go far). A bot
+     * walks this close before it throws. Absent: BOT.throwRange.
+     */
+    reach?: number;
     /** In tear gas (#7). */
     gassed: boolean;
   };
@@ -421,7 +426,7 @@ function runPlan(mind: BotMind, world: BotWorld, out: BotIntent): Vec2 {
     case "throw": {
       const c = world.crs.find((k) => k.id === plan.id);
       if (!c || c.down || !self.carrying) break;
-      if (dist(self, c) <= BOT.throwRange) {
+      if (dist(self, c) <= Math.min(BOT.throwRange, self.reach ?? BOT.throwRange)) {
         out.throwAt = { x: c.x, z: c.z };
         return { x: 0, z: 0 };
       }

@@ -168,6 +168,7 @@ export const ITEM_NAMES: Readonly<Record<ItemKind, string>> = {
   [ThrowableKind.Tomate]: "tomate",
   [ThrowableKind.Crotte]: "crotte",
   [ThrowableKind.Trottinette]: "trottinette",
+  [ThrowableKind.Velib]: "Vélib",
 };
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? "s" : ""}`;
@@ -178,11 +179,14 @@ export function throwableRows(): { icon: string; name: string; what: string }[] 
   const tomate = THROWABLE_TYPES[ThrowableKind.Tomate];
   const crotte = THROWABLE_TYPES[ThrowableKind.Crotte];
   const trott = THROWABLE_TYPES[ThrowableKind.Trottinette];
+  const velib = THROWABLE_TYPES[ThrowableKind.Velib];
   return [
     { icon: "🧱", name: "Pavé", what: `Assomme le CRS touché ${num(pave.stun)} s : il lâche qui il tenait. Retombe par terre, à relancer.` },
     { icon: "🍅", name: "Tomate", what: `Va loin. Visière rouge : le CRS ne voit plus rien pendant ${num(tomate.effectTime)} s.` },
     { icon: "💩", name: "Crotte", what: `Le CRS pue ${num(crotte.effectTime)} s et ses collègues l'évitent. Ratée, elle reste par terre : ça glisse.` },
     { icon: "🛴", name: "Trottinette", what: `Lourde, tu marches moins vite et sans sauter. Lancée, elle renverse jusqu'à ${plural(trott.pierce, "CRS")} d'affilée.` },
+    // #121: in the Vélib stations along the kerb.
+    { icon: "🚲", name: "Vélib", what: `Dans les stations Vélib. Encore plus lourd : tu avances à ${Math.round(velib.carrySpeed * 100)} % et pas loin. Lancé, il fait tomber jusqu'à ${plural(velib.pierce, "CRS")} et tape plus fort.` },
   ];
 }
 

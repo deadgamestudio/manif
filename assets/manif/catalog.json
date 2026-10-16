@@ -2636,5 +2636,25 @@
     "animations": [],
     "triangles": 312,
     "source": "assets/manif/sources/accessoires-v01/water-gun/water-gun.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "velib",
+    "url": "/models/manif/accessoires-v01/velib/velib.glb",
+    "bytes": 39576,
+    "sha256": "15c058ba72f90986776e05669283dc3153f119e8b23ab5c76049f4eec61f32f7",
+    "animations": [],
+    "triangles": 576,
+    "source": "assets/manif/sources/accessoires-v01/velib/velib.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "velib-dock",
+    "url": "/models/manif/accessoires-v01/velib/velib-dock.glb",
+    "bytes": 6592,
+    "sha256": "5695e29281a0668d0dd91742d4a1048fd530c7fa2dc2a5245f907b1528095f9c",
+    "animations": [],
+    "triangles": 72,
+    "source": "assets/manif/sources/accessoires-v01/velib/velib-dock.blend"
   }
 ]

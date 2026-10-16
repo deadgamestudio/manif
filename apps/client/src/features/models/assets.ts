@@ -162,6 +162,10 @@ export const MODELS = {
     dogPoo: `${M}/production-v1/reprises/dog-poo/dog-poo.glb`,
     trottinette: `${M}/production-v1/reprises/trottinette/trottinette.glb`,
     tearGasCanister: `${M}/production-v1/reprises/tear-gas-canister/tear-gas-canister.glb`,
+    /** #121: the Vélib, made by Claude in Blender in Jordan's style (its own palette strip, cell 15 the Vélib green). Life-size, front along +Z, wheels on y = 0. */
+    velib: `${M}/accessoires-v01/velib/velib.glb`,
+    /** #121: one dock of a Vélib station. The bike in it stands 0.98 along -Z, facing it (see `velibDocks`). */
+    velibDock: `${M}/accessoires-v01/velib/velib-dock.glb`,
   },
 
   /**

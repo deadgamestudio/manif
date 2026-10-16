@@ -100,6 +100,24 @@ export interface LevelItem extends Vec2 {
   kind: ItemKind;
 }
 
+/**
+ * A Vélib station (#121): a short row of docks along the kerb, the bikes
+ * parked in the road beside it (like the real ones on old parking spaces).
+ * Nothing in it collides: the docks are scenery and the bikes ground items,
+ * so a station never blocks anybody. `velibDocks` gives the spots,
+ * `dealVelibs` which ones get a bike this round.
+ */
+export interface VelibStation {
+  id: string;
+  /** -1: on the left side of the street (negative X); 1: the right. The bikes point at that side. */
+  side: -1 | 1;
+  /** The row of docks: its X (just on the pavement past the kerb) and the Z of its middle. */
+  x: number;
+  z: number;
+  /** How many docks in the row. */
+  docks: number;
+}
+
 export interface Level {
   id: string;
   /** Walkable area. Players are kept inside it. */
@@ -129,6 +147,8 @@ export interface Level {
   lineSpawns: readonly Vec2[];
   /** Items on the ground at the start of the march (#8). Must be clear of obstacles and props (checked by tests). */
   items: readonly LevelItem[];
+  /** Vélib stations (#121): a few get bikes each round (`dealVelibs`). Clear of obstacles, props and crossings (checked by tests). */
+  velibStations: readonly VelibStation[];
 }
 
 /** The static collision world of a level, without its breakable props (`propCollisionWorld` adds them). */
