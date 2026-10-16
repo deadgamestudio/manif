@@ -19,6 +19,7 @@
  * a preload for the march.
  */
 import { useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera, type Group } from "three";
 import { ARCHETYPE_IDS } from "@manif/shared";
@@ -126,7 +127,10 @@ function Director({ slots, picked, onShown, figures }: Omit<TurntableProps, "onL
     });
     gl.setScissorTest(false);
 
-    // Copied in the same frame, before the browser clears the drawing buffer.
+    // Copied in the same frame, before the browser clears the drawing buffer. The
+    // viewports count from the bottom, the copy from the top: should the canvas
+    // ever come out taller than a cell, the cells are at its bottom.
+    const top = gl.domElement.height - PORTRAIT_HEIGHT;
     for (const cell of drawn) {
       const id = ARCHETYPE_IDS[cell]!;
       const slot = slots.get(id)!;
@@ -134,7 +138,7 @@ function Director({ slots, picked, onShown, figures }: Omit<TurntableProps, "onL
       if (ctx === undefined) contexts.current.set(slot, (ctx = slot.getContext("2d")));
       if (!ctx) continue;
       ctx.clearRect(0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
-      ctx.drawImage(gl.domElement, cell * PORTRAIT_WIDTH, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT, 0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
+      ctx.drawImage(gl.domElement, cell * PORTRAIT_WIDTH, top, PORTRAIT_WIDTH, PORTRAIT_HEIGHT, 0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
       if (!shown.current.has(id)) {
         shown.current.add(id);
         onShown(id);
@@ -158,7 +162,9 @@ function LossWatch({ onLost }: { onLost: () => void }) {
 
 export default function Turntable({ slots, picked, onShown, onLost }: TurntableProps) {
   const figures = useMemo(() => new Map<number, Figure>(), []);
-  return (
+  // On <body>, not in the picker: the placard is tilted (a CSS transform), which
+  // would skew R3F's measure of the canvas and so its size.
+  return createPortal(
     <div className="turntable-gl" aria-hidden="true">
       <Canvas
         dpr={1}
@@ -172,6 +178,7 @@ export default function Turntable({ slots, picked, onShown, onLost }: TurntableP
         <Director slots={slots} picked={picked} onShown={onShown} figures={figures} />
         <LossWatch onLost={onLost} />
       </Canvas>
-    </div>
+    </div>,
+    document.body,
   );
 }

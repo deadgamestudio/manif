@@ -9,9 +9,9 @@ export const TURN_SECONDS = 8;
 /** Seconds for one full turn of the picked character. */
 export const PICKED_TURN_SECONDS = 4.5;
 /** The happy hop when picked: two hops, the second smaller, in this many seconds. */
-export const HOP_SECONDS = 0.62;
+export const HOP_SECONDS = 0.7;
 /** How high the first hop goes, in metres (a body is about 1.8 m tall). */
-export const HOP_HEIGHT = 0.16;
+export const HOP_HEIGHT = 0.24;
 /** Where the second, smaller hop starts, as a share of HOP_SECONDS. */
 const SECOND_HOP_AT = 0.58;
 /** How high the second hop goes, as a share of the first. */
