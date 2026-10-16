@@ -8,6 +8,7 @@ import {
   furnitureRows,
   moluchanCard,
   douaneCard,
+  benanasCard,
   policeCards,
   scoreRows,
   shopRows,
@@ -87,6 +88,8 @@ function MoluchanCardView() {
         <GuestCard m={moluchanCard()} chipsLabel="Dans son cercle" />
         {/* #120: the kid with the water gun. */}
         <GuestCard m={douaneCard()} chipsLabel="Son jet d'eau" />
+        {/* #123: the fake cop. */}
+        <GuestCard m={benanasCard()} chipsLabel="Ses coups" />
       </ul>
     </>
   );

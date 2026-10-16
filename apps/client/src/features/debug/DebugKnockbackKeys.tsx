@@ -40,6 +40,10 @@ const ROUND_KEYS: Record<string, DebugRoundPayload> = {
   KeyO: { action: "moluchan", distance: 3 },
   /** La Douane (#120) turns up 4 m in front of you, whatever the roll. */
   KeyI: { action: "douane", distance: 4 },
+  /** Alexandre Bénanas (#123) turns up 5 m in front of you, whatever the roll. */
+  KeyN: { action: "benanas", distance: 5 },
+  /** His helmet comes off now (#123), to see him run (brings him first if he isn't there). */
+  KeyV: { action: "benanas", distance: 5, unmask: true },
   /** The street turns hot now (#98): the CRS stop escorting and chase anyone. */
   KeyU: { action: "hot" },
 };
@@ -88,7 +92,7 @@ export function DebugKnockbackKeys() {
   return (
     <div className="hud-debug">
       debug : K te renverse · J te pousse · L renverse le plus proche · H te blesse (−{DEBUG_DAMAGE}) · G te fait
-      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan · I fait venir La Douane · B casse la boutique la plus proche et y entre
+      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan · I fait venir La Douane · N fait venir Bénanas · V le démasque · B casse la boutique la plus proche et y entre
     </div>
   );
 }

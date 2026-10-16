@@ -10,6 +10,7 @@ import {
   GRAB_HP_THRESHOLD,
   MOLUCHAN,
   DOUANE,
+  BENANAS,
   PROP_TYPES,
   ROUND_DURATION,
   SHOP_KINDS,
@@ -25,6 +26,7 @@ import {
   archetypeCards,
   archetypeChips,
   douaneCard,
+  benanasCard,
   duration,
   moluchanCard,
   policeCards,
@@ -108,6 +110,16 @@ describe("the help page can't drift from the game (#71)", () => {
     expect(card.what).toContain(`${Math.round(DOUANE.chance * 100)} %`);
     expect(card.chips.map((c) => c.text)).toContain("0 PV de dégâts");
     expect(card.tip).toContain("Personne ne peut le toucher");
+  });
+
+  test("Bénanas's card (#123): his mangled name, his chance, his hits, the bonus from the points table", () => {
+    const card = benanasCard();
+    expect(card.name).toBe("Alexandre Bénanas");
+    expect(card.what).toContain(`${Math.round(BENANAS.chance * 100)} %`);
+    expect(card.what).toContain("n'arrête personne");
+    expect(card.chips.map((c) => c.text)).toContain(`${BENANAS.hp} coups et il est démasqué`);
+    expect(card.chips.map((c) => c.text)).toContain(`+${ACTION_POINTS.benanasUnmasked?.points} pts à chaque frappeur`);
+    expect(card.tip).toContain("CRS l'ignorent");
   });
 
   test("the rules quote the constants (#70's grab rules included)", () => {

@@ -114,6 +114,8 @@ import {
   MOLUCHAN_ID,
   DOUANE,
   isPolice,
+  BENANAS,
+  BENANAS_ID,
   type ProtesterView,
   type ShoveEvent,
   type SwingEvent,
@@ -183,6 +185,7 @@ import { bankEntries, hashToken, newDeviceToken, scoreStore } from "../features/
 import { HealAuras } from "../features/archetype/index.js";
 import { MoluchanEvent } from "../features/moluchan/index.js";
 import { DouaneEvent, type DouaneHost, type SoakBody } from "../features/douane/index.js";
+import { BenanasEvent, type BenanasBody, type BenanasHost } from "../features/benanas/index.js";
 import { Bots, DIAG_ENABLED, TickStats, leftovers } from "../features/bot/index.js";
 import { CreateLimit, DEFAULT_CREATE_LIMIT, UNKNOWN_VISITOR, maxRoomsFromEnv, visitorKey } from "../features/lobby/index.js";
 import { MessageBudget, gateMessages } from "../features/net/index.js";
@@ -367,6 +370,36 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     putOutBody: (body) => {
       this.putOutBody(body.id);
       if (body.bot) this.crs.wash(body.id);
+    },
+  };
+  /** Alexandre Bénanas (#123): the roll, his visit, his helmet. No CRS: the squad never sees him; never a player. */
+  private benanas = new BenanasEvent(LEVEL, this.state.benanas, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`));
+  /** Scratch for Bénanas (#123), reused every tick. */
+  private benanasPeople: BenanasBody[] = [];
+  /** The room as Bénanas sees it (#123): his punch goes through the usual damage and knockdown, never a grab. */
+  private benanasHost: BenanasHost = {
+    people: () => {
+      const out = this.benanasPeople;
+      out.length = 0;
+      this.state.players.forEach((p, id) => {
+        if (p.status === PlayerStatus.Arrested) return;
+        const target = p.status === PlayerStatus.Free && !p.down && !this.carry.isCarried(id) && !this.carry.isFlying(id);
+        out.push({ id, x: p.x, z: p.z, r: PLAYER_RADIUS, target });
+      });
+      return out;
+    },
+    punch: (id, dirX, dirZ) => {
+      if (!this.healths.canBeHurt(id, this.now)) return false;
+      // A hop (#45) dodges him like it dodges a baton.
+      if (this.bodies.isAirborne(id)) return false;
+      this.damagePlayer(id, BENANAS.hitDamage);
+      const res = this.applyImpulse(id, dirX, dirZ, BENANAS.hitImpulse, "always");
+      // Like a baton knockdown (#70): not "down" enough for a CRS to grab, so the police get nothing from his work.
+      if (res?.knockedDown) this.batonDowned.add(id);
+      return res !== null && res.strength > 0;
+    },
+    unmasked: (ids) => {
+      for (const id of ids) if (this.state.players.has(id)) this.roundStats.add(id, "benanasUnmasked");
     },
   };
   /** The room as the brigade sees it (#17). */
@@ -757,6 +790,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
           const at = self && d !== undefined ? resolveCircle(this.props.world, self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d, DOUANE.radius) : undefined;
           this.douane.force(this.moluchanTick(0), at, cmd.seconds);
         }
+        // #123: Bénanas now, in front of you or by his usual way in; `unmask` takes his helmet off at once.
+        else if (cmd?.action === "benanas") {
+          const self = this.state.players.get(client.sessionId);
+          const d = cmd.distance;
+          const at = self && d !== undefined ? resolveCircle(this.props.world, self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d, BENANAS.radius) : undefined;
+          if (!this.benanas.here) this.benanas.force(this.moluchanTick(0), at, cmd.seconds);
+          if (cmd.unmask) this.benanas.forceUnmask(this.now);
+        }
       },
     }),
   }, (client: Client, type: string) => this.allowMessage(client, type));
@@ -1034,6 +1075,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (c.aimId !== null) seen.aimingAt = c.aimId;
       crs.push(seen);
     }
+    // #123: bot protesters fight Bénanas back like a CRS (their swing and throw land on him through attack/projectileHit).
+    const benanas = this.benanas.target();
+    if (benanas && benanas.shape.type === "circle") crs.push({ id: benanas.id, x: benanas.shape.x, z: benanas.shape.z, radius: benanas.shape.r, down: false, grabbing: null });
     const items = this.botItems;
     items.length = 0;
     this.state.items.forEach((it) => {
@@ -1080,6 +1124,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.moluchan.startRound();
     // #120: and La Douane's, on its own roll.
     this.douane.startRound();
+    // #123: and Bénanas's, on its own roll too.
+    this.benanas.startRound();
     this.roundHeld = false;
     this.roundTainted = false;
     this.roundStats.clear();
@@ -1120,6 +1166,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.moluchan.clear();
     // #120: the kid gone too.
     this.douane.clear();
+    // #123: and Bénanas.
+    this.benanas.clear();
     this.crs.reinforceTo = 0;
     // No fire left for the bots to avoid; rebuilds their grid for the props put back.
     this.crs.setHazards(null);
@@ -1588,6 +1636,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const res = this.crs.hit(hit.id, player.x, player.z, bot ? BOT_MELEE_CRS_DAMAGE : MELEE_CRS_DAMAGE, this.now);
       if (res) this.announceCrsHit(id, hit.id, res, hit.point.x, hit.point.z);
     }
+    // Bénanas (#123): one hit on his helmet. He is no CRS: no tension, no CRS score.
+    const benanas = this.benanas.target();
+    if (benanas && meleeHits(player, [benanas], this.props.staticWorld).length > 0) this.benanas.hurt(id, player.x, player.z, this.now, this.benanasHost);
   }
 
   /** A swing or a thrown item lands on a prop: HP off, the hit announced, and if it broke, its pavés dropped. */
@@ -1740,6 +1791,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    * through, once each.
    */
   private projectileHit(p: Projectile, target: ProjectileTarget<"prop" | "crs">) {
+    // #123: anything thrown at Bénanas is one hit on his helmet, nothing else.
+    if (target.id === BENANAS_ID) {
+      this.benanas.hurt(p.by, p.x - p.dirX, p.z - p.dirZ, this.now, this.benanasHost);
+      return;
+    }
     const type = THROWABLE_TYPES[p.kind];
     if (target.kind === "prop") {
       if (type.propDamage > 0) this.damageProp(p.by, target.id, type.propDamage, p.x, p.z);
@@ -1764,6 +1820,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     for (const t of this.props.targets()) out.push({ id: t.id, kind: "prop", shape: t.shape });
     // A trottinette (#15) goes through CRS, never through props.
     for (const t of this.crs.meleeTargets()) out.push({ id: t.id, kind: "crs", shape: t.shape, pierceable: true });
+    // #123: Bénanas can be hit too (projectileHit sends it his way, never to the squad).
+    const benanas = this.benanas.target();
+    if (benanas) out.push({ id: benanas.id, kind: "crs", shape: benanas.shape, pierceable: true });
     return out;
   }
 
@@ -2124,6 +2183,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.moluchan.step(this.moluchanTick(dt));
     // La Douane (#120): arrives when the front reaches his point, soaks whoever is closest in bursts, walks home.
     this.douane.step(this.moluchanTick(dt), this.douaneHost);
+    // Bénanas (#123): comes in from a side street ahead, picks on lone protesters, runs once unmasked.
+    this.benanas.step(this.moluchanTick(dt), this.benanasHost);
     this.burnCrs();
     this.stepFires(dt);
     // Members walked into protesters: push them out of the shields (walls win; a
