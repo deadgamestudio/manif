@@ -183,6 +183,7 @@ import { FireBrigade, type BrigadeHost, type HoseTarget } from "../features/pomp
 import { DEBUG_ROUND_ENABLED, IDLE_BOARD, RoundStats, boardKey, parseDebugRound, stepBoard, taintsRound, type BoardThrottle } from "../features/round/index.js";
 import { bankEntries, hashToken, newDeviceToken, scoreStore } from "../features/score/index.js";
 import { HealAuras } from "../features/archetype/index.js";
+import { CameoStage } from "../features/cameo/index.js";
 import { MoluchanEvent } from "../features/moluchan/index.js";
 import { DouaneEvent, type DouaneHost, type SoakBody } from "../features/douane/index.js";
 import { BenanasEvent, type BenanasBody, type BenanasHost } from "../features/benanas/index.js";
@@ -333,10 +334,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private brigade = new FireBrigade(LEVEL, this.crs, this.props.world, this.props.staticWorld, this.state.trucks);
   /** Scratch for the hose (#17), reused every tick. */
   private hoseTargets: HoseTarget[] = [];
+  /** The three cameos' shared speaking turn (#132): one cameo bubble on screen at a time. */
+  private cameos = new CameoStage();
   /** Jeun-Lac Moluchan (#85): the roll, his visit and his ring. Shown to the CRS only, never a player. */
-  private moluchan = new MoluchanEvent(LEVEL, this.state.moluchan, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`));
+  private moluchan = new MoluchanEvent(LEVEL, this.state.moluchan, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`), this.cameos);
   /** La Douane (#120): the roll, his visit and his water gun. Nobody's target, never a player. */
-  private douane = new DouaneEvent(LEVEL, this.state.douane, this.props.staticWorld, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`));
+  private douane = new DouaneEvent(LEVEL, this.state.douane, this.props.staticWorld, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`), this.cameos);
   /** Scratch for La Douane's water (#120), reused every tick. */
   private soakBodies: SoakBody[] = [];
   /** The room as La Douane's water gun sees it (#120): pushes (never floors), puts out, no damage, no score. */
@@ -373,7 +376,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     },
   };
   /** Alexandre Bénanas (#123): the roll, his visit, his helmet. No CRS: the squad never sees him; never a player. */
-  private benanas = new BenanasEvent(LEVEL, this.state.benanas, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`));
+  private benanas = new BenanasEvent(LEVEL, this.state.benanas, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`), this.cameos);
   /** Scratch for Bénanas (#123), reused every tick. */
   private benanasPeople: BenanasBody[] = [];
   /** The room as Bénanas sees it (#123): his punch goes through the usual damage and knockdown, never a grab. */
@@ -2459,7 +2462,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const protesters: { x: number; z: number; status: number }[] = [];
     this.state.players.forEach((p) => protesters.push({ x: p.x, z: p.z, status: p.status }));
     const rear = respawnPoint(LEVEL, PLAYER_RADIUS, protesters.filter((p) => p.status === PlayerStatus.Free));
-    return { now: this.now, dt, front: this.front, protesters, rear, nav: this.crs.navGrid, world: this.props.world };
+    // #132: the cameos roll on the march clock.
+    return { now: this.now, dt, elapsed: this.round.elapsed, timeLeft: this.round.timeLeft, front: this.front, protesters, rear, nav: this.crs.navGrid, world: this.props.world };
   }
 
   private *allProtesterViews(): Generator<ProtesterView> {

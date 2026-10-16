@@ -1,12 +1,12 @@
 /**
- * La Douane (#120), the pure rules: whether and when he shows up, who he
+ * La Douane (#120), the pure rules (when he shows up is `cameo/`, #132): who he
  * soaks, where he stands, when the water gun fires and what he says. The
  * server runs the event (`apps/server/src/features/douane/`) and applies the
  * jet with the shared `water/` functions; clients draw him and his jet from
  * his synced state.
  *
- *   round starts ──rolled (chance)──> arrival point picked in [earliest, latest]
- *   front passes it ──> Soaking (bursts and pauses, duration) ──> Leaving (to a side street) ──> gone
+ *   each minute of march ──rolled (chance, see `cameoArrives`, #132)──> he comes, once a round
+ *   ──> Soaking (bursts and pauses, duration) ──> Leaving (to a side street) ──> gone
  *
  * Nobody can touch him: he is not a player (never in `state.players`) and
  * not a CRS target, so no baton, grab, punch or throw ever reaches him. He
@@ -15,20 +15,6 @@
 import { progressAt, type Level } from "../level/index.js";
 import type { Vec2 } from "../physics/index.js";
 import { DOUANE, DOUANE_LINES, type DouaneLineKind } from "./constants.js";
-
-/**
- * The start-of-round roll: the front progress at which he arrives this round,
- * or null when he doesn't come. One roll per round, so at most one visit.
- */
-export function rollDouane(random: () => number = Math.random, chance: number = DOUANE.chance): number | null {
-  if (!(random() < chance)) return null;
-  return DOUANE.earliest + (DOUANE.latest - DOUANE.earliest) * random();
-}
-
-/** Whether he arrives now: the front reached the rolled point `at`, and is not past DOUANE.latest. */
-export function douaneDue(at: number | null, front: number): boolean {
-  return at !== null && front >= at && front <= DOUANE.latest;
-}
 
 /** Someone he might soak: a free protester or a CRS on their feet. The caller filters out the rest. */
 export interface DouaneSeen extends Vec2 {

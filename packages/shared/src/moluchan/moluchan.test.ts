@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { cameoRoundChance } from "../cameo/index.js";
+import { ROUND_DURATION } from "../round/index.js";
 import { pickLbdTarget, pickTarget, type ProtesterView } from "../crs/index.js";
 import { PlayerStatus } from "../health/index.js";
 import { STREET_LEVEL as L, progressAt } from "../level/index.js";
@@ -10,7 +12,6 @@ import {
   MOLUCHAN_LINES,
   combinedHealRate,
   inMoluchanAura,
-  moluchanDue,
   moluchanEntry,
   moluchanExit,
   moluchanGoal,
@@ -18,7 +19,6 @@ import {
   moluchanSpeedFactor,
   moluchanStruggleFactor,
   pickMoluchanLine,
-  rollMoluchan,
 } from "./index.js";
 
 /** A point on the street's middle line at progress t, `side` metres to the side. */
@@ -28,43 +28,12 @@ function at(t: number, side = 0) {
 }
 const free = (t: number, side = 0) => ({ ...at(t, side), status: PlayerStatus.Free });
 
-describe("when he comes", () => {
-  test("about 15% of rounds, rolled once: below the chance he comes, above it he doesn't", () => {
-    expect(rollMoluchan(() => MOLUCHAN.chance - 0.001)).not.toBeNull();
-    expect(rollMoluchan(() => MOLUCHAN.chance)).toBeNull();
-    expect(rollMoluchan(() => 0.9)).toBeNull();
-    expect(MOLUCHAN.chance).toBeCloseTo(0.15, 5);
-  });
-
-  test("over many rounds the share is about the chance", () => {
-    let seed = 7;
-    const random = () => {
-      seed = (seed * 16807) % 2147483647;
-      return (seed - 1) / 2147483646;
-    };
-    let came = 0;
-    for (let i = 0; i < 20000; i++) if (rollMoluchan(random) !== null) came++;
-    expect(came / 20000).toBeGreaterThan(0.13);
-    expect(came / 20000).toBeLessThan(0.17);
-  });
-
-  test("arrives mid-march, between 25% and 75% of the way", () => {
-    for (const r of [0, 0.3, 0.6, 0.999]) {
-      const rolls = [0, r];
-      const point = rollMoluchan(() => rolls.shift() ?? 0) as number;
-      expect(point).toBeGreaterThanOrEqual(MOLUCHAN.earliest);
-      expect(point).toBeLessThanOrEqual(MOLUCHAN.latest);
-    }
-    expect(MOLUCHAN.earliest).toBe(0.25);
-    expect(MOLUCHAN.latest).toBe(0.75);
-  });
-
-  test("due once the front reaches his point, never past the latest", () => {
-    expect(moluchanDue(null, 0.5)).toBe(false);
-    expect(moluchanDue(0.4, 0.39)).toBe(false);
-    expect(moluchanDue(0.4, 0.4)).toBe(true);
-    expect(moluchanDue(0.4, 0.6)).toBe(true);
-    expect(moluchanDue(0.4, 0.8)).toBe(false);
+describe("when he comes (#132)", () => {
+  test("10% a minute of march, once a round: about 57% of full rounds", () => {
+    expect(MOLUCHAN.chance).toBeCloseTo(0.1, 5);
+    // 30 s now (was 45), the ring itself unchanged.
+    expect(MOLUCHAN.duration).toBe(30);
+    expect(cameoRoundChance(MOLUCHAN.chance, ROUND_DURATION, MOLUCHAN.duration)).toBeCloseTo(0.57, 2);
   });
 });
 

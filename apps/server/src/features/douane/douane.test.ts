@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { MapSchema } from "@colyseus/schema";
 import {
+  CAMEO,
   CRS_STATS,
   CrsKind,
   DOUANE,
@@ -9,6 +10,7 @@ import {
   DouanePhase,
   KNOCKDOWN_THRESHOLD,
   NavGrid,
+  ROUND_DURATION,
   STREET_LEVEL as LEVEL,
   TICK_DT,
   levelWorld,
@@ -46,24 +48,25 @@ function recorder(bodies: SoakBody[], fires: PropFire[] = []) {
 function setup(random: () => number = () => 0) {
   const views = new MapSchema<DouaneView>();
   const event = new DouaneEvent(LEVEL, views, { boxes: [], circles: [] }, random);
-  const tick = (now: number, front = 0.42): DouaneTick => ({ now, dt: TICK_DT, front, rear: at(0.3), nav: NAV, world: WORLD });
+  // The march clock starts at the first roll, so a lucky roll brings him at now = 0.
+  const tick = (now: number, front = 0.42, elapsed = now + CAMEO.firstRoll): DouaneTick => ({ now, dt: TICK_DT, elapsed, timeLeft: ROUND_DURATION - elapsed, front, rear: at(0.3), nav: NAV, world: WORLD });
   return { views, event, tick };
 }
 
 const body = (id: string, p: { x: number; z: number }, extra: Partial<SoakBody> = {}): SoakBody => ({ id, x: p.x, z: p.z, r: 0.4, bot: false, onFire: false, target: true, ...extra });
 
 describe("La Douane's visit (#120)", () => {
-  test("no roll, no visit; a roll arrives when the front reaches its point", () => {
+  test("a roll each minute of march (#132): unlucky rolls bring nobody, a lucky one brings him", () => {
     const quiet = setup(() => 0.99);
-    expect(quiet.event.startRound()).toBeNull();
-    quiet.event.step(quiet.tick(1, 0.6), recorder([]).host);
+    quiet.event.startRound();
+    for (let now = 0; now < 400; now += 0.5) quiet.event.step(quiet.tick(now), recorder([]).host);
     expect(quiet.views.size).toBe(0);
 
     const { views, event, tick } = setup(() => 0);
-    expect(event.startRound()).toBe(DOUANE.earliest);
-    event.step(tick(1, 0.1), recorder([]).host);
+    event.startRound();
+    event.step(tick(1, 0.42, CAMEO.firstRoll - 0.5), recorder([]).host);
     expect(views.size).toBe(0);
-    event.step(tick(2, 0.2), recorder([]).host);
+    event.step(tick(2, 0.42, CAMEO.firstRoll), recorder([]).host);
     expect(views.get(DOUANE_ID)?.phase).toBe(DouanePhase.Soaking);
   });
 
@@ -78,7 +81,8 @@ describe("La Douane's visit (#120)", () => {
     expect(views.get(DOUANE_ID)?.spraying).toBe(false);
     while (now < DOUANE.duration + DOUANE.leaveTimeout + 1) event.step(tick((now += TICK_DT)), host);
     expect(views.size).toBe(0);
-    event.step(tick((now += 1), 0.5), host);
+    // The next minutes' rolls bring nobody: he came this round.
+    while (now < 200) event.step(tick((now += 0.5)), host);
     expect(views.size).toBe(0);
   });
 

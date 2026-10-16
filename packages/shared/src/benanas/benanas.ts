@@ -1,12 +1,12 @@
 /**
- * Alexandre Bénanas (#123), the pure rules: whether and when he shows up,
+ * Alexandre Bénanas (#123), the pure rules (when he shows up is `cameo/`, #132):
  * where he comes in, whom he picks on, when he backs off, and his helmet
  * coming off under the protesters' hits. The server runs the event
  * (`apps/server/src/features/benanas/`) and lands his hits through the
  * room's usual knockdown path; clients draw him from his synced state.
  *
- *   round starts ──rolled (chance)──> arrival point picked in [earliest, latest]
- *   front passes it ──> Prowling (picks on lone protesters, backs off from groups)
+ *   each minute of march ──rolled (chance, see `cameoArrives`, #132)──> he comes, once a round
+ *   ──> Prowling (picks on lone protesters, backs off from groups)
  *     ├─ hit `hp` times ──> Unmasked (helmet off, a line, runs to a side street) ──> gone
  *     └─ duration ──> Leaving (walks to a side street) ──> gone
  *
@@ -16,20 +16,6 @@
 import { progressAt, type Level } from "../level/index.js";
 import type { Vec2 } from "../physics/index.js";
 import { BENANAS, BENANAS_LINES, type BenanasLineKind } from "./constants.js";
-
-/**
- * The start-of-round roll: the front progress at which he arrives this round,
- * or null when he doesn't come. One roll per round, so at most one visit.
- */
-export function rollBenanas(random: () => number = Math.random, chance: number = BENANAS.chance): number | null {
-  if (!(random() < chance)) return null;
-  return BENANAS.earliest + (BENANAS.latest - BENANAS.earliest) * random();
-}
-
-/** Whether he arrives now: the front reached the rolled point `at`, and is not past BENANAS.latest. */
-export function benanasDue(at: number | null, front: number): boolean {
-  return at !== null && front >= at && front <= BENANAS.latest;
-}
 
 /** A protester as he sees them. */
 export interface BenanasSeen extends Vec2 {
