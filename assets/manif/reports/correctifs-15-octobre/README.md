@@ -15,3 +15,9 @@
 Existing bus shelter/stall fitting and throwable readability multipliers remain in the client. The overhead carried clip deliberately retains its hips-centred attachment convention.
 
 Validation: all 44 delivered GLBs reimported in Blender, finite mesh coordinates, 19-bone character rigs. The JSON report records mesh counts, bounds and clip names. This does not certify all contacts, retargeting combinations or frame rates. In-game review is still required before merge.
+
+## Verification on current main (16 October 2026)
+
+Rebased onto f7fbd4f, preserving the newer launcher, pavements, façades, archetype recolouring and lobby portraits. Build, typecheck and lint passed. Client: 371 passed. Shared: 778 passed, including the new forecourt approach/collision test. Server: 123 passed, 2 pre-existing Windows failures in score storage (directory permissions and EBUSY cleanup). Root test command remains red for those failures.
+
+Local browser smoke test: lobby and round start, movement, Moluchan spawn, grab/debug interaction; no browser console errors captured. This is not exhaustive multiplayer, animation-contact or performance validation. Review the 0.75 s transition and shield clearance in normal play before merging.

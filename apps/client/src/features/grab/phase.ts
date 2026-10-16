@@ -55,7 +55,7 @@ export const SEIZE_SCALE = 1.6;
 export const GROUND_GRAB_SCALE = 2;
 /** Above this pair speed (m/s) the drag is on. The server's drag walks at about 2.3 m/s. */
 export const MOVING_FROM = 0.5;
-/** ground-drag's walk as authored, m/s (LIRE-MOI: about 0.24 to 0.27). */
+/** Revised 0.5 s ground-drag cycle, target ground speed in m/s. */
 export const DRAG_AUTHORED_SPEED = 2.4;
 /** The drag loop's speed-up, clamped: past it the feet slide (the server drags about 9× faster than authored). */
 export const DRAG_SCALE_MIN = 0.2;
