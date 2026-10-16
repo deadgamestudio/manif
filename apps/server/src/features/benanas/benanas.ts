@@ -320,8 +320,8 @@ export class BenanasEvent {
     v.targetId = null;
     v.goalAt = now + 0.4;
     if (host.punch(target.id, dirX, dirZ)) {
-      // Flooring someone is a key moment: it always speaks (#132).
-      this.say(v, "hit", now, true);
+      // An ordinary line: it waits its turn, so his punches don't drown the other cameos (#132).
+      this.say(v, "hit", now, false);
       this.log(`benanas: floored ${target.id}`);
     }
   }
