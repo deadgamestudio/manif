@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { PlayerStatus } from "../health/index.js";
-import { STREET_LEVEL } from "../level/index.js";
+import { STREET_LEVEL, progressAt } from "../level/index.js";
 import { TICK_DT } from "../net/index.js";
 import { propCollisionWorld } from "../prop/index.js";
 import {
@@ -21,7 +21,14 @@ import {
   CrsKind,
   CrsStatus,
   LINE_BREAK_DAMAGE,
+  LINE_CHASE_HITS,
+  LINE_CHASE_TIME,
   LINE_FLANK_TIME,
+  LINE_REFORM_MIN,
+  LINE_REGROUP_AHEAD,
+  LINE_REGROUP_CLEAR,
+  LINE_REGROUP_SEARCH,
+  LINE_REGROUP_SPREAD,
   LINE_SHIELD_RADIUS,
   LINE_SHOVE_INTERVAL,
   LINE_SHOVES_TO_FLOOR,
@@ -38,11 +45,13 @@ import {
   breakLine,
   checkBreak,
   createShieldLine,
+  doneChasing,
   lineBehaviour,
   lineThrower,
   lineSlots,
   maxAdvanceFor,
   recordLineHit,
+  regroupSpot,
   resolveShieldContacts,
   stepLine,
   type ShieldContact,
@@ -65,6 +74,10 @@ interface Person {
 class FakeHost implements CrsHost {
   readonly people = new Map<string, Person>();
   readonly shoves: { by: string; id: string; floor: boolean }[] = [];
+  /** Whether baton swings may land (#131: false keeps the chasers from swinging, so only the timer sends them back). */
+  hurtable = true;
+  /** Baton swings that landed. */
+  swings = 0;
 
   add(id: string, x: number, z: number): Person {
     const p = { view: { id, x, z, status: PlayerStatus.Free, down: false } as ProtesterView, body: createBody(x, z) };
@@ -84,9 +97,11 @@ class FakeHost implements CrsHost {
     return this.people.get(id)?.view;
   }
   canBeHurt() {
-    return true;
+    return this.hurtable;
   }
-  batonHit() {}
+  batonHit() {
+    this.swings++;
+  }
   grab() {
     return false;
   }
@@ -472,5 +487,258 @@ describe("tear gas (#7)", () => {
     expect(line.formed).toBe(true);
     expect(host.throws).toEqual([thrower.id]);
     expect(Math.hypot(thrower.body.x - slot.x, thrower.body.z - (slot.z + advanced(line)))).toBeLessThan(0.5);
+  });
+});
+
+describe("regrouping (#131)", () => {
+  const LEVEL = STREET_LEVEL;
+  /** Where the cortège's front is, as a z on the street, turned into progress. */
+  const frontAt = (z: number) => progressAt(LEVEL, 0, z);
+  /** A line of the full size across the street at z (facing the cortège), as the room spawns one. */
+  const streetLine = (z: number) => makeLine(STREET, 0, z);
+
+  /** Run the room's order on the street with the level and the front set, like the squad does. Stops when `each` returns true. */
+  function runStreet(
+    line: ShieldLine,
+    bots: CrsBot[],
+    host: FakeHost,
+    seconds: number,
+    front: number,
+    start: number,
+    each?: (ctx: CrsContext) => boolean | void,
+  ): CrsContext {
+    const nav = new NavGrid(STREET, R);
+    const ctx: CrsContext = { world: STREET, nav, vans: [], bots, now: start, dt: TICK_DT, level: LEVEL, front };
+    const behaviour = lineBehaviour(line);
+    const end = start + seconds;
+    for (ctx.now = start; ctx.now < end; ctx.now += TICK_DT) {
+      host.sync();
+      stepLine(line, ctx, host, [line]);
+      for (const bot of bots) stepCrs(bot, ctx, host, behaviour);
+      if (each?.(ctx) === true) break;
+    }
+    return ctx;
+  }
+
+  describe("regroupSpot", () => {
+    const facadesCover = (z: number) =>
+      ([-1, 1] as const).every((side) => LEVEL.facades.some((f) => f.side === side && f.minZ <= z - 2 && f.maxZ >= z + 2));
+
+    test("ahead of the front, towards the CRS side, between two facades, every slot in the clear", () => {
+      for (const frontZ of [72, 60, 40, 20, 0, -20, -40]) {
+        const spot = regroupSpot(LEVEL, STREET, frontAt(frontZ), { members: LINE_SIZE });
+        expect(spot).not.toBeNull();
+        if (!spot) continue;
+        // On the centre line, LINE_REGROUP_AHEAD at least ahead (the CRS side is -Z), never too near the start.
+        expect(spot.x).toBeCloseTo(0, 6);
+        expect(spot.z).toBeLessThanOrEqual(frontZ - LINE_REGROUP_AHEAD + 1e-6);
+        expect(spot.z).toBeGreaterThanOrEqual(frontZ - LINE_REGROUP_AHEAD - LINE_REGROUP_SEARCH - 1e-6);
+        expect(maxAdvanceFor(LEVEL, spot, UP, Infinity)).toBeGreaterThan(0);
+        // Not across a side street.
+        expect(facadesCover(spot.z)).toBe(true);
+        const slots = lineSlots(STREET, spot, UP, LINE_SIZE);
+        expect(slots.length).toBeGreaterThanOrEqual(LINE_REFORM_MIN);
+        for (const s of slots) expect(circleOverlaps(STREET, s.x, s.z, R)).toBe(false);
+      }
+    });
+
+    test("never across a side street's mouth, wherever the front is", () => {
+      for (let frontZ = 80; frontZ >= -70; frontZ -= 2.5) {
+        const spot = regroupSpot(LEVEL, STREET, frontAt(frontZ), { members: LINE_SIZE });
+        if (spot) expect(facadesCover(spot.z)).toBe(true);
+      }
+    });
+
+    test("nothing left ahead near the Préfecture: null, the members chase on", () => {
+      expect(regroupSpot(LEVEL, STREET, frontAt(-80), { members: LINE_SIZE })).toBeNull();
+      expect(regroupSpot(LEVEL, STREET, 1, { members: LINE_SIZE })).toBeNull();
+      expect(regroupSpot(LEVEL, STREET, 0.2, { members: 0 })).toBeNull();
+    });
+
+    test("not on top of protesters, nor of another line, nor with a slot inside a shop room", () => {
+      const front = frontAt(70);
+      const first = regroupSpot(LEVEL, STREET, front, { members: LINE_SIZE })!;
+      expect(first).not.toBeNull();
+      const p: ProtesterView = { id: "p", x: 6, z: first.z, status: PlayerStatus.Free, down: false };
+      const away = regroupSpot(LEVEL, STREET, front, { members: LINE_SIZE, protesters: [p] })!;
+      expect(Math.abs(away.z - p.z)).toBeGreaterThanOrEqual(LINE_REGROUP_CLEAR);
+      // A grabbed protester is no obstacle.
+      expect(regroupSpot(LEVEL, STREET, front, { members: LINE_SIZE, protesters: [{ ...p, status: PlayerStatus.Grabbed }] })).toEqual(first);
+      const spread = regroupSpot(LEVEL, STREET, front, { members: LINE_SIZE, others: [first] })!;
+      expect(Math.hypot(spread.x - first.x, spread.z - first.z)).toBeGreaterThanOrEqual(LINE_REGROUP_SPREAD);
+      const room = {
+        id: "shop",
+        building: "b",
+        side: 1 as const,
+        rect: { minX: -12, maxX: 12, minZ: first.z - 0.5, maxZ: first.z + 0.5 },
+        height: 3,
+        door: { x: 9, z: first.z, width: 1 },
+      };
+      const notInRoom = regroupSpot(LEVEL, STREET, front, { members: LINE_SIZE, rooms: [room] })!;
+      expect(Math.abs(notInRoom.z - first.z)).toBeGreaterThan(0.5);
+    });
+  });
+
+  test("doneChasing: LINE_CHASE_TIME after the break, or LINE_CHASE_HITS swings, or a grab; never while formed", () => {
+    const { line, bots } = streetLine(54);
+    const b = bots[0]!;
+    expect(doneChasing(line, b, 100)).toBe(false);
+    breakLine(line, "damage", 10);
+    expect(doneChasing(line, b, 10 + LINE_CHASE_TIME - 0.01)).toBe(false);
+    expect(doneChasing(line, b, 10 + LINE_CHASE_TIME)).toBe(true);
+    line.landed.set(b.id, LINE_CHASE_HITS - 1);
+    expect(doneChasing(line, b, 11)).toBe(false);
+    line.landed.set(b.id, LINE_CHASE_HITS);
+    expect(doneChasing(line, b, 11)).toBe(true);
+    const c = bots[1]!;
+    c.grabbedAt = 12;
+    expect(doneChasing(line, c, 12.5)).toBe(true);
+  });
+
+  test("broken, the members chase until LINE_CHASE_TIME, then walk back (no teleport) and re-form ahead of the cortège", () => {
+    const host = new FakeHost();
+    // canBeHurt false: no swing lands, so only the timer sends them back.
+    host.hurtable = false;
+    host.add("p", 0, 72);
+    const { line, bots } = streetLine(54);
+    const front = frontAt(72);
+    breakLine(line, "damage", 0);
+    const last = new Map(bots.map((b) => [b.id, { x: b.body.x, z: b.body.z }]));
+    let maxStep = 0;
+    let returnedAt = -1;
+    let reformedAt = -1;
+    let chasedNear = false;
+    const ctx = runStreet(line, bots, host, LINE_CHASE_TIME + 25, front, 0, (c) => {
+      for (const b of bots) {
+        const was = last.get(b.id)!;
+        maxStep = Math.max(maxStep, Math.hypot(b.body.x - was.x, b.body.z - was.z));
+        was.x = b.body.x;
+        was.z = b.body.z;
+        if (Math.hypot(b.body.x, b.body.z - 72) < 3) chasedNear = true;
+      }
+      if (returnedAt < 0 && line.returning.size > 0) returnedAt = c.now;
+      if (line.formed) {
+        reformedAt = c.now;
+        return true;
+      }
+      return false;
+    });
+    // They chased the protester first.
+    expect(chasedNear).toBe(true);
+    expect(returnedAt).toBeGreaterThanOrEqual(LINE_CHASE_TIME - 1e-6);
+    expect(returnedAt).toBeLessThan(LINE_CHASE_TIME + 2 * TICK_DT);
+    expect(reformedAt).toBeGreaterThan(returnedAt);
+    // Walked, never jumped: at most a walking step per tick.
+    expect(maxStep).toBeLessThanOrEqual(CRS_STATS[CrsKind.Crs].speed * TICK_DT * 1.05 + 1e-6);
+    // A line again, LINE_REGROUP_AHEAD ahead of the front, facing the cortège.
+    expect(line.formed).toBe(true);
+    expect(line.reforms).toBe(1);
+    expect(line.centre.z).toBeLessThanOrEqual(72 - LINE_REGROUP_AHEAD + 1e-6);
+    expect(line.facing.z).toBeCloseTo(1, 6);
+    expect(line.origin).toEqual(line.centre);
+    expect(advanced(line)).toBeCloseTo(0, 6);
+    expect(line.maxAdvance).toBe(maxAdvanceFor(STREET_LEVEL, line.centre, line.facing));
+    // The stragglers join: every member holds a slot a moment later.
+    run(STREET, line, bots, host, 6, undefined, undefined, ctx.now + TICK_DT);
+    for (const b of bots) {
+      const s = line.slots.get(b.id)!;
+      expect(Math.hypot(s.x - b.body.x, s.z - b.body.z)).toBeLessThanOrEqual(LINE_SLOT_TOLERANCE + 0.05);
+    }
+  });
+
+  test("a member that landed LINE_CHASE_HITS swings walks back before the timer, and swings at nobody on the way", () => {
+    const host = new FakeHost();
+    const p = host.add("p", 0, 64);
+    const { line, bots } = streetLine(54);
+    breakLine(line, "damage", 0);
+    let swingsWhileBack = 0;
+    let firstBack = -1;
+    const ready = new Map(bots.map((b) => [b.id, b.batonReadyAt]));
+    runStreet(line, bots, host, LINE_CHASE_TIME - 1, frontAt(64), 0, (c) => {
+      // The protester stands still where they are.
+      p.body.x = 0;
+      p.body.z = 64;
+      p.body.vx = p.body.vz = 0;
+      for (const b of bots) {
+        if (line.returning.has(b.id) && b.batonReadyAt !== ready.get(b.id)) swingsWhileBack++;
+        ready.set(b.id, b.batonReadyAt);
+      }
+      if (firstBack < 0 && line.returning.size > 0) firstBack = c.now;
+      return false;
+    });
+    expect(host.swings).toBeGreaterThanOrEqual(LINE_CHASE_HITS);
+    expect(firstBack).toBeGreaterThan(0);
+    expect(firstBack).toBeLessThan(LINE_CHASE_TIME);
+    for (const id of line.returning) expect(line.landed.get(id) ?? 0).toBeGreaterThanOrEqual(LINE_CHASE_HITS);
+    expect(swingsWhileBack).toBe(0);
+  });
+
+  test("a line short of members re-forms with LINE_REFORM_MIN in place, or all that are left", () => {
+    for (const left of [5, 2]) {
+      const host = new FakeHost();
+      host.hurtable = false;
+      host.add("p", 0, 72);
+      const { line, bots } = streetLine(54);
+      for (const b of bots.slice(left)) b.status = CrsStatus.Out;
+      breakLine(line, "damage", 0);
+      runStreet(line, bots.slice(0, left), host, LINE_CHASE_TIME + 25, frontAt(72), 0, () => line.formed);
+      expect(line.formed).toBe(true);
+      expect(line.members.length).toBe(left);
+      let inPlace = 0;
+      for (const b of line.members) {
+        const s = line.slots.get(b.id);
+        if (s && Math.hypot(s.x - b.body.x, s.z - b.body.z) <= LINE_SLOT_TOLERANCE) inPlace++;
+      }
+      expect(inPlace).toBeGreaterThanOrEqual(Math.min(LINE_REFORM_MIN, left));
+    }
+  });
+
+  test("a re-formed line breaks again under the same rules, and regroups again", () => {
+    const host = new FakeHost();
+    host.hurtable = false;
+    host.add("p", 0, 72);
+    const { line, bots } = streetLine(54);
+    breakLine(line, "damage", 0);
+    let ctx = runStreet(line, bots, host, LINE_CHASE_TIME + 25, frontAt(72), 0, () => line.formed);
+    expect(line.formed).toBe(true);
+    recordLineHit(line, LINE_BREAK_DAMAGE, ctx.now);
+    const t = ctx.now + TICK_DT;
+    let broke = false;
+    ctx = runStreet(line, bots, host, LINE_CHASE_TIME + 25, frontAt(72), t, () => {
+      if (!line.formed) broke = true;
+      return broke && line.formed;
+    });
+    expect(broke).toBe(true);
+    expect(line.brokenBy).toBeNull();
+    expect(line.brokenAt).toBeGreaterThanOrEqual(t);
+    expect(line.formed).toBe(true);
+    expect(line.reforms).toBe(2);
+  });
+
+  test("without the level and the front (an older host), a broken line just chases", () => {
+    const host = new FakeHost();
+    host.hurtable = false;
+    host.add("p", 0, 6);
+    const { line, bots } = makeLine(OPEN, 0, 0);
+    breakLine(line, "damage", 0);
+    run(OPEN, line, bots, host, LINE_CHASE_TIME + 2);
+    expect(line.formed).toBe(false);
+    expect(line.returning.size).toBe(0);
+  });
+
+  test("the cortège got past the spot while they walked back: a new spot is picked, ahead of it", () => {
+    const host = new FakeHost();
+    host.hurtable = false;
+    host.add("p", 0, 72);
+    const { line, bots } = streetLine(54);
+    breakLine(line, "damage", 0);
+    runStreet(line, bots, host, LINE_CHASE_TIME + 0.2, frontAt(72), 0);
+    expect(line.regroupAt).not.toBeNull();
+    const first = line.centre.z;
+    // The protester and the front jump past it.
+    host.people.get("p")!.body.z = first - 2;
+    runStreet(line, bots, host, 0.2, frontAt(first - 2), LINE_CHASE_TIME + 0.2 + TICK_DT);
+    expect(line.regroupAt).not.toBeNull();
+    expect(line.centre.z).toBeLessThanOrEqual(first - 2 - LINE_REGROUP_AHEAD + 1e-6);
   });
 });

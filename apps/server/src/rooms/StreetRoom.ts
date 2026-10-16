@@ -13,7 +13,6 @@ import {
   RESCUE_CRS_IMPULSE,
   RESCUE_PROTESTER_IMPULSE,
   RESCUE_TIME,
-  STRUGGLE_FREE_CRS_IMPULSE,
   MELEE_PROP_DAMAGE,
   PLAYER_RADIUS,
   PLAYER_SPEED,
@@ -47,6 +46,7 @@ import {
   ROUND_WAVES,
   RoundResult,
   CrsKind,
+  CrsGrace,
   WAVE_BRAVM_AHEAD,
   WAVE_LBD_AHEAD,
   CRS_STATS,
@@ -246,8 +246,12 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private rescues = new Rescues();
   /** Grabbed protesters mashing to break free (#70). Server-only; the meter is synced on the player (`struggle`). */
   private struggles = new Struggles();
-  /** Protesters lying down because a baton floored them (#70): that alone never makes them grabbable. Server-only. */
-  private batonDowned = new Set<string>();
+  /**
+   * Fair play with the CRS (#131, grown out of #70's baton knockdown flag): who lies down because a baton
+   * floored them (never grabbable for it), and who is in their short grace (just freed, back up or back in the
+   * street: no CRS baton or grab). Server-only; only `Player.grace` is synced.
+   */
+  private grace = new CrsGrace();
   /**
    * Room time in seconds: advances by the fixed dt each tick while playing.
    * Every health timer uses it (never Date.now()), so they pause with the sim.
@@ -395,7 +399,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.damagePlayer(id, BENANAS.hitDamage);
       const res = this.applyImpulse(id, dirX, dirZ, BENANAS.hitImpulse, "always");
       // Like a baton knockdown (#70): not "down" enough for a CRS to grab, so the police get nothing from his work.
-      if (res?.knockedDown) this.batonDowned.add(id);
+      if (res?.knockedDown) this.grace.floored(id);
       return res !== null && res.strength > 0;
     },
     unmasked: (ids) => {
@@ -457,8 +461,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // #85: Moluchan too, a priority target the baton never touches.
     protesters: () => this.crsProtesterViews(),
     protester: (id) => (id === MOLUCHAN_ID ? this.moluchan.view() : this.protesterView(id)),
-    canBeHurt: (id) => id !== MOLUCHAN_ID && this.healths.canBeHurt(id, this.now),
+    // #131: and not in their grace (just freed, back up or back in the street).
+    canBeHurt: (id) => id !== MOLUCHAN_ID && this.healths.canBeHurt(id, this.now) && !this.grace.isGraced(id, this.now),
     batonHit: (by, id, dirX, dirZ, amount, impulse) => {
+      // #131: no baton in the grace, whatever asked for it.
+      if (this.grace.isGraced(id, this.now)) return;
       const swing: SwingEvent = { id: by };
       this.broadcast(ServerMessage.Swing, swing);
       // A hop (#45) dodges the baton: airborne when the swing resolves (after
@@ -468,7 +475,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.damagePlayer(id, amount);
       const res = this.applyImpulse(id, dirX, dirZ, impulse);
       // #70: floored by the baton is not "down" enough to be grabbed (see `isWeakened`).
-      if (res?.knockedDown) this.batonDowned.add(id);
+      if (res?.knockedDown) this.grace.floored(id);
     },
     // Splatted (#15): the swing is seen, and hits nothing.
     batonMiss: (by) => {
@@ -751,6 +758,17 @@ export class StreetRoom extends Room<{ state: StreetState }> {
           // #98: the street turns hot now (not the opposite of `calm`, which removes the CRS).
           if (heatUp(this.mood)) this.turnedHot("debug");
           this.syncMood();
+        } else if (cmd?.action === "line") {
+          // #131: break every line now, or form one in front of yourself, facing you.
+          if (cmd.break) console.log(`[street ${this.roomId}] debug: ${this.crs.breakLines(this.now)} line(s) broken`);
+          else {
+            const self = this.state.players.get(client.sessionId);
+            if (self) {
+              const d = cmd.distance ?? 12;
+              const dir = { x: Math.sin(self.rotation), z: Math.cos(self.rotation) };
+              this.crs.spawnLine(self.x + dir.x * d, self.z + dir.z * d, cmd.size, { x: -dir.x, z: -dir.z });
+            }
+          }
         } else if (cmd?.action === "fallen") {
           const self = this.state.players.get(client.sessionId);
           if (self) {
@@ -859,7 +877,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // Mid-round (#12): a fresh protester at the rear of the cortège; it counts
     // towards the win threshold from now on. Before a round: the start zone.
     if (this.state.phase === Phase.Waiting) this.placeAtSpawn(client.sessionId, player);
-    else this.placeAtRear(client.sessionId, player);
+    else {
+      this.placeAtRear(client.sessionId, player);
+      // #131: joining mid-march, the CRS leave them be a moment, like a respawn.
+      this.grace.joined(client.sessionId, this.now);
+    }
     // #63: a mid-march joiner sees the board at once. Sent from the next tick, once their join is through.
     if (this.state.phase === Phase.Marching) this.boardJoiners.add(client.sessionId);
     this.moveInputs.set(client.sessionId, { x: 0, z: 0 });
@@ -905,7 +927,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // A rescue aimed at this player ends on the next tick (unknown target).
     this.rescues.remove(id);
     this.struggles.end(id);
-    this.batonDowned.delete(id);
+    this.grace.remove(id);
     this.offenders.forget(id);
     this.bodies.remove(id);
     // Systems that point at a player see unknown ids as no-ops; the CRS let go and look elsewhere at once (#59).
@@ -1149,7 +1171,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
   private resetStreet(relayout = true) {
     this.rescues.clear();
     this.struggles.clear();
-    this.batonDowned.clear();
+    this.grace.clear();
     // #73: nobody is an offender yet, no ball in the air.
     this.offenders.clear();
     // #98: every round starts calm.
@@ -1488,8 +1510,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
    */
   grabPlayer(id: string, duration?: number): boolean {
     const player = this.state.players.get(id);
-    // Held overhead or flying through the air (#11): out of a CRS's reach.
-    if (!player || this.carry.isCarried(id) || this.carry.isFlying(id)) return false;
+    // Held overhead or flying through the air (#11): out of a CRS's reach. In their grace (#131): left alone.
+    if (!player || this.carry.isCarried(id) || this.carry.isFlying(id) || this.grace.isGraced(id, this.now)) return false;
     const drag = (duration ?? GRAB_DURATION) * this.statsOf(id).grabTime * this.filmedFactor(player);
     if (!this.healths.grab(id, player, this.now, drag)) return false;
     // A grabbed carrier drops their teammate at once.
@@ -1499,18 +1521,20 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     return true;
   }
 
-  /** Whether a grab on `id` would take right now (#70): free, not immune, not held overhead or flying (#11). */
+  /** Whether a grab on `id` would take right now (#70): free, not immune, not in their grace (#131), not held overhead or flying (#11). */
   private canBeGrabbed(id: string): boolean {
     const player = this.state.players.get(id);
     if (!player || player.status !== PlayerStatus.Free || this.carry.isCarried(id) || this.carry.isFlying(id)) return false;
+    if (this.grace.isGraced(id, this.now)) return false;
     return !this.healths.isGrabImmune(id, this.now);
   }
 
   /**
    * One press of a grabbed protester's struggle (#70). Ignored unless grabbed;
    * the meter counts at most STRUGGLE_RATE presses a second. Full, they break
-   * free: the same transition as a rescue (GRAB_IMMUNITY included), the CRS
-   * stumbles back a step and the protester away from it. Scores nothing.
+   * free: the same transition as a rescue (GRAB_IMMUNITY and the grace
+   * included), the CRS is floored (#131) and the protester steps away from it.
+   * Scores nothing.
    */
   private struggle(id: string) {
     const player = this.state.players.get(id);
@@ -1520,7 +1544,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     else player.struggle = this.struggles.percent(id);
   }
 
-  /** A full struggle meter (#70): free, and the two bodies pushed apart (no one floored). */
+  /**
+   * A full struggle meter (#70): free, in their grace (#131, see `rescuePlayer`), and the CRS that was
+   * dragging them floored and dazed a moment (#131: the escape is a small win, not a free baton hit).
+   */
   private breakFree(id: string) {
     const holder = this.crs.holderOf(id);
     if (!this.rescuePlayer(id)) return;
@@ -1535,7 +1562,7 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       dx = Math.sin(bot.rotation);
       dz = Math.cos(bot.rotation);
     }
-    const res = this.crs.push(holder, dx, dz, STRUGGLE_FREE_CRS_IMPULSE, "never");
+    const res = this.crs.throwOff(holder, dx, dz, this.now);
     if (res && res.strength > 0) {
       const push: ImpulseEvent = { id: holder, dirX: res.dirX, dirZ: res.dirZ, strength: res.strength, down: res.knockedDown };
       this.broadcast(ServerMessage.Impulse, push);
@@ -1545,12 +1572,16 @@ export class StreetRoom extends Room<{ state: StreetState }> {
 
   /**
    * A grabbed protester is free again (#10), with a short grab immunity: pulled
-   * out by a teammate (see `pullFree`), or let go by a CRS that was stunned or
-   * floored. Only the state change; the knockback is the caller's.
+   * out by a teammate (see `pullFree`), struggling free (#70), or let go by a
+   * CRS that was stunned or floored. On top of it, their grace (#131): no CRS
+   * batons or grabs them for CRS_GRACE. Only the state change; the knockback
+   * is the caller's.
    */
   rescuePlayer(id: string): boolean {
     const player = this.state.players.get(id);
-    return player ? this.healths.rescue(id, player, this.now) : false;
+    if (!player || !this.healths.rescue(id, player, this.now)) return false;
+    this.grace.freed(id, this.now);
+    return true;
   }
 
   /** Protester `id`'s archetype stats (#14), from the id they picked and the shared table. The default's for an unknown id. */
@@ -1681,6 +1712,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     if (this.state.hot !== this.mood.hot) this.state.hot = this.mood.hot;
     this.calmStreet.front = this.front;
     this.crs.setCalm(this.mood.hot ? null : this.calmStreet);
+    // #131: broken shield lines re-form ahead of the front.
+    this.crs.setFront(this.front);
   }
 
   /** Tell everyone a CRS was hit (to flash it) and pushed (to tip it the right way). */
@@ -2095,7 +2128,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const crowd = this.buildCrowdWorld();
     this.state.players.forEach((player, sessionId) => {
       const health = this.healths.tick(sessionId, player, this.now);
-      if (health === "respawned") this.placeAtRear(sessionId, player);
+      if (health === "respawned") {
+        this.placeAtRear(sessionId, player);
+        // #131: back from the van, the CRS leave them be a moment past the respawn invulnerability.
+        this.grace.respawned(sessionId, this.now);
+      }
       else if (health === "arrested") this.roundStats.add(sessionId, "arrests");
       // Grabbed, KO or arrested: the item in hand falls where they are (#8).
       if (player.carrying !== ThrowableKind.None) this.throwables.release(player);
@@ -2107,7 +2144,10 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       const struggle = this.struggles.percent(sessionId);
       if (player.struggle !== struggle) player.struggle = struggle;
       // #70: back on their feet, a baton knockdown is forgotten.
-      if (!player.down) this.batonDowned.delete(sessionId);
+      if (!player.down) this.grace.stand(sessionId);
+      // #131: the grace shows on the player (a blinking ring on the clients).
+      const graced = this.grace.isGraced(sessionId, this.now);
+      if (player.grace !== graced) player.grace = graced;
       // Only free protesters walk; the others keep their knockback slide (a KO'd body still flies).
       // A carried teammate (#11) is held overhead: no walking, placed on the carrier after this loop.
       const carried = this.carry.isCarried(sessionId);
@@ -2137,6 +2177,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       if (carried) return;
       // The archetype's walk (#14) composes with the slowdowns above; the dodge burst follows it.
       const res = this.bodies.step(sessionId, player, input, dt, solid ? crowd : this.props.world, archetypeStats(player.archetype).speed);
+      // #131: back on their feet after any knockdown, a moment without baton or grab (no beating in a loop).
+      if (res?.gotUp && player.status === PlayerStatus.Free) this.grace.gotUp(sessionId, this.now);
       // A head-on dodge into a wall or prop bonks (#9): tip the avatar backwards like a hit.
       if (res?.bonk) {
         const event: ImpulseEvent = { id: sessionId, dirX: res.bonk.x, dirZ: res.bonk.z, strength: res.bonk.speed, down: player.down };
@@ -2168,6 +2210,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
         this.broadcast(ServerMessage.Shove, event);
       }
       if (res.broke) console.log(`[street ${this.roomId}] ${line.id} broke (${res.broke})`);
+      // #131: a broken line walking back, then formed again.
+      if (res.regroupTo) console.log(`[street ${this.roomId}] ${line.id} regrouping at z=${res.regroupTo.z.toFixed(1)}`);
+      if (res.reformed) console.log(`[street ${this.roomId}] ${line.id} re-formed with ${line.members.length} at z=${line.centre.z.toFixed(1)}`);
     });
     if (poos.length > 0) this.slipCrs(poos);
     // The LBD's balls (#73), after the bots moved and fired.
@@ -2402,7 +2447,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     view.down = player.down;
     // #70: what decides a grab and foils its wind-up.
     view.hp = player.hp;
-    view.batonDown = player.down && this.batonDowned.has(id);
+    view.batonDown = this.grace.isBatonDown(id, player.down);
+    // #131: just freed, back up or back in the street: the CRS leave them be for a moment.
+    view.graced = this.grace.isGraced(id, this.now);
     view.dodging = player.dodging;
     view.airborne = player.airborne;
     // The black bloc is chased first (#14): a weight on distance, see `pickTarget`.

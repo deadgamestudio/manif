@@ -155,6 +155,11 @@ export type DebugRoundPayload =
   | { action: "calm" }
   /** #98: the street turns hot now (CRS chase anyone), as if the tension had boiled over. Not the opposite of `calm`. */
   | { action: "hot" }
+  /**
+   * #131: shield lines. `break`: every formed line breaks now, as if hit hard enough (its members chase, then
+   * regroup). Otherwise a line of `size` (LINE_SIZE by default) forms `distance` m in front of yourself, facing you.
+   */
+  | { action: "line"; break?: boolean; distance?: number; size?: number }
   /** #13: no bots on the street right now, but the waves still to come still come. */
   | { action: "clear" }
   /** #45: a CRS lying out cold `distance` m in front of yourself for `seconds`, to hop over it. */
