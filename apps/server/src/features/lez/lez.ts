@@ -60,6 +60,8 @@ interface Visit {
   agent: NavAgent & { input: Vec2; body: Vec2 };
   goal: Vec2;
   goalAt: number;
+  /** He has picked his first spot (the one after his way in). */
+  posted: boolean;
   hits: Helmet;
   /** Chased off: standing there with his line until then, then running (null once running). */
   fleeAt: number | null;
@@ -252,7 +254,11 @@ export class LeZEvent {
       if (now >= v.goalAt) {
         const post = leZPost(this.level, tick.crs, tick.front);
         const p = resolveCircle(tick.world, post.x, post.z, LEZ.radius);
-        v.goal = { x: p.x, z: p.z };
+        // He moves only when the action moved: a protester walking up to him doesn't push him away.
+        if (!v.posted || Math.hypot(p.x - v.goal.x, p.z - v.goal.z) > LEZ.repost) {
+          v.goal = { x: p.x, z: p.z };
+          v.posted = true;
+        }
         v.goalAt = now + LEZ.regoalInterval;
       }
       // He holds forth now and then, when the stage gives him the turn.
@@ -310,6 +316,7 @@ export class LeZEvent {
       },
       goal: { x: body.x, z: body.z },
       goalAt: now,
+      posted: false,
       hits: freshHelmet(LEZ.hp),
       fleeAt: null,
       kick: { x: 0, z: 0 },

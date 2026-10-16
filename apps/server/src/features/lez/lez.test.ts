@@ -114,6 +114,29 @@ describe("Le Z's visit (#133)", () => {
     expect(progressAt(LEVEL, p?.x ?? 0, p?.z ?? 0)).toBeLessThan(0.6);
   });
 
+  test("walking up to him doesn't push him off; he moves when the action really moves", () => {
+    const s = setup();
+    s.event.force({ now: 0, front: 0.5, rear: at(0.3) });
+    let now = run(s, 0, 10);
+    const settled = { ...(s.event.position ?? { x: 0, z: 0 }) };
+    // A protester comes a few metres closer (the front creeps up): he stays put.
+    let t = now;
+    while (t < now + 5) {
+      t += TICK_DT;
+      s.event.step({ ...s.tick(t, 0.52), crs: [] });
+    }
+    now = t;
+    const p1 = s.event.position ?? { x: 0, z: 0 };
+    expect(Math.hypot(p1.x - settled.x, p1.z - settled.z)).toBeLessThan(1.5);
+    // The cortège surges ahead: he walks to a new spot.
+    while (t < now + 8) {
+      t += TICK_DT;
+      s.event.step({ ...s.tick(t, 0.65), crs: [] });
+    }
+    const p2 = s.event.position ?? { x: 0, z: 0 };
+    expect(progressAt(LEVEL, p2.x, p2.z)).toBeGreaterThan(0.65);
+  });
+
   test("his ring for the CRS while he holds forth, none once he leaves; profiling until chased", () => {
     const s = setup();
     expect(s.event.rally).toBeNull();

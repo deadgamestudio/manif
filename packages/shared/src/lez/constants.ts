@@ -37,15 +37,17 @@ export const LEZ = {
   /** Running off once chased: faster, he wants his studio. */
   fleeSpeed: 6,
   /** He stands this far behind the CRS (down the street, away from the cortège)... */
-  behindCrs: 4,
+  behindCrs: 3.5,
   /** ...of the CRS within this of the front, in progress (the street is about 184 m long)... */
   crsBand: 0.12,
   /** ...and with no CRS there, this far ahead of the front (in progress). */
-  aheadOfFront: 0.05,
+  aheadOfFront: 0.03,
   /** Close enough to his spot: he stands and holds forth. */
   arriveRadius: 1.2,
   /** He holds forth (an ordinary line) at most this often, from his last line: in between, his silence leaves room for his reactions to hits. */
   talkEvery: 11,
+  /** He re-picks his spot only when the new one is this far from the old (the CRS or the front moved): walking up to him doesn't push him off. */
+  repost: 6,
   /** How often he re-picks his spot as the CRS move. */
   regoalInterval: 2,
   /** Leaving takes at most this long (he walks to a side street, then is gone even if he got stuck). */
