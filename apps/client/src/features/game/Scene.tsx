@@ -13,6 +13,7 @@ import { GasView } from "../gas/index.ts";
 import { FiresView } from "../fire/index.ts";
 import { TrucksView } from "../pompier/index.ts";
 import { MoluchanView } from "../moluchan/index.ts";
+import { DouaneView } from "../douane/index.ts";
 import { GrabPairs } from "../grab/index.ts";
 import { bodyUrlFor, preloadModels, roundPreloadGroups } from "../models/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
@@ -77,6 +78,7 @@ export function Scene({
       <FiresView />
       <TrucksView />
       <MoluchanView />
+      <DouaneView />
     </>
   );
 }

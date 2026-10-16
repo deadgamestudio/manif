@@ -37,3 +37,12 @@ describe("parseDebugRound: moluchan (#85)", () => {
     expect(parseDebugRound({ action: "moluchan", distance: "x" })).toEqual({ action: "moluchan" });
   });
 });
+
+describe("parseDebugRound: douane (#120)", () => {
+  test("optional distance and seconds, clamped", () => {
+    expect(parseDebugRound({ action: "douane" })).toEqual({ action: "douane" });
+    expect(parseDebugRound({ action: "douane", distance: 4, seconds: 20 })).toEqual({ action: "douane", distance: 4, seconds: 20 });
+    expect(parseDebugRound({ action: "douane", distance: 99, seconds: 0 })).toEqual({ action: "douane", distance: 20, seconds: 1 });
+    expect(taintsRound({ action: "douane" }, 100)).toBe(true);
+  });
+});

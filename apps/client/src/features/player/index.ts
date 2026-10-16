@@ -4,7 +4,7 @@ export { BodyMotion } from "./bodyMotion.ts";
 export { getAvatarBody, useProtesterBody, type AvatarBody, type ProtesterBody } from "./protesterBody.ts";
 export { MOVE_FROM, RUN_FROM, WALK_AUTHORED_SPEED, RUN_AUTHORED_SPEED, chooseStateClip, actionClip, type BodyState, type ClipChoice } from "./clipChoice.ts";
 export { onScreen } from "./onScreen.ts";
-export { protesterPaint } from "./protesterLook.ts";
+export { PEOPLE, protesterPaint } from "./protesterLook.ts";
 export { accessoriesFor, type Accessory, type AccessoryName } from "./accessories.ts";
 export { WornAccessories } from "./WornAccessories.tsx";
 export { SWING_BUSY_MS, cgtKitFor, freshKitState, kitShow, type CgtKit, type KitShow, type KitState } from "./cgtKit.ts";

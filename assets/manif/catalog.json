@@ -2626,5 +2626,15 @@
     "animations": [],
     "triangles": 506,
     "source": "assets/manif/sources/accessoires-v01/barbecue/barbecue.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "water-gun",
+    "url": "/models/manif/accessoires-v01/water-gun/water-gun.glb",
+    "bytes": 21744,
+    "sha256": "40c8283eb4a64400276773ab0f7bea43059a50a458e6fae2de08f9e8b67bad19",
+    "animations": [],
+    "triangles": 312,
+    "source": "assets/manif/sources/accessoires-v01/water-gun/water-gun.blend"
   }
 ]
