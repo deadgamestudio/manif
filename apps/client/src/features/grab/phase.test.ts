@@ -19,7 +19,7 @@ describe("grab phases", () => {
   });
 
   test("seize straight into the ground grab when the drag is already on, then the drag loop", () => {
-    expect(run(startPhase(false), 3, 2.3)[1]).toEqual(["seize", "groundGrab", "drag"]);
+    expect(run(startPhase(false), 3, 2.3)[1]).toEqual(["seize", "takeDown", "drag"]);
   });
 
   test("grabbed lying down: straight to the ground grab, then the drag", () => {
@@ -28,7 +28,7 @@ describe("grab phases", () => {
 
   test("a hold turns into the ground grab once the CRS walks", () => {
     const [held] = run(startPhase(false), 2, 0);
-    expect(run(held, 2, 2)[1]).toEqual(["hold", "groundGrab", "drag"]);
+    expect(run(held, 2, 2)[1]).toEqual(["hold", "takeDown", "drag"]);
   });
 
   test("on the ground it stays on the ground, even stopped at the van", () => {
@@ -43,6 +43,8 @@ describe("grab phases", () => {
   });
 
   test("the drag loop plays at the measured speed, clamped", () => {
+    expect(phaseTimeScale("drag", 2.3)).toBeGreaterThan(0.9);
+    expect(phaseTimeScale("drag", 2.3)).toBeLessThan(1.1);
     expect(phaseTimeScale("drag", DRAG_AUTHORED_SPEED * 2)).toBeCloseTo(2);
     expect(phaseTimeScale("drag", 50)).toBe(DRAG_SCALE_MAX);
     expect(phaseTimeScale("drag", 0)).toBe(DRAG_SCALE_MIN);

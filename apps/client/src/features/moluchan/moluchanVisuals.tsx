@@ -5,8 +5,8 @@
  * MoluchanView. A caricature: no face, no logo, no party colours beyond the
  * scarf.
  *
- * Jordan has not made Moluchan yet (#28). Until he does, the stand-in is the
- * neutral protester body 1.3 times as big with the megaphone model in his
+ * The revised Moluchan model (#28) replaces the
+ * neutral stand-in, with its own scarf and megaphone pose. The megaphone stays in his
  * hand, on the protester idle and walk clips; the primitives show while it
  * loads, and for good if it fails.
  *
@@ -58,7 +58,7 @@ export const MOLUCHAN_LOOK = {
 } as const;
 
 /** The stand-in body (#28): the neutral protester, this much bigger (his radius against a protester's). */
-const STAND_IN_SCALE = 1.3;
+const MODEL_SCALE = 1.3;
 /** Where the megaphone's grip (its `prise-main` node) sits in the model, to put it in the hand. */
 const MEGAPHONE_GRIP: readonly [number, number, number] = [0, -0.115, 0.096];
 const MEGAPHONE_HAND = "socket_hand_L";
@@ -69,7 +69,7 @@ const MEGAPHONE_HAND = "socket_hand_L";
  * plays its clips instead).
  */
 export function MoluchanModel({ megaphoneArm, freeArm }: { megaphoneArm: RefObject<Group | null>; freeArm: RefObject<Group | null> }) {
-  const model = useProtesterBody(MODELS.characters.neutral);
+  const model = useProtesterBody(MODELS.characters.moluchan);
   const megaphone = useStaticModel(MODELS.props.megaphone);
   const hand = useMemo(() => model?.root.getObjectByName(MEGAPHONE_HAND) ?? null, [model]);
   const motion = useMemo(() => (model ? new BodyMotion(model.animator) : null), [model]);
@@ -86,7 +86,7 @@ export function MoluchanModel({ megaphoneArm, freeArm }: { megaphoneArm: RefObje
     last.copy(here);
     const grabbed = net.getMoluchanPhase() === MoluchanPhase.Grabbed;
     // His stride is 1.3 times a protester's, so the same speed is a slower walk.
-    const pace = speed.current / STAND_IN_SCALE;
+    const pace = speed.current / MODEL_SCALE;
     const clip = grabbed ? "air-flail" : pace >= MOVE_FROM ? "walk" : "idle";
     motion.drive({ name: clip, hold: false, timeScale: clip === "walk" ? Math.min(1.8, Math.max(0.6, pace / WALK_AUTHORED_SPEED)) : 1 }, pace);
     motion.tick(dt, true);
@@ -94,7 +94,7 @@ export function MoluchanModel({ megaphoneArm, freeArm }: { megaphoneArm: RefObje
 
   if (model) {
     return (
-      <group ref={anchor} scale={STAND_IN_SCALE}>
+      <group ref={anchor} scale={MODEL_SCALE}>
         <primitive object={model.root} dispose={null} />
         {hand &&
           megaphone &&

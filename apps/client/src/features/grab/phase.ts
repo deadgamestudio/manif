@@ -21,7 +21,7 @@
  * phase it returns.
  */
 
-export type GrabPhase = "seize" | "hold" | "groundGrab" | "drag";
+export type GrabPhase = "seize" | "hold" | "takeDown" | "groundGrab" | "drag";
 
 /** Two paired clips, one for each body, and how they play. */
 export interface PairClips {
@@ -36,6 +36,7 @@ export interface PairClips {
 export const PHASE_CLIPS: Readonly<Record<GrabPhase, PairClips>> = {
   seize: { crs: "seize-rest", victim: "seized-rest", loop: false, stance: "standing" },
   hold: { crs: "hold-loop", victim: "held-loop", loop: true, stance: "standing" },
+  takeDown: { crs: "take-down", victim: "taken-down", loop: false, stance: "ground" },
   groundGrab: { crs: "ground-grab", victim: "ground-grabbed", loop: false, stance: "ground" },
   drag: { crs: "ground-drag", victim: "ground-dragged", loop: true, stance: "ground" },
 };
@@ -54,8 +55,8 @@ export const SEIZE_SCALE = 1.6;
 export const GROUND_GRAB_SCALE = 2;
 /** Above this pair speed (m/s) the drag is on. The server's drag walks at about 2.3 m/s. */
 export const MOVING_FROM = 0.5;
-/** ground-drag's walk as authored, m/s (LIRE-MOI: about 0.24 to 0.27). */
-export const DRAG_AUTHORED_SPEED = 0.26;
+/** Revised 0.5 s ground-drag cycle, target ground speed in m/s. */
+export const DRAG_AUTHORED_SPEED = 2.4;
 /** The drag loop's speed-up, clamped: past it the feet slide (the server drags about 9× faster than authored). */
 export const DRAG_SCALE_MIN = 0.2;
 export const DRAG_SCALE_MAX = 4;
@@ -76,6 +77,8 @@ export function phaseTimeScale(phase: GrabPhase, speed: number): number {
   switch (phase) {
     case "seize":
       return SEIZE_SCALE;
+    case "takeDown":
+      return 1;
     case "groundGrab":
       return GROUND_GRAB_SCALE;
     case "hold":
@@ -98,10 +101,15 @@ export function stepPhase(s: PhaseState, dt: number, speed: number): PhaseState 
         s.t = t;
         return s;
       }
-      return { phase: moving ? "groundGrab" : "hold", t: 0 };
+      return { phase: moving ? "takeDown" : "hold", t: 0 };
     }
     case "hold":
-      return moving ? { phase: "groundGrab", t: 0 } : s;
+      return moving ? { phase: "takeDown", t: 0 } : s;
+    case "takeDown": {
+      const t = s.t + dt;
+      if (t < 0.75) { s.t = t; return s; }
+      return { phase: "drag", t: 0 };
+    }
     case "groundGrab": {
       const t = s.t + dt * GROUND_GRAB_SCALE;
       if (t < GROUND_GRAB_LENGTH) {

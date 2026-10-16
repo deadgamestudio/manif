@@ -2666,5 +2666,605 @@
     "animations": [],
     "triangles": 486,
     "source": "assets/manif/sources/accessoires-v01/riot-helmet/riot-helmet.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "moluchan",
+    "url": "/models/manif/correctifs-15-octobre/characters/moluchan/moluchan.glb",
+    "bytes": 154016,
+    "sha256": "cf3e0f461b766217e69d62bdea61ac7bc14f862a89f1fb78f817ae8a9a50e4a0",
+    "animations": [
+      "air-flail",
+      "idle",
+      "walk"
+    ],
+    "triangles": 2278,
+    "source": "assets/manif/sources/correctifs-15-octobre/characters/moluchan/moluchan.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceen-hoodie-arm",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceen-hoodie-arm/crs-lyceen-hoodie-arm.glb",
+    "bytes": 162748,
+    "sha256": "3f16dcf3cefeca95b2610e3aa36f61d645693a15dafdd4b57176ad5409854438",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceen-hoodie-arm/crs-lyceen-hoodie-arm.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceen-hoodie-collar",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceen-hoodie-collar/crs-lyceen-hoodie-collar.glb",
+    "bytes": 162748,
+    "sha256": "56dfaaedbfe0db21df92cf88f24a2d6624f3c5331060c016102ecaf5dc4ebe3a",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceen-hoodie-collar/crs-lyceen-hoodie-collar.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceen-hoodie-leg",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceen-hoodie-leg/crs-lyceen-hoodie-leg.glb",
+    "bytes": 163160,
+    "sha256": "8292899045237dd8f791f63283cdbeac232430d39d01015a6b363f28cd870573",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceen-hoodie-leg/crs-lyceen-hoodie-leg.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceen-maillot-arm",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceen-maillot-arm/crs-lyceen-maillot-arm.glb",
+    "bytes": 162608,
+    "sha256": "d53f0995cc037dfb1422cb4db03cd4455eea804dfd1b1dd237c177b7250b5548",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceen-maillot-arm/crs-lyceen-maillot-arm.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceen-maillot-collar",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceen-maillot-collar/crs-lyceen-maillot-collar.glb",
+    "bytes": 163024,
+    "sha256": "af523fa4c2b70ca44572a27aa9e9cb12af1d5e917dfedcea18d7e4fb1365cc20",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceen-maillot-collar/crs-lyceen-maillot-collar.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceen-maillot-leg",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceen-maillot-leg/crs-lyceen-maillot-leg.glb",
+    "bytes": 162884,
+    "sha256": "4a5be9fc085bc415233564e8f9a71400820ff67c85c6a34abda1055db3b6f4d9",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceen-maillot-leg/crs-lyceen-maillot-leg.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceenne-coupe-vent-arm",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceenne-coupe-vent-arm/crs-lyceenne-coupe-vent-arm.glb",
+    "bytes": 163024,
+    "sha256": "132c01a3c55fc471c233aa93c1dddbc7678184fc8575048df13e2fd004237ba3",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceenne-coupe-vent-arm/crs-lyceenne-coupe-vent-arm.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceenne-coupe-vent-collar",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceenne-coupe-vent-collar/crs-lyceenne-coupe-vent-collar.glb",
+    "bytes": 162748,
+    "sha256": "31aae8b28fb6faa05d2182d0d0db2974c0c787ddac34b93007e6cd5b9f2f9060",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceenne-coupe-vent-collar/crs-lyceenne-coupe-vent-collar.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceenne-coupe-vent-leg",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceenne-coupe-vent-leg/crs-lyceenne-coupe-vent-leg.glb",
+    "bytes": 162748,
+    "sha256": "5ee7ae7156026233cb164941a3c003cce35d53eb473925a42bee1d23c9340191",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceenne-coupe-vent-leg/crs-lyceenne-coupe-vent-leg.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceenne-sweat-arm",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceenne-sweat-arm/crs-lyceenne-sweat-arm.glb",
+    "bytes": 163244,
+    "sha256": "f4176af5e69a5939829953bc2f61a3df36cb5159efed174e18690404a8f162fb",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceenne-sweat-arm/crs-lyceenne-sweat-arm.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceenne-sweat-collar",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceenne-sweat-collar/crs-lyceenne-sweat-collar.glb",
+    "bytes": 163384,
+    "sha256": "e8576e4c4a692482e5871e0905b5da66b23807af3673e099b8a1201b738b3fe2",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceenne-sweat-collar/crs-lyceenne-sweat-collar.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-lyceenne-sweat-leg",
+    "url": "/models/manif/correctifs-15-octobre/drag/crs-lyceenne-sweat-leg/crs-lyceenne-sweat-leg.glb",
+    "bytes": 163384,
+    "sha256": "004573eda567c18001c5de6c67dcbbe23c4a02e012ba64eba1b18d209b9ad469",
+    "animations": [
+      "ground-drag",
+      "ground-grab"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/crs-lyceenne-sweat-leg/crs-lyceenne-sweat-leg.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceen-hoodie-arm",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceen-hoodie-arm/lyceen-hoodie-arm.glb",
+    "bytes": 149192,
+    "sha256": "0c8467387870370506280afcdee33ad31502ebb300eaa3b20f3b21878777075a",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceen-hoodie-arm/lyceen-hoodie-arm.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceen-hoodie-collar",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceen-hoodie-collar/lyceen-hoodie-collar.glb",
+    "bytes": 157820,
+    "sha256": "59cdef19ff5f8502263b7dc9abd945a30efae17949d11659f4dc837fb39f3a5b",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceen-hoodie-collar/lyceen-hoodie-collar.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceen-hoodie-leg",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceen-hoodie-leg/lyceen-hoodie-leg.glb",
+    "bytes": 153008,
+    "sha256": "4d000e14eefa8b82eba56bf0f300e027f7dd0294e930188707a6b86e9bd6003b",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceen-hoodie-leg/lyceen-hoodie-leg.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceen-maillot-arm",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceen-maillot-arm/lyceen-maillot-arm.glb",
+    "bytes": 151364,
+    "sha256": "409acbe4ac9ec84d39c96e9e12c70471eedde7702a14fc31b9bacf2be7899188",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceen-maillot-arm/lyceen-maillot-arm.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceen-maillot-collar",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceen-maillot-collar/lyceen-maillot-collar.glb",
+    "bytes": 159988,
+    "sha256": "b0bc4e76142af644c56a160c37c7b51ce2834266e83cc3dd4f30bec9e6e079dd",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceen-maillot-collar/lyceen-maillot-collar.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceen-maillot-leg",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceen-maillot-leg/lyceen-maillot-leg.glb",
+    "bytes": 155176,
+    "sha256": "c4747a4130ab1236c59f1f8e7794e9ba962eb4453e2789a05c575713b0ab95e0",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceen-maillot-leg/lyceen-maillot-leg.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceenne-coupe-vent-arm",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceenne-coupe-vent-arm/lyceenne-coupe-vent-arm.glb",
+    "bytes": 152848,
+    "sha256": "3dd05963fd8e86ba288a614c1a07b2da61f204511fcddb103907066a0ef7c746",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceenne-coupe-vent-arm/lyceenne-coupe-vent-arm.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceenne-coupe-vent-collar",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceenne-coupe-vent-collar/lyceenne-coupe-vent-collar.glb",
+    "bytes": 161472,
+    "sha256": "dae870d01f649c7c76ce576508cce7755d4b01b55c6a07ae38f5639a01422d08",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceenne-coupe-vent-collar/lyceenne-coupe-vent-collar.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceenne-coupe-vent-leg",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceenne-coupe-vent-leg/lyceenne-coupe-vent-leg.glb",
+    "bytes": 156664,
+    "sha256": "1bc7e31550bde0fef2b7a136c8af0eec97fe56d1f5142b610d1874eb55cc00e5",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceenne-coupe-vent-leg/lyceenne-coupe-vent-leg.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceenne-sweat-arm",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceenne-sweat-arm/lyceenne-sweat-arm.glb",
+    "bytes": 154472,
+    "sha256": "56cc68beb1c55feaa4b1bdc833ac34ee38d00077a130692889768474bc620a55",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceenne-sweat-arm/lyceenne-sweat-arm.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceenne-sweat-collar",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceenne-sweat-collar/lyceenne-sweat-collar.glb",
+    "bytes": 160588,
+    "sha256": "3ee5bfed68931853e6b37274a7ee275658e44708719fc56a308fe3ae7f104064",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceenne-sweat-collar/lyceenne-sweat-collar.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceenne-sweat-leg",
+    "url": "/models/manif/correctifs-15-octobre/drag/lyceenne-sweat-leg/lyceenne-sweat-leg.glb",
+    "bytes": 157872,
+    "sha256": "a6b188340eb67a38ec9be321c90d745fcda148fd2ebfdb678069e3b8553ed049",
+    "animations": [
+      "ground-dragged",
+      "ground-grabbed"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/correctifs-15-octobre/drag/lyceenne-sweat-leg/lyceenne-sweat-leg.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceen-hoodie",
+    "url": "/models/manif/correctifs-15-octobre/locomotion/lyceen-hoodie/lyceen-hoodie.glb",
+    "bytes": 418864,
+    "sha256": "c36ffe5b05584f3eb5fc4e47c62ca999e62559c947e9d670525b282d80dab603",
+    "animations": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/correctifs-15-octobre/locomotion/lyceen-hoodie/lyceen-hoodie.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceen-maillot",
+    "url": "/models/manif/correctifs-15-octobre/locomotion/lyceen-maillot/lyceen-maillot.glb",
+    "bytes": 420072,
+    "sha256": "a73a272c764f662ef3a89107ea3a65c9f6567e57f210a4f2ae17983dba89e686",
+    "animations": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/correctifs-15-octobre/locomotion/lyceen-maillot/lyceen-maillot.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceenne-coupe-vent",
+    "url": "/models/manif/correctifs-15-octobre/locomotion/lyceenne-coupe-vent/lyceenne-coupe-vent.glb",
+    "bytes": 422380,
+    "sha256": "43da1f59623f3a19fee8075c3eef28951391e6756405167c6143f35dfd9680d9",
+    "animations": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/correctifs-15-octobre/locomotion/lyceenne-coupe-vent/lyceenne-coupe-vent.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "lyceenne-sweat",
+    "url": "/models/manif/correctifs-15-octobre/locomotion/lyceenne-sweat/lyceenne-sweat.glb",
+    "bytes": 420676,
+    "sha256": "e8d5a065deb933fb1a6bdd41cfa3db4908efcf71651d0b48760ca6a569a617c9",
+    "animations": [
+      "air-flail",
+      "carried-overhead",
+      "carry-heavy",
+      "carry-light",
+      "carry-overhead",
+      "celebrate",
+      "clumsy-dive",
+      "gas-cough",
+      "get-up",
+      "idle",
+      "knockdown",
+      "melee-swing",
+      "on-fire-run",
+      "panic-run",
+      "pat-out",
+      "pick-up",
+      "rescue-pull",
+      "throw",
+      "walk"
+    ],
+    "triangles": 2950,
+    "source": "assets/manif/sources/correctifs-15-octobre/locomotion/lyceenne-sweat/lyceenne-sweat.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "bin-broken",
+    "url": "/models/manif/correctifs-15-octobre/models/bin-broken/bin-broken.glb",
+    "bytes": 15000,
+    "sha256": "54faaed79c3a2665bc3571a4364737255d1033fa8c3e592efd43612002bba415",
+    "animations": [],
+    "triangles": 526,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/bin-broken/bin-broken.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "bin-burning",
+    "url": "/models/manif/correctifs-15-octobre/models/bin-burning/bin-burning.glb",
+    "bytes": 25896,
+    "sha256": "899e5d4e5b70089b638faa6f1dee269c923297d819e8ab60069b9c157e534263",
+    "animations": [],
+    "triangles": 876,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/bin-burning/bin-burning.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "bin-charred",
+    "url": "/models/manif/correctifs-15-octobre/models/bin-charred/bin-charred.glb",
+    "bytes": 15064,
+    "sha256": "57f4e37737206a2b69e3d892b9a544f9615064564026bf3fdefb3227d0e362f7",
+    "animations": [],
+    "triangles": 526,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/bin-charred/bin-charred.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "bin-intact",
+    "url": "/models/manif/correctifs-15-octobre/models/bin-intact/bin-intact.glb",
+    "bytes": 22212,
+    "sha256": "d3a9177ff6a148027b2e1abaed09e30561f50d3ca70bedf336ff7d30975d2c4d",
+    "animations": [],
+    "triangles": 852,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/bin-intact/bin-intact.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "car-burning",
+    "url": "/models/manif/correctifs-15-octobre/models/car-burning/car-burning.glb",
+    "bytes": 26724,
+    "sha256": "a9afb837082a2c2fe5ff1beb4f5ac1ae36d17fba2cb364ebd9095c0b780cb92a",
+    "animations": [],
+    "triangles": 860,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/car-burning/car-burning.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "fire-truck",
+    "url": "/models/manif/correctifs-15-octobre/models/fire-truck/fire-truck.glb",
+    "bytes": 103788,
+    "sha256": "317888ea83b55b6fe14c919ca64627634bb946d278c6da66bdf7ff1f94b12123",
+    "animations": [],
+    "triangles": 3416,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/fire-truck/fire-truck.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "fire-truck-open",
+    "url": "/models/manif/correctifs-15-octobre/models/fire-truck-open/fire-truck-open.glb",
+    "bytes": 103704,
+    "sha256": "978952d7e449b5fb2f01c81429fb50bb1b2f5c4d29aa026413e46bdcd0a92040",
+    "animations": [],
+    "triangles": 3416,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/fire-truck-open/fire-truck-open.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "pavement-kit",
+    "url": "/models/manif/correctifs-15-octobre/models/pavement-kit/pavement-kit.glb",
+    "bytes": 3524,
+    "sha256": "4de633e26fa12a122de7db09d37741ed51edc236d7b32f81e04b47749b29e3a4",
+    "animations": [],
+    "triangles": 56,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/pavement-kit/pavement-kit.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "police-van",
+    "url": "/models/manif/correctifs-15-octobre/models/police-van/police-van.glb",
+    "bytes": 45076,
+    "sha256": "ac15c6d59203ccfabe72926cb572901a195b3285000f93e0eb51d3d67e518912",
+    "animations": [],
+    "triangles": 1800,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/police-van/police-van.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "prefecture-forecourt",
+    "url": "/models/manif/correctifs-15-octobre/models/prefecture-forecourt/prefecture-forecourt.glb",
+    "bytes": 101440,
+    "sha256": "a39f776f06f381f6c992b0f642735cf0759f6bc4da31077d7029e9efec82176b",
+    "animations": [],
+    "triangles": 720,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/prefecture-forecourt/prefecture-forecourt.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "shop-front-neutral",
+    "url": "/models/manif/correctifs-15-octobre/models/shop-front-neutral/shop-front-neutral.glb",
+    "bytes": 5424,
+    "sha256": "286aa22a9b38d20d173902b9a45de5d331dfa83318b92194f0bd63d045296402",
+    "animations": [],
+    "triangles": 36,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/shop-front-neutral/shop-front-neutral.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "shop-window-clear-broken",
+    "url": "/models/manif/correctifs-15-octobre/models/shop-window-clear-broken/shop-window-clear-broken.glb",
+    "bytes": 8880,
+    "sha256": "1135227c6821567f43cf2e0b72be79816bbb4f4eee9d629219b8dfe9a9685942",
+    "animations": [],
+    "triangles": 60,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/shop-window-clear-broken/shop-window-clear-broken.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "van-target-marker",
+    "url": "/models/manif/correctifs-15-octobre/models/van-target-marker/van-target-marker.glb",
+    "bytes": 3360,
+    "sha256": "ed9101e733ea2898a272b7987a8e042d1568de36b60eb7d9f8136b115c1a6217",
+    "animations": [],
+    "triangles": 20,
+    "source": "assets/manif/sources/correctifs-15-octobre/models/van-target-marker/van-target-marker.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "crs-takedown",
+    "url": "/models/manif/correctifs-15-octobre/transition/crs-takedown/crs-takedown.glb",
+    "bytes": 141732,
+    "sha256": "5b103a7a4c1d1f455812db55fb81ea448d73acc0c0d6fa518fb56311b84be643",
+    "animations": [
+      "take-down"
+    ],
+    "triangles": 2722,
+    "source": "assets/manif/sources/correctifs-15-octobre/transition/crs-takedown/crs-takedown.blend"
+  },
+  {
+    "batch": "correctifs-15-octobre",
+    "asset": "victim-takedown",
+    "url": "/models/manif/correctifs-15-octobre/transition/victim-takedown/victim-takedown.glb",
+    "bytes": 143356,
+    "sha256": "485ca272adab1b4f63a211e986da286d679c85061db232a41c941a931a19eb2b",
+    "animations": [
+      "taken-down"
+    ],
+    "triangles": 2942,
+    "source": "assets/manif/sources/correctifs-15-octobre/transition/victim-takedown/victim-takedown.blend"
   }
 ]

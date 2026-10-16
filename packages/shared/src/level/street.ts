@@ -82,6 +82,10 @@ const boxes: BoxObstacle[] = [
   box("start-wall", "wall", -FAR, FAR, START_Z, START_Z + 2, 2),
   // The goal. Its front face is the end of the street bounds.
   box("prefecture", "prefecture", -FAR - 2, FAR + 2, END_Z - 14, END_Z, 14),
+  // The forecourt model's stone bases and railings; the whole front stays open.
+  box("forecourt-left", "barrier", -9, -8, -100, -92, 1.5),
+  box("forecourt-right", "barrier", 8, 9, -100, -92, 1.5),
+  box("forecourt-rear", "barrier", -5, 5, -100, -99, 1.9),
 
   // Newspaper kiosks: big, square, good to hide behind.
   box("kiosk-1", "kiosk", -5, -3, 49, 51, 2.6),

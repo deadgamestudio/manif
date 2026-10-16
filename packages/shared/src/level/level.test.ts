@@ -102,6 +102,13 @@ describe("street level data", () => {
     expect(pref.x - pref.halfX).toBeLessThanOrEqual(L.bounds.minX);
     expect(pref.x + pref.halfX).toBeGreaterThanOrEqual(L.bounds.maxX);
   });
+
+  test("forecourt rail bases block the sides while leaving the approach open", () => {
+    expect(circleOverlaps(world, -8.5, -96, PLAYER_RADIUS)).toBe(true);
+    expect(circleOverlaps(world, 8.5, -96, PLAYER_RADIUS)).toBe(true);
+    expect(circleOverlaps(world, 0, -99.5, PLAYER_RADIUS)).toBe(true);
+    for (let z = -92; z >= -98; z -= 0.25) expect(circleOverlaps(world, 0, z, PLAYER_RADIUS)).toBe(false);
+  });
 });
 
 describe("progress axis", () => {
