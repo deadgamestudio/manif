@@ -20,6 +20,7 @@ export * from "./pompier/index.js";
 export * from "./archetype/index.js";
 export * from "./score/index.js";
 export * from "./bot/index.js";
+export * from "./cameo/index.js";
 export * from "./moluchan/index.js";
 export * from "./douane/index.js";
 export * from "./benanas/index.js";

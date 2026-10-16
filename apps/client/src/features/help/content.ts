@@ -300,12 +300,17 @@ export interface MoluchanCard {
   tip: string;
 }
 
+/** How often a cameo comes (#132): its chance once a minute of march, one visit a round at most. */
+function cameoOdds(chance: number): string {
+  return `Rare (${Math.round(chance * 100)} % de chances à chaque minute de manche, une visite par manche au plus)`;
+}
+
 /** The rare guest on the protesters' side (#85), from MOLUCHAN. A caricature: no real quote. */
 export function moluchanCard(): MoluchanCard {
   return {
     icon: "📣",
     name: "Jeun-Lac Moluchan",
-    what: `Rare (environ ${Math.round(MOLUCHAN.chance * 100)} % des manches) : il débarque en plein cortège, mégaphone à la main, et reste ${duration(MOLUCHAN.duration)}. Dans son cercle rouge au sol, on marche plus vite, on se débat plus vite quand on est attrapé·e, et on récupère des PV doucement.`,
+    what: `${cameoOdds(MOLUCHAN.chance)} : il débarque en plein cortège, mégaphone à la main, et reste ${duration(MOLUCHAN.duration)}. Dans son cercle rouge au sol, on marche plus vite, on se débat plus vite quand on est attrapé·e, et on récupère des PV doucement.`,
     chips: [
       { text: `Vitesse ${percent(MOLUCHAN.speedFactor)}`, good: true },
       { text: `Se débat ×${num(MOLUCHAN.struggleFactor)}`, good: true },
@@ -322,7 +327,7 @@ export function douaneCard(): MoluchanCard {
   return {
     icon: "💦",
     name: "La Douane",
-    what: `Rare (environ ${Math.round(DOUANE.chance * 100)} % des manches) : un gamin débarque d'une rue de côté avec un énorme pistolet à eau et arrose le plus proche, manifestant·e ou CRS, sans choisir son camp. Il reste ${duration(DOUANE.duration)}, puis rentre chez lui.`,
+    what: `${cameoOdds(DOUANE.chance)} : un gamin débarque d'une rue de côté avec un énorme pistolet à eau et arrose le plus proche, manifestant·e ou CRS, sans choisir son camp. Il reste ${duration(DOUANE.duration)}, puis rentre chez lui.`,
     chips: [
       { text: "Pousse, sans faire tomber", good: false },
       { text: "Éteint les feux", good: true },
@@ -340,7 +345,7 @@ export function benanasCard(): MoluchanCard {
   return {
     icon: "🪖",
     name: "Alexandre Bénanas",
-    what: `Rare (environ ${Math.round(BENANAS.chance * 100)} % des manches) : un type en casque et sweat gris, brassard « POLICE », mais sans uniforme ni bouclier, arrive d'une rue de côté derrière les CRS. Il s'en prend aux manifestant·es isolé·es et les met par terre, puis passe à un·e autre. Il n'arrête personne.`,
+    what: `${cameoOdds(BENANAS.chance)} : un type en casque et sweat gris, brassard « POLICE », mais sans uniforme ni bouclier, arrive d'une rue de côté derrière les CRS. Il s'en prend aux manifestant·es isolé·es et les met par terre, puis passe à un·e autre. Il n'arrête personne.`,
     chips: [
       { text: "Renverse, −" + BENANAS.hitDamage + " PV", good: false },
       { text: `${BENANAS.hp} coups et il est démasqué`, good: true },

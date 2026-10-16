@@ -8,10 +8,11 @@ import {
   JetPushes,
   JetSoak,
   aimJet,
-  douaneDue,
+  cameoArrives,
   douaneEntry,
   douaneExit,
   douaneGoal,
+  freshCameoSchedule,
   freshSprayClock,
   hasLineOfSight,
   inJet,
@@ -20,10 +21,10 @@ import {
   pickDouaneLine,
   pickDouaneTarget,
   resolveCircle,
-  rollDouane,
   steerTo,
   stepSprayClock,
   truckBays,
+  type CameoSchedule,
   type CollisionWorld,
   type DouaneLineKind,
   type Level,
@@ -35,6 +36,7 @@ import {
   type Vec2,
   type WaterJet,
 } from "@manif/shared";
+import { CameoStage } from "../cameo/index.js";
 import { DouaneView } from "./schema.js";
 
 /** A body his water may reach this tick: a protester (not arrested) or a police bot (not out). */
@@ -67,6 +69,9 @@ export interface DouaneHost {
 export interface DouaneTick {
   now: number;
   dt: number;
+  /** Seconds of march so far and left (`Round.elapsed`, `Round.timeLeft`): the clock of the arrival roll (#132). */
+  elapsed: number;
+  timeLeft: number;
   /** The cortège's front, 0..1. */
   front: number;
   /** The back of the cortège, where he comes in when no side street fits. */
@@ -82,7 +87,7 @@ interface Visit {
   goal: Vec2;
   goalAt: number;
   targetId: string | null;
-  lineAt: number;
+  /** The last line he said (index into DOUANE_LINES); shown only while the stage gives him the bubble. */
   line: number;
   gun: SprayClock;
   /** Facing, radians (0 faces +Z). */
@@ -91,19 +96,22 @@ interface Visit {
 }
 
 /**
- * La Douane (#120), server-side: the roll at the start of a round, his
- * arrival when the front reaches the rolled point, his walk towards whoever
- * is closest (protester or CRS), the water gun in bursts, his lines, and his
- * walk home. Mirrors what clients draw into `state.douane`.
+ * La Douane (#120), server-side: the roll each minute of march (#132), his
+ * arrival, his walk towards whoever is closest (protester or CRS), the water
+ * gun in bursts, his lines (in turn with the other cameos, `CameoStage`), and
+ * his walk home. Mirrors what clients draw into `state.douane`.
  *
  * He is nobody's target: never in `state.players`, never shown to the CRS,
  * not a body in anyone's collision world. So no baton, grab, punch, throw
  * or LBD ball can reach him, and he counts for no score and no round end.
  */
 export class DouaneEvent {
-  private plan: number | null = null;
+  /** This round's arrival roll (#132), null between rounds. */
+  private schedule: CameoSchedule | null = null;
   private visit: Visit | null = null;
   private duration: number = DOUANE.duration;
+  /** Room time of the last call that moved the event on, for the synced line. */
+  private now = 0;
   private readonly doors: Vec2[];
   private readonly soak = new JetSoak();
   private readonly pushes = new JetPushes();
@@ -116,22 +124,24 @@ export class DouaneEvent {
     private readonly obstacles: Obstacles,
     private readonly random: () => number = Math.random,
     private readonly log: (message: string) => void = () => {},
+    /** The speaking turn shared with the other cameos (#132). */
+    private readonly stage: CameoStage = new CameoStage(random),
   ) {
     this.doors = truckBays(level, DOUANE.radius).map((b) => b.door);
+    this.stage.watch(() => this.sync());
   }
 
-  /** A new round: nobody on the street, and the roll for this one. Returns the arrival point, or null. */
-  startRound(): number | null {
+  /** A new round: nobody on the street, and his rolls start (one a minute of march, #132). */
+  startRound(): void {
     this.clear();
-    this.plan = rollDouane(this.random);
-    if (this.plan !== null) this.log(`douane: rolled, arrives at ${Math.round(this.plan * 100)}%`);
-    return this.plan;
+    this.schedule = freshCameoSchedule();
   }
 
   /** Nobody on the street and no visit planned. */
   clear(): void {
-    this.plan = null;
+    this.schedule = null;
     this.visit = null;
+    this.stage.hush(DOUANE_ID, this.now);
     this.duration = DOUANE.duration;
     this.soak.clear();
     this.pushes.clear();
@@ -151,7 +161,9 @@ export class DouaneEvent {
   /** DEBUG (#120): arrive now at `at` (or his usual way in), soaking for `seconds`. Ignored while he is already here. */
   force(tick: Pick<DouaneTick, "now" | "front" | "rear">, at?: Vec2, seconds?: number): boolean {
     if (this.visit) return false;
-    this.plan = null;
+    this.now = tick.now;
+    // A forced visit is this round's visit.
+    if (this.schedule) this.schedule.came = true;
     this.duration = seconds ?? DOUANE.duration;
     this.arrive(tick.now, at ?? douaneEntry(this.level, this.doors, tick.front, tick.rear));
     return true;
@@ -159,9 +171,9 @@ export class DouaneEvent {
 
   /** One tick: the arrival when due, then his walk, the water and the end of each phase. */
   step(tick: DouaneTick, host: DouaneHost): void {
+    this.now = tick.now;
     if (!this.visit) {
-      if (!douaneDue(this.plan, tick.front)) return;
-      this.plan = null;
+      if (!this.schedule || !cameoArrives(this.schedule, tick.elapsed, tick.timeLeft, DOUANE.duration, DOUANE.chance, this.random)) return;
       this.duration = DOUANE.duration;
       this.arrive(tick.now, douaneEntry(this.level, this.doors, tick.front, tick.rear));
     }
@@ -176,11 +188,12 @@ export class DouaneEvent {
       v.gun.on = false;
       v.targetId = null;
       v.agent.path = null;
-      this.say(v, "leave", now);
+      this.say(v, "leave", now, true);
       this.log("douane: leaving");
     } else if (v.phase === DouanePhase.Leaving && now >= v.until) {
       this.visit = null;
       this.views.clear();
+      this.stage.hush(DOUANE_ID, now);
       this.soak.clear();
       this.pushes.clear();
       return;
@@ -199,11 +212,11 @@ export class DouaneEvent {
       v.goal = target ? douaneGoal(b, target) : { x: b.x, z: b.z };
       const d = target ? Math.hypot(target.x - b.x, target.z - b.z) : Infinity;
       const ready = target !== null && d - target.r <= DOUANE.sprayFrom && hasLineOfSight(this.obstacles, b, target);
-      const wasOn = v.gun.on;
       stepSprayClock(v.gun, now, ready);
       if (target && d > 1e-6) v.rotation = Math.atan2(target.x - b.x, target.z - b.z);
       if (v.gun.on) {
-        if (!wasOn && now >= v.lineAt) this.say(v, "spray", now);
+        // He shouts while he fires, when the stage gives him a turn (#132).
+        this.say(v, "spray", now, false);
         this.jet = aimJet(b, target ?? b, v.rotation);
         this.spray(this.jet, bodies, now, tick.dt, host);
       }
@@ -268,20 +281,20 @@ export class DouaneEvent {
       goal: { x: body.x, z: body.z },
       goalAt: now,
       targetId: null,
-      lineAt: now,
       line: -1,
       gun: freshSprayClock(now),
       rotation: 0,
       skin: Math.min(DOUANE_SKINS - 1, Math.floor(this.random() * DOUANE_SKINS)),
     };
-    this.say(this.visit, "arrive", now);
+    this.say(this.visit, "arrive", now, true);
     this.log(`douane: arrives at x=${at.x.toFixed(1)} z=${at.z.toFixed(1)} for ${this.duration} s`);
     this.sync();
   }
 
-  private say(v: Visit, kind: DouaneLineKind, now: number): void {
+  /** A line of `kind`, if the stage gives him the bubble (`key`: a moment that always speaks, #132). */
+  private say(v: Visit, kind: DouaneLineKind, now: number, key: boolean): void {
+    if (!this.stage.say(DOUANE_ID, now, key)) return;
     v.line = pickDouaneLine(kind, v.line, this.random);
-    v.lineAt = now + DOUANE.lineInterval;
   }
 
   /** Mirror him into `state.douane` (only what changed is sent). */
@@ -299,7 +312,9 @@ export class DouaneEvent {
     view.z = b.z;
     if (Math.abs(v.rotation - view.rotation) > 0.01) view.rotation = v.rotation;
     if (view.phase !== v.phase) view.phase = v.phase;
-    if (view.line !== v.line) view.line = v.line;
+    // #132: -1 (no bubble) between his bursts, or while another cameo has the bubble.
+    const line = this.stage.showing(DOUANE_ID, this.now) ? v.line : -1;
+    if (view.line !== line) view.line = line;
     if (view.spraying !== v.gun.on) view.spraying = v.gun.on;
   }
 }

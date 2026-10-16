@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { MapSchema } from "@colyseus/schema";
 import {
+  CAMEO,
   CRS_STATS,
   CrsKind,
   MOLUCHAN,
@@ -8,6 +9,7 @@ import {
   MoluchanPhase,
   NavGrid,
   PlayerStatus,
+  ROUND_DURATION,
   STREET_LEVEL as LEVEL,
   TICK_DT,
   levelWorld,
@@ -27,32 +29,43 @@ function setup(random: () => number = () => 0) {
   const views = new MapSchema<MoluchanView>();
   const event = new MoluchanEvent(LEVEL, views, random);
   const crowd = [0, 1, -1, 2].map((side) => ({ ...at(0.4, side), status: PlayerStatus.Free }));
-  const tick = (now: number, front = 0.42): MoluchanTick => ({ now, dt: TICK_DT, front, protesters: crowd, rear: at(0.3), nav: NAV, world: WORLD });
+  // The march clock starts at the first roll, so a lucky roll brings him at now = 0.
+  const tick = (now: number, front = 0.42, elapsed = now + CAMEO.firstRoll): MoluchanTick => ({ now, dt: TICK_DT, elapsed, timeLeft: ROUND_DURATION - elapsed, front, protesters: crowd, rear: at(0.3), nav: NAV, world: WORLD });
   return { views, event, tick };
 }
 
 describe("Moluchan's visit (#85)", () => {
-  test("no roll, no visit; a roll arrives when the front reaches its point", () => {
+  test("a roll each minute of march (#132): unlucky rolls bring nobody, a lucky one brings him", () => {
     const quiet = setup(() => 0.99);
-    expect(quiet.event.startRound()).toBeNull();
-    quiet.event.step(quiet.tick(1, 0.6));
+    quiet.event.startRound();
+    for (let now = 0; now < 400; now += 0.5) quiet.event.step(quiet.tick(now));
     expect(quiet.views.size).toBe(0);
 
     const { views, event, tick } = setup(() => 0);
-    expect(event.startRound()).toBe(MOLUCHAN.earliest);
-    event.step(tick(1, 0.2));
+    event.startRound();
+    event.step(tick(1, 0.42, CAMEO.firstRoll - 0.5));
     expect(views.size).toBe(0);
-    event.step(tick(2, 0.3));
+    event.step(tick(2, 0.42, CAMEO.firstRoll));
     expect(views.get(MOLUCHAN_ID)?.phase).toBe(MoluchanPhase.Rallying);
     expect(event.view()?.priority).toBe(MOLUCHAN.targetWeight);
   });
 
-  test("rallies for its duration, leaves by a side street, then is gone; once a round", () => {
+  test("no visit with too little of the march left for his 30 s", () => {
+    const { views, event, tick } = setup(() => 0);
+    event.startRound();
+    event.step(tick(0, 0.42, ROUND_DURATION - MOLUCHAN.duration + 1));
+    expect(views.size).toBe(0);
+  });
+
+  test("rallies 30 s, leaves by a side street, then is gone; once a round", () => {
     const { views, event, tick } = setup();
     event.startRound();
     let now = 0;
     event.step(tick(now));
     expect(event.aura).not.toBeNull();
+    expect(MOLUCHAN.duration).toBe(30);
+    while (now < MOLUCHAN.duration - 0.1) event.step(tick((now += TICK_DT)));
+    expect(views.get(MOLUCHAN_ID)?.phase).toBe(MoluchanPhase.Rallying);
     while (now < MOLUCHAN.duration + 0.1) event.step(tick((now += TICK_DT)));
     expect(views.get(MOLUCHAN_ID)?.phase).toBe(MoluchanPhase.Leaving);
     // No ring while leaving, but still fair game for the CRS.
@@ -60,8 +73,8 @@ describe("Moluchan's visit (#85)", () => {
     expect(event.view()).toBeDefined();
     while (now < MOLUCHAN.duration + MOLUCHAN.leaveTimeout + 1) event.step(tick((now += TICK_DT)));
     expect(views.size).toBe(0);
-    // The front passing his point again brings nobody.
-    event.step(tick((now += 1), 0.5));
+    // The next minutes' rolls bring nobody: he came this round.
+    while (now < 200) event.step(tick((now += 0.5)));
     expect(views.size).toBe(0);
   });
 

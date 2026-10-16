@@ -11,12 +11,8 @@ export const BENANAS_ID = "benanas";
 
 export const BENANAS = {
   // --- When ---
-  /** Chance he shows up in a round, rolled once at the start of the march (on its own: Moluchan and La Douane have theirs). */
-  chance: 0.15,
-  /** He arrives the first time the cortège's front passes a point rolled in this range... */
-  earliest: 0.2,
-  /** ...and never past this one. */
-  latest: 0.8,
+  /** Chance he shows up, rolled once per minute of march until he has come (#132, see CAMEO). On his own: the others have theirs. */
+  chance: 0.1,
   /** How long he prowls before he walks off on his own, unless unmasked first. */
   duration: 50,
 
@@ -73,10 +69,6 @@ export const BENANAS = {
   hurtImpulse: 3,
   /** Unmasked, he stands this long (helmet off, shouting) before he runs. */
   unmaskedLinger: 1.2,
-
-  // --- His bubble ---
-  /** A new line no more often than this (one comes with a hit, a back-off, the unmasking). */
-  lineInterval: 3.5,
 } as const;
 
 /** What his speech bubble says, by moment of the event. */

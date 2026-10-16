@@ -100,14 +100,16 @@ describe("the help page can't drift from the game (#71)", () => {
       `Se débat ×${String(MOLUCHAN.struggleFactor).replace(".", ",")}`,
       `Soigne ${MOLUCHAN.healRate} PV/s`,
     ]);
-    expect(card.what).toContain(`${Math.round(MOLUCHAN.chance * 100)} %`);
+    // #132: a chance each minute, and his 30 s.
+    expect(card.what).toContain(`${Math.round(MOLUCHAN.chance * 100)} % de chances à chaque minute`);
+    expect(card.what).toContain("30 s");
     expect(card.tip).toContain("CRS");
   });
 
   test("La Douane's card (#120): only his meme name, his chance, no damage", () => {
     const card = douaneCard();
     expect(card.name).toBe("La Douane");
-    expect(card.what).toContain(`${Math.round(DOUANE.chance * 100)} %`);
+    expect(card.what).toContain(`${Math.round(DOUANE.chance * 100)} % de chances à chaque minute`);
     expect(card.chips.map((c) => c.text)).toContain("0 PV de dégâts");
     expect(card.tip).toContain("Personne ne peut le toucher");
   });
@@ -115,7 +117,7 @@ describe("the help page can't drift from the game (#71)", () => {
   test("Bénanas's card (#123): his mangled name, his chance, his hits, the bonus from the points table", () => {
     const card = benanasCard();
     expect(card.name).toBe("Alexandre Bénanas");
-    expect(card.what).toContain(`${Math.round(BENANAS.chance * 100)} %`);
+    expect(card.what).toContain(`${Math.round(BENANAS.chance * 100)} % de chances à chaque minute`);
     expect(card.what).toContain("n'arrête personne");
     expect(card.chips.map((c) => c.text)).toContain(`${BENANAS.hp} coups et il est démasqué`);
     expect(card.chips.map((c) => c.text)).toContain(`+${ACTION_POINTS.benanasUnmasked?.points} pts à chaque frappeur`);

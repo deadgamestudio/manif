@@ -10,14 +10,10 @@ export const MOLUCHAN_ID = "moluchan";
 
 export const MOLUCHAN = {
   // --- When ---
-  /** Chance he shows up in a round, rolled once at the start of the march. */
-  chance: 0.15,
-  /** He arrives the first time the cortège's front passes a point rolled in this range... */
-  earliest: 0.25,
-  /** ...and never past this one (a 45 s aura by the Préfecture would decide the round). */
-  latest: 0.75,
-  /** How long he stays, from his arrival to his last line. */
-  duration: 45,
+  /** Chance he shows up, rolled once per minute of march until he has come (#132, see CAMEO). */
+  chance: 0.1,
+  /** How long he rallies, from his arrival to his walk off (#132: 30 s, was 45). */
+  duration: 30,
 
   // --- The aura (free protesters within `auraRadius` of him, centre to centre) ---
   auraRadius: 6,
@@ -43,8 +39,6 @@ export const MOLUCHAN = {
   leaveTimeout: 12,
   /** Grabbed, he stays this long on the spot (with his last line) before he is gone. */
   grabbedLinger: 2,
-  /** A new line on his speech bubble this often. */
-  lineInterval: 4.5,
   /** A side street this far behind the front at most (in progress) may be his way in. */
   entryBehindMax: 0.2,
 

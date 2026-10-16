@@ -13,12 +13,8 @@ export const DOUANE_ID = "douane";
 
 export const DOUANE = {
   // --- When ---
-  /** Chance he shows up in a round, rolled once at the start of the march (on its own, Moluchan has his). */
-  chance: 0.2,
-  /** He arrives the first time the cortège's front passes a point rolled in this range... */
-  earliest: 0.15,
-  /** ...and never past this one. */
-  latest: 0.8,
+  /** Chance he shows up, rolled once per minute of march until he has come (#132, see CAMEO). On his own: the others have theirs. */
+  chance: 0.1,
   /** How long he stays, from his arrival to his walk home. */
   duration: 35,
 
@@ -47,8 +43,6 @@ export const DOUANE = {
   burst: 1.6,
   /** ...then he pauses at least this long (pumping, shouting) before the next. */
   pause: 2.4,
-  /** A new line on his speech bubble no more often than this (a new one comes with a burst). */
-  lineInterval: 3.5,
 } as const;
 
 /**
