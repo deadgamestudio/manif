@@ -10,6 +10,7 @@ import { TruckView } from "../features/pompier/index.js";
 import { MoluchanView } from "../features/moluchan/index.js";
 import { DouaneView } from "../features/douane/index.js";
 import { BenanasView } from "../features/benanas/index.js";
+import { LeZView } from "../features/lez/index.js";
 
 // The root room state. It composes the per-feature Schema classes and stays
 // with the room; features define their own pieces (see features/*/schema.ts).
@@ -39,6 +40,8 @@ export const StreetState = schema(
     douane: t.map(DouaneView),
     /** Alexandre Bénanas (#123), by BENANAS_ID: empty, or him while he is on the street (at most one). */
     benanas: t.map(BenanasView),
+    /** Le Z (#133), by LEZ_ID: empty, or him while he is on the street (at most one). */
+    lez: t.map(LeZView),
     /** Round phase (#12), see `Phase` in @manif/shared: waiting (the lobby screen), marching, ended. */
     phase: t.uint8().default(Phase.Waiting),
     /** Whole seconds left (#12): of the march while marching, of the end screen while ended. Changes once a second. */

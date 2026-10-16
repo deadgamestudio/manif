@@ -56,6 +56,15 @@ describe("parseDebugRound: benanas (#123)", () => {
   });
 });
 
+describe("parseDebugRound: lez (#133)", () => {
+  test("optional distance and seconds, clamped; chase only when true", () => {
+    expect(parseDebugRound({ action: "lez" })).toEqual({ action: "lez" });
+    expect(parseDebugRound({ action: "lez", distance: 4, seconds: 20, chase: true })).toEqual({ action: "lez", distance: 4, seconds: 20, chase: true });
+    expect(parseDebugRound({ action: "lez", distance: 99, seconds: 0, chase: "yes" })).toEqual({ action: "lez", distance: 20, seconds: 1 });
+    expect(taintsRound({ action: "lez" }, 100)).toBe(true);
+  });
+});
+
 describe("parseDebugRound: line (#131)", () => {
   test("break only when true; optional distance and size, clamped", () => {
     expect(parseDebugRound({ action: "line" })).toEqual({ action: "line" });

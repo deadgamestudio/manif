@@ -24,3 +24,4 @@ export * from "./cameo/index.js";
 export * from "./moluchan/index.js";
 export * from "./douane/index.js";
 export * from "./benanas/index.js";
+export * from "./lez/index.js";

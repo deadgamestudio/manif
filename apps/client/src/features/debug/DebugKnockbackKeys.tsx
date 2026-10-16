@@ -44,6 +44,10 @@ const ROUND_KEYS: Record<string, DebugRoundPayload> = {
   KeyN: { action: "benanas", distance: 5 },
   /** His helmet comes off now (#123), to see him run (brings him first if he isn't there). */
   KeyV: { action: "benanas", distance: 5, unmask: true },
+  /** Le Z (#133) turns up 5 m in front of you, whatever the roll, then walks to his spot behind the CRS. */
+  KeyZ: { action: "lez", distance: 5 },
+  /** He is chased off now (#133), to see him go (brings him first if he isn't there). */
+  KeyX: { action: "lez", distance: 5, chase: true },
   /** The street turns hot now (#98): the CRS stop escorting and chase anyone. */
   KeyU: { action: "hot" },
 };
@@ -92,7 +96,7 @@ export function DebugKnockbackKeys() {
   return (
     <div className="hud-debug">
       debug : K te renverse · J te pousse · L renverse le plus proche · H te blesse (−{DEBUG_DAMAGE}) · G te fait
-      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan · I fait venir La Douane · N fait venir Bénanas · V le démasque · B casse la boutique la plus proche et y entre
+      attraper · P saute à la Préfecture · T coupe le chrono à 10 s · Y éteint les feux autour · O fait venir Moluchan · I fait venir La Douane · N fait venir Bénanas · V le démasque · Z fait venir Le Z · X le chasse · B casse la boutique la plus proche et y entre
     </div>
   );
 }

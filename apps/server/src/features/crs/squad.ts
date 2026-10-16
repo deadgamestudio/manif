@@ -54,6 +54,7 @@ import {
   type CrsBehaviour,
   type CrsBot,
   type CrsContext,
+  type CrsRally,
   type CrsEffect,
   type CrsHitResult,
   type CrsHost,
@@ -187,6 +188,12 @@ export class CrsSquad {
   setFront(front: number): void {
     this.ctx.front = front;
     this.bikeCtx.front = front;
+  }
+
+  /** Le Z's ring (#133): bots inside walk and grab faster. Null: nobody fired up. From the next tick. */
+  setRally(rally: CrsRally | null): void {
+    this.ctx.rally = rally;
+    this.bikeCtx.rally = rally;
   }
 
   /** DEBUG (#131): break every formed shield line now, as if hit hard enough. Returns how many broke. */

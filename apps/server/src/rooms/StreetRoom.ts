@@ -116,6 +116,9 @@ import {
   isPolice,
   BENANAS,
   BENANAS_ID,
+  LEZ,
+  LEZ_ID,
+  leZProfiling,
   type ProtesterView,
   type ShoveEvent,
   type SwingEvent,
@@ -187,6 +190,7 @@ import { CameoStage } from "../features/cameo/index.js";
 import { MoluchanEvent } from "../features/moluchan/index.js";
 import { DouaneEvent, type DouaneHost, type SoakBody } from "../features/douane/index.js";
 import { BenanasEvent, type BenanasBody, type BenanasHost } from "../features/benanas/index.js";
+import { LeZEvent, type LeZHost } from "../features/lez/index.js";
 import { Bots, DIAG_ENABLED, TickStats, leftovers } from "../features/bot/index.js";
 import { CreateLimit, DEFAULT_CREATE_LIMIT, UNKNOWN_VISITOR, maxRoomsFromEnv, visitorKey } from "../features/lobby/index.js";
 import { MessageBudget, gateMessages } from "../features/net/index.js";
@@ -407,6 +411,16 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     },
     unmasked: (ids) => {
       for (const id of ids) if (this.state.players.has(id)) this.roundStats.add(id, "benanasUnmasked");
+    },
+  };
+  /** Le Z (#133): the roll, his visit behind the CRS, his ring and the profiling. No CRS: the squad never sees him; never a player. */
+  private lez = new LeZEvent(LEVEL, this.state.lez, Math.random, (m) => console.log(`[street ${this.roomId}] ${m}`), this.cameos);
+  /** Scratch for Le Z (#133): where the CRS on their feet stand, reused every tick. */
+  private lezCrs: Vec2[] = [];
+  /** The room as Le Z sees it (#133): chased off, every hitter gets the bonus. */
+  private lezHost: LeZHost = {
+    chasedOff: (ids) => {
+      for (const id of ids) if (this.state.players.has(id)) this.roundStats.add(id, "lezChasedOff");
     },
   };
   /** The room as the brigade sees it (#17). */
@@ -819,6 +833,14 @@ export class StreetRoom extends Room<{ state: StreetState }> {
           if (!this.benanas.here) this.benanas.force(this.moluchanTick(0), at, cmd.seconds);
           if (cmd.unmask) this.benanas.forceUnmask(this.now);
         }
+        // #133: Le Z now, in front of you or by his usual way in (behind the CRS); `chase` chases him off at once.
+        else if (cmd?.action === "lez") {
+          const self = this.state.players.get(client.sessionId);
+          const d = cmd.distance;
+          const at = self && d !== undefined ? resolveCircle(this.props.world, self.x + Math.sin(self.rotation) * d, self.z + Math.cos(self.rotation) * d, LEZ.radius) : undefined;
+          if (!this.lez.here) this.lez.force(this.moluchanTick(0), at, cmd.seconds);
+          if (cmd.chase) this.lez.forceChase(this.now);
+        }
       },
     }),
   }, (client: Client, type: string) => this.allowMessage(client, type));
@@ -1103,6 +1125,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // #123: bot protesters fight Bénanas back like a CRS (their swing and throw land on him through attack/projectileHit).
     const benanas = this.benanas.target();
     if (benanas && benanas.shape.type === "circle") crs.push({ id: benanas.id, x: benanas.shape.x, z: benanas.shape.z, radius: benanas.shape.r, down: false, grabbing: null });
+    // #133: and Le Z (their hits land on him through attack/projectileHit too).
+    const lez = this.lez.target();
+    if (lez && lez.shape.type === "circle") crs.push({ id: lez.id, x: lez.shape.x, z: lez.shape.z, radius: lez.shape.r, down: false, grabbing: null });
     const items = this.botItems;
     items.length = 0;
     this.state.items.forEach((it) => {
@@ -1151,6 +1176,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.douane.startRound();
     // #123: and Bénanas's, on its own roll too.
     this.benanas.startRound();
+    // #133: and Le Z's.
+    this.lez.startRound();
     this.roundHeld = false;
     this.roundTainted = false;
     this.roundStats.clear();
@@ -1193,6 +1220,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.douane.clear();
     // #123: and Bénanas.
     this.benanas.clear();
+    // #133: and Le Z.
+    this.lez.clear();
     this.crs.reinforceTo = 0;
     // No fire left for the bots to avoid; rebuilds their grid for the props put back.
     this.crs.setHazards(null);
@@ -1673,6 +1702,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // Bénanas (#123): one hit on his helmet. He is no CRS: no tension, no CRS score.
     const benanas = this.benanas.target();
     if (benanas && meleeHits(player, [benanas], this.props.staticWorld).length > 0) this.benanas.hurt(id, player.x, player.z, this.now, this.benanasHost);
+    // Le Z (#133): one hit towards chasing him off. He is no CRS either.
+    const lez = this.lez.target();
+    if (lez && meleeHits(player, [lez], this.props.staticWorld).length > 0) this.lez.hurt(id, player.x, player.z, this.now, this.lezHost);
   }
 
   /** A swing or a thrown item lands on a prop: HP off, the hit announced, and if it broke, its pavés dropped. */
@@ -1832,6 +1864,11 @@ export class StreetRoom extends Room<{ state: StreetState }> {
       this.benanas.hurt(p.by, p.x - p.dirX, p.z - p.dirZ, this.now, this.benanasHost);
       return;
     }
+    // #133: and at Le Z, one hit towards chasing him off (a tomato has its own line).
+    if (target.id === LEZ_ID) {
+      this.lez.hurt(p.by, p.x - p.dirX, p.z - p.dirZ, this.now, this.lezHost, p.kind === ThrowableKind.Tomate);
+      return;
+    }
     const type = THROWABLE_TYPES[p.kind];
     if (target.kind === "prop") {
       if (type.propDamage > 0) this.damageProp(p.by, target.id, type.propDamage, p.x, p.z);
@@ -1859,6 +1896,9 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     // #123: Bénanas can be hit too (projectileHit sends it his way, never to the squad).
     const benanas = this.benanas.target();
     if (benanas) out.push({ id: benanas.id, kind: "crs", shape: benanas.shape, pierceable: true });
+    // #133: Le Z too (projectileHit sends it his way, never to the squad).
+    const lez = this.lez.target();
+    if (lez) out.push({ id: lez.id, kind: "crs", shape: lez.shape, pierceable: true });
     return out;
   }
 
@@ -2207,6 +2247,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     );
     // Tear gas (#7): canisters fly (stopped by walls and props) and land as clouds; old clouds go.
     this.gas.step(dt, this.now, this.props.world);
+    // #133: Le Z's ring fires up the CRS around him (faster walk, quicker grab).
+    this.crs.setRally(this.lez.rally);
     this.crs.step(this.now, dt, this.crsHost, () => this.freeProtesterPositions(), (line, res) => {
       if (res.shovedBy.length > 0) {
         const event: ShoveEvent = { ids: res.shovedBy };
@@ -2233,6 +2275,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     this.douane.step(this.moluchanTick(dt), this.douaneHost);
     // Bénanas (#123): comes in from a side street ahead, picks on lone protesters, runs once unmasked.
     this.benanas.step(this.moluchanTick(dt), this.benanasHost);
+    // Le Z (#133): comes in from a side street ahead, stands behind the CRS, fires them up, leaves or is chased off.
+    this.lez.step(this.lezTick(dt));
     this.burnCrs();
     this.stepFires(dt);
     // Members walked into protesters: push them out of the shields (walls win; a
@@ -2457,7 +2501,8 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     view.airborne = player.airborne;
     // The black bloc is chased first (#14): a weight on distance, see `pickTarget`.
     // A bot (#59) is chased after a human at a similar distance, on top of its archetype's weight.
-    view.priority = archetypeStats(player.archetype).targetWeight * (isBotId(id) ? BOT.targetWeight : 1);
+    // #133: while Le Z is here, the CRS go for the mecs de cité first (humans and bots alike), on top of the rest.
+    view.priority = archetypeStats(player.archetype).targetWeight * (isBotId(id) ? BOT.targetWeight : 1) * leZProfiling(player.archetype, this.lez.profiling);
     // #73: when they last broke, hit or threw something (the LBD's targets).
     view.offendedAt = this.offenders.lastAt(id);
     return view;
@@ -2511,6 +2556,17 @@ export class StreetRoom extends Room<{ state: StreetState }> {
     const rear = respawnPoint(LEVEL, PLAYER_RADIUS, protesters.filter((p) => p.status === PlayerStatus.Free));
     // #132: the cameos roll on the march clock.
     return { now: this.now, dt, elapsed: this.round.elapsed, timeLeft: this.round.timeLeft, front: this.front, protesters, rear, nav: this.crs.navGrid, world: this.props.world };
+  }
+
+  /** What Le Z's visit needs this tick (#133): Moluchan's, plus where the CRS on their feet stand. */
+  private lezTick(dt: number) {
+    const crs = this.lezCrs;
+    crs.length = 0;
+    // Only while he is here (or due to roll): a cheap pass over the squad.
+    if (this.lez.here || this.state.phase === Phase.Marching) {
+      for (const c of this.crs.all) if (c.status !== CrsStatus.Out && c.kind !== CrsKind.Pompier && c.revealed) crs.push(c.body);
+    }
+    return { ...this.moluchanTick(dt), crs };
   }
 
   private *allProtesterViews(): Generator<ProtesterView> {

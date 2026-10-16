@@ -1056,3 +1056,41 @@ describe("grace (#131)", () => {
     expect(escapeKnockdown(out, 1, 0, 0)).toBeNull();
   });
 });
+
+describe("a ring that fires the CRS up (#133, Le Z)", () => {
+  const rally = (x: number, z: number) => ({ x, z, radius: 6, speedFactor: 1.15, grabFactor: 1.5 });
+
+  /** How far a bot walks towards a far protester in `seconds`, with `ring` on the street or not. */
+  function walked(ring: ReturnType<typeof rally> | null, seconds = 0.5) {
+    const t = setup();
+    t.ctx.rally = ring;
+    const bot = t.addBot("crs-1", 0, -10);
+    t.host.add("p", 0, 15);
+    t.run(seconds);
+    return bot.body.z + 10;
+  }
+
+  test("a bot inside walks ×1.15, one outside at its usual speed", () => {
+    const plain = walked(null);
+    expect(plain).toBeGreaterThan(1);
+    expect(walked(rally(0, -9))).toBeCloseTo(plain * 1.15, 1);
+    expect(walked(rally(15, 15))).toBeCloseTo(plain, 5);
+  });
+
+  test("a bot inside winds its grab up 1.5 times faster; outside, the usual wind-up", () => {
+    for (const [ring, windup] of [
+      [rally(1, 1), STATS.grabWindup / 1.5],
+      [rally(15, 15), STATS.grabWindup],
+      [null, STATS.grabWindup],
+    ] as const) {
+      const t = setup();
+      t.ctx.rally = ring;
+      const bot = t.addBot("crs-1", 0, 0);
+      const p = t.host.add("p", 0, touching);
+      p.body.downTime = 2;
+      t.tick();
+      expect(bot.windupId).toBe("p");
+      expect(bot.windupUntil - t.ctx.now).toBeCloseTo(windup, 5);
+    }
+  });
+});

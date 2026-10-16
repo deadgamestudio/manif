@@ -36,6 +36,8 @@ export const ACTION_POINTS: Readonly<Partial<Record<keyof RoundPlayerStats, Acti
   hpHealed: { points: 1, cap: 150 },
   /** Help unmask Alexandre Bénanas (#123): every protester who landed a hit on his helmet. He comes once a round at most. */
   benanasUnmasked: { points: 80, cap: 1 },
+  /** Help chase Le Z off (#133): every protester who landed a hit on him. He comes once a round at most. */
+  lezChasedOff: { points: 80, cap: 1 },
   /** Getting arrested costs points, every time; the round score never goes below 0. */
   arrests: { points: -20, cap: Number.POSITIVE_INFINITY },
 };

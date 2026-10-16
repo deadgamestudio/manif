@@ -345,6 +345,28 @@ export interface CrsContext {
   level?: Level;
   /** How far the cortège's front got (#131), progress 0..1: a line re-forms ahead of it. */
   front?: number;
+  /**
+   * A ring that fires the CRS up (#133, Le Z): a bot standing in it walks
+   * `speedFactor` times faster and winds up its grabs `grabFactor` times
+   * faster. Absent or null: nobody's fired up.
+   */
+  rally?: CrsRally | null;
+}
+
+/** A ring on the street that fires the CRS up (#133), see `CrsContext.rally`. */
+export interface CrsRally extends Vec2 {
+  /** Centre to centre, edge included. */
+  radius: number;
+  /** Walking speed factor inside, on top of the rest (a drag, a splat...). */
+  speedFactor: number;
+  /** A grab's wind-up is this many times shorter inside. */
+  grabFactor: number;
+}
+
+/** Whether `at` stands in `rally` (none: nobody does). */
+export function inCrsRally(rally: CrsRally | null | undefined, at: Vec2): boolean {
+  if (!rally) return false;
+  return (at.x - rally.x) ** 2 + (at.z - rally.z) ** 2 <= rally.radius * rally.radius;
 }
 
 /** What a calm street (#98) tells the bots: the level and how far the cortège's front got, for the escort. */
@@ -467,9 +489,10 @@ export function canStartGrab(bot: CrsBot, target: ProtesterView, host: CrsHost):
  * Start a grab's wind-up on `target` (#70): the bot stands, arms out, for
  * `stats.grabWindup`, then grabs if nothing foiled it (see `stepWindup`).
  */
-export function startWindup(bot: CrsBot, target: ProtesterView, now: number): void {
+export function startWindup(bot: CrsBot, target: ProtesterView, now: number, grabFactor = 1): void {
   bot.windupId = target.id;
-  bot.windupUntil = now + bot.stats.grabWindup;
+  // #133: fired up by Le Z, the wind-up is shorter.
+  bot.windupUntil = now + bot.stats.grabWindup / (grabFactor > 0 ? grabFactor : 1);
   bot.path = null;
   const dx = target.x - bot.body.x;
   const dz = target.z - bot.body.z;
@@ -568,7 +591,7 @@ export function act(bot: CrsBot, target: ProtesterView, ctx: CrsContext, host: C
   // they can see coming and dodge. The baton is for the healthy, and for a grab on cooldown (one just foiled).
   const grabbable = now >= bot.grabReadyAt && canStartGrab(bot, target, host);
   if (gap <= s.grabReach && grabbable) {
-    startWindup(bot, target, now);
+    startWindup(bot, target, now, inCrsRally(ctx.rally, bot.body) ? (ctx.rally?.grabFactor ?? 1) : 1);
     return true;
   }
   // #131: no baton on a protester in their grace either.
@@ -706,7 +729,9 @@ export function stepCrs(bot: CrsBot, ctx: CrsContext, host: CrsHost, behaviour: 
     scratch.x = x * c + scratch.z * sn;
     scratch.z = -x * sn + scratch.z * c;
   }
-  stepBody(ctx.world, bot.body, scratch, s.speed, s.radius, ctx.dt);
+  // #133: fired up by Le Z, it walks faster.
+  const rallied = inCrsRally(ctx.rally, bot.body) ? (ctx.rally?.speedFactor ?? 1) : 1;
+  stepBody(ctx.world, bot.body, scratch, s.speed * rallied, s.radius, ctx.dt);
   if (!ordered && (input.x !== 0 || input.z !== 0)) bot.rotation = Math.atan2(input.x, input.z);
   detectStuck(bot, now);
 
