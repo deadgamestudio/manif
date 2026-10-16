@@ -401,6 +401,15 @@
   color: var(--muted);
 }
 
+/* #133: a gameplay warning on a guest card. */
+.help-card-warning {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--paint-red);
+}
+
 .help-plus {
   color: #1d6b2a;
   font-weight: 600;

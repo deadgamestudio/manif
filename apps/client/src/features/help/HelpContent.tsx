@@ -9,6 +9,7 @@ import {
   moluchanCard,
   douaneCard,
   benanasCard,
+  leZCard,
   policeCards,
   scoreRows,
   shopRows,
@@ -90,6 +91,8 @@ function MoluchanCardView() {
         <GuestCard m={douaneCard()} chipsLabel="Son jet d'eau" />
         {/* #123: the fake cop. */}
         <GuestCard m={benanasCard()} chipsLabel="Ses coups" />
+        {/* #133: the pundit behind the CRS. */}
+        <GuestCard m={leZCard()} chipsLabel="Son effet sur les CRS" />
       </ul>
     </>
   );
@@ -110,6 +113,7 @@ function GuestCard({ m, chipsLabel }: { m: ReturnType<typeof moluchanCard>; chip
             ))}
           </ul>
           <p className="help-card-tip">→ {m.tip}</p>
+          {m.warning && <p className="help-card-warning">⚠ {m.warning}</p>}
         </li>
   );
 }

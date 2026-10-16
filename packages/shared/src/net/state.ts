@@ -210,6 +210,23 @@ export interface BenanasShape {
   hurts: number;
 }
 
+/**
+ * Le Z (#133), keyed by LEZ_ID, while he is on the street (at most one, at
+ * most once a round). Clients draw him and his ring from this.
+ */
+export interface LeZShape {
+  x: number;
+  z: number;
+  /** Facing angle around the Y axis, in radians. */
+  rotation: number;
+  /** A `LeZPhase`: holding forth (ring on), chased off (running), leaving. */
+  phase: number;
+  /** His speech bubble: an index into LEZ_LINES, -1 for none. */
+  line: number;
+  /** Counts the hits he took (wrapping at 256): a change staggers him. */
+  hurts: number;
+}
+
 /** An item lying on the ground (#8), keyed by a server-made id. */
 export interface GroundItemShape {
   kind: ThrowableKind;
@@ -286,6 +303,8 @@ export interface StreetStateShape {
   douane: SyncedMap<DouaneShape>;
   /** Alexandre Bénanas (#123), by BENANAS_ID. A server from before #123 has no such map: read it with `?.`. */
   benanas: SyncedMap<BenanasShape>;
+  /** Le Z (#133), by LEZ_ID. A server from before #133 has no such map: read it with `?.`. */
+  lez: SyncedMap<LeZShape>;
   /** Round phase (#12): waiting (lobby screen), marching, ended. */
   phase: Phase;
   /** Whole seconds left: of the march while marching, of the end screen while ended. */

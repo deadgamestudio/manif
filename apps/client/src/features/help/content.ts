@@ -27,6 +27,7 @@ import {
   DOUANE,
   DOUANE_JET,
   BENANAS,
+  LEZ,
   ON_FIRE_DURATION,
   PROP_TYPES,
   RESCUE_TIME,
@@ -134,6 +135,7 @@ export const SCORE_LABELS: Readonly<Partial<Record<keyof RoundPlayerStats, strin
   hpHealed: "Soigner un·e camarade (CGT), par PV rendu",
   arrests: "Se faire embarquer",
   benanasUnmasked: "Démasquer Alexandre Bénanas (avoir tapé dessus)",
+  lezChasedOff: "Chasser Le Z (avoir tapé ou lancé dessus)",
 };
 
 export interface ScoreRow {
@@ -298,6 +300,8 @@ export interface MoluchanCard {
   chips: { text: string; good: boolean }[];
   /** What to do with him. */
   tip: string;
+  /** A gameplay warning, shown apart (#133). */
+  warning?: string;
 }
 
 /** How often a cameo comes (#132): its chance once a minute of march, one visit a round at most. */
@@ -357,3 +361,23 @@ export function benanasCard(): MoluchanCard {
 
 /** The police units that need a card: every CrsKind but the pompiers. */
 export const POLICE_KINDS: readonly CrsKind[] = (Object.values(CrsKind) as CrsKind[]).filter(isPolice);
+
+// ---------- Le Z (#133) ----------
+
+/** The rare pundit on the police side (#133), from LEZ and his row in ACTION_POINTS. Only ever called "Le Z". */
+export function leZCard(): MoluchanCard {
+  const bonus = ACTION_POINTS.lezChasedOff?.points ?? 0;
+  return {
+    icon: "🎙️",
+    name: "Le Z",
+    what: `${cameoOdds(LEZ.chance)} : un petit monsieur en costume, micro de plateau et son dernier livre sous le bras, arrive d'une rue de côté et se poste derrière les CRS pendant ${duration(LEZ.duration)}. Dans son cercle bleu, les CRS marchent plus vite et attrapent plus vite. Il ne se bat pas, et les CRS ne le touchent pas.`,
+    chips: [
+      { text: `CRS : vitesse ${percent(LEZ.speedFactor)}`, good: false },
+      { text: `CRS : attrapent ×${num(LEZ.grabFactor)} plus vite`, good: false },
+      { text: `${LEZ.hp} coups et il s'en va`, good: true },
+      { text: `+${bonus} pts à chaque frappeur`, good: true },
+    ],
+    tip: "Tapez-le ou lancez-lui ce que vous avez (une tomate, de préférence) : il retourne sur son plateau, et les CRS se calment.",
+    warning: "Quand Le Z est là, les CRS ciblent en priorité les mecs de cité.",
+  };
+}

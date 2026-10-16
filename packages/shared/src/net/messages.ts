@@ -190,7 +190,13 @@ export type DebugRoundPayload =
    * of yourself (absent: by his usual way in), prowling for `seconds` (absent: BENANAS.duration). `unmask`: his helmet
    * comes off at once (nobody credited), to see him run.
    */
-  | { action: "benanas"; distance?: number; seconds?: number; unmask?: boolean };
+  | { action: "benanas"; distance?: number; seconds?: number; unmask?: boolean }
+  /**
+   * #133: Le Z turns up now, whatever the roll (unless he is already on the street), `distance` m in front of yourself
+   * (absent: by his usual way in, behind the CRS), holding forth for `seconds` (absent: LEZ.duration). `chase`: he is
+   * chased off at once (nobody credited), to see him go.
+   */
+  | { action: "lez"; distance?: number; seconds?: number; chase?: boolean };
 
 /** Payload of `ClientMessage.PickArchetype`: an `Archetype` id. */
 export interface PickArchetypePayload {

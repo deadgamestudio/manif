@@ -11,6 +11,7 @@ import {
   MOLUCHAN,
   DOUANE,
   BENANAS,
+  LEZ,
   PROP_TYPES,
   ROUND_DURATION,
   SHOP_KINDS,
@@ -27,6 +28,7 @@ import {
   archetypeChips,
   douaneCard,
   benanasCard,
+  leZCard,
   duration,
   moluchanCard,
   policeCards,
@@ -122,6 +124,19 @@ describe("the help page can't drift from the game (#71)", () => {
     expect(card.chips.map((c) => c.text)).toContain(`${BENANAS.hp} coups et il est démasqué`);
     expect(card.chips.map((c) => c.text)).toContain(`+${ACTION_POINTS.benanasUnmasked?.points} pts à chaque frappeur`);
     expect(card.tip).toContain("CRS l'ignorent");
+  });
+
+  test("Le Z's card (#133): only his short name, his chance, his ring, the chase-off bonus, and the profiling warning", () => {
+    const card = leZCard();
+    expect(card.name).toBe("Le Z");
+    expect(card.what).toContain(`${Math.round(LEZ.chance * 100)} % de chances à chaque minute`);
+    expect(card.what).toContain("derrière les CRS");
+    expect(card.chips.map((c) => c.text)).toContain("CRS : vitesse +15 %");
+    expect(card.chips.map((c) => c.text)).toContain(`${LEZ.hp} coups et il s'en va`);
+    expect(card.chips.map((c) => c.text)).toContain(`+${ACTION_POINTS.lezChasedOff?.points} pts à chaque frappeur`);
+    expect(ACTION_POINTS.lezChasedOff?.points).toBe(80);
+    expect(card.warning).toBe("Quand Le Z est là, les CRS ciblent en priorité les mecs de cité.");
+    expect(scoreRows().some((r) => r.what === "Chasser Le Z (avoir tapé ou lancé dessus)" && r.points === "+80")).toBe(true);
   });
 
   test("the rules quote the constants (#70's grab rules included)", () => {

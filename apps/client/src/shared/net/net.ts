@@ -6,6 +6,7 @@ import {
   MOLUCHAN_ID,
   DOUANE_ID,
   BENANAS_ID,
+  LEZ_ID,
   MELEE_COOLDOWN,
   Phase,
   PlayerStatus,
@@ -26,6 +27,8 @@ import {
   type DouanePhase,
   type BenanasShape,
   type BenanasPhase,
+  type LeZShape,
+  type LeZPhase,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type DebugRoundPayload,
@@ -275,6 +278,15 @@ function setBenanasPhase(phase: BenanasPhase | null) {
   for (const listener of benanasListeners) listener();
 }
 
+/** Le Z (#133): his phase while he is on the street, null when he isn't, like Bénanas's. */
+let lezPhase: LeZPhase | null = null;
+const lezListeners = new Set<() => void>();
+function setLeZPhase(phase: LeZPhase | null) {
+  if (phase === lezPhase) return;
+  lezPhase = phase;
+  for (const listener of lezListeners) listener();
+}
+
 /**
  * The round (#12): timer, progress and result, kept out of NetSnapshot so the
  * once-a-second countdown re-renders only the HUD, not the game. `end` is the
@@ -371,6 +383,7 @@ function clearEffects() {
   setMoluchanPhase(null);
   setDouanePhase(null);
   setBenanasPhase(null);
+  setLeZPhase(null);
   setRound(NO_ROUND);
   setLeaderboard(null);
 }
@@ -559,6 +572,17 @@ function attach(joined: ClientRoom, gen: number) {
   });
   callbacks.onRemove("benanas", () => {
     if (gen === generation) setBenanasPhase(null);
+  });
+  // Le Z (#133): the same. A server from before #133 has no such map: the callbacks just never fire.
+  callbacks.onAdd("lez", (z) => {
+    const read = () => {
+      if (gen === generation) setLeZPhase((z as LeZShape).phase as LeZPhase);
+    };
+    callbacks.listen(z as LeZShape & IRef, "phase", read);
+    read();
+  });
+  callbacks.onRemove("lez", () => {
+    if (gen === generation) setLeZPhase(null);
   });
   callbacks.listen("phase", () => {
     // A new phase starts from no held input on the server (#12): forget the
@@ -928,6 +952,22 @@ export const net = {
   /** Bénanas's live state (#123). Read from useFrame. */
   getBenanas(): BenanasShape | undefined {
     return room?.state.benanas?.get(BENANAS_ID);
+  },
+
+  /** Call `listener` when Le Z (#133) arrives, changes phase or is gone. */
+  subscribeLeZ(listener: () => void): () => void {
+    lezListeners.add(listener);
+    return () => lezListeners.delete(listener);
+  },
+
+  /** Le Z's phase (#133, a `LeZPhase`) while he is on the street, null when he isn't. */
+  getLeZPhase(): LeZPhase | null {
+    return lezPhase;
+  },
+
+  /** Le Z's live state (#133). Read from useFrame; a server from before #133 has no map. */
+  getLeZ(): LeZShape | undefined {
+    return room?.state.lez?.get(LEZ_ID);
   },
 
   /** Call `listener` when the lasting leaderboard (#41) arrives or changes. */
