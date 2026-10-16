@@ -5,6 +5,7 @@ import {
   DEFAULT_SERVER_PORT,
   MOLUCHAN_ID,
   DOUANE_ID,
+  BENANAS_ID,
   MELEE_COOLDOWN,
   Phase,
   PlayerStatus,
@@ -23,6 +24,8 @@ import {
   type MoluchanPhase,
   type DouaneShape,
   type DouanePhase,
+  type BenanasShape,
+  type BenanasPhase,
   type DebugHealthPayload,
   type DebugKnockbackPayload,
   type DebugRoundPayload,
@@ -261,6 +264,18 @@ function setDouanePhase(phase: DouanePhase | null) {
 }
 
 /**
+ * Alexandre Bénanas (#123): his phase while he is on the street, null when he
+ * isn't, kept out of NetSnapshot like Moluchan's. A handful of changes a round.
+ */
+let benanasPhase: BenanasPhase | null = null;
+const benanasListeners = new Set<() => void>();
+function setBenanasPhase(phase: BenanasPhase | null) {
+  if (phase === benanasPhase) return;
+  benanasPhase = phase;
+  for (const listener of benanasListeners) listener();
+}
+
+/**
  * The round (#12): timer, progress and result, kept out of NetSnapshot so the
  * once-a-second countdown re-renders only the HUD, not the game. `end` is the
  * last ServerMessage.RoundEnd seen in this room (null after joining). `board`
@@ -355,6 +370,7 @@ function clearEffects() {
   setTruckIds([]);
   setMoluchanPhase(null);
   setDouanePhase(null);
+  setBenanasPhase(null);
   setRound(NO_ROUND);
   setLeaderboard(null);
 }
@@ -532,6 +548,17 @@ function attach(joined: ClientRoom, gen: number) {
   });
   callbacks.onRemove("douane", () => {
     if (gen === generation) setDouanePhase(null);
+  });
+  // Alexandre Bénanas (#123): the same. A server from before #123 has no such map: the callbacks just never fire.
+  callbacks.onAdd("benanas", (b) => {
+    const read = () => {
+      if (gen === generation) setBenanasPhase((b as BenanasShape).phase as BenanasPhase);
+    };
+    callbacks.listen(b as BenanasShape & IRef, "phase", read);
+    read();
+  });
+  callbacks.onRemove("benanas", () => {
+    if (gen === generation) setBenanasPhase(null);
   });
   callbacks.listen("phase", () => {
     // A new phase starts from no held input on the server (#12): forget the
@@ -885,6 +912,22 @@ export const net = {
   /** La Douane's live state (#120). Read from useFrame. */
   getDouane(): DouaneShape | undefined {
     return room?.state.douane?.get(DOUANE_ID);
+  },
+
+  /** Call `listener` when Alexandre Bénanas (#123) arrives, changes phase or is gone. */
+  subscribeBenanas(listener: () => void): () => void {
+    benanasListeners.add(listener);
+    return () => benanasListeners.delete(listener);
+  },
+
+  /** Bénanas's phase (#123, a `BenanasPhase`) while he is on the street, null when he isn't. */
+  getBenanasPhase(): BenanasPhase | null {
+    return benanasPhase;
+  },
+
+  /** Bénanas's live state (#123). Read from useFrame. */
+  getBenanas(): BenanasShape | undefined {
+    return room?.state.benanas?.get(BENANAS_ID);
   },
 
   /** Call `listener` when the lasting leaderboard (#41) arrives or changes. */

@@ -22,3 +22,4 @@ export * from "./score/index.js";
 export * from "./bot/index.js";
 export * from "./moluchan/index.js";
 export * from "./douane/index.js";
+export * from "./benanas/index.js";

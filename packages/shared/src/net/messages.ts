@@ -179,7 +179,13 @@ export type DebugRoundPayload =
    * #120: La Douane turns up now, whatever the roll (unless he is already on the street), `distance` m in front of
    * yourself (absent: by his usual way in), soaking for `seconds` (absent: DOUANE.duration).
    */
-  | { action: "douane"; distance?: number; seconds?: number };
+  | { action: "douane"; distance?: number; seconds?: number }
+  /**
+   * #123: Alexandre Bénanas turns up now, whatever the roll (unless he is already on the street), `distance` m in front
+   * of yourself (absent: by his usual way in), prowling for `seconds` (absent: BENANAS.duration). `unmask`: his helmet
+   * comes off at once (nobody credited), to see him run.
+   */
+  | { action: "benanas"; distance?: number; seconds?: number; unmask?: boolean };
 
 /** Payload of `ClientMessage.PickArchetype`: an `Archetype` id. */
 export interface PickArchetypePayload {

@@ -185,6 +185,25 @@ export interface DouaneShape {
   skin: number;
 }
 
+/**
+ * Alexandre Bénanas (#123), keyed by BENANAS_ID, while he is on the street
+ * (at most one, at most once a round). Clients draw him from this.
+ */
+export interface BenanasShape {
+  x: number;
+  z: number;
+  /** Facing angle around the Y axis, in radians. */
+  rotation: number;
+  /** A `BenanasPhase`: prowling, unmasked (helmet off, running), leaving. */
+  phase: number;
+  /** His speech bubble: an index into BENANAS_LINES, -1 for none. */
+  line: number;
+  /** Counts his punches (wrapping at 256): a change plays one. */
+  swings: number;
+  /** Counts the hits he took (wrapping at 256): a change flashes him. */
+  hurts: number;
+}
+
 /** An item lying on the ground (#8), keyed by a server-made id. */
 export interface GroundItemShape {
   kind: ThrowableKind;
@@ -259,6 +278,8 @@ export interface StreetStateShape {
   moluchan: SyncedMap<MoluchanShape>;
   /** La Douane (#120), by DOUANE_ID. A server from before #120 has no such map: read it with `?.`. */
   douane: SyncedMap<DouaneShape>;
+  /** Alexandre Bénanas (#123), by BENANAS_ID. A server from before #123 has no such map: read it with `?.`. */
+  benanas: SyncedMap<BenanasShape>;
   /** Round phase (#12): waiting (lobby screen), marching, ended. */
   phase: Phase;
   /** Whole seconds left: of the march while marching, of the end screen while ended. */

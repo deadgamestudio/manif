@@ -24,10 +24,12 @@ export interface RoundPlayerStats {
   hosed: number;
   /** HP this player's heal aura gave back to teammates (#14, the CGT; #41 scores it). */
   hpHealed: number;
+  /** Times this player helped take Alexandre Bénanas's helmet off (#123): landed at least one of the hits. */
+  benanasUnmasked: number;
 }
 
 export function emptyStats(): RoundPlayerStats {
-  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0, teammatesThrown: 0, splats: 0, slips: 0, hosed: 0, hpHealed: 0 };
+  return { arrests: 0, rescues: 0, knockdowns: 0, propsBroken: 0, crsOut: 0, firesLit: 0, teammatesThrown: 0, splats: 0, slips: 0, hosed: 0, hpHealed: 0, benanasUnmasked: 0 };
 }
 
 /**

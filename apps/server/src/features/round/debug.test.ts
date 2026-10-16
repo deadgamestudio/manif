@@ -46,3 +46,12 @@ describe("parseDebugRound: douane (#120)", () => {
     expect(taintsRound({ action: "douane" }, 100)).toBe(true);
   });
 });
+
+describe("parseDebugRound: benanas (#123)", () => {
+  test("optional distance and seconds, clamped; unmask only when true", () => {
+    expect(parseDebugRound({ action: "benanas" })).toEqual({ action: "benanas" });
+    expect(parseDebugRound({ action: "benanas", distance: 4, seconds: 20, unmask: true })).toEqual({ action: "benanas", distance: 4, seconds: 20, unmask: true });
+    expect(parseDebugRound({ action: "benanas", distance: 99, seconds: 0, unmask: "yes" })).toEqual({ action: "benanas", distance: 20, seconds: 1 });
+    expect(taintsRound({ action: "benanas" }, 100)).toBe(true);
+  });
+});

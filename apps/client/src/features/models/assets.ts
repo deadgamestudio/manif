@@ -128,6 +128,13 @@ export const MODELS = {
      * Pivot at the pistol grip, +Z forward. Node `muzzle` at the nozzle (0.595 m ahead, 0.06 up).
      */
     waterGun: `${M}/accessoires-v01/water-gun/water-gun.glb`,
+    /**
+     * Alexandre Bénanas's riot helmet, visor down (#123). Not Jordan's: made by
+     * Claude in Blender, in his style (same palette strip). Pivot at the `head`
+     * bone's origin, like the hats: added to that bone as is. Cell 1 the shell,
+     * 3 the visor, 8 the hinges and the ridge.
+     */
+    riotHelmet: `${M}/accessoires-v01/riot-helmet/riot-helmet.glb`,
   },
 
   /** Fixed level pieces. */

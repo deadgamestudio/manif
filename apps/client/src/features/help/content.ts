@@ -26,6 +26,7 @@ import {
   MOLUCHAN,
   DOUANE,
   DOUANE_JET,
+  BENANAS,
   ON_FIRE_DURATION,
   PROP_TYPES,
   RESCUE_TIME,
@@ -132,6 +133,7 @@ export const SCORE_LABELS: Readonly<Partial<Record<keyof RoundPlayerStats, strin
   firesLit: "Allumer un feu",
   hpHealed: "Soigner un·e camarade (CGT), par PV rendu",
   arrests: "Se faire embarquer",
+  benanasUnmasked: "Démasquer Alexandre Bénanas (avoir tapé dessus)",
 };
 
 export interface ScoreRow {
@@ -323,6 +325,24 @@ export function douaneCard(): MoluchanCard {
       { text: "0 PV de dégâts", good: true },
     ],
     tip: `Personne ne peut le toucher ni l'attraper, et il ne compte pas dans les points. Il tire par rafales à ${num(DOUANE_JET.range)} m : écarte-toi du jet, ou amène-lui un CRS.`,
+  };
+}
+
+// ---------- Alexandre Bénanas (#123) ----------
+
+/** The rare fake cop (#123), from BENANAS and his row in ACTION_POINTS. Only ever under his mangled name. */
+export function benanasCard(): MoluchanCard {
+  const bonus = ACTION_POINTS.benanasUnmasked?.points ?? 0;
+  return {
+    icon: "🪖",
+    name: "Alexandre Bénanas",
+    what: `Rare (environ ${Math.round(BENANAS.chance * 100)} % des manches) : un type en casque et sweat gris, brassard « POLICE », mais sans uniforme ni bouclier, arrive d'une rue de côté derrière les CRS. Il s'en prend aux manifestant·es isolé·es et les met par terre, puis passe à un·e autre. Il n'arrête personne.`,
+    chips: [
+      { text: "Renverse, −" + BENANAS.hitDamage + " PV", good: false },
+      { text: `${BENANAS.hp} coups et il est démasqué`, good: true },
+      { text: `+${bonus} pts à chaque frappeur`, good: true },
+    ],
+    tip: `Restez groupé·es : à ${BENANAS.crowdCount} autour de lui, il recule. Tapez-le ou lancez-lui ce que vous avez : casque tombé, il s'enfuit pour de bon. Les CRS l'ignorent.`,
   };
 }
 

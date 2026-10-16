@@ -2636,5 +2636,15 @@
     "animations": [],
     "triangles": 312,
     "source": "assets/manif/sources/accessoires-v01/water-gun/water-gun.blend"
+  },
+  {
+    "batch": "accessoires-v01",
+    "asset": "riot-helmet",
+    "url": "/models/manif/accessoires-v01/riot-helmet/riot-helmet.glb",
+    "bytes": 34752,
+    "sha256": "37b66625f3a6b119b57cee030ba519e006d92674ed9ae4a43b361b901cab47e8",
+    "animations": [],
+    "triangles": 486,
+    "source": "assets/manif/sources/accessoires-v01/riot-helmet/riot-helmet.blend"
   }
 ]
