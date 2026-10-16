@@ -470,10 +470,9 @@
     font-size: 12px;
   }
 
-  .lobby .archetype-swatch:not(.archetype-swatch-small) {
-    width: 28px;
-    height: 28px;
-    font-size: 15px;
+  .lobby .archetype-portrait {
+    width: 44px;
+    height: 55px;
   }
 
   .lobby .archetype-detail {

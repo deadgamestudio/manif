@@ -37,6 +37,8 @@ export function seo(): Plugin {
       handler(html, ctx) {
         // The build fills the marker in writeBundle, once per page.
         if (config.command === "build") return html;
+        // The dev-only portraits studio (portraits.html, #126) is no page anyone links to.
+        if (!ctx.filename.endsWith("index.html")) return html;
         return withHeadTags(html, pageFor(ctx.originalUrl ?? ctx.path).meta);
       },
     },

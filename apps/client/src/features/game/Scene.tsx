@@ -18,6 +18,7 @@ import { BenanasView } from "../benanas/index.ts";
 import { GrabPairs } from "../grab/index.ts";
 import { bodyUrlFor, preloadModels, roundPreloadGroups } from "../models/index.ts";
 import type { LobbyPlayer } from "../../shared/net/index.ts";
+import { BACKGROUND, GROUND_BOUNCE, SKY, SKY_FILL, SUN_DIRECTION, SUN_INTENSITY } from "./lighting.ts";
 
 const LEVEL = STREET_LEVEL;
 /** Where the camera looks before the local player shows up: the start zone. */
@@ -26,22 +27,10 @@ const START_CENTRE = new Vector3(
   0,
   (LEVEL.start.minZ + LEVEL.start.maxZ) / 2,
 );
-/** Sun direction, relative to the followed point. */
-const SUN_OFFSET = new Vector3(15, 25, 10);
+/** Sun direction, relative to the followed point (the lighting itself: lighting.ts). */
+const SUN_OFFSET = new Vector3(...SUN_DIRECTION);
 /** Half size of the shadow box around the followed point. The street is too long to shadow all at once. */
 const SHADOW_HALF = 30;
-/**
- * Lighting (#28): Jordan's models are realistic and dark (near-black CRS,
- * navy vans, dark outfits), so the street is lit brighter than for the old
- * bright placeholders: a strong soft sky fill (no shadows, costs nothing on
- * phones) plus the one shadow-casting sun, over a lighter asphalt (Level.tsx).
- */
-const BACKGROUND = "#3b4048";
-const SKY = "#e8efff";
-/** Light bounced off the street, warm and fairly bright so dark clothes keep some shape from below. */
-const GROUND_BOUNCE = "#8a8272";
-const SKY_FILL = 1.9;
-const SUN_INTENSITY = 2.6;
 /** Height of the point on a character that a building must not hide (#80): about the chest. */
 const BODY_Y = 1;
 
