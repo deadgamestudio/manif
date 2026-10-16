@@ -26,6 +26,34 @@ export function portraitBodyUrl(id: number): string {
   return ARCHETYPE_BODIES[archetypeOf(id)][0]!;
 }
 
+/**
+ * How a portrait is shot, shared by the studio that makes the still pictures
+ * (app/portraits/) and the lobby's live turntable (#128), so the two frame the
+ * body exactly alike: a narrow lens from a few metres, 3/4 front (turned
+ * towards +X, the sun's side), a bit above the waist, aimed at a body standing
+ * at the origin. Every portrait uses the same camera, so the bodies keep
+ * their heights next to each other.
+ */
+export const PORTRAIT_CAMERA = {
+  fov: 17,
+  near: 0.5,
+  far: 30,
+  distance: 6.5,
+  azimuth: (32 * Math.PI) / 180,
+  elevation: (9 * Math.PI) / 180,
+  lookAtY: 0.98,
+} as const;
+
+/** Where the portrait camera stands; it looks at (0, PORTRAIT_CAMERA.lookAtY, 0). */
+export function portraitCameraPosition(): [number, number, number] {
+  const { distance, azimuth, elevation, lookAtY } = PORTRAIT_CAMERA;
+  const flat = distance * Math.cos(elevation);
+  return [flat * Math.sin(azimuth), lookAtY + distance * Math.sin(elevation), flat * Math.cos(azimuth)];
+}
+
+/** How far into the idle loop the still pose is taken, in seconds. */
+export const PORTRAIT_IDLE_AT = 0.4;
+
 /** The palette cells painted on that body: like protesterPaint, with the first of every list. */
 export function portraitPaint(id: number): CellPaint {
   const archetype: Archetype = archetypeOf(id);

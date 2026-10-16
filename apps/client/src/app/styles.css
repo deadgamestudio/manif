@@ -406,6 +406,11 @@ body,
   overflow-wrap: anywhere;
 }
 
+/* #128: a name breaks between its words only ("Manifestant·e" stays whole). */
+.archetype-word {
+  white-space: nowrap;
+}
+
 /* #126: the archetype's body, pre-rendered (public/portraits/, 112 × 140, twice this size). */
 .archetype-portrait {
   flex: none;
@@ -422,6 +427,34 @@ body,
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* #128: the live character, drawn over the picture at its exact size; the picture hides once it is in. */
+.archetype-portrait {
+  position: relative;
+}
+
+.archetype-live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.archetype-portrait[data-live] img {
+  visibility: hidden;
+}
+
+/* The turntable's one WebGL canvas (Turntable.tsx): drawn out of sight, copied into the cards. */
+.turntable-gl {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .archetype-tile[data-selected] .archetype-portrait {
