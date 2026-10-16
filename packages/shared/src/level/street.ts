@@ -1,5 +1,5 @@
 import { ThrowableKind } from "../throwable/index.js";
-import type { BoxKind, BoxObstacle, CircleKind, CircleObstacle, Facade, Level, LevelItem, PropKind, PropSlot } from "./level.js";
+import type { BoxKind, BoxObstacle, CircleKind, CircleObstacle, Facade, Level, LevelItem, PropKind, PropSlot, VelibStation } from "./level.js";
 
 /*
  * The street: about 20 wide between the facades and 200 long, running along Z.
@@ -220,6 +220,32 @@ const trottinettes: LevelItem[] = [
   { x: -7, z: -77 },
 ].map((p) => ({ kind: ThrowableKind.Trottinette, ...p }));
 
+/**
+ * Vélib stations (#121): a row of docks on the kerb of a building block, the
+ * bikes in the road beside it. Kept clear of the crossings, the trees, lamps,
+ * vans and props, the side-street corners and the start zone (tested). Each
+ * round only a few have bikes (`dealVelibs`); the others stand empty, as
+ * Paris stations do.
+ */
+const velibStation = (id: string, side: -1 | 1, z: number, face: number): VelibStation => ({
+  id,
+  side,
+  // The kerb line is PAVEMENT_DEEP (3) in front of the facade; the docks stand just behind it.
+  x: side * (face - 3 + VELIB_DOCK_INSET),
+  z,
+  docks: 4,
+});
+const VELIB_DOCK_INSET = 0.3;
+const velibStations: VelibStation[] = [
+  velibStation("velib-1", -1, 45, 9),
+  velibStation("velib-2", -1, 4, 10),
+  velibStation("velib-3", -1, -48, 9.5),
+  velibStation("velib-4", 1, 62, 9.5),
+  velibStation("velib-5", 1, 25.5, 10),
+  velibStation("velib-6", 1, -30, 9),
+  velibStation("velib-7", 1, -77, 10),
+];
+
 export const STREET_LEVEL: Level = {
   id: "street",
   // Out to the back of the facade blocks (#84): the shop rooms reach that deep into the buildings,
@@ -236,4 +262,5 @@ export const STREET_LEVEL: Level = {
   crsSpawns,
   lineSpawns,
   items: [...items, ...poos, ...trottinettes],
+  velibStations,
 };

@@ -2,7 +2,7 @@
  * LOOKS for throwables (#8): Jordan's models (#28), and flat-coloured
  * placeholders drawn until they have loaded (or if they fail). All in this
  * one file, so the views (on the ground, in flight, in hand) never change.
- * One row per kind: pavé (#8), tomate, crotte, trottinette (#15).
+ * One row per kind: pavé (#8), tomate, crotte, trottinette (#15), Vélib (#121).
  *
  * The models are life-size (a 10 cm pavé), far too small to read from the
  * isometric camera, so each is scaled up to about its placeholder's size.
@@ -99,6 +99,29 @@ function Trottinette() {
   );
 }
 
+function Velib() {
+  // A grey bike standing on its wheels, a green front basket (#121). Drawn along local Z, front at +Z.
+  const r = 0.3;
+  return (
+    <group>
+      {[-1, 1].map((end) => (
+        <mesh key={end} position={[0, r, end * 0.52]} rotation-z={Math.PI / 2} castShadow>
+          <cylinderGeometry args={[r, r, 0.08, 12]} />
+          <meshStandardMaterial color="#1b1d22" />
+        </mesh>
+      ))}
+      <mesh position={[0, r + 0.12, 0]} castShadow>
+        <boxGeometry args={[0.09, 0.09, 1.0]} />
+        <meshStandardMaterial color="#b1b5af" />
+      </mesh>
+      <mesh position={[0, 0.86, 0.58]} castShadow>
+        <boxGeometry args={[0.42, 0.2, 0.32]} />
+        <meshStandardMaterial color="#7cbf2a" />
+      </mesh>
+    </group>
+  );
+}
+
 /**
  * Jordan's model of a throwable, standing on y = 0 and centred, `scale` times
  * its own size; `fallback` until it has loaded, or if it failed. Every copy
@@ -126,6 +149,8 @@ export const THROWABLE_LOOKS: Readonly<Record<ItemKind, ThrowableLook>> = {
   [ThrowableKind.Crotte]: { model: () => <ThrowableModel url={T.dogPoo} scale={1.4} fallback={<Crotte />} />, flightY: 1.2, arcHeight: 1.2, spin: 14, handY: -0.75 },
   // Parked upright on its stand, held up over the head, end over end in the air.
   [ThrowableKind.Trottinette]: { model: () => <ThrowableModel url={T.trottinette} scale={1} fallback={<Trottinette />} />, flightY: 1.1, arcHeight: 0.8, spin: 7, handY: -0.65 },
+  // #121: standing on its wheels, hoisted overhead, a slow heavy tumble that doesn't rise much.
+  [ThrowableKind.Velib]: { model: () => <ThrowableModel url={T.velib} scale={0.9} fallback={<Velib />} />, flightY: 1.1, arcHeight: 0.5, spin: 5, handY: -0.6 },
 };
 
 /** The look of a synced kind, or null for "nothing" and unknown kinds. */

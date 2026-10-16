@@ -181,6 +181,21 @@ describe("thinking", () => {
     expect(intent.move).toEqual({ x: 0, z: 0 });
   });
 
+  test("with a short-range item in hand (#121: a Vélib) it walks into its reach before it throws", () => {
+    const m = mindAt(0.3);
+    const target = crs("c", 0.345);
+    m.plan = { kind: "throw", id: "c" };
+    // About 8 m: in reach of a pavé, not of a Vélib.
+    expect(thinkBot(m, world(m, { crs: [target], now: 5 }, { carrying: true })).throwAt).toEqual({ x: target.x, z: target.z });
+    m.plan = { kind: "throw", id: "c" };
+    const far = thinkBot(m, world(m, { crs: [target], now: 6 }, { carrying: true, reach: 6 }));
+    expect(far.throwAt).toBeNull();
+    expect(Math.hypot(far.move.x, far.move.z)).toBeCloseTo(1, 5);
+    const near = crs("c", 0.32);
+    m.plan = { kind: "throw", id: "c" };
+    expect(thinkBot(m, world(m, { crs: [near], now: 7 }, { carrying: true, reach: 6 })).throwAt).toEqual({ x: near.x, z: near.z });
+  });
+
   test("holds interact the whole way to a grabbed teammate it goes for", () => {
     const m = mindAt(0.3);
     m.plan = { kind: "rescue", id: "h" };
