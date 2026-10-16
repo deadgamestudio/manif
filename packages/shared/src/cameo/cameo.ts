@@ -8,7 +8,7 @@
  * street at once.
  *
  * Speaking: one cameo bubble on screen at a time, across all of them. A line
- * shows for CAMEO.bubble, then that cameo keeps quiet for a rolled
+ * shows for CAMEO.bubble, or as long as its voice clip (#137, cameoHold), then that cameo keeps quiet for a rolled
  * CAMEO.silenceMin..silenceMax. An ordinary line waits for its turn (nobody
  * talking, the cameo's own silence over, CAMEO.gap after the last bubble). A
  * key moment (arrival, leaving, grabbed, unmasked, a hit) always speaks and
@@ -85,6 +85,20 @@ export function cameoSpeak(voices: CameoVoices, id: string, now: number, key: bo
   voices.until = now + CAMEO.bubble;
   voices.quiet.set(id, voices.until + CAMEO.silenceMin + (CAMEO.silenceMax - CAMEO.silenceMin) * random());
   return true;
+}
+
+/**
+ * Cameo `id`, who just got the bubble at `now`, keeps it up `seconds` (never
+ * under CAMEO.bubble): its voiced line (#137) is longer than a plain bubble.
+ * Its silence moves back by the same amount. Nothing if it isn't the speaker.
+ */
+export function cameoHold(voices: CameoVoices, id: string, now: number, seconds: number): void {
+  if (voices.speaker !== id) return;
+  const until = now + Math.max(CAMEO.bubble, seconds);
+  const shift = until - voices.until;
+  voices.until = until;
+  const quiet = voices.quiet.get(id);
+  if (quiet !== undefined) voices.quiet.set(id, quiet + shift);
 }
 
 /** Whether cameo `id`'s bubble is up at `now`. */

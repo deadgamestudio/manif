@@ -1,4 +1,4 @@
-import { cameoHush, cameoSpeak, cameoSpeaking, createCameoVoices, type CameoVoices } from "@manif/shared";
+import { cameoBubbleSeconds, cameoHold, cameoHush, cameoSpeak, cameoSpeaking, createCameoVoices, type CameoVoices } from "@manif/shared";
 
 /**
  * The cameos' shared speaking turn (#132), one per room: Moluchan, La Douane
@@ -27,6 +27,15 @@ export class CameoStage {
     if (!cameoSpeak(this.voices, id, now, key, this.random)) return false;
     if (cut) for (const refresh of this.watchers) refresh();
     return true;
+  }
+
+  /**
+   * Cameo `id` was just given the bubble at `now` and picked `line`: the
+   * bubble stays up as long as that line's voice clip (#137), at least
+   * CAMEO.bubble, and its silence comes after.
+   */
+  hold(id: string, now: number, line: number): void {
+    cameoHold(this.voices, id, now, cameoBubbleSeconds(id, line));
   }
 
   /** Whether cameo `id`'s bubble is up at `now`. */

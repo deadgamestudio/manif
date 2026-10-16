@@ -334,6 +334,7 @@ export class LeZEvent {
   private say(v: Visit, kind: LeZLineKind, now: number, key: boolean): void {
     if (!this.stage.say(LEZ_ID, now, key)) return;
     v.line = pickLeZLine(kind, v.line, this.random);
+    this.stage.hold(LEZ_ID, now, v.line);
     v.talkAt = now + LEZ.talkEvery;
   }
 

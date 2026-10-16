@@ -85,6 +85,8 @@ function MoluchanCardView() {
   return (
     <>
       <h3 className="help-subtitle">Et parfois, un invité surprise</h3>
+      {/* #137: their lines are voiced. */}
+      <p className="help-text">Ils parlent : monte le son pour les entendre. Leurs répliques s'affichent aussi en bulle.</p>
       <ul className="help-cards">
         <GuestCard m={moluchanCard()} chipsLabel="Dans son cercle" />
         {/* #120: the kid with the water gun. */}

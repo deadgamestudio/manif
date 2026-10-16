@@ -14,7 +14,8 @@
     "lint": "oxlint src seo scripts vite.config.ts",
     "test": "bun test ./seo ./src",
     "og:render": "bun scripts/og/render.ts",
-    "portraits": "bun scripts/portraits/render.ts"
+    "portraits": "bun scripts/portraits/render.ts",
+    "voices": "bun scripts/voices/build.ts"
   },
   "dependencies": {
     "@colyseus/schema": "5.0.39",

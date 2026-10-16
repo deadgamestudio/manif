@@ -12,6 +12,7 @@ import { FILE_SOUNDS, MAX_VOICES, SYNTH_SOUNDS, isFileSound, maxVoicesOf, sounds
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, type SoundSettings } from "./settings.ts";
 import { synthesize } from "./synth.ts";
 import { MIN_GAIN, admit, type Voice } from "./voices.ts";
+import type { VoiceEffect } from "./cameoVoice.ts";
 
 /** One loop the game wants playing right now, at this level. */
 export interface LoopWish {
@@ -59,6 +60,15 @@ let settings: SoundSettings = DEFAULT_SETTINGS;
 let settingsLoaded = false;
 const settingsListeners = new Set<() => void>();
 let bedWanted = false;
+/** The cameos' voice clips (#137), by path under public/, fetched when a cameo shows up. */
+const clips = new Map<string, AudioBuffer>();
+const clipLoading = new Map<string, Promise<AudioBuffer | null>>();
+/** The one cameo clip playing, if any. */
+let clip: { path: string; source: AudioBufferSourceNode; gain: GainNode; pan: StereoPannerNode | null; endsAt: number } | null = null;
+/** A clip asked for before it was loaded: it starts when it is, if nothing else was asked meanwhile. */
+let pendingClip: { path: string; gain: number; pan: number; effect: VoiceEffect; askedAt: number } | null = null;
+/** A clip that loads later than this after its line came up (seconds) is skipped: too far out of sync with the bubble. */
+const CLIP_LATE = 0.8;
 let hidden = false;
 
 const dev: AudioDevStats | null = import.meta.env.DEV
@@ -167,6 +177,103 @@ function makePanner(context: AudioContext, pan: number): StereoPannerNode | null
   return p;
 }
 
+/**
+ * The light effect on a cameo voice, between the clip and its gain: a
+ * megaphone (a band of 500 to 3000 Hz and a little grit), or muffled under
+ * a helmet (only the lows and mids).
+ */
+function voiceChain(context: AudioContext, effect: VoiceEffect, out: AudioNode): AudioNode {
+  if (effect === "helmet") {
+    const low = context.createBiquadFilter();
+    low.type = "lowpass";
+    low.frequency.value = 1500;
+    low.Q.value = 0.9;
+    low.connect(out);
+    return low;
+  }
+  if (effect === "megaphone") {
+    const high = context.createBiquadFilter();
+    high.type = "highpass";
+    high.frequency.value = 500;
+    const low = context.createBiquadFilter();
+    low.type = "lowpass";
+    low.frequency.value = 3000;
+    const grit = context.createWaveShaper();
+    grit.curve = megaphoneCurve();
+    grit.oversample = "2x";
+    // The soft clip about doubles a quiet signal: bring it back level with the others.
+    const trim = context.createGain();
+    trim.gain.value = 0.6;
+    high.connect(grit).connect(low).connect(trim).connect(out);
+    return high;
+  }
+  return out;
+}
+
+let gritCurve: Float32Array<ArrayBuffer> | null = null;
+/** A soft clip, made once. */
+function megaphoneCurve(): Float32Array<ArrayBuffer> {
+  if (gritCurve) return gritCurve;
+  const curve = new Float32Array(256);
+  for (let i = 0; i < curve.length; i++) {
+    const x = (i / (curve.length - 1)) * 2 - 1;
+    curve[i] = Math.tanh(2.2 * x) / Math.tanh(2.2);
+  }
+  gritCurve = curve;
+  return curve;
+}
+
+function loadClip(path: string): Promise<AudioBuffer | null> {
+  const existing = clipLoading.get(path);
+  if (existing) return existing;
+  const context = ctx;
+  if (!context) return Promise.resolve(null);
+  const attempt = fetch(`${import.meta.env.BASE_URL}${path}`)
+    .then((r) => {
+      if (!r.ok) throw new Error(`${r.status}`);
+      return r.arrayBuffer();
+    })
+    .then((data) => context.decodeAudioData(data))
+    .then((buffer) => {
+      clips.set(path, buffer);
+      devLog(`voice loaded ${path} ${buffer.duration.toFixed(2)}s`);
+      return buffer;
+    })
+    .catch((err: unknown) => {
+      // No clip (an old deploy, a bad network): the bubble still shows. Try again next visit.
+      clipLoading.delete(path);
+      console.warn(`[audio] ${path} failed to load:`, err);
+      return null;
+    });
+  clipLoading.set(path, attempt);
+  return attempt;
+}
+
+/** Start a loaded cameo clip now: the one clip playing. */
+function startClip(path: string, buffer: AudioBuffer, gain: number, pan: number, effect: VoiceEffect) {
+  const bus = buses.sfx;
+  if (!ctx || !bus) return;
+  const t = ctx.currentTime;
+  const out = ctx.createGain();
+  out.gain.value = gain;
+  const panner = makePanner(ctx, pan);
+  if (panner) out.connect(panner).connect(bus);
+  else out.connect(bus);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(voiceChain(ctx, effect, out));
+  source.start(t);
+  const playing = { path, source, gain: out, pan: panner, endsAt: t + buffer.duration };
+  clip = playing;
+  source.onended = () => {
+    if (clip !== playing) return;
+    clip = null;
+    devLog(`voice end ${path}`);
+  };
+  if (dev) dev.played[`voice:${path}`] = (dev.played[`voice:${path}`] ?? 0) + 1;
+  devLog(`voice start ${path} ${buffer.duration.toFixed(2)}s g=${gain.toFixed(2)} p=${pan.toFixed(2)}`);
+}
+
 export const audio = {
   /**
    * Create or resume the audio engine. Call it from a click or key handler
@@ -263,6 +370,67 @@ export const audio = {
       dev.maxActive = Math.max(dev.maxActive, voices.filter((v) => v.bus === "sfx").length);
       devLog(`play ${name} g=${level.toFixed(2)} p=${pan.toFixed(2)}`);
     }
+  },
+
+  /** Fetch and decode these cameo clips now (a cameo just arrived), so its lines play on time. */
+  preloadClips(paths: readonly string[]): boolean {
+    if (!ctx) return false;
+    for (const path of paths) void loadClip(path);
+    return true;
+  },
+
+  /**
+   * Play a cameo's voice clip (#137), cutting the one before: never two at
+   * once. On the effects bus (the effects mute silences it), outside the
+   * effects' voice cap. Not loaded yet: it loads, and this line stays silent.
+   */
+  playClip(path: string, gain: number, pan: number, effect: VoiceEffect) {
+    this.stopClip();
+    if (!ctx || ctx.state !== "running" || hidden) return;
+    if (!buses.sfx || busGain("sfx") === 0) return;
+    const buffer = clips.get(path);
+    if (buffer) {
+      startClip(path, buffer, gain, pan, effect);
+      return;
+    }
+    // Not loaded yet (the cameo's arrival line comes with the cameo): start it as soon as it is.
+    const asked = { path, gain, pan, effect, askedAt: ctx.currentTime };
+    pendingClip = asked;
+    devLog(`voice waiting ${path}`);
+    void loadClip(path).then((loaded) => {
+      if (pendingClip !== asked) return;
+      pendingClip = null;
+      if (!loaded || !ctx || ctx.currentTime - asked.askedAt > CLIP_LATE) {
+        devLog(`voice skipped ${path}`);
+        return;
+      }
+      startClip(path, loaded, asked.gain, asked.pan, asked.effect);
+    });
+  },
+
+  /** Follow the speaking cameo as he (or the player) moves. */
+  moveClip(gain: number, pan: number) {
+    if (pendingClip) {
+      pendingClip.gain = gain;
+      pendingClip.pan = pan;
+    }
+    if (!ctx || !clip) return;
+    const t = ctx.currentTime;
+    clip.gain.gain.setTargetAtTime(gain, t, 0.08);
+    clip.pan?.pan.setTargetAtTime(pan, t, 0.08);
+  },
+
+  /** Stop the cameo clip that is playing (or waiting to), with a short fade: another line cut it, or its cameo left. */
+  stopClip() {
+    pendingClip = null;
+    const playing = clip;
+    if (!playing) return;
+    clip = null;
+    const t = ctx?.currentTime ?? 0;
+    if (t >= playing.endsAt) return;
+    playing.gain.gain.setTargetAtTime(0, t, 0.03);
+    playing.source.stop(t + 0.15);
+    devLog(`voice stop ${playing.path}`);
   },
 
   /**

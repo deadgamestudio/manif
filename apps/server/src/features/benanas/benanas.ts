@@ -378,6 +378,7 @@ export class BenanasEvent {
   private say(v: Visit, kind: BenanasLineKind, now: number, key: boolean): void {
     if (!this.stage.say(BENANAS_ID, now, key)) return;
     v.line = pickBenanasLine(kind, v.line, this.random);
+    this.stage.hold(BENANAS_ID, now, v.line);
   }
 
   /** Mirror him into `state.benanas` (only what changed is sent). */

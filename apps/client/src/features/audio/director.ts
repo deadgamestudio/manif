@@ -7,9 +7,10 @@
  * the server's own updates come 20 times a second at most, and nothing here
  * needs to be frame-exact.
  */
-import { CrsKind, MOLUCHAN_ID, Phase, STREET_LEVEL, type ShopLot, type StreetStateShape } from "@manif/shared";
+import { BENANAS_ID, CAMEO_VOICE_LINES, CrsKind, DOUANE_ID, LEZ_ID, MOLUCHAN_ID, Phase, STREET_LEVEL, cameoClipPath, type ShopLot, type StreetStateShape } from "@manif/shared";
 import { net, type NetEvent } from "../../shared/net/index.ts";
 import { ambienceLevels, diffCues, messageCues, type Cue, type CrsView, type ItemView, type MessageMemory, type NetCueEvent, type PlayerView, type PropTable, type WorldView } from "./cues.ts";
+import { voiceEffect, voicePlacement, voiceStep, type VoiceLine } from "./cameoVoice.ts";
 import { audio, type LoopWish } from "./engine.ts";
 import { FILE_SOUNDS, isFileSound } from "./sounds.ts";
 import { pitch, place, type Point } from "./spatial.ts";
@@ -47,6 +48,71 @@ let nextCough = 0;
 let nextWhistle = 0;
 let nextMegaphone = 0;
 const memory: MessageMemory = { crsSwings: new Map() };
+
+// --- The cameos' voices (#137) ---
+/** Each cameo's synced line at the last look, or null: the next look is a baseline. */
+let prevLines: Map<string, number> | null = null;
+/** The cameo line being voiced. */
+let voicing: VoiceLine | null = null;
+/** Cameos whose clips were fetched already. */
+const preloaded = new Set<string>();
+
+/** Where each cameo on the street is, and the line on its bubble. */
+function cameosOf(): Map<string, { x: number; z: number; line: number }> {
+  const out = new Map<string, { x: number; z: number; line: number }>();
+  const m = net.getMoluchan();
+  if (m) out.set(MOLUCHAN_ID, m);
+  const d = net.getDouane();
+  if (d) out.set(DOUANE_ID, d);
+  const b = net.getBenanas();
+  if (b) out.set(BENANAS_ID, b);
+  const z = net.getLeZ();
+  if (z) out.set(LEZ_ID, z);
+  return out;
+}
+
+/** Start, stop and place the cameo voice from the synced lines; fetch a cameo's clips when it shows up. */
+function cameoVoices(listener: Point | null) {
+  const cameos = cameosOf();
+  const lines = new Map<string, number>();
+  for (const [id, c] of cameos) {
+    lines.set(id, c.line);
+    if (!preloaded.has(id)) {
+      const paths: string[] = [];
+      CAMEO_VOICE_LINES[id]?.forEach((_, i) => {
+        const path = cameoClipPath(id, i);
+        if (path && !paths.includes(path)) paths.push(path);
+      });
+      if (audio.preloadClips(paths)) preloaded.add(id);
+    }
+  }
+  const step = voiceStep(prevLines, lines, voicing);
+  prevLines = lines;
+  if (step.stop) {
+    audio.stopClip();
+    voicing = null;
+  }
+  if (step.start) {
+    const path = cameoClipPath(step.start.cameo, step.start.line);
+    voicing = step.start;
+    if (path) {
+      const c = cameos.get(step.start.cameo);
+      const { gain, pan } = voicePlacement(listener, c ? { x: c.x, z: c.z } : null);
+      if (import.meta.env.DEV) console.debug(`[voice] start ${path} at gain ${gain.toFixed(2)}`);
+      audio.playClip(path, gain, pan, voiceEffect(step.start.cameo));
+    }
+  } else if (voicing) {
+    const c = cameos.get(voicing.cameo);
+    const { gain, pan } = voicePlacement(listener, c ? { x: c.x, z: c.z } : null);
+    audio.moveClip(gain, pan);
+  }
+}
+
+function silenceVoices() {
+  if (voicing) audio.stopClip();
+  voicing = null;
+  prevLines = null;
+}
 
 function buildView(state: StreetStateShape): WorldView {
   const players = new Map<string, PlayerView>();
@@ -147,11 +213,13 @@ function tick() {
   if (!state?.players || !localId || !state.players.get(localId)) {
     if (prev) audio.stopLoops();
     prev = null;
+    silenceVoices();
     return;
   }
   if (key !== prevKey) {
     prev = null;
     prevKey = key;
+    silenceVoices();
   }
   const now = performance.now();
   const view = buildView(state);
@@ -161,6 +229,7 @@ function tick() {
   for (const cue of diffCues(prev, view, localId, props())) playCue(cue, listener);
   prev = view;
   timedSounds(view, localId, now);
+  cameoVoices(listener);
   audio.setLoops(loopsFor(view, localId, now));
 }
 

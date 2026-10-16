@@ -278,6 +278,7 @@ export class MoluchanEvent {
   private say(v: Visit, kind: MoluchanLineKind, now: number, key: boolean): void {
     if (!this.stage.say(MOLUCHAN_ID, now, key)) return;
     v.line = pickMoluchanLine(kind, v.line, this.random);
+    this.stage.hold(MOLUCHAN_ID, now, v.line);
   }
 
   /** Mirror him into `state.moluchan` (only what changed is sent). */

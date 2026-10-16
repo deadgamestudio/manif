@@ -132,6 +132,7 @@ row for nearly every number and rule in the game.
 | Points per action and per-round caps | `ACTION_POINTS` in `packages/shared/src/score/constants.ts` |
 | Bot protesters | `BOT` in `packages/shared/src/bot/constants.ts`, `bot/brain.ts` |
 | Sounds | `apps/client/src/features/audio/` (`cues.ts`, `sounds.ts`); files in `apps/client/public/sounds/` |
+| Cameo voices (#137) | clips in `apps/client/public/voices/<cameo>/<kind>-<index>.mp3`; swap one by dropping a file of the same name, then `bun run voices` in `apps/client` to refresh the lengths (`packages/shared/src/cameo/clips.ts`) |
 | A placeholder 3D look | the feature's `*Visuals.tsx` in `apps/client/src/features/` |
 | A new client → server message | `packages/shared/src/net/messages.ts`, handled in `apps/server/src/rooms/StreetRoom.ts` |
 | New synced state | a Schema in the server feature, added to `apps/server/src/rooms/state.ts`, plus the plain type in `packages/shared/src/net/state.ts` |
@@ -220,7 +221,7 @@ headers decide what is cached; Cloudflare is set to follow them (#90):
 | Path | Browser | Cloudflare |
 |---|---|---|
 | `/assets/*` (hashed bundles) | 1 year, `immutable` | 1 year |
-| `/sounds/*`, `/models/*`, `/og/*`, `favicon.svg`, `apple-touch-icon.png` | 1 minute | 1 day, purged on each deploy |
+| `/sounds/*`, `/voices/*`, `/models/*`, `/og/*`, `favicon.svg`, `apple-touch-icon.png` | 1 minute | 1 day, purged on each deploy |
 | Pages (`/`, `/aide`, `/?lobby=…`), `robots.txt`, `sitemap.xml` | revalidates (`no-cache`) | not cached |
 | `/colyseus/*` (matchmaking, WebSockets, health) | `no-store` | bypassed |
 | `/colyseus/leaderboard` | revalidates | 15 s, only with the optional rule below |
@@ -243,7 +244,7 @@ To rebuild the Cloudflare side, in the zone's dashboard:
      **Eligible for cache**, Edge TTL "Use cache-control header if present,
      bypass cache if not", Browser TTL "Respect origin". It absorbs refresh
      spam for 15 s.
-  3. *Static files*: URI path starts with `/assets/`, `/sounds/`, `/models/`
+  3. *Static files*: URI path starts with `/assets/`, `/sounds/`, `/voices/`, `/models/`
      or `/og/`, or equals `/favicon.svg` or `/apple-touch-icon.png` →
      **Eligible for cache**, Edge TTL "Use cache-control header if present,
      bypass cache if not", Browser TTL "Respect origin". Needed for the models:
@@ -259,7 +260,7 @@ lobby-creation limit reads.
 **The purge after each deploy.** A deploy can change a sound or a model under
 the same name, and Cloudflare would keep its copy for a day.
 [`scripts/cf-purge.sh`](scripts/cf-purge.sh) empties Cloudflare's copies of
-`/sounds`, `/models`, `/og` and the icons (purge by prefix, available on every
+`/sounds`, `/voices`, `/models`, `/og` and the icons (purge by prefix, available on every
 plan). It leaves `/assets` alone, so a tab opened before the deploy still gets
 its old chunks. The client image has it as `cf-purge`. To set it up:
 
@@ -314,5 +315,7 @@ its memory.
 - **Sounds**: all CC0, sources listed in
   [apps/client/public/sounds/CREDITS.md](apps/client/public/sounds/CREDITS.md).
   A few are made in code (`apps/client/src/features/audio/synth.ts`).
+- **Cameo voices**: generated with ElevenLabs from library voices (no clone
+  of a real person), `apps/client/public/voices/`.
 - **3D art**: by Jordan. Every model in the game today is a placeholder made of
   simple shapes until the real ones land (#28).

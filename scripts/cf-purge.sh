@@ -1,6 +1,6 @@
 #!/bin/sh
 # Empties Cloudflare's copies of the files that keep their name across deploys
-# (#90): the sounds, the models, the link preview image and the icons. The
+# (#90): the sounds, the voices (#137), the models, the link preview image and the icons. The
 # hashed bundles under /assets are left alone: a new deploy never reuses their
 # names, and a tab opened before the deploy still finds its old chunks there.
 # The pages are not cached at Cloudflare, so there is nothing to empty.
@@ -28,7 +28,7 @@ fi
 
 url="https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache"
 # A prefix also matches the file itself (favicon.svg), and every query string.
-body="{\"prefixes\":[\"$host/sounds/\",\"$host/models/\",\"$host/og/\",\"$host/favicon.svg\",\"$host/apple-touch-icon.png\"]}"
+body="{\"prefixes\":[\"$host/sounds/\",\"$host/voices/\",\"$host/models/\",\"$host/og/\",\"$host/favicon.svg\",\"$host/apple-touch-icon.png\"]}"
 
 if command -v curl >/dev/null 2>&1; then
 	answer=$(curl -sS -X POST "$url" \
@@ -44,7 +44,7 @@ fi
 
 case "$answer" in
 	*'"success":true'* | *'"success": true'*)
-		echo "cf-purge: emptied Cloudflare's copies of /sounds, /models, /og and the icons on $host."
+		echo "cf-purge: emptied Cloudflare's copies of /sounds, /voices, /models, /og and the icons on $host."
 		;;
 	*)
 		# Cloudflare's answer names the error; it never echoes the token.

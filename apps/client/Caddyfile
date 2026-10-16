@@ -100,7 +100,7 @@
 	# stale-while-revalidate, and stale-while-revalidate in Cache-Control would
 	# let browsers play an old sound once after a deploy. A missing one is a
 	# real 404, not the page.
-	@unhashed path /sounds/* /models/* /og/* /favicon.svg /apple-touch-icon.png
+	@unhashed path /sounds/* /voices/* /models/* /og/* /favicon.svg /apple-touch-icon.png
 	handle @unhashed {
 		root * /srv
 		encode zstd gzip
