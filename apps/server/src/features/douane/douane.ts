@@ -295,6 +295,7 @@ export class DouaneEvent {
   private say(v: Visit, kind: DouaneLineKind, now: number, key: boolean): void {
     if (!this.stage.say(DOUANE_ID, now, key)) return;
     v.line = pickDouaneLine(kind, v.line, this.random);
+    this.stage.hold(DOUANE_ID, now, v.line);
   }
 
   /** Mirror him into `state.douane` (only what changed is sent). */

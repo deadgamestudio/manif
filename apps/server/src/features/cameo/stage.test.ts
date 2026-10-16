@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { MapSchema } from "@colyseus/schema";
 import {
   BENANAS_ID,
-  CAMEO,
+  CAMEO_VOICE_LINES,
   CRS_STATS,
   CrsKind,
   DOUANE_ID,
@@ -12,6 +12,7 @@ import {
   ROUND_DURATION,
   STREET_LEVEL as LEVEL,
   TICK_DT,
+  cameoBubbleSeconds,
   levelWorld,
 } from "@manif/shared";
 import { BenanasEvent, BenanasView, type BenanasHost } from "../benanas/index.js";
@@ -70,6 +71,9 @@ function room() {
   return { moluchan, douane, benanas, step, talking, views };
 }
 
+/** The longest any bubble may stay up: the longest voice clip's (#137). */
+const LONGEST_BUBBLE = Math.max(...Object.entries(CAMEO_VOICE_LINES).flatMap(([id, lines]) => lines.map((_, i) => cameoBubbleSeconds(id, i))));
+
 describe("the cameos' speaking turn (#132)", () => {
   test("all three on the street at once: never two bubbles in the synced state, with silences between", () => {
     const r = room();
@@ -92,13 +96,27 @@ describe("the cameos' speaking turn (#132)", () => {
       longestBubble = Math.max(longestBubble, run * TICK_DT);
       last = who;
     }
-    // Short bursts: a bubble never stays up past its time.
-    expect(longestBubble).toBeLessThanOrEqual(CAMEO.bubble + TICK_DT);
+    // Short bursts: a bubble never stays up past its time (its voice clip's, #137).
+    expect(longestBubble).toBeLessThanOrEqual(LONGEST_BUBBLE + TICK_DT);
     // Moluchan (rallying) and La Douane (firing) both got a word in, and nobody hogs the screen.
     expect(upTicks[MOLUCHAN_ID]).toBeGreaterThan(0);
     expect(upTicks[DOUANE_ID]).toBeGreaterThan(0);
     for (const id of [MOLUCHAN_ID, DOUANE_ID]) expect((upTicks[id] ?? 0) / ticks).toBeLessThan(0.35);
     expect(silent).toBeGreaterThan(0);
+  });
+
+  test("a bubble stays up as long as its voice clip, then comes down (#137)", () => {
+    const r = room();
+    const line = r.views.b.get(BENANAS_ID)?.line ?? -1;
+    expect(line).toBeGreaterThanOrEqual(0);
+    const hold = cameoBubbleSeconds(BENANAS_ID, line);
+    let t = 0;
+    for (; t < hold - TICK_DT; t += TICK_DT) {
+      r.step(t);
+      expect(r.talking()).toEqual([BENANAS_ID]);
+    }
+    r.step(hold + TICK_DT);
+    expect(r.talking()).not.toContain(BENANAS_ID);
   });
 
   test("a key moment cuts whoever was talking in the same patch: Moluchan grabbed", () => {
