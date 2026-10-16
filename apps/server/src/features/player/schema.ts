@@ -59,6 +59,11 @@ export const Player = schema(
      * from what it resolved itself; reset when a march starts. The lasting total and the token are never synced.
      */
     score: t.uint16().default(0),
+    /**
+     * In their grace (#131): just freed, back up or back in the street, no CRS batons or grabs them.
+     * The timer stays in the server's `CrsGrace`. Last, so an older client simply never reads it.
+     */
+    grace: t.boolean().default(false),
   },
   "Player",
 );

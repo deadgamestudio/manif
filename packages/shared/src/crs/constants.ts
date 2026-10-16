@@ -698,3 +698,49 @@ export const LINE_FLANK_DEPTH = 1;
 
 /** ...and by less than this (someone far down the street does not count). */
 export const LINE_FLANK_REACH = 20;
+
+// Regrouping (#131): a broken line does not chase for ever. Its members walk
+// back and form a new line ahead of the cortège, which can break again.
+
+/** A broken line's members chase for this long after the break (seconds), then walk back to re-form. */
+export const LINE_CHASE_TIME = 18;
+
+/** A member that landed this many baton swings (or one grab) since the break walks back before the others. */
+export const LINE_CHASE_HITS = 3;
+
+/** Members standing on their slot that re-form the line (all of them, when fewer are left). */
+export const LINE_REFORM_MIN = 3;
+
+/** A line re-forms at least this far (world units) ahead of the cortège's front, towards the CRS side. */
+export const LINE_REGROUP_AHEAD = 12;
+
+/** Spots looked at up to this much farther along the street than LINE_REGROUP_AHEAD. */
+export const LINE_REGROUP_SEARCH = 45;
+
+/** Spots looked at every this many world units along the street. */
+export const LINE_REGROUP_STEP = 1;
+
+/** No free protester closer than this to a re-forming line's centre (it does not form on top of people). */
+export const LINE_REGROUP_CLEAR = 4;
+
+/** A line does not re-form closer than this (along the street) to another line's centre. */
+export const LINE_REGROUP_SPREAD = 8;
+
+/** Walking back for longer than this without forming (stuck, the cortège got past the spot): the spot is picked again. */
+export const LINE_REGROUP_TIMEOUT = 20;
+
+/** No valid spot right now (the cortège is near the end): the members chase on and look again this much later. */
+export const LINE_REGROUP_RETRY = 1;
+
+// Grace (#131): a protester just freed from a grab, just back on their feet,
+// or just back in the street can't be batoned or grabbed by any CRS for a
+// moment. Gas, water and the LBD still apply.
+
+/** How long the grace lasts, seconds. */
+export const CRS_GRACE = 2;
+
+/** After struggling free (#70), the CRS that was dragging is floored, and stays dazed this long once back up (seconds). */
+export const ESCAPE_STUN = 1.5;
+
+/** Knockback on that CRS, m/s, away from the protester. Always floors it. */
+export const ESCAPE_IMPULSE = 8;

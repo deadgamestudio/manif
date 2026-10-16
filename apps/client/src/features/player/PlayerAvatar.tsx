@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal, useFrame } from "@react-three/fiber";
-import { Color, MeshBasicMaterial, RingGeometry, Vector3, type Group, type MeshStandardMaterial } from "three";
+import { Color, MeshBasicMaterial, RingGeometry, Vector3, type Group, type Mesh, type MeshStandardMaterial } from "three";
 import { PLAYER_RADIUS, Phase, PlayerStatus, ThrowableKind, type PlayerShape } from "@manif/shared";
 import { damp } from "../../shared/iso/index.ts";
 import { net } from "../../shared/net/index.ts";
@@ -55,6 +55,17 @@ function ringMaterial(color: string, opacity: number): MeshBasicMaterial {
   }
   return m;
 }
+/**
+ * The grace (#131): a pale ring just outside the others, blinking and
+ * breathing while no CRS may baton or grab the player (just freed, back up or
+ * back in the street). One geometry and one material for everyone.
+ */
+const GRACE_GEOMETRY = new RingGeometry(PLAYER_RADIUS + 0.38, PLAYER_RADIUS + 0.68, 40);
+const GRACE_MATERIAL = new MeshBasicMaterial({ color: "#a8ecff", transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false });
+/** Blink period half (ms) and breathing (scale amplitude, per second). */
+const GRACE_BLINK_MS = 110;
+const GRACE_PULSE = 0.12;
+const GRACE_PULSE_SPEED = 9;
 /** Grabbed, KO: the clothes go a bit pale, towards this. */
 const HURT_COLOR = new Color("#b0bec5");
 const HURT_MIX = 0.6;
@@ -477,6 +488,8 @@ export function PlayerAvatar({
         ))}
       {/* The other humans (#28): a ring in their own colour, to pick friends out of a dark crowd. Bots get none. On the root, so it stays flat on the ground whatever the body does. */}
       {!isLocal && !bot && <GroundRing material={ringMaterial(ringColorFor(id), 0.95)} />}
+      {/* Their grace (#131): no CRS baton or grab for a moment, bots included. */}
+      <GraceRing id={id} source={source} />
       {/* The ragdoll (#26), in world space under the root: never tilted or turned with the capsule. */}
       {ragdoll.view}
       {/* Still on fire while ragdolling (#16): the flames ride the ragdoll's pelvis. */}
@@ -511,6 +524,19 @@ export function PlayerAvatar({
       </group>
     </group>
   );
+}
+
+/** The grace ring (#131): shown only while `grace` is synced on, blinking and breathing; nothing allocated per frame. */
+function GraceRing({ id, source }: { id: string; source: PlayerSource }) {
+  const ref = useRef<Mesh>(null);
+  useFrame((state) => {
+    const m = ref.current;
+    if (!m) return;
+    const on = source(id)?.grace === true;
+    m.visible = on && Math.floor(performance.now() / GRACE_BLINK_MS) % 4 !== 0;
+    if (on) m.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * GRACE_PULSE_SPEED) * GRACE_PULSE);
+  });
+  return <mesh ref={ref} visible={false} position-y={RING_Y + 0.004} rotation-x={-Math.PI / 2} geometry={GRACE_GEOMETRY} material={GRACE_MATERIAL} dispose={null} />;
 }
 
 /** A flat ring on the ground around the feet, casting no shadow. */

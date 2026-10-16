@@ -55,3 +55,13 @@ describe("parseDebugRound: benanas (#123)", () => {
     expect(taintsRound({ action: "benanas" }, 100)).toBe(true);
   });
 });
+
+describe("parseDebugRound: line (#131)", () => {
+  test("break only when true; optional distance and size, clamped", () => {
+    expect(parseDebugRound({ action: "line" })).toEqual({ action: "line" });
+    expect(parseDebugRound({ action: "line", break: true })).toEqual({ action: "line", break: true });
+    expect(parseDebugRound({ action: "line", break: "yes", distance: 99, size: 0.2 })).toEqual({ action: "line", distance: 40, size: 1 });
+    expect(parseDebugRound({ action: "line", distance: 10, size: 6 })).toEqual({ action: "line", distance: 10, size: 6 });
+    expect(taintsRound({ action: "line" }, 100)).toBe(true);
+  });
+});

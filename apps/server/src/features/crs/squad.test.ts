@@ -10,11 +10,13 @@ import {
   CrsMount,
   CrsStatus,
   HEAVY_IMPULSE,
+  LINE_REGROUP_AHEAD,
   MAX_CRS,
   PlayerStatus,
   STREET_LEVEL,
   TICK_DT,
   levelVans,
+  progressAt,
   propCollisionWorld,
   type CrsHost,
   type ProtesterView,
@@ -227,5 +229,42 @@ describe("CrsSquad grabs (#70)", () => {
     step(TICK_DT);
     expect(views.get(bot.id)!.windup).toBe(false);
     expect(squad.get(bot.id)!.status).toBe(CrsStatus.Active);
+  });
+});
+
+describe("CrsSquad and #131", () => {
+  test("throwOff: the CRS a protester struggled free from is floored on the wire and dazed", () => {
+    const { squad, views, now } = setup();
+    const bot = squad.spawn(MID.x, MID.z)!;
+    const res = squad.throwOff(bot.id, 1, 0, now());
+    expect(res?.knockedDown).toBe(true);
+    expect(views.get(bot.id)?.down).toBe(true);
+    expect(views.get(bot.id)?.status).toBe(CrsStatus.Stunned);
+    expect(squad.throwOff("nobody", 1, 0, now())).toBeNull();
+  });
+
+  test("a line broken on the street regroups ahead of the front and forms again, synced as a formation", () => {
+    const { squad, views, people, step } = setup();
+    people.set("p", { id: "p", x: 0, z: 74, status: PlayerStatus.Free, down: false });
+    const line = squad.spawnLine(0, 54)!;
+    // The front where the protester stands, as the room computes it.
+    squad.setFront(progressAt(LEVEL, 0, 74));
+    expect(squad.breakLines(0)).toBe(1);
+    step(0.1);
+    expect(views.get(line.members[0]!.id)?.formation).toBe(false);
+    let formedAt = -1;
+    let formedZ = Infinity;
+    let t = 0;
+    step(45, () => {
+      t += TICK_DT;
+      if (formedAt < 0 && line.formed) {
+        formedAt = t;
+        formedZ = line.centre.z;
+      }
+    });
+    expect(formedAt).toBeGreaterThan(0);
+    // Formed ahead of the front; it may then advance towards the protester like any line.
+    expect(formedZ).toBeLessThanOrEqual(74 - LINE_REGROUP_AHEAD + 1e-6);
+    expect(views.get(line.members[0]!.id)?.formation).toBe(true);
   });
 });

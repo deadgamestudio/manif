@@ -95,6 +95,17 @@ export function parseDebugRound(message: unknown): DebugRoundPayload | null {
       ...(raw.unmask === true && { unmask: true }),
     };
   }
+  if (m.action === "line") {
+    const raw = m as { break?: unknown; distance?: unknown; size?: unknown };
+    const distance = Number(raw.distance);
+    const size = Number(raw.size);
+    return {
+      action: "line",
+      ...(raw.break === true && { break: true }),
+      ...(raw.distance !== undefined && Number.isFinite(distance) && { distance: Math.max(0, Math.min(40, distance)) }),
+      ...(raw.size !== undefined && Number.isFinite(size) && { size: Math.max(1, Math.min(12, Math.round(size))) }),
+    };
+  }
   if (m.action === "time") {
     const seconds = Number(m.seconds);
     return Number.isFinite(seconds) ? { action: "time", seconds: Math.max(0, seconds) } : null;

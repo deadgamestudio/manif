@@ -5,8 +5,9 @@ import { TICK_DT } from "../net/index.js";
 import { KNOCKDOWN_THRESHOLD, applyImpulse, circleOverlaps, createBody, isDown, stepBody, type Body, type CollisionWorld } from "../physics/index.js";
 import { PLAYER_RADIUS, PLAYER_SPEED } from "../player/index.js";
 import { GAS_SLOW } from "../gas/index.js";
-import { burnCrs, createCrsBot, hitCrs, isWeakened, pickVan, stepCrs, steerTo, strikeCrs, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
-import { CRS_OFFENDER_MEMORY, CRS_STATS, CrsKind, CrsStatus, GRAB_HP_THRESHOLD, GRAB_WINDUP_SLACK } from "./constants.js";
+import { burnCrs, createCrsBot, escapeKnockdown, hitCrs, isWeakened, pickVan, stepCrs, steerTo, strikeCrs, stunCrs, type CrsBot, type CrsContext, type CrsHost } from "./brain.js";
+import { CRS_GRACE, CRS_OFFENDER_MEMORY, CRS_STATS, CrsKind, CrsStatus, ESCAPE_STUN, GRAB_HP_THRESHOLD, GRAB_WINDUP_SLACK } from "./constants.js";
+import { CrsGrace } from "./grace.js";
 import { escortSpot } from "./tension.js";
 import { NavGrid } from "./nav.js";
 import { vanDoors, type ProtesterView } from "./targeting.js";
@@ -30,6 +31,8 @@ class FakeHost implements CrsHost {
   readonly arrests: string[] = [];
   /** Floored by a baton (like the room, #70): that knockdown alone is not "down" enough to be grabbed. */
   readonly batonDowned = new Set<string>();
+  /** The grace (#131), as the room keeps it; tests grant it themselves. */
+  readonly grace = new CrsGrace();
   now = 0;
 
   add(id: string, x: number, z: number): FakeProtester {
@@ -46,6 +49,12 @@ class FakeHost implements CrsHost {
     p.view.hp = p.health.hp;
     if (!p.view.down) this.batonDowned.delete(p.view.id);
     p.view.batonDown = p.view.down && this.batonDowned.has(p.view.id);
+    p.view.graced = this.grace.isGraced(p.view.id, this.now);
+  }
+
+  /** Refresh every view now (after a test changed a body, a health or a grace). */
+  syncAll() {
+    for (const p of this.people.values()) this.sync(p);
   }
 
   protesters(): Iterable<ProtesterView> {
@@ -968,5 +977,82 @@ describe("a calm street (#98)", () => {
     ctx.calm = null;
     run(0.5);
     expect(bots[0]!.targetId).toBe("moluchan");
+  });
+});
+
+describe("grace (#131)", () => {
+  test("a protester in their grace is neither batoned nor grabbed; the bot goes after someone else meanwhile", () => {
+    const { host, run, addBot, bots, ctx } = setup();
+    addBot("crs-1", 0, 0);
+    // Weakened and touching: without the grace, a grab's wind-up would start at once.
+    const p = host.add("p", 0, touching);
+    p.health = { ...p.health, hp: GRAB_HP_THRESHOLD - 10 };
+    host.add("q", 0, -6);
+    host.grace.freed("p", ctx.now);
+    host.syncAll();
+    let windupOnP = false;
+    run(CRS_GRACE - 0.1, () => {
+      if (bots[0]!.windupId === "p") windupOnP = true;
+      return false;
+    });
+    expect(windupOnP).toBe(false);
+    expect(host.batonHits.filter((h) => h.id === "p")).toEqual([]);
+    expect(p.health.status).toBe(PlayerStatus.Free);
+    // It went for the other one instead of standing over them.
+    expect(host.batonHits.some((h) => h.id === "q")).toBe(true);
+  });
+
+  test("once the grace runs out, the baton lands again", () => {
+    const { host, run, addBot, ctx } = setup();
+    addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, touching);
+    host.grace.gotUp("p", ctx.now);
+    host.syncAll();
+    const hold = () => {
+      p.body.x = 0;
+      p.body.z = touching;
+      p.body.vx = p.body.vz = 0;
+      return false;
+    };
+    run(CRS_GRACE - 0.1, hold);
+    expect(host.batonHits).toEqual([]);
+    expect(run(1, () => (hold(), host.batonHits.length > 0))).toBe(true);
+    expect(ctx.now).toBeGreaterThanOrEqual(CRS_GRACE);
+  });
+
+  test("escapeKnockdown: the CRS that held them is floored, lets go, and stays dazed ESCAPE_STUN after it gets up", () => {
+    const { host, tick, run, addBot, ctx, windUp } = setup();
+    const bot = addBot("crs-1", 0, 0);
+    const p = host.add("p", 0, touching);
+    p.body.downTime = 1;
+    windUp();
+    expect(bot.status).toBe(CrsStatus.Grabbing);
+    // What the room does on a full struggle meter: free, grace, the holder floored away from them.
+    p.health = rescue(p.health, ctx.now);
+    host.grace.freed("p", ctx.now);
+    host.syncAll();
+    const res = escapeKnockdown(bot, bot.body.x - p.body.x, bot.body.z - p.body.z, ctx.now);
+    expect(res?.knockedDown).toBe(true);
+    expect(isDown(bot.body)).toBe(true);
+    tick();
+    expect(bot.grabbedId).toBeNull();
+    expect(bot.status).toBe(CrsStatus.Stunned);
+    expect(p.health.status).toBe(PlayerStatus.Free);
+    // Up again, still dazed for ESCAPE_STUN, and it never touches the freed protester meanwhile.
+    expect(run(5, () => !isDown(bot.body))).toBe(true);
+    const upAt = ctx.now;
+    expect(run(5, () => bot.status !== CrsStatus.Stunned)).toBe(true);
+    expect(ctx.now - upAt).toBeGreaterThanOrEqual(ESCAPE_STUN - 2 * TICK_DT);
+    expect(ctx.now - upAt).toBeLessThanOrEqual(ESCAPE_STUN + 2 * TICK_DT);
+    expect(host.batonHits).toEqual([]);
+  });
+
+  test("escapeKnockdown floors even a light bot through the usual knockdown, and ignores a bot already out", () => {
+    const bot = createCrsBot("crs-1", CrsKind.Crs, 0, 0);
+    expect(escapeKnockdown(bot, 1, 0, 0)?.knockedDown).toBe(true);
+    expect(bot.status).toBe(CrsStatus.Stunned);
+    const out = createCrsBot("crs-2", CrsKind.Crs, 0, 0);
+    out.status = CrsStatus.Out;
+    expect(escapeKnockdown(out, 1, 0, 0)).toBeNull();
   });
 });

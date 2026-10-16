@@ -22,6 +22,13 @@ describe("pickTarget", () => {
     expect(pickTarget(origin, [...list, at("f", 9, 0)], 20, null, 3)).toBe("f");
   });
 
+  test("skips a protester in their grace (#131), even the current target", () => {
+    const graced = { ...at("g", 1, 0), graced: true };
+    expect(pickTarget(origin, [graced, at("f", 9, 0)], 20, null, 3)).toBe("f");
+    expect(pickTarget(origin, [graced, at("f", 9, 0)], 20, "g", 3)).toBe("f");
+    expect(pickTarget(origin, [graced], 20, "g", 3)).toBeNull();
+  });
+
   test("nobody beyond sight", () => {
     expect(pickTarget(origin, [at("a", 30, 0)], 20, null, 3)).toBeNull();
   });
